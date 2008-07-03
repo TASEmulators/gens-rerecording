@@ -11,7 +11,8 @@ extern "C" {
 #define GENESIS_STATE_LENGTH    0x224B4 //Modif
 #define GENESIS_LENGTH_EX (GENESIS_LENGTH_EX1 + GENESIS_LENGTH_EX2) //Modif
 #define GENESIS_LENGTH_EX1 0x30D8 //Upthmodif - subtracted STATE_LENGTH from original value. Original value follows 0x25554 //Modif
-#define GENESIS_LENGTH_EX2 0x11EAE+44 //Modif N. - added ex2 and split ex from ex1... something tells me his is not the best architected save system for me to need to keep adding or modifying sizes in a list of defines just to expand the save format
+#define GENESIS_LENGTH_EX2 0xEDC6 + 0x123B //Modif N. - added ex2 and split ex from ex1... something tells me his is not the best architected save system for me to need to keep adding or modifying sizes in a list of defines just to expand the save format
+	//Modif U. - Got rid of about 12KB of zeros, added about 4KB back in to allow loading of GST v6 files.
 #define SEGACD_LENGTH_EX (SEGACD_LENGTH_EX1 + SEGACD_LENGTH_EX2) //Upthmodif - These values are now additive
 #define SEGACD_LENGTH_EX1 0xE19A4 //Modif N. - added ex2 and split ex from ex1...
 #define SEGACD_LENGTH_EX2 0x32C88 //Modif N. - added ex2 and split ex from ex1...
