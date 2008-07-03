@@ -761,6 +761,8 @@ int FILE_Read_One_LBA_CDC(void)
 #endif
 			}
 
+			CDC.STAT.B.B0 = 0x80;
+
 			if (CDC.CTRL.B.B0 & 0x10)		// determine form bit form sub header ?
 			{
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x08;
@@ -774,8 +776,6 @@ int FILE_Read_One_LBA_CDC(void)
 				CDC.STAT.B.B3 = 0x20;	// ECC done
 			else
 				CDC.STAT.B.B3 = 0x00;	// ECC not done
-
-			CDC.STAT.B.B0 = 0x80; // Modif N. -- moved from above, since it looked like a mistake to set it to 0x80 and then check if any bits that can't possibly be set are set
 
 			if (CDC.IFCTRL & 0x20)
 			{
@@ -806,6 +806,8 @@ int FILE_Read_One_LBA_CDC(void)
 				memcpy(&CDC.Buffer[CDC.PT.N], cp_buf, 2352);
 			}
 
+			CDC.STAT.B.B0 = 0x80;
+
 			if (CDC.CTRL.B.B0 & 0x10)		// determine form bit form sub header ?
 			{
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x08;
@@ -815,10 +817,10 @@ int FILE_Read_One_LBA_CDC(void)
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x0C;
 			}
 
-			if (CDC.CTRL.B.B0 & 0x02) CDC.STAT.B.B3 = 0x20;	// ECC done
-			else CDC.STAT.B.B3 = 0x00;	// ECC not done
-
-			CDC.STAT.B.B0 = 0x80; // Modif N. -- moved from above, since it looked like a mistake to set it to 0x80 and then check if any bits that can't possibly be set are set
+			if (CDC.CTRL.B.B0 & 0x02)
+				CDC.STAT.B.B3 = 0x20;	// ECC done
+			else
+				CDC.STAT.B.B3 = 0x00;	// ECC not done
 
 			if (CDC.IFCTRL & 0x20)
 			{
