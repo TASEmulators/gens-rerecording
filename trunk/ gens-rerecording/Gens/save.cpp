@@ -464,7 +464,7 @@ inline void ExportData(const void* from, void* data, unsigned int offset, unsign
 #ifdef _DEBUG
 	while(numBytes--)
 	{
-		assert(*dst == 0 && "error: saved over the same byte twice");
+		assert((*dst == 0 || *dst == 0xFF) && "error: saved over the same byte twice");
 		*dst++ = *src++;
 	}
 #else
