@@ -33,6 +33,7 @@
 #include "misc.h"
 #include "cd_sys.h"
 #include "movie.h"
+#include <direct.h>
 #ifdef _DEBUG
 #include <assert.h>
 #endif
@@ -155,6 +156,7 @@ void Get_State_File_Name(char *name)
 
 	Ext[3] = '0' + Current_State;
 	strcpy(name, State_Dir);
+	_mkdir(name); // added to avoid a crash
 	strcat(name, Rom_Name);
 	if (UseMovieStates && MainMovie.Status)
 	{
@@ -190,17 +192,17 @@ int Load_State_From_Buffer(unsigned char *buf)
 			fseek(MainMovie.File,0,SEEK_END);
 			MainMovie.LastFrame = ((ftell(MainMovie.File) - 64)/3);
 		}
-		z80_Reset(&M_Z80); // note: this alters some of the game's state that is not restored by the following. Doesn't appear to cause desync, but...
+		//z80_Reset(&M_Z80); // note: this alters some of the game's state that is not restored by the following. Doesn't appear to cause desync, but...
 ////		main68k_reset();
 ////		YM2612ResetChip(0);
-		Reset_VDP(); // Modif N - enabled, because the game locks up sometimes on loading a point with different sound samples (as often as about 1 out of every 20 tries in some games) in, for example, Ecco
+		//Reset_VDP(); // Modif N - enabled, because the game locks up sometimes on loading a point with different sound samples (as often as about 1 out of every 20 tries in some games) in, for example, Ecco
 
 		buf += Import_Genesis(buf); //upthmodif - fixed for new, additive, length determination
 		if (SegaCD_Started)
 		{
 			Import_SegaCD(buf); // Uncommented - function now exists
 			buf += SEGACD_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
-			z80_Reset(&M_Z80); //Unbarfs the Z80
+			//z80_Reset(&M_Z80); //Unbarfs the Z80
 		}
 		if (_32X_Started)
 		{
@@ -220,7 +222,7 @@ int Load_State(char *Name)
 	int len;
 	unsigned short *palbuf;
 
-	len = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX;
+	len = GENESIS_STATE_LENGTH;
 	if (Genesis_Started); //So it doesn't return zero if the SegaCD and 32X aren't running
 	else if (SegaCD_Started) len += SEGACD_LENGTH_EX;
 	else if (_32X_Started) len += G32X_LENGTH_EX;
@@ -382,13 +384,13 @@ int Save_State_To_Buffer (unsigned char *buf)
 {
 	int len;
 
-	len = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX; //Upthmodif - tweaked the length determination system;Modif N - used to be GENESIS_STATE_FILE_LENGTH, which I think is a major bug because then the amount written and the amount read are different - this change was necessary to append anything to the save (i.e. for bulletproof re-recording)
+	len = GENESIS_STATE_LENGTH; //Upthmodif - tweaked the length determination system;Modif N - used to be GENESIS_STATE_FILE_LENGTH, which I think is a major bug because then the amount written and the amount read are different - this change was necessary to append anything to the save (i.e. for bulletproof re-recording)
 	if (SegaCD_Started) len += SEGACD_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
 	else if (_32X_Started) len += G32X_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
 
 	memset(buf, 0, len);
 	Export_Genesis(buf);
-	buf += GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
+	buf += GENESIS_STATE_LENGTH; //upthmodif - fixed for new, additive, length determination
 	if (SegaCD_Started)
 	{
 		Export_SegaCD(buf); //upthmodif - uncommented, function now exiss
@@ -617,7 +619,7 @@ int Import_Genesis(unsigned char *Data)
 
 //	VDP_Int = 0;
 //	DMAT_Length = 0;
-	int len = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX;
+	int len = GENESIS_STATE_LENGTH;
 	Version = Data[0x50];
 	if (Version < 6) len -= 0x10000;
 
@@ -690,7 +692,8 @@ int Import_Genesis(unsigned char *Data)
 
 		if (Version >= 4)
 		{
-			for(i = 0; i < 8; i++) PSG_Save[i] = Data[i * 2 + 0x60] + (Data[i * 2 + 0x61] << 8);
+			for(i = 0; i < 8; i++)
+				PSG_Save[i] = Data[i * 2 + 0x60] + (Data[i * 2 + 0x61] << 8);
 			PSG_Restore_State();
 		}
 	}
@@ -740,10 +743,11 @@ int Import_Genesis(unsigned char *Data)
 		}
 	}
 
+	unsigned int offset = GENESIS_LENGTH_EX1;
+
 	if(Version == 6)
 	{
 		//Modif N. - saving more stuff (although a couple of these are saved above in a weird way that I don't trust)
-		unsigned int offset = 0x2247C;
 
 		ImportDataAuto(&Context_68K.dreg, Data, offset, 4*8);
 		ImportDataAuto(&Context_68K.areg, Data, offset, 4*8);
@@ -867,12 +871,13 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg.DMA_Src_Adr_H, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
-		offset = 0x3558D;
+	#ifdef _DEBUG
+		int desiredoffset = GENESIS_V6_STATE_LENGTH;
+		assert(offset == desiredoffset);
+	#endif
 	}
 	else if (Version >= 7)
 	{
-		unsigned int offset = 0x22480;	//Modif U. - Got rid of about 12KB of 00 bytes.
-
 		unsigned char Reg_2[sizeof(ym2612_)];
 		ImportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
 		YM2612_Restore_Full(Reg_2);
@@ -930,9 +935,12 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
 		ImportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
 
-		// these aren't saved but they don't seem to be necessary and I don't feel like saving them
-		//ImportDataAuto(&Def_z80_Mem, Data, offset, 0x10000);
 		ImportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+
+	#ifdef _DEBUG
+		int desiredoffset = GENESIS_STATE_LENGTH;
+		assert(offset == desiredoffset);
+	#endif
 	}
 
 	main68k_SetContext(&Context_68K);
@@ -1079,75 +1087,77 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x2247A]=unsigned char ((FrameCount>>16)&0xFF);   //Modif
 	Data[0x2247B]=unsigned char ((FrameCount>>24)&0xFF);   //Modif
 
-	//Modif N. - saving more stuff (added everything after this)
+	// everything after this should use this offset variable for ease of extensibility
+	unsigned int offset = GENESIS_LENGTH_EX1; // Modif U. - got rid of about 12 KB of 00 bytes.
 
-	unsigned int offset = 0x22480; // Modif U. - got rid of about 12 KB of 00 bytes.
+	// version 7 additions (version 6 additions deleted)
+	{
+		//Modif N. - saving more stuff (added everything after this)
 
-	unsigned char Reg_2[sizeof(ym2612_)];
-	YM2612_Save_Full(Reg_2);
-	ExportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
+		unsigned char Reg_2[sizeof(ym2612_)];
+		YM2612_Save_Full(Reg_2);
+		ExportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
 
-	PSG_Save_State_Full();
-	ExportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg));  // some important parts of this weren't saved above
+		PSG_Save_State_Full();
+		ExportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg));  // some important parts of this weren't saved above
 
-	ExportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
-	ExportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
-	ExportDataAuto(&M_Z80.IntAckC, Data, offset, 4);
+		ExportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
+		ExportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
+		ExportDataAuto(&M_Z80.IntAckC, Data, offset, 4);
 
-	ExportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
+		ExportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
 
-	ExportDataAuto(&Controller_1_State, Data, offset, 448);   // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
+		ExportDataAuto(&Controller_1_State, Data, offset, 448);   // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
 
-	// apparently necessary
-	ExportDataAuto(&VDP_Status, Data, offset, 4);
-	ExportDataAuto(&VDP_Int, Data, offset, 4);
-	ExportDataAuto(&VDP_Current_Line, Data, offset, 4);
-	ExportDataAuto(&VDP_Num_Lines, Data, offset, 4);
-	ExportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
-	ExportDataAuto(&DMAT_Length, Data, offset, 4);
-	ExportDataAuto(&DMAT_Type, Data, offset, 4);
-	//ExportDataAuto(&CRam_Flag, Data, offset, 4);
-	ExportDataAuto(&LagCount, Data, offset, 4);
-	ExportDataAuto(&VRam_Flag, Data, offset, 4);
-	ExportDataAuto(&CRam, Data, offset, 256 * 2);
+		// apparently necessary
+		ExportDataAuto(&VDP_Status, Data, offset, 4);
+		ExportDataAuto(&VDP_Int, Data, offset, 4);
+		ExportDataAuto(&VDP_Current_Line, Data, offset, 4);
+		ExportDataAuto(&VDP_Num_Lines, Data, offset, 4);
+		ExportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
+		ExportDataAuto(&DMAT_Length, Data, offset, 4);
+		ExportDataAuto(&DMAT_Type, Data, offset, 4);
+		//ExportDataAuto(&CRam_Flag, Data, offset, 4);
+		ExportDataAuto(&LagCount, Data, offset, 4);
+		ExportDataAuto(&VRam_Flag, Data, offset, 4);
+		ExportDataAuto(&CRam, Data, offset, 256 * 2);
 
-	// it's probably safer sync-wise to keep SRAM stuff in the savestate
-	ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
-	ExportDataAuto(&SRAM_Start, Data, offset, 4);
-	ExportDataAuto(&SRAM_End, Data, offset, 4);
-	ExportDataAuto(&SRAM_ON, Data, offset, 4);
-	ExportDataAuto(&SRAM_Write, Data, offset, 4);
-	ExportDataAuto(&SRAM_Custom, Data, offset, 4);
+		// it's probably safer sync-wise to keep SRAM stuff in the savestate
+		ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+		ExportDataAuto(&SRAM_Start, Data, offset, 4);
+		ExportDataAuto(&SRAM_End, Data, offset, 4);
+		ExportDataAuto(&SRAM_ON, Data, offset, 4);
+		ExportDataAuto(&SRAM_Write, Data, offset, 4);
+		ExportDataAuto(&SRAM_Custom, Data, offset, 4);
 
-	// this group I'm not sure about, they don't seem to be necessary but I'm keeping them around just in case
-	ExportDataAuto(&Bank_M68K, Data, offset, 4);
-	ExportDataAuto(&S68K_State, Data, offset, 4);
-	ExportDataAuto(&Z80_State, Data, offset, 4);
-	ExportDataAuto(&Last_BUS_REQ_Cnt, Data, offset, 4);
-	ExportDataAuto(&Last_BUS_REQ_St, Data, offset, 4);
-	ExportDataAuto(&Fake_Fetch, Data, offset, 4);
-	ExportDataAuto(&Game_Mode, Data, offset, 4);
-	ExportDataAuto(&CPU_Mode, Data, offset, 4);
-	ExportDataAuto(&CPL_M68K, Data, offset, 4);
-	ExportDataAuto(&CPL_S68K, Data, offset, 4);
-	ExportDataAuto(&CPL_Z80, Data, offset, 4);
-	ExportDataAuto(&Cycles_S68K, Data, offset, 4);
-	ExportDataAuto(&Cycles_M68K, Data, offset, 4);
-	ExportDataAuto(&Cycles_Z80, Data, offset, 4);
-	ExportDataAuto(&Gen_Mode, Data, offset, 4);
-	ExportDataAuto(&Gen_Version, Data, offset, 4);
-	ExportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
-	ExportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
-	ExportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
+		// this group I'm not sure about, they don't seem to be necessary but I'm keeping them around just in case
+		ExportDataAuto(&Bank_M68K, Data, offset, 4);
+		ExportDataAuto(&S68K_State, Data, offset, 4);
+		ExportDataAuto(&Z80_State, Data, offset, 4);
+		ExportDataAuto(&Last_BUS_REQ_Cnt, Data, offset, 4);
+		ExportDataAuto(&Last_BUS_REQ_St, Data, offset, 4);
+		ExportDataAuto(&Fake_Fetch, Data, offset, 4);
+		ExportDataAuto(&Game_Mode, Data, offset, 4);
+		ExportDataAuto(&CPU_Mode, Data, offset, 4);
+		ExportDataAuto(&CPL_M68K, Data, offset, 4);
+		ExportDataAuto(&CPL_S68K, Data, offset, 4);
+		ExportDataAuto(&CPL_Z80, Data, offset, 4);
+		ExportDataAuto(&Cycles_S68K, Data, offset, 4);
+		ExportDataAuto(&Cycles_M68K, Data, offset, 4);
+		ExportDataAuto(&Cycles_Z80, Data, offset, 4);
+		ExportDataAuto(&Gen_Mode, Data, offset, 4);
+		ExportDataAuto(&Gen_Version, Data, offset, 4);
+		ExportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
+		ExportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
+		ExportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
 
-	// these don't seem to be necessary and I don't feel like saving them
-	//ExportDataAuto(&Def_z80_Mem, Data, offset, 0x10000);
-	ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+		ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+	}
 
 #ifdef _DEBUG
-	// what I do is add stuff to the format above, then run in debug and let this assert fail.
-	// when that happens, I add (offset-desiredoffset) to GENESIS_LENGTH_EX2, then compile again
-	int desiredoffset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX;
+	// assert that the final offset value equals our savestate size, otherwise we screwed up
+	// if it fails, that probably means you have to add ((int)offset-(int)desiredoffset) to the last GENESIS_LENGTH_EX define
+	int desiredoffset = GENESIS_STATE_LENGTH;
 	assert(offset == desiredoffset);
 #endif
 }
@@ -1186,7 +1196,7 @@ void Import_SegaCD(unsigned char *Data)
 
 	//here ends sub68k bit
 	
-	sub68k_SetContext(&Context_sub68K);
+	//sub68k_SetContext(&Context_sub68K); // Modif N. -- moved to later
 	
 	//PCM Chip Load
 		ImportData(&PCM_Chip.Rate, Data, 0x100, 4);
@@ -1355,7 +1365,7 @@ void Import_SegaCD(unsigned char *Data)
 #endif
 	}
 
-	sub68k_SetContext(&Context_sub68K); // this was moved here from earlier in the function
+	sub68k_SetContext(&Context_sub68K); // Modif N. -- moved here from earlier in the function
 
 	M68K_Set_Prg_Ram();
 	MS68K_Set_Word_Ram();

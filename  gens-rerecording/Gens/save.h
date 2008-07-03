@@ -7,18 +7,17 @@
 extern "C" {
 #endif
 
-
-#define GENESIS_STATE_LENGTH    0x224B4 //Modif
-#define GENESIS_LENGTH_EX (GENESIS_LENGTH_EX1 + GENESIS_LENGTH_EX2) //Modif
-#define GENESIS_LENGTH_EX1 0x30D8 //Upthmodif - subtracted STATE_LENGTH from original value. Original value follows 0x25554 //Modif
-#define GENESIS_LENGTH_EX2 0xEDC6 + 0x123B //Modif N. - added ex2 and split ex from ex1... something tells me his is not the best architected save system for me to need to keep adding or modifying sizes in a list of defines just to expand the save format
-	//Modif U. - Got rid of about 12KB of zeros, added about 4KB back in to allow loading of GST v6 files.
-#define SEGACD_LENGTH_EX (SEGACD_LENGTH_EX1 + SEGACD_LENGTH_EX2) //Upthmodif - These values are now additive
-#define SEGACD_LENGTH_EX1 0xE19A4 //Modif N. - added ex2 and split ex from ex1...
-#define SEGACD_LENGTH_EX2 0x32C88 //Modif N. - added ex2 and split ex from ex1...
-#define G32X_LENGTH_EX       0x82A00 //Upthmodif - for additional flexibility of use
-//#define SCD32X_STATE_FILE_LENGTH     (0x22500 + 0xE0000 + 0x82A00) //Upthmodif - no longer needed
-#define MAX_STATE_FILE_LENGTH       (GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX + SEGACD_LENGTH_EX + G32X_LENGTH_EX) //Upthmodif - No longer hard-coded. Was previously "SCD32X_STATE_FILE_LENGTH".#define MAX_STATE_FILE_LENGTH       (GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX + SEGACD_LENGTH_EX + G32X_LENGTH_EX) //Upthmodif - No longer hard-coded. Was previously "SCD32X_STATE_FILE_LENGTH".
+// Modif
+#define GENESIS_LENGTH_EX1 0x2247C
+#define GENESIS_LENGTH_EX2 0x11ED2
+#define GENESIS_STATE_LENGTH (GENESIS_LENGTH_EX1 + GENESIS_LENGTH_EX2)
+#define GENESIS_V6_LENGTH_EX2 0x7EC
+#define GENESIS_V6_STATE_LENGTH (GENESIS_LENGTH_EX1 + GENESIS_V6_LENGTH_EX2)
+#define SEGACD_LENGTH_EX1 0xE19A4
+#define SEGACD_LENGTH_EX2 0x32C88
+#define SEGACD_LENGTH_EX (SEGACD_LENGTH_EX1 + SEGACD_LENGTH_EX2)
+#define G32X_LENGTH_EX  0x82A00
+#define MAX_STATE_FILE_LENGTH (GENESIS_STATE_LENGTH + SEGACD_LENGTH_EX + G32X_LENGTH_EX)
 
 extern char State_Dir[1024];
 extern char SRAM_Dir[1024];

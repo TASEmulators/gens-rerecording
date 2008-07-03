@@ -10,7 +10,7 @@
 #include "ym2612.h"
 
 #ifdef SONICCAMHACK
-unsigned char genesisbuf[GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX];
+unsigned char genesisbuf[GENESIS_STATE_LENGTH];
 #ifdef SCD
 #include "mem_s68k.h"
 unsigned char scdbuf[SEGACD_LENGTH_EX];
