@@ -51,7 +51,7 @@ extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
 extern "C" int fatal_mp3_error; // cdda_mp3.c
 extern "C" char preloaded_tracks [100]; // cdda_mp3.c
 extern "C" char Track_Played; // cd_file.c
-
+extern "C" int FILE_Play_CD_LBA(int async);
 
 int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 {
@@ -1303,7 +1303,7 @@ void Import_SegaCD(unsigned char *Data)
 			CDD.Ext = CDD_Data[7];
 			if (CDD.Status & PLAYING)
 				if (IsAsyncAllowed()) // Modif N. -- disabled call to resume in synchronous mode (it's unnecessary there and can cause desyncs)
-					int unused = Resume_CDD_c7();
+					FILE_Play_CD_LBA(0); // and replaced Resume_CDD_c7 with a call to preload the (new) current MP3 when a savestate is loaded (mainly for sound quality and camhack stability reasons), or do nothing if it's not an MP3
 		//CDD end
 
 		//CDC
