@@ -259,6 +259,11 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 		const unsigned char XSCROLLRATE = 16;
 		const unsigned char YSCROLLRATE = 16;
 	#endif
+#ifdef SCD
+		unsigned int SizeTableX = 0x2070C6;
+		unsigned int SizeTableY = 0x2070C7;
+		unsigned int SizeTableBlah = 0;
+#else
 		const unsigned char SizeTableX[] = {0x04, 0x14, 0x0C, 0x14, 0x04, 0x0C, 0x10, 0x06, 0x18, 0x0C, 0x10, 0x08, 0x14,
 											0x14, 0x0E, 0x18, 0x28, 0x10, 0x08, 0x20, 0x40, 0x80, 0x20, 0x08, 0x04, 0x20, 
 											0x0C, 0x08, 0x18, 0x28, 0x04, 0x04, 0x04, 0x04, 0x18, 0x0C, 0x48, 0x18, 0x10, 
@@ -267,6 +272,7 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 											0x08, 0x0E, 0x18, 0x10, 0x18, 0x10, 0x70, 0x20, 0x20, 0x20, 0x08, 0x04, 0x08, 
 											0x0C, 0x04, 0x04, 0x04, 0x08, 0x18, 0x28, 0x20, 0x18, 0x18, 0x08, 0x28, 0x04, 
 											0x02, 0x40, 0x80, 0x10, 0x20, 0x30, 0x40, 0x50, 0x02, 0x01, 0x08, 0x1C};
+#endif
 //unsigned short CamX = 0;
 //short CamY = 0;
 unsigned short PX = 0;
@@ -428,11 +434,7 @@ void DisplaySolid()
 						if ((GetKeyState(VK_CAPITAL)))
 						{	//if capslock is pressed, we display the block number at it's top-left corner
 							sprintf(Str_Tmp,"%02X",Block);
-							Print_Text(Str_Tmp,2,min(max((X-CamX)-1,0),310),min(max(Y-CamY,1),215),BLANC);
-							Print_Text(Str_Tmp,2,min(max((X-CamX)+1,2),312),min(max(Y-CamY,1),215),BLANC);
-							Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)-1,0),214),BLANC);
-							Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)+1,2),216),BLANC);
-							Print_Text(Str_Tmp,2,max(X-CamX,1),min(max(Y-CamY,1),215),BLEU);
+							PutText(Str_Tmp,(X-CamX)+3,(Y-CamY)+4,0,0,0,0,BLANC,BLEU);
 						}
 					#endif
 					TempY = Y;
@@ -740,18 +742,10 @@ void DisplaySolid()
 									if (GetKeyState(VK_NUMLOCK))
 									{	//if numlock is on, we display the angle and collision index of the tile
 										sprintf(Str_Tmp,"%02X",Angle);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX)-1,0),max(TempY-CamY,1),ROUGE);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX)+1,2),max(TempY-CamY,1),ROUGE);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)-1,0),ROUGE);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)+1,2),ROUGE);
-										Print_Text(Str_Tmp,2,max((TempX - 0xC) -CamX,1),max(TempY-CamY,1),BLEU);
+										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,ROUGE,BLEU);
 										TempY += 8;
 										sprintf(Str_Tmp,"%02X",ColInd >> 4);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX)-1,0),max(TempY-CamY,1),VERT);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX)+1,2),max(TempY-CamY,1),VERT);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)-1,0),VERT);
-										Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)+1,2),VERT);
-										Print_Text(Str_Tmp,2,max((TempX - 0xC) -CamX,1),max(TempY-CamY,1),BLEU);
+										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,VERT,BLEU);
 										TempY -= 8;
 									}
 								}
@@ -786,11 +780,7 @@ void DisplaySolid()
 						if ((GetKeyState(VK_CAPITAL)))
 						{
 							sprintf(Str_Tmp,"%02X",Block);
-							Print_Text(Str_Tmp,2,max((X+Xoff-CamX)-1,0),max(Y+Yoff-CamY,1),BLANC);
-							Print_Text(Str_Tmp,2,max((X+Xoff-CamX)+1,2),max(Y+Yoff-CamY,1),BLANC);
-							Print_Text(Str_Tmp,2,max((X+Xoff-CamX),1),max((Y+Yoff-CamY)-1,0),BLANC);
-							Print_Text(Str_Tmp,2,max((X+Xoff-CamX),1),max((Y+Yoff-CamY)+1,2),BLANC);
-							Print_Text(Str_Tmp,2,max(X+Xoff-CamX,1),max(Y+Yoff-CamY,1),BLEU);
+							PutText(Str_Tmp,(X+Xoff-CamX)+3,(Y+Yoff-CamY)+4,0,0,0,0,BLANC,BLEU);
 						}
 						TempY = Y+Yoff;
 						while ((TempY < Y+Yoff + BLOCKSIZE) && (TempY < CamY + 224))
@@ -1010,13 +1000,11 @@ void DisplaySolid()
 										TempX += 0x10;
 										if (GetKeyState(VK_NUMLOCK))
 										{
-											sprintf(Str_Tmp,"%02X",ColInd >> 4);
+											sprintf(Str_Tmp,"%02X",Angle);
+											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,ROUGE,BLEU);
 											TempY += 8;
-											Print_Text(Str_Tmp,2,max(((TempX - 0xC) -CamX)-1,0),max(TempY-CamY,1),ROUGE);
-											Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX)+1,2),max(TempY-CamY,1),ROUGE);
-											Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)-1,0),ROUGE);
-											Print_Text(Str_Tmp,2,max(((TempX - 0xC)-CamX),1),max((TempY-CamY)+1,2),ROUGE);
-											Print_Text(Str_Tmp,2,max((TempX - 0xC)-CamX,1),max(TempY-CamY,1),BLEU);
+											sprintf(Str_Tmp,"%02X",ColInd >> 4);
+											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,VERT,BLEU);
 											TempY -= 8;
 										}
 									}
@@ -1098,9 +1086,45 @@ void DrawBoxes()
 			Xpos = CheatRead<short>(CardBoard + XPo);
 			Ypos = CheatRead<short>(CardBoard + YPo);
 			if ((CheatRead<unsigned char>(CardBoard + Fo) & 4) && !(Xpos | Ypos)) continue;
-			Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
-			Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
 			Touchable = (CheatRead<unsigned char>(CardBoard + To)?true:false);
+			if (Touchable)
+			{
+			#ifdef SCD
+				if (CheatRead<unsigned int>(SizeTableX) != SizeTableBlah)
+				{
+					int addr = 0x200000;	//Word RAM starts at 0x200000
+					bool found = false;
+					while ((addr <= 0x23FFFC) && !found) //and ends at 0x240000
+					{
+						addr += 2;
+						if (CheatRead<unsigned int>(addr) == 0x66045229)	//TouchResponse ends with "bne.s Return"
+						{
+							if (CheatRead<unsigned int>(addr + 4) == 0x00214E75) //followed by "addq.b  #1,$21(a1); Return: rts"
+							{					//After opening several of the Act programs from Sonic CD (U), 
+								found = true;	//I found that they each only had one instance of this
+							}					//so if we encounter it, we've found our TouchResponse function
+						}
+					}
+					if (found) 
+					{
+						unsigned char zone = CheatRead<unsigned char>(0xFF1506);
+						if (zone == 3) addr += 8;
+						if (zone == 5) addr += 0xC;
+						SizeTableX = addr + 8;	//the touch size array immediately follows the end of TouchResponse
+						SizeTableY = SizeTableX + 1; //so we update the touch size array pointers
+						SizeTableBlah = CheatRead<unsigned int>(SizeTableX);	//and the "oh shit it movied" flag
+					}
+					else return;
+				}
+				char ind = (CheatRead<unsigned char>(CardBoard + To) & 0x3F) << 1;
+				Height = CheatRead<unsigned char>(SizeTableY + ind - 2);
+				Width = CheatRead<unsigned char>(SizeTableX + ind - 2);
+			#else
+				Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
+				Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
+			#endif
+			}
+			else Height = Width = 0;
 			if (Touchable) Type = (CheatRead<unsigned char>(CardBoard + To) & 0xC0) >> 6, DrawColor32=ColorTable32[Type],DrawColor16=ColorTable16[Type];
 			else DrawColor32 = 0xFFFFFF, DrawColor16 = 0xFFFF;
 			Height2 = CheatRead<unsigned char>(CardBoard + Ho);
@@ -1122,7 +1146,7 @@ void DrawBoxes()
 	//			}
 			}
 			unsigned char angle = CheatRead<unsigned char>(CardBoard + 0x26);
-			angle += 0x20;
+			angle = 0x20;
 			if (angle & 0x40) Width2 ^= Height2, Height2 ^= Width2, Width2 ^= Height2;
 			Xpos += 8;	
 			if ((CheatRead<unsigned char>(CardBoard + Fo) & 0x4) || (CheatRead<unsigned char>(CardBoard) == 0x7D)) {
@@ -1137,9 +1161,8 @@ void DrawBoxes()
 			if (!(Ram_68k[CardBoard + Fo] & 0x40))
 			{
 	#endif
-				Width2 = min(Width2,0xFE);
-				Height2 = min(Height2,0xFE);
-				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
+				DrawBoxMWH(Xpos - 8,Ypos,Width2,Height2,0xFF00FF,0xF81F,0);
+/*				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
 				{
 					if (Bits32) 
 					{
@@ -1172,101 +1195,35 @@ void DrawBoxes()
 						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
 						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
 					}
-				}
+				}*/
 	#ifdef S2
 			}
 	#endif
 			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
-			for (char jxq = 0; jxq <=2; jxq++)
-			{
-				for (char Jxq = 0; Jxq <=2; Jxq++)
-				{
-					if (Bits32)
-					{
-						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
-					}
-				}
-			}
-			if(Bits32)
-			{
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-			}
-			else
-			{
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-			}
+			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0);
+			DrawBoxMWH(Xpos - 8,Ypos,1,1,0x00FF00,0x07E0,0);
+			DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,0,0,0);
+			DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,0,0,0);
 	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
 	//			continue;
 			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
 			{
+#ifndef SCD
 				FindObjectDims(CardBoard,Width,Height);
+#endif
 	//				Ypos -= 0x8;
 			}
 			if (CheatRead<unsigned char>(CardBoard) == 0x7D) Width = Height = 0x10;
-			Height = min(Height,0xFE);
-			Width = min(Width,0xFE);
-			for (unsigned char JXQ = 0; JXQ <= Width; JXQ++)
-			{
-				if(Bits32)
-				{
-					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
-				}
-				else
-				{
-					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
-				}
-			}
-			for (unsigned char JXQ = 0; JXQ <= Height; JXQ++)
-			{
-				if(Bits32)
-				{
-					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
-				}
-				else
-				{
-					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
-				}
-			}
+			DrawBoxMWH(Xpos - 8, Ypos, Width, Height, DrawColor32, DrawColor16,0);
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
-				Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
+				PutText(Str_Tmp,Xpos - 8,Ypos,0,0,0,0,VERT,BLEU);
+/*				Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
 				Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLEU);
 				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLEU);
 				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(217,Ypos-3)),BLEU);
-				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);
+				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);*/
 			}
 		}
 	#ifdef S2
@@ -1280,42 +1237,9 @@ void DrawBoxes()
 				Ypos = *(short *) &(Ram_68k[CardBoard + 4]) - CamY;
 				Xpos += 8;
 				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
-				MD_Screen32[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0xFF;
-				MD_Screen[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0x1F;
-				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
-					}
-				}
-				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
-					}
-				}
+				
+				Pixel(Xpos - 8, Ypos, 0xFF, 0x1F, 0);
+				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 1);
 			}
 		}
 	#endif
@@ -1416,16 +1340,14 @@ int SonicCamHack()
 		CamY = CheatRead<signed short>(CAMOFFSET1+4);
 		int retval = Update_Frame(); // no need for cam hack now
 		offscreen = false;
-		#ifndef SCD
-			DrawBoxes();
-		#endif
+		DrawBoxes();
 		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 		y = CheatRead<short>(P1OFFSET + off + YPo);
 		if (GetKeyState(VK_NUMLOCK))
 		{
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			Print_Text(Str_Tmp,4,max(0,min(304,(x-CamX)-8)),max(0,min(216,(y-CamY)-4)),ROUGE);
+			PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
 		}
 		return retval;
 	}
@@ -1450,6 +1372,9 @@ int SonicCamHack()
 	memcpy(soundbuf,&YM2612,sizeof(YM2612));
 	memcpy(posbuf,&(Ram_68k[POSOFFSET]),SSTLEN);
 	int time = CheatRead<signed int>(0xFFFE22);
+#ifdef SCD
+		time = CheatRead<signed int>(0xFF1514);
+#endif
 	for(int i = 0 ; i < numframes+2 ; i++)
 	{
 		#ifdef SK
@@ -1464,6 +1389,9 @@ int SonicCamHack()
 		#ifdef SCD
 			CheatWrite<signed short>(CAMOFFSET3, origx);
 			CheatWrite<signed short>(CAMOFFSET3+4, origy);
+			CheatWrite<signed int>(0xFF1514,time);
+		#else
+			CheatWrite<signed int>(0xFFFE22,time);
 		#endif
 		#ifdef S1
 			CheatWrite<unsigned long>(CAMOFFSET3, origx);
@@ -1471,7 +1399,6 @@ int SonicCamHack()
 			CheatWrite<unsigned long>(CAMOFFSET4+4, origx);
 		#endif
 		memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
-		CheatWrite<signed int>(0xFFFE22,time);
 		if (yy > origy)
 			origy += min(YSCROLLRATE,yy-origy);
 		if (xx > origx)
@@ -1485,7 +1412,7 @@ int SonicCamHack()
 			x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 			y = CheatRead<short>(P1OFFSET + off + YPo);
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			Print_Text(Str_Tmp,4,max(0,min(304,(x-CamX)-8)),max(0,min(216,(y-CamY)-4)),ROUGE);
+			PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
 		}
 		else
 		{

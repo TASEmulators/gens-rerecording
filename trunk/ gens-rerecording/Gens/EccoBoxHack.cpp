@@ -497,9 +497,9 @@ void EccoDrawBoxes()
 			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FFFF,0x07FF,0);
 		}
 		sprintf(Str_Tmp,"%08X",type);
-		PutText(Str_Tmp,Xmid,Ymid-4,1,1,-1,-1,BLANC,BLEU);
+		PutText(Str_Tmp,Xmid,Ymid-4,1,1,0,0,BLANC,BLEU);
 		sprintf(Str_Tmp,"%08X",CardBoard);
-		PutText(Str_Tmp,Xmid,Ymid+4,1,9,-1,-1,BLANC,BLEU);
+		PutText(Str_Tmp,Xmid,Ymid+4,1,9,0,0,BLANC,BLEU);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//Ecco body

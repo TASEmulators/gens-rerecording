@@ -7,7 +7,7 @@
 extern "C" {
 #endif /* #ifdef __cplusplus */
 void Pixel (short x, short y, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac = 0xFF);
-void PutText (char *string, short x, short y, unsigned short xn, unsigned short yn, unsigned short xx, unsigned short yx, int outstyle, int style);
+void PutText (char *string, short x, short y, short xl, short yl, short xh, short yh, int outstyle, int style);
 void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac = 0xFF);
 void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac = 0xFF);
 void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac = 0xFF);
