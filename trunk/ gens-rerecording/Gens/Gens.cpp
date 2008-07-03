@@ -816,7 +816,7 @@ int Init_Genesis(struct Rom *MD_Rom)
 
 	Byte_Swap(Rom_Data, Rom_Size);
 
-	M68K_Init(); // Modif N. -- added, also added to Init_Genesis, for symmetry
+	M68K_Init(); // Modif N. -- added for symmetry, maybe it helps something
 	M68K_Reset(0,1);
 	Z80_Reset();
 	Reset_VDP();
@@ -2128,7 +2128,7 @@ int Init_SegaCD(char *iso_name)
 	Rom_Data[0x73] = 0xFF;
 	Byte_Swap(Rom_Data, Rom_Size);
 
-	M68K_Init(); // Modif N. -- added, also added to Init_Genesis, for symmetry
+	M68K_Init(); // Modif N. -- added for symmetry, maybe it helps something
 	M68K_Reset(2,1);
 	S68K_Init(); // Modif N. -- added, needed to fully reset the sub68k
 	S68K_Reset();

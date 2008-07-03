@@ -2742,7 +2742,6 @@ dialogAgain: //Nitsuja added this
 					}
 					MainMovie.File=fopen(MainMovie.FileName,"wb");
 
-					//Modif N - try with stripped pathname if it failed (probably due to bad default directory)
 					if(!MainMovie.File)
 					{
 						char pathError [256];
@@ -2752,6 +2751,7 @@ dialogAgain: //Nitsuja added this
 						if(slash2 > slash) *(slash2+1) = 0;
 						sprintf(pathError, "Invalid path: %s", MainMovie.FileName);
 						MessageBox(hWnd, pathError, "Error", MB_OK | MB_ICONERROR);
+						MainMovie.Status=0;
 						goto dialogAgain;
 						//char* div = strrchr(MainMovie.FileName, '\\');
 						//if(!div) div = strrchr(MainMovie.FileName, '/');
@@ -2797,16 +2797,26 @@ dialogAgain: //Nitsuja added this
 						{
 							Pre_Load_Rom(HWnd,Recent_Rom[0]);
 							MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (_32X_Started)
 						{
-							Reset_32X();
+							Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("32X reseted", "32X reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (SegaCD_Started)
 						{
-							Reset_SegaCD();
+							if(CD_Load_System == CDROM_)
+							{
+								MessageBox(GetActiveWindow(), "Warning: You are running from a mounted CD. To prevent desyncs, it is recommended you run the game from a CUE or ISO file instead.", "Recording Warning", MB_OK | MB_ICONWARNING);
+								Reset_SegaCD();
+							}
+							else
+								Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
+							Format_Backup_Ram();
 						}
 						MESSAGE_L("Recording from start", "Recording from start", 1500)
 					}
@@ -2869,8 +2879,12 @@ dialogAgain: //Nitsuja added this
 						}
 						else if (SegaCD_Started)
 						{
-							Reset_SegaCD();
+							if(CD_Load_System == CDROM_)
+								Reset_SegaCD();
+							else
+								Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
 							Format_Backup_Ram();
 						}
 						Paused = wasPaused; 

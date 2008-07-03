@@ -565,15 +565,15 @@ section .bss align=64
 
 	DECL Stamp_Map_Adr
 		resd 1
-	DECL Buffer_Adr		
+	DECL Buffer_Adr
 		resd 1
-	DECL Vector_Adr		
+	DECL Vector_Adr
 		resd 1
-	DECL Jmp_Adr			
+	DECL Jmp_Adr
 		resd 1
-	DECL Float_Part		
+	DECL Float_Part
 		resd 1
-	DECL Draw_Speed		
+	DECL Draw_Speed
 		resd 1
 
 	DECL XS
