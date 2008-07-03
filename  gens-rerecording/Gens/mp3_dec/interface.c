@@ -8,9 +8,14 @@
 /* Global mp .. it's a hack */
 struct mpstr *gmp;
 
+extern int fatal_mp3_error; // Modif N.
+
+static void remove_buf(struct mpstr *mp);
 
 BOOL ResetMP3_Gens(struct mpstr *mp) 
 {
+		remove_buf(mp); // Modif N. -- added
+
 	memset(mp,0,sizeof(struct mpstr));
 
 	mp->framesize = 0;
@@ -20,6 +25,8 @@ BOOL ResetMP3_Gens(struct mpstr *mp)
 	mp->fr.single = -1;
 	mp->bsnum = 0;
 	mp->synth_bo = 1;
+
+	fatal_mp3_error = 0;
 
 	return !0;
 }
@@ -96,18 +103,18 @@ static struct buf *addbuf(struct mpstr *mp,char *buf,int size)
 
 static void remove_buf(struct mpstr *mp)
 {
-  struct buf *buf = mp->tail;
-  
-  mp->tail = buf->next;
-  if(mp->tail)
-    mp->tail->prev = NULL;
-  else {
-    mp->tail = mp->head = NULL;
-  }
-  
-  free(buf->pnt);
-  free(buf);
+	struct buf *buf = mp->tail;
+	if(buf)
+	{
+		mp->tail = buf->next;
+		if(mp->tail)
+			mp->tail->prev = NULL;
+		else
+			mp->tail = mp->head = NULL;
 
+		free(buf->pnt);
+		free(buf);
+	}
 }
 
 static int read_buf_byte(struct mpstr *mp)
@@ -225,7 +232,7 @@ int set_pointer(long backstep)
   unsigned char *bsbufold;
   if(gmp->fsizeold < 0 && backstep > 0) {
     fprintf(stderr,"Can't step back %ld!\n",backstep);
-    return MP3_ERR;
+//    return MP3_ERR; // Modif N. -- disabled because we seem to get ok/better results by ignoring this error (which can't happen anymore while playing/recording movies anyway)
   }
   bsbufold = gmp->bsspace[gmp->bsnum] + 512;
   wordpointer -= backstep;

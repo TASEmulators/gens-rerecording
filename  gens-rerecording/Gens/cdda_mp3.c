@@ -4,6 +4,7 @@
 #include "cd_file.h"
 #include "cd_aspi.h"
 #include "cdda_mp3.h"
+#include <direct.h>
 
 struct mpstr mp;
 
@@ -24,6 +25,15 @@ int freqs_mp3[9] = { 44100, 48000, 32000,
 // into an error that only stops the MP3 playback part of the program for the particular MP3 that couldn't play
 int fatal_mp3_error = 0;
 
+// Modif N. -- added
+int last_mp3_update_size = 0;
+int allowContinueToNextTrack = 1;
+char preloaded_tracks [100] = {0};
+extern BOOL IsAsyncAllowed(void);
+extern void Put_Info(char *Message, int Duree);
+extern char Gens_Path[1024];
+#define PRELOADED_MP3_DIRECTORY "temp"
+#define PRELOADED_MP3_FILENAME "\\track%02d.pcm"
 
 int MP3_Init(void)
 {
@@ -42,11 +52,9 @@ void MP3_Reset(void)
 	Current_OUT_Size = 0;
 
 	memset(buf_out, 0, 8 * 1024);
-
-	fatal_mp3_error = 0;
 }
 
-
+ 
 int MP3_Get_Bitrate(FILE *f)
 {
 	unsigned int header, br;
@@ -183,21 +191,21 @@ int MP3_Update_IN(void)
 
 	if (size_read <= 0 || fatal_mp3_error)
 	{
+		int rv;
+		if(!allowContinueToNextTrack)
+			return 6;
+
 		// go to the next track
 
-		Track_Played++;
-		fatal_mp3_error = 0;
+		SCD.Cur_Track = ++Track_Played + 1; // because Cur_Track may or may not have already been incremented, and it's 1-based whereas Track_Played is 0-based
+
+		rv = FILE_Play_CD_LBA(1);
+		if(rv)
+			return rv;
+
 		ResetMP3_Gens(&mp);
 
-		if (Track_Played > 99)
-		{
-			return 3;
-		}
-		else if (Tracks[Track_Played].F == NULL)
-		{
-			return 3;
-		}
-		else if (Tracks[Track_Played].Type == TYPE_WAV)
+		if (Tracks[Track_Played].Type == TYPE_WAV)
 		{
 			// WAV_Play();
 			return 4;
@@ -240,17 +248,104 @@ int MP3_Update_OUT(void)
 	if(fatal_mp3_error)
 		return 1;
 
-	if (decodeMP3(&mp, NULL, 0, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK)
-	{
+	if(decodeMP3(&mp, NULL, 0, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK)
 		return MP3_Update_IN();
-	}
 
 	return 0;
 }
 
-
-int MP3_Play(int track, int lba_pos)
+void Delete_Preloaded_MP3(int track)
 {
+	char str [128];
+	SetCurrentDirectory(Gens_Path);
+	_mkdir(PRELOADED_MP3_DIRECTORY);
+	sprintf(str, PRELOADED_MP3_DIRECTORY PRELOADED_MP3_FILENAME, track+1);
+	_unlink(str);
+}
+
+void Delete_Preloaded_MP3s(void)
+{
+	int i;
+	for(i = 0; i < 100; i++)
+		Delete_Preloaded_MP3(i);
+
+	_rmdir(PRELOADED_MP3_DIRECTORY); // this will only delete the directory if it's empty, which is good. but it won't delete the directory if Windows Explorer has acquired and leaked the directory handle as it loves to do, which is bad. oh well.
+}
+
+void Preload_MP3(FILE** filePtr, int track)
+{
+	if(filePtr && track >= 0 && track < 100)
+	{
+		if(!*filePtr)
+		{
+			char str [128], msg [256];
+			int prevTrack = Track_Played;
+
+			SetCurrentDirectory(Gens_Path);
+			_mkdir(PRELOADED_MP3_DIRECTORY);
+
+			sprintf(str, PRELOADED_MP3_DIRECTORY PRELOADED_MP3_FILENAME, track+1);
+
+			sprintf(msg, "Preloading track %02d MP3", track+1);
+			Put_Info(msg, 100);
+
+			//Tracks[track].F_decoded = fopen(str, "wb+");
+			*filePtr = fopen(str, "wb+");
+
+			if(*filePtr)
+			{
+				// decode mp3 to the temporary file
+
+				InitMP3(&mp);
+				MP3_Reset();
+
+				Current_IN_Pos = MP3_Find_Frame(Tracks[track].F, 0);
+
+				// since the following loop can take up to a few seconds,
+				// clear the sound buffer to prevent stutter
+				{
+					extern int Sound_Initialised;
+					int Clear_Sound_Buffer(void);
+					if (Sound_Initialised)
+						Clear_Sound_Buffer();
+				}
+
+				Track_Played = track;
+				allowContinueToNextTrack = 0;
+				{
+					char cp_buf[2560];
+					int rate, channel, ok;
+					do {
+						ok = MP3_Update(cp_buf, &rate, &channel, 0);
+						fwrite(cp_buf, last_mp3_update_size, 1, *filePtr);
+					} while(ok == MP3_OK);
+				}
+				allowContinueToNextTrack = 1;
+				Track_Played = prevTrack;
+			}
+			else
+			{
+				// couldn't open, maybe another instance of Gens has it open? if so use that
+				*filePtr = fopen(str, "rb");
+			}
+		}
+		preloaded_tracks[track] = *filePtr ? 1 : 0;
+	}
+}
+
+void Preload_Used_MP3s(void)
+{
+	int track;
+	for(track = 0; track < 100; track++)
+		if(preloaded_tracks[track])
+			Preload_MP3(&Tracks[track].F_decoded, track);
+}
+
+int MP3_Play(int track, int lba_pos, int async)
+{
+	if(track < 0 || track > 99)
+		return -1;
+
 	Track_Played = track;
 	
 	if (Tracks[Track_Played].F == NULL)
@@ -259,11 +354,21 @@ int MP3_Play(int track, int lba_pos)
 		return -1;
 	}
 
-	Current_IN_Pos = MP3_Find_Frame(Tracks[Track_Played].F, lba_pos);
+	if(!IsAsyncAllowed())
+		async = 0;
 
-	fatal_mp3_error = 0;
-	ResetMP3_Gens(&mp);
-	MP3_Update_IN();
+	if(!async)
+	{
+		Preload_MP3(&Tracks[Track_Played].F_decoded, Track_Played);
+	}
+
+	if(!Tracks[Track_Played].F_decoded)
+	{
+		// start playing MP3 "asynchronously" (or should I say "desynchronously"), decoding on the fly
+		Current_IN_Pos = MP3_Find_Frame(Tracks[Track_Played].F, lba_pos);
+		ResetMP3_Gens(&mp);
+		MP3_Update_IN();
+	}
 
 	return 0;
 }
@@ -360,6 +465,8 @@ int MP3_Update(char *buf, int *rate, int *channel, unsigned int length_dest)
 	unsigned int length_src, size;
 	char *buf_mp3;
 
+	last_mp3_update_size = 0;
+
 	if (Current_OUT_Size == 0) if (MP3_Update_IN()) return -1;
 	if (Current_OUT_Size == 0) return -1;
 
@@ -379,6 +486,7 @@ int MP3_Update(char *buf, int *rate, int *channel, unsigned int length_dest)
 		buf_mp3 = (char *) &buf_out[Current_OUT_Pos];
 
 		memcpy(buf, buf_mp3, size);
+		last_mp3_update_size += size;
 
 		length_src -= size;
 		buf += size;
@@ -392,6 +500,7 @@ int MP3_Update(char *buf, int *rate, int *channel, unsigned int length_dest)
 	buf_mp3 = (char *) &buf_out[Current_OUT_Pos];
 
 	memcpy(buf, buf_mp3, length_src);
+	last_mp3_update_size += length_src;
 
 //	fprintf(debug_SCD_file, "size = %d len = %d\n", size, length_src);
 

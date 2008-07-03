@@ -10,6 +10,10 @@
 #include "stdio.h"
 //#include "hackdefs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern HINSTANCE ghInstance;
 extern WNDCLASS WndClass;
 extern HWND HWnd;
@@ -83,6 +87,10 @@ extern char Gens_Path[1024];
 extern char Language_Path[1024];
 extern char CGOffline_Path[1024];
 extern char Manual_Path[1024];
+
+#ifdef __cplusplus
+};
+#endif
 
 void CloseRamWindows(); // So the close rom process can close the Ram Search and watch windows (thus preventing freezeout)
 int Set_Render(HWND hWnd, int Full, int Num, int Force);

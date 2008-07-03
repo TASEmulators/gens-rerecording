@@ -371,6 +371,7 @@ int Get_Rom(HWND hWnd)
 	ofn.hInstance = ghInstance;
 	ofn.lpstrFile = Name;
 	ofn.nMaxFile = 1023;
+	ofn.lpstrTitle = "Open ROM";
 
 	ofn.lpstrFilter = "Sega CD / 32X / Genesis files\0*.bin;*.smd;*.gen;*.32x;*.cue;*.iso;*.raw;*.zip;*.zsg\0Genesis roms (*.smd *.bin *.gen *.zip *.zsg)\0*.smd;*.bin;*.gen;*.zip;*.zsg\00032X roms (*.32x *.zip)\0*.32x;*.zip\0Sega CD images (*.cue *.iso *.bin *.raw)\0*.cue;*.iso;*.bin;*.raw\0All Files\0*.*\0\0";
 

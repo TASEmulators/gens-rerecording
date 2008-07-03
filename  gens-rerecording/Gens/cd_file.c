@@ -18,6 +18,9 @@ char Track_Played;
 _scd_toc g_cuefile_TOC;
 char g_cuefile_TOC_filenames [100] [1024] = {{0}};
 int g_cuefile_TOC_filetype [100] = {0};
+extern char preloaded_tracks [100]; // added for synchronous MP3 code
+void Delete_Preloaded_MP3s(void);
+
 
 int FILE_Init(void)
 {
@@ -92,7 +95,7 @@ void MakeFilename(char* filenameWithPath, int bufferSize, const char* otherFileI
 int Load_ISO(char *buf, char *iso_name)
 {
 	HANDLE File_Size;
-	int i, j, num_track, Cur_LBA=0, Max_LBA=0, LBA_Deficit=0; // Modif N.
+	int i, num_track, Cur_LBA=0, Max_LBA=0, LBA_Deficit=0; // Modif N.
 	FILE *tmp_file;
 	char tmp_name[1024], tmp_ext[10];
 	char exts[20][16] = {
@@ -119,6 +122,7 @@ int Load_ISO(char *buf, char *iso_name)
 	CloseHandle(File_Size);
 
 	Tracks[0].F = fopen(iso_name, "rb");
+	Tracks[0].F_decoded = NULL;
 
 	if (Tracks[0].F == NULL)
 	{
@@ -205,6 +209,7 @@ int Load_ISO(char *buf, char *iso_name)
 								Tracks[i].F = tmp_file;
 							else
 								Tracks[i].F = Tracks[0].F;
+							Tracks[i].F_decoded = NULL;
 						}
 					}
 					break;
@@ -262,6 +267,7 @@ int Load_ISO(char *buf, char *iso_name)
 							Tracks[i].Type = TYPE_ISO;
 							Tracks[i].Length = 0;
 							Tracks[i].F = NULL;
+							Tracks[i].F_decoded = NULL;
 							if(g_cuefile_TOC_filetype[i] == TYPE_WAV)
 							{
 								if(tmp_file)
@@ -288,18 +294,31 @@ int Load_ISO(char *buf, char *iso_name)
 	{
 		// this checks for MP3s in a bunch of different possible places and registers tracks for them
 
+		int isoNamelen = strlen(iso_name);
+
 		Cur_LBA = Tracks[0].Length;				// Size in sectors
 
 		for(num_track = 2, i = 0; i < 100; i++)
 		{
-			for(j = 0; j < 20; j++)
+			int jj;
+			for(jj = 0; jj < 40; jj++)
 			{
-				tmp_name[strlen(iso_name) - 4] = 0;
+				int j = jj % 20;
+				if(jj < 20)
+				{
+					if(isoNamelen <= 4) break;
+					tmp_name[isoNamelen - 4] = 0;
+				}
+				else
+				{
+					if(isoNamelen <= 6) break;
+					tmp_name[isoNamelen - 6] = 0;
+				}
 				wsprintf(tmp_ext, exts[j], i);
 				strcat(tmp_name, tmp_ext);
 
 				tmp_file = fopen(tmp_name, "rb");
-
+  
 				if (tmp_file)
 				{
 					float fs;
@@ -309,6 +328,7 @@ int Load_ISO(char *buf, char *iso_name)
 					fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
 
 					Tracks[num_track - SCD.TOC.First_Track].F = tmp_file;
+					Tracks[num_track - SCD.TOC.First_Track].F_decoded = NULL;
 					
 					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
 					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
@@ -338,7 +358,7 @@ int Load_ISO(char *buf, char *iso_name)
 						Cur_LBA += Tracks[num_track - SCD.TOC.First_Track].Length;
 					}
 
-					j = 1000;
+					jj = 1000;
 					num_track++;
 				}
 			}
@@ -421,7 +441,7 @@ int Load_ISO(char *buf, char *iso_name)
 				else
 					correctionAmount = lbadiff;
 				// move all the tracks back starting at the first MP3
-				for(i = firstMP3 ; i < num_track ; i++)
+				for(i = firstMP3; i < num_track; i++)
 					AddToMSF(&SCD.TOC.Tracks[i].MSF, -correctionAmount, 0,0,0);
 			}
 
@@ -437,6 +457,11 @@ int Load_ISO(char *buf, char *iso_name)
 		}
 	}
 
+	{
+		void Preload_Used_MP3s(void);
+		Preload_Used_MP3s();
+	}
+
 	return 0;
 }
 
@@ -450,10 +475,16 @@ void Unload_ISO(void)
 	for(i = 0; i < 100; i++)
 	{
 		if (Tracks[i].F) fclose(Tracks[i].F);
+		if (Tracks[i].F_decoded)
+			fclose(Tracks[i].F_decoded);
 		Tracks[i].F = NULL;
+		Tracks[i].F_decoded = NULL;
 		Tracks[i].Length = 0;
 		Tracks[i].Type = 0;
+		if(preloaded_tracks[i] == 1) // intentionally does not clear if the value is 2
+			preloaded_tracks[i] = 0;
 	}
+	Delete_Preloaded_MP3s();
 }
 
 void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
@@ -690,15 +721,32 @@ int FILE_Read_One_LBA_CDC(void)
 		
 		if (Tracks[index].Type == TYPE_MP3)
 		{
-			if(fatal_mp3_error) // Modif N. -- added check to prevent highly unpleasant noises if the MP3 decoder explodes (e.g. from a corrupted MP3 file)
+			if(Tracks[index].F_decoded)
 			{
-				memset(cp_buf, 0, 588*4);
-				rate = 44100;
-				channel = 2;
+				int curTrack = LBA_to_Track(SCD.Cur_LBA);
+				int lbaOffset = SCD.Cur_LBA - Track_to_LBA(curTrack);
+				int lba = lbaOffset;
+				where_read = (lba) * 588*4 + 16;
+				if(where_read < 0) where_read = 0;
+
+				// copy audio data to buffer
+				fseek(Tracks[index].F_decoded, where_read, SEEK_SET);
+				fread(cp_buf, 1, 588*4, Tracks[index].F_decoded);
+				//memset(cp_buf, 0, 588*4);
+				Write_CD_Audio((short *) cp_buf, 44100, 2, 588);
 			}
-			else
-				MP3_Update(cp_buf, &rate, &channel, 0);
-			Write_CD_Audio((short *) cp_buf, rate, channel, 588);
+			else // stream it
+			{
+				if(fatal_mp3_error) // Modif N. -- added check to prevent highly unpleasant noises if the MP3 decoder explodes (e.g. from a corrupted MP3 file)
+				{
+					memset(cp_buf, 0, 588*4);
+					rate = 44100;
+					channel = 2;
+				}
+				else
+					MP3_Update(cp_buf, &rate, &channel, 0);
+				Write_CD_Audio((short *) cp_buf, rate, channel, 588);
+			}
 		}
 		else if(Tracks[index].Type == TYPE_ISO) // Modif N. -- added case to allow using music from the ISO file (cue file support)
 		{
@@ -720,6 +768,7 @@ int FILE_Read_One_LBA_CDC(void)
 				}
 				lba = lbaBase + lbaOffset;
 				where_read = (lba - 150) * 588*4 + 16;
+				if(where_read < 0) where_read = 0;
 
 				// copy audio data to buffer
 				fseek(Tracks[index].F, where_read, SEEK_SET);
@@ -842,7 +891,7 @@ int FILE_Read_One_LBA_CDC(void)
 }
 
 
-int FILE_Play_CD_LBA(void)
+int FILE_Play_CD_LBA(int async)
 {
 	int Track_LBA_Pos;
 
@@ -860,7 +909,7 @@ int FILE_Play_CD_LBA(void)
 
 	if (Tracks[SCD.Cur_Track - SCD.TOC.First_Track].Type == TYPE_MP3)
 	{
-		MP3_Play(SCD.Cur_Track - SCD.TOC.First_Track, Track_LBA_Pos);
+		return MP3_Play(SCD.Cur_Track - SCD.TOC.First_Track, Track_LBA_Pos, async);
 	}
 	else if (Tracks[SCD.Cur_Track - SCD.TOC.First_Track].Type == TYPE_WAV)
 	{

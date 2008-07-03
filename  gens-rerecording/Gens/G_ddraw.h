@@ -42,7 +42,7 @@ int Update_Emulation_One(HWND hWnd);
 int Update_Emulation_Netplay(HWND hWnd, int player, int num_player);
 int Eff_Screen(void);
 int Pause_Screen(void);
-void Put_Info(char *Message, int Duree);
+extern "C" void Put_Info(char *Message, int Duree);
 int Show_Genesis_Screen(HWND hWnd);
 int Flip(HWND hWnd);
 void Restore_Primary(void);

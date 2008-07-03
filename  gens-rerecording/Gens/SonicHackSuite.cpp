@@ -1150,8 +1150,8 @@ void DrawBoxes()
 			if (angle & 0x40) Width2 ^= Height2, Height2 ^= Width2, Width2 ^= Height2;
 			Xpos += 8;	
 			if ((CheatRead<unsigned char>(CardBoard + Fo) & 0x4) || (CheatRead<unsigned char>(CardBoard) == 0x7D)) {
-				Xpos -= CamX;
-				Ypos -= CamY;
+				Xpos -= (short)CamX;
+				Ypos -= (short)CamY;
 			}
 			else {
 				Xpos -= 0x80;

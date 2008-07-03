@@ -167,6 +167,13 @@ void Put_Info(char *Message, int Duree)
 		if(!Setting_Render)
 		{
 			extern HWND HWnd;
+
+			if(FrameCount == 0) // if frame count is 0 it's OK to clear the screen first so we can see the message better
+			{
+				memset(MD_Screen, 0, sizeof(MD_Screen));
+				memset(MD_Screen32, 0, sizeof(MD_Screen32));
+			}
+
 			Flip(HWnd);
 		}
 	}
