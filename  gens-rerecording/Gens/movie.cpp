@@ -321,7 +321,7 @@ void MovieRecordingStuff()
 	}
 	fseek(MainMovie.File,64+FrameCount*3,SEEK_SET);
 	fwrite(PadData,3,1,MainMovie.File);
-	if ((track == ALL_TRACKS) || ((track == TRACK1 | TRACK2) && !MainMovie.TriplePlayerHack))
+	if ((track == ALL_TRACKS) || ((track == (TRACK1 | TRACK2)) && !MainMovie.TriplePlayerHack))
 		MainMovie.LastFrame = FrameCount;
 	else 
 	{	

@@ -84,7 +84,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib .\Release\main68k.obj .\Release\sub68k.obj nafxcw.lib vfw32.lib "
+				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib ./libs/main68k.obj ./libs/sub68k.obj nafxcw.lib vfw32.lib "
 				OutputFile=".\Release/gens.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -186,7 +186,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib .\Release\main68k.obj .\Release\sub68k.obj vfw32.lib "
+				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib ./libs/main68k.obj ./libs/sub68k.obj vfw32.lib "
 				OutputFile=".\Debug/gens.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -970,7 +970,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -980,7 +980,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -994,7 +994,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1004,7 +1004,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1018,7 +1018,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1028,7 +1028,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1042,7 +1042,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1053,7 +1053,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1076,7 +1076,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1086,7 +1086,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1100,7 +1100,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1110,7 +1110,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1124,7 +1124,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1134,7 +1134,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1148,7 +1148,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1158,7 +1158,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1172,7 +1172,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1182,7 +1182,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1200,7 +1200,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						AdditionalDependencies="SH2_IO.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1211,7 +1211,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						AdditionalDependencies="SH2_IO.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1226,7 +1226,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1236,7 +1236,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1250,7 +1250,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1260,7 +1260,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1274,7 +1274,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1284,7 +1284,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1298,7 +1298,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1308,7 +1308,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine=".\nasm\nasmw -i $(InputDir) $(InputDir)$(InputName).asm -f win32 -o $(OutDir)\$(InputName).obj&#x0D;&#x0A;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>

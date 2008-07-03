@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="Star"
-	ProjectGUID="{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}"
+	ProjectGUID="{FE42A093-548B-4B78-916D-820B54827BAC}"
 	>
 	<Platforms>
 		<Platform
@@ -45,7 +45,6 @@
 				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
 				Optimization="0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
-				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile=".\Debug/Star.pch"
@@ -205,7 +204,6 @@
 					Name="VCCLCompilerTool"
 					Optimization="0"
 					PreprocessorDefinitions=""
-					BasicRuntimeChecks="3"
 				/>
 			</FileConfiguration>
 			<FileConfiguration
@@ -217,10 +215,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="Starcpu.h"
-			>
 		</File>
 	</Files>
 	<Globals>

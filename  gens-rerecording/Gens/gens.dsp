@@ -52,7 +52,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib wsock32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib libs\zlib.lib libs\htmlhelp.lib release\main68k.obj release\sub68k.obj /nologo /subsystem:windows /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib wsock32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib libs\zlib.lib libs\htmlhelp.lib libs\main68k.obj libs\sub68k.obj /nologo /subsystem:windows /machine:I386
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "gens - Win32 Debug"
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib zlib.lib winmm.lib \vc\gensCD~1\release\mem_M68K.obj \vc\gensCD~1\release\mem_S68K.obj \vc\gensCD~1\release\mem_Z80.obj \vc\gensCD~1\release\blit.obj \vc\gensCD~1\release\main68k.obj \vc\gensCD~1\release\sub68k.obj \vc\gensCD~1\release\vdp_io.obj \vc\gensCD~1\release\vdp_rend.obj \vc\gensCD~1\release\io.obj \vc\gensCD~1\release\Misc.obj \vc\gensCD~1\release\z80.obj /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib zlib.lib winmm.lib release\mem_M68K.obj release\mem_S68K.obj release\mem_Z80.obj release\blit.obj \vc\gensCD~1\libs\main68k.obj \vc\gensCD~1\libs\sub68k.obj release\vdp_io.obj release\vdp_rend.obj release\io.obj release\Misc.obj release\z80.obj /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
 

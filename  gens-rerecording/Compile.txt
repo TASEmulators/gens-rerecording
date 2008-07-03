@@ -1,3 +1,5 @@
+TODO: update this document
+
 You need Visual C++ 6.0 with the DirectX 7.0 Runtime library and NASM installed
 in the root directory of the drive where you've checked out Gens (\nasm) to
 compile Gens project (NASM in included in the sources package, you just need

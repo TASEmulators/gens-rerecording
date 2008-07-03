@@ -22,10 +22,10 @@ void MoviePlayingStuff();
 #define TRACK1 1
 #define TRACK2 2
 #define TRACK3 4
-#define TRACK1_2 TRACK1 | TRACK2
-#define TRACK1_3 TRACK1 | TRACK3
-#define TRACK2_3 TRACK2 | TRACK3
-#define ALL_TRACKS TRACK1 | TRACK2 | TRACK3
+#define TRACK1_2 (TRACK1 | TRACK2)
+#define TRACK1_3 (TRACK1 | TRACK3)
+#define TRACK2_3 (TRACK2 | TRACK3)
+#define ALL_TRACKS (TRACK1 | TRACK2 | TRACK3)
 struct typeMovie
 {
 	int Status;
