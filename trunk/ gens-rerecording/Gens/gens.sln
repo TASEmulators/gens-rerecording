@@ -1,6 +1,14 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gens", "gens.vcproj", "{BCD798AC-DD36-450E-BFE9-269C182290CC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FE42A093-548B-4B78-916D-820B54827BAC} = {FE42A093-548B-4B78-916D-820B54827BAC}
+		{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8} = {0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MainStar", "Starscream\Main68k\MainStar.vcproj", "{FE42A093-548B-4B78-916D-820B54827BAC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubStar", "Starscream\Sub68k\SubStar.vcproj", "{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,6 +20,14 @@ Global
 		{BCD798AC-DD36-450E-BFE9-269C182290CC}.Debug|Win32.Build.0 = Debug|Win32
 		{BCD798AC-DD36-450E-BFE9-269C182290CC}.Release|Win32.ActiveCfg = Release|Win32
 		{BCD798AC-DD36-450E-BFE9-269C182290CC}.Release|Win32.Build.0 = Release|Win32
+		{FE42A093-548B-4B78-916D-820B54827BAC}.Debug|Win32.ActiveCfg = Release|Win32
+		{FE42A093-548B-4B78-916D-820B54827BAC}.Debug|Win32.Build.0 = Release|Win32
+		{FE42A093-548B-4B78-916D-820B54827BAC}.Release|Win32.ActiveCfg = Release|Win32
+		{FE42A093-548B-4B78-916D-820B54827BAC}.Release|Win32.Build.0 = Release|Win32
+		{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}.Debug|Win32.ActiveCfg = Release|Win32
+		{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}.Debug|Win32.Build.0 = Release|Win32
+		{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}.Release|Win32.ActiveCfg = Release|Win32
+		{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -461,7 +461,15 @@ inline void ExportData(const void* from, void* data, unsigned int offset, unsign
 {
 	const unsigned char* src = (const unsigned char *) from;
 	unsigned char* dst = ((unsigned char*) data) + offset;
+#ifdef _DEBUG
+	while(numBytes--)
+	{
+		assert(*dst == 0 && "error: saved over the same byte twice");
+		*dst++ = *src++;
+	}
+#else
 	while(numBytes--) *dst++ = *src++;
+#endif
 }
 // versions that auto-increment the offset
 inline void ImportDataAuto(void* into, const void* data, unsigned int & offset, unsigned int numBytes)
