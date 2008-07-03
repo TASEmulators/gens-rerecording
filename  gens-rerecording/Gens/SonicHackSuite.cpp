@@ -16,11 +16,7 @@
 #include "ym2612.h"
 
 #ifdef SONICCAMHACK
-unsigned char genesisbuf[GENESIS_STATE_LENGTH];
-#ifdef SCD
-#include "mem_s68k.h"
-unsigned char scdbuf[SEGACD_LENGTH_EX];
-#endif
+unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 
 //Gets object height and width for objects that don't use generic collision responses
 //Currently only defined for Sonic 1 objects, due to ease of discovery in hacking community Sonic1 disassemblies.
@@ -1364,10 +1360,9 @@ int SonicCamHack()
 	offscreen = true;
 	xx = (CheatRead<signed short>(P1OFFSET + off + XPo) - 160);
 	yy = (CheatRead<signed short>(P1OFFSET + off + YPo) - 112); 
-	Export_Genesis(genesisbuf);
-	#ifdef SCD
-	Export_SegaCD(scdbuf);
-	#endif
+
+	Save_State_To_Buffer(Camhack_State_Buffer);
+
 	origx = (origx > (signed short) xx) ? max(0,xx-320) : max(max(0,xx-320),origx);
 	origy = (origy > (signed short) yy) ? yy-240 : max(yy-240,origy);
 	int numframesx = (xx - origx)/XSCROLLRATE;
@@ -1377,9 +1372,6 @@ int SonicCamHack()
 
 	disableSound = true;
 	unsigned char posbuf[SSTLEN];
-	void *soundbuf;
-	soundbuf = malloc(sizeof(YM2612));
-	memcpy(soundbuf,&YM2612,sizeof(YM2612));
 	memcpy(posbuf,&(Ram_68k[POSOFFSET]),SSTLEN);
 	int time = CheatRead<signed int>(0xFFFE22);
 #ifdef SCD
@@ -1424,7 +1416,7 @@ int SonicCamHack()
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-				PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
+				PutText(Str_Tmp,(x-CamX)&0xFFF,(y-CamY)&0xFFF,0,0,0,0,VERT,ROUGE);
 			}
 		}
 		else
@@ -1440,11 +1432,12 @@ int SonicCamHack()
 	}
 	disableSound = false;
 
-	Import_Genesis(genesisbuf);
-	memcpy(&YM2612,soundbuf,sizeof(YM2612));
-	free(soundbuf);
+	Load_State_From_Buffer(Camhack_State_Buffer);
+
+	int rv = Update_Frame_Fast();
 
 	Update_RAM_Search(); //RAM_Search was updating with the "fake" values, and doesn't seem to update after "skipped" frames.
-	return Update_Frame_Fast();
+
+	return rv;
 }
 #endif

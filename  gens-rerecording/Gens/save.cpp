@@ -1323,7 +1323,7 @@ void Import_SegaCD(unsigned char *Data)
 			ImportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ImportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ImportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-//			ImportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large //Modif N. -- removed entirely, seems unnecessary for sync or anything else for that matter
+			ImportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
 		//CDC end
 	//CDD & CDC Data end
 
@@ -1524,7 +1524,7 @@ void Export_SegaCD(unsigned char *Data)
 			ExportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ExportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ExportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-//			ExportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large //Modif N. -- removed entirely, seems unnecessary for sync or anything else for that matter
+			ExportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
 		//CDC end
 	//CDD & CDC Data end
 
