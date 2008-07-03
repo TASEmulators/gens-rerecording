@@ -33,6 +33,185 @@
 #include "scrshot.h"
 #include "ram_search.h"
 
+
+// uncomment this to run a simple test every frame for potential desyncs
+// you do not need to start any movie for the test to work, just play
+// expect it to be pretty slow, though
+//#define TEST_GENESIS_FOR_DESYNCS
+
+// uncomment this to test the sega-cd specific parts of the savestates for desyncs
+// (you should still use TEST_GENESIS_FOR_DESYNCS to test for desyncs in sega cd games,
+//  the only reason to use this instead is to do an extra-finicky check that could fail earlier)
+// IMPORTANT: in Visual Studio you'll need to increase the Stack Reserve Size
+// to something like 4194304 in your Project Settings > Linker > System tab
+// otherwise this will give you a stack overflow error
+//#define TEST_SEGACD_FOR_DESYNCS
+
+// uncomment this to test the 32x-specific parts of the savestates for desyncs
+//#define TEST_32X_FOR_DESYNCS
+
+#if defined(TEST_GENESIS_FOR_DESYNCS) || defined(TEST_SEGACD_FOR_DESYNCS) || defined(TEST_32X_FOR_DESYNCS)
+	#define TEST_FOR_DESYNCS
+	#include <assert.h>
+	#include <map>
+
+#ifdef TEST_GENESIS_FOR_DESYNCS
+	static const int CHECKED_STATE_LENGTH = GENESIS_STATE_LENGTH;
+	#define Export_Func Export_Genesis
+	#if defined(TEST_SEGACD_FOR_DESYNCS) || defined(TEST_32X_FOR_DESYNCS)
+		#error Sorry, only one of TEST_GENESIS_FOR_DESYNCS, TEST_SEGACD_FOR_DESYNCS, TEST_32X_FOR_DESYNCS can be defined at a time
+	#endif
+#elif defined(TEST_SEGACD_FOR_DESYNCS)
+	static const int CHECKED_STATE_LENGTH = SEGACD_LENGTH_EX;
+	#define Export_Func Export_SegaCD
+	#if defined(TEST_32X_FOR_DESYNCS)
+		#error Sorry, only one of TEST_GENESIS_FOR_DESYNCS, TEST_SEGACD_FOR_DESYNCS, TEST_32X_FOR_DESYNCS can be defined at a time
+	#endif
+#elif defined(TEST_32X_FOR_DESYNCS)
+	static const int CHECKED_STATE_LENGTH = G32X_LENGTH_EX;
+	#define Export_Func Export_32X
+#endif
+
+	struct SaveStateData
+	{
+		unsigned char State_Buffer[CHECKED_STATE_LENGTH];
+	};
+	std::map<int, SaveStateData> saveStateDataMap;
+
+	int firstFailureByte = -1;
+	bool CompareSaveStates(SaveStateData& data1, SaveStateData& data2)
+	{
+		SaveStateData difference;
+		bool ok = true;
+		firstFailureByte = -1;
+		for(int i = 0 ; i < CHECKED_STATE_LENGTH ; i++)
+		{
+			unsigned char diff = data2.State_Buffer[i] - data1.State_Buffer[i];
+			difference.State_Buffer[i] = diff;
+			if(diff)
+			{
+				char desc [128];
+				sprintf(desc, "byte %d (0x%x) was 0x%x is 0x%x\n", i, i, data1.State_Buffer[i], data2.State_Buffer[i]);
+				OutputDebugString(desc);
+				if(ok)
+				{
+					ok = false;
+					firstFailureByte = i;
+				}
+			}
+		}
+		return ok;
+	}
+
+	static SaveStateData tempData;
+
+	static void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
+	{
+#ifdef TEST_GENESIS_FOR_DESYNCS
+		if (!Genesis_Started) return;
+#endif
+#ifdef TEST_SEGACD_FOR_DESYNCS
+		if (!SegaCD_Started) return;
+#endif
+#ifdef TEST_32X_FOR_DESYNCS
+		if (!_32X_Started) return;
+#endif
+
+		// (only if forceCheckingDesync is false)
+		// hold control to save a savestate for frames in a movie for later checking
+		// then turn on scroll lock when replaying those frames later to check them
+		bool checkingDesync = (GetKeyState(VK_LCONTROL) & 0x8000) != 0;
+		int checkingDesyncPart = GetKeyState(VK_SCROLL) ? 1 : 0;
+		if(!forceCheckingDesync)
+			checkingDesync |= checkingDesyncPart;
+		else
+		{
+			checkingDesync = true;
+			checkingDesyncPart = forcePart ? 1 : 0;
+		}
+
+		if(checkingDesync)
+		{
+			if(checkingDesyncPart == 0)
+			{
+				// first part: just save states
+				static SaveStateData data;
+
+				//Save_State_To_Buffer(data.State_Buffer);
+				memset(data.State_Buffer, 0, sizeof(data.State_Buffer));
+				Export_Func(data.State_Buffer);
+
+				saveStateDataMap[FrameCount] = data;
+			}
+			else
+			{
+				// second part: compare to saved states
+				static SaveStateData dataNow;
+
+				//Save_State_To_Buffer(dataNow.State_Buffer);
+				memset(dataNow.State_Buffer, 0, sizeof(dataNow.State_Buffer));
+				Export_Func(dataNow.State_Buffer);
+
+				if(saveStateDataMap.find(FrameCount) != saveStateDataMap.end())
+				{
+					SaveStateData& dataThen = saveStateDataMap[FrameCount];
+					if(!CompareSaveStates(dataThen, dataNow))
+					{
+						memset(tempData.State_Buffer, tempData.State_Buffer[firstFailureByte] ? 0 : 0xFF, sizeof(tempData.State_Buffer));
+
+						// if this assert fails, congratulations, you got a desync!
+						assert(0); 
+						// check your output window for details.
+						// now you might want to know which part of the savestate went wrong.
+						// to do that, go to the Breakpoints window and add a new Data breakpoint and
+						// set it to break when the data at &tempData.State_Buffer[firstFailureByte] changes,
+						// then continue running and it should break inside the export function where the desyncing data gets saved.
+						
+						Export_Func(tempData.State_Buffer);
+					}
+				}
+			}
+
+		}
+	}
+
+	int Do_Genesis_Frame_Real();
+	int Do_Genesis_Frame_No_VDP_Real();
+	int Do_SegaCD_Frame_Real();
+	int Do_SegaCD_Frame_No_VDP_Real();
+	int Do_SegaCD_Frame_Cycle_Accurate_Real();
+	int Do_SegaCD_Frame_No_VDP_Cycle_Accurate_Real();
+	int Do_32X_Frame_Real();
+	int Do_32X_Frame_No_VDP_Real();
+
+#define DO_FRAME_HEADER(name, fastname) \
+	int name() \
+	{ \
+		Save_State_To_Buffer(State_Buffer); /* save */ \
+		disableSound = true; \
+		fastname##_Real(); /* run 2 frames */ \
+		fastname##_Real(); \
+		DesyncDetection(1,0); /* save */ \
+		Load_State_From_Buffer(State_Buffer); /* load */ \
+		fastname##_Real(); /* run 2 frames */ \
+		fastname##_Real(); \
+		DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
+		Load_State_From_Buffer(State_Buffer); /* load */ \
+		saveStateDataMap.clear(); \
+		disableSound = false; \
+		return name##_Real(); /* run the frame for real */ \
+	} \
+	int name##_Real()
+
+#else // !TEST_FOR_DESYNCS:
+
+#define DO_FRAME_HEADER(name, fastname) int name()
+
+#endif // TEST_FOR_DESYNCS
+
+
+
+
 int XRay;
 unsigned int Pal32_XRAY[0x10000];
 /*#define //UPDATE_PALETTE32 \
@@ -901,12 +1080,16 @@ void Reset_Genesis()
 }
 
 
-bool disableSound = false;
+extern "C"
+{
+	int disableSound = false;
+}
+
 #ifdef SONICCAMHACK
 
 #else 
 
-int Do_Genesis_Frame()
+DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 {
 	int *buf[2];
 	int HInt_Counter;
@@ -1073,7 +1256,8 @@ int Do_VDP_Only()
 
 	return(0);
 }
-int Do_Genesis_Frame_No_VDP(void)
+
+DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 {
 	int *buf[2];
 	int HInt_Counter;
@@ -1459,7 +1643,7 @@ void Reset_32X()
 }
 
 
-int Do_32X_Frame_No_VDP()
+DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 {
 	int i, j, k, l, p_i, p_j, p_k, p_l, *buf[2];
 	int HInt_Counter, HInt_Counter_32X;
@@ -1735,8 +1919,7 @@ int Do_32X_Frame_No_VDP()
 	return 1;
 }
 
-
-int Do_32X_Frame()
+DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 {
 	int i, j, k, l, p_i, p_j, p_k, p_l, *buf[2];
 	int HInt_Counter, HInt_Counter_32X;
@@ -2272,7 +2455,7 @@ void Reset_SegaCD()
 }
 
 
-int Do_SegaCD_Frame_No_VDP(void)
+DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 {
 	int *buf[2];
 	int HInt_Counter;
@@ -2427,7 +2610,7 @@ int Do_SegaCD_Frame_No_VDP(void)
 }
 
 
-int Do_SegaCD_Frame_No_VDP_Cycle_Accurate(void)
+DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
 {
 	int *buf[2], i, j;
 	int HInt_Counter;
@@ -2698,7 +2881,7 @@ int Do_SegaCD_Frame_No_VDP_Cycle_Accurate(void)
 }
 
 
-int Do_SegaCD_Frame(void)
+DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 {
 	int *buf[2];
 	int HInt_Counter;
@@ -2902,7 +3085,7 @@ int Do_SegaCD_Frame(void)
 }
 
 
-int Do_SegaCD_Frame_Cycle_Accurate(void)
+DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
 {
 	int *buf[2], i, j;
 	int HInt_Counter;
