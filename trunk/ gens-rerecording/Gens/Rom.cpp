@@ -19,6 +19,7 @@
 #include "misc.h"
 #include "unzip.h"
 #include "wave.h"
+#include "cd_file.h"
 
 
 int File_Type_Index;
@@ -109,6 +110,9 @@ void Update_Rom_Dir(char *Path)
 
 void Update_Rom_Name(char *Name)
 {
+	if(Name == Rom_Name) // do nothing if pointers are the same
+		return;
+
 	int i, leng;
 
 	leng = strlen(Name) - 1;
@@ -167,7 +171,16 @@ int Detect_Format(char *Name)
 
 	memset(buf, 0, 1024);
 
-	if ((!stricmp("ZIP", &Name[strlen(Name) - 3])) || (!stricmp("ZSG", &Name[strlen(Name) - 3])))
+	if (strlen(Name) > 3 && (!stricmp("CUE", &Name[strlen(Name) - 3])))
+	{
+		char isoname [1024];
+		isoname[0] = 0;
+		Get_CUE_ISO_Filename(isoname, 1024, Name);
+		if(isoname[0] && !(strlen(isoname) > 3 && (!stricmp("CUE", &isoname[strlen(isoname) - 3]))))
+			return Detect_Format(isoname);
+	}
+
+	if (strlen(Name) > 3 && ((!stricmp("ZIP", &Name[strlen(Name) - 3])) || (!stricmp("ZSG", &Name[strlen(Name) - 3]))))
 	{
 		zf = unzOpen(Name);
 	
@@ -201,7 +214,7 @@ int Detect_Format(char *Name)
 	{
 		strcpy(zname, Name);
 
-		f = fopen(zname, "rb");
+		f = *zname ? fopen(zname, "rb") : NULL;
 
 		if (f == NULL) return -1;
 
@@ -359,7 +372,7 @@ int Get_Rom(HWND hWnd)
 	ofn.lpstrFile = Name;
 	ofn.nMaxFile = 1023;
 
-	ofn.lpstrFilter = "Sega CD / 32X / Genesis files\0*.bin;*.smd;*.gen;*.32x;*.iso;*.raw;*.zip;*.zsg\0Genesis roms (*.smd *.bin *.gen *.zip *.zsg)\0*.smd;*.bin;*.gen;*.zip;*.zsg\00032X roms (*.32x *.zip)\0*.32x;*.zip\0Sega CD images (*.iso *.bin *.raw)\0*.iso;*.bin;*.raw\0All Files\0*.*\0\0";
+	ofn.lpstrFilter = "Sega CD / 32X / Genesis files\0*.bin;*.smd;*.gen;*.32x;*.cue;*.iso;*.raw;*.zip;*.zsg\0Genesis roms (*.smd *.bin *.gen *.zip *.zsg)\0*.smd;*.bin;*.gen;*.zip;*.zsg\00032X roms (*.32x *.zip)\0*.32x;*.zip\0Sega CD images (*.cue *.iso *.bin *.raw)\0*.cue;*.iso;*.bin;*.raw\0All Files\0*.*\0\0";
 
 	ofn.nFilterIndex = File_Type_Index;
 	ofn.lpstrInitialDir = Rom_Dir;
@@ -845,7 +858,7 @@ int IPS_Patching(void)
 void Free_Rom(Rom *Rom_MD)
 {
 	if (Game == NULL) return;
-	CloseRamWindows();
+	//CloseRamWindows();
 	
 #ifdef CC_SUPPORT
 	CC_Close();

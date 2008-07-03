@@ -81,6 +81,8 @@ float decode_header_gens(struct frame *fr, unsigned long head)		// header invert
     fr->padding       = (head >> 17) & 1;
 
 	fr->framesize     = (long) tabsel_123[fr->lsf][2][fr->bitrate_index] * 144000;
+	if(!freqs[fr->sampling_frequency]<<(fr->lsf)) // Modif N. -- added check to avoid crash
+		return 0;
 	fr->framesize    /= freqs[fr->sampling_frequency]<<(fr->lsf);
 	fr->framesize     = fr->framesize + fr->padding - 4;
 
@@ -106,7 +108,7 @@ int decode_header(struct frame *fr,unsigned long newhead)
     fr->lay = 4-((newhead>>17)&3);
     if( ((newhead>>10)&0x3) == 0x3) {
       fprintf(stderr,"Stream error\n");
-      exit(1);
+	  return -1; // Modif N. -- replaced exit(1) with an error code for stability reasons
     }
     if(fr->mpeg25) {
       fr->sampling_frequency = 6 + ((newhead>>10)&0x3);
@@ -144,6 +146,8 @@ int decode_header(struct frame *fr,unsigned long newhead)
                          (fr->mode_ext<<2)+4 : 32;
 #endif
         fr->framesize  = (long) tabsel_123[fr->lsf][0][fr->bitrate_index] * 12000;
+        if(!freqs[fr->sampling_frequency]) // Modif N. -- added check to avoid crash
+            return 0;
         fr->framesize /= freqs[fr->sampling_frequency];
         fr->framesize  = ((fr->framesize+fr->padding)<<2)-4;
 #else
@@ -157,6 +161,8 @@ int decode_header(struct frame *fr,unsigned long newhead)
                          (fr->mode_ext<<2)+4 : fr->II_sblimit;
 #endif
         fr->framesize = (long) tabsel_123[fr->lsf][1][fr->bitrate_index] * 144000;
+        if(!freqs[fr->sampling_frequency]) // Modif N. -- added check to avoid crash
+            return 0;
         fr->framesize /= freqs[fr->sampling_frequency];
         fr->framesize += fr->padding - 4;
 #else
@@ -177,6 +183,8 @@ int decode_header(struct frame *fr,unsigned long newhead)
           ssize += 2;
 #endif
           fr->framesize  = (long) tabsel_123[fr->lsf][2][fr->bitrate_index] * 144000;
+          if(!freqs[fr->sampling_frequency]<<(fr->lsf)) // Modif N. -- added check to avoid crash
+              return 0;
           fr->framesize /= freqs[fr->sampling_frequency]<<(fr->lsf);
           fr->framesize = fr->framesize + fr->padding - 4;
         break; 

@@ -622,8 +622,8 @@ void DisplaySolid ()
 									Angle = CheatRead<unsigned char>(ANGARR + (ColInd >> 4));
 									if (!(Angle & 1))
 									{
-										if (DrawType & 1) Angle = (0 - Angle);
-										if (DrawType & 2) Angle = (0 - (Angle + 0x40)) - 0x40;
+										if (DrawType & 1) Angle = (unsigned char)(((0 - (int)Angle)) & 0xFF);
+										if (DrawType & 2) Angle = (unsigned char)(((0 - ((int)Angle + 0x40)) - 0x40) & 0xFF);
 									}
 									if (SolidType & 1)
 									{

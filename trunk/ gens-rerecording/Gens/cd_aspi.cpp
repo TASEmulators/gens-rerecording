@@ -7,6 +7,7 @@
 #include "LC89510.h"
 #include "cd_aspi.h"
 #include "mem_S68K.h"
+#include "movie.h"
 
 HINSTANCE hDLL = NULL;               // Handle to DLL
 DWORD (*Get_ASPI_Info) (void);
@@ -20,6 +21,16 @@ unsigned int Current_LBA;
 BYTE Buf_Stat[256];
 SRB_ExecSCSICmd se;
 TOC toc;
+int failed_to_load_wnaspi_dll = 0;
+
+inline bool IsAsyncAllowed()
+{
+	if(MainMovie.Status == MOVIE_RECORDING)
+		return false;
+	if(MainMovie.Status == MOVIE_PLAYING)
+		return false;
+	return true;
+}
 
 // for CDC functions
 
@@ -47,6 +58,11 @@ int ASPI_Init(void)
 		Get_ASPI_Info = (DWORD(*)(void)) GetProcAddress(hDLL, "GetASPI32SupportInfo");
 		Get_ASPI_Version = (DWORD(*)(void)) GetProcAddress(hDLL, "GetASPI32DLLVersion");
 		Send_ASPI_Command = (DWORD(*)(LPSRB lpsrb)) GetProcAddress(hDLL, "SendASPI32Command");
+		failed_to_load_wnaspi_dll = 0;
+	}
+	else
+	{
+		failed_to_load_wnaspi_dll = 1;
 	}
 
 	if ((!Get_ASPI_Info) || (!Send_ASPI_Command))
@@ -59,7 +75,7 @@ int ASPI_Init(void)
 
 		// MessageBox(NULL, "Error loading WNASPI32.DLL\nCD device will not be supported", "ASPI error", MB_ICONSTOP);
 #ifdef DEBUG_CD
-	fprintf(debug_SCD_file, "error : can't load WNASPI32.DLL\n\n");
+		fprintf(debug_SCD_file, "error : can't load WNASPI32.DLL\n\n");
 #endif
 		return 0;
 	}
@@ -430,7 +446,7 @@ int ASPI_Star_Stop_Unit(int op, int imm, int async, int (*PostProc) (struct tagS
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -452,7 +468,7 @@ int ASPI_Star_Stop_Unit(int op, int imm, int async, int (*PostProc) (struct tagS
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 6;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -463,7 +479,7 @@ int ASPI_Star_Stop_Unit(int op, int imm, int async, int (*PostProc) (struct tagS
 	s->CDBByte[1]     = imm & 1;
 	s->CDBByte[4]     = op;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -488,7 +504,7 @@ int ASPI_Read_TOC(int MSF, int format, int st, int async, int (*PostProc) (struc
 	fprintf(debug_SCD_file, "Read TOC command pass 1 ");
 #endif
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -523,7 +539,7 @@ int ASPI_Read_TOC(int MSF, int format, int st, int async, int (*PostProc) (struc
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 10;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -545,7 +561,7 @@ int ASPI_Read_TOC(int MSF, int format, int st, int async, int (*PostProc) (struc
 	fprintf(debug_SCD_file, "pass 4 \n");
 #endif
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -566,7 +582,7 @@ int ASPI_Mechanism_State(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -589,7 +605,7 @@ int ASPI_Mechanism_State(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 12;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -600,7 +616,7 @@ int ASPI_Mechanism_State(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd
 	se.CDBByte[8]   = 0x01;           /* buffer length */
 	se.CDBByte[9]   = 0x00;           /* buffer length == 0x100 */
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -621,7 +637,7 @@ int ASPI_Play_CD_MSF(_msf *start, _msf *end, int async, int (*PostProc) (struct 
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -643,7 +659,7 @@ int ASPI_Play_CD_MSF(_msf *start, _msf *end, int async, int (*PostProc) (struct 
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 10;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -674,7 +690,7 @@ int ASPI_Play_CD_MSF(_msf *start, _msf *end, int async, int (*PostProc) (struct 
 		s->CDBByte[8] = end->F;
 	}
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -695,7 +711,7 @@ int ASPI_Stop_Play_Scan(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd 
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -717,7 +733,7 @@ int ASPI_Stop_Play_Scan(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd 
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 10;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -726,7 +742,7 @@ int ASPI_Stop_Play_Scan(int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd 
 
 	s->CDBByte[0]     = SCSI_STOP_PL_SC;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -747,7 +763,7 @@ int ASPI_Pause_Resume(int resume, int async, int (*PostProc) (struct tagSRB32_Ex
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -769,7 +785,7 @@ int ASPI_Pause_Resume(int resume, int async, int (*PostProc) (struct tagSRB32_Ex
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 10;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -781,7 +797,7 @@ int ASPI_Pause_Resume(int resume, int async, int (*PostProc) (struct tagSRB32_Ex
 	if (resume) s->CDBByte[8] = 1;
 	else s->CDBByte[8] = 0;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -802,7 +818,7 @@ int ASPI_Seek(int pos, int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd *
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -826,7 +842,7 @@ int ASPI_Seek(int pos, int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd *
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 10;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -839,7 +855,7 @@ int ASPI_Seek(int pos, int async, int (*PostProc) (struct tagSRB32_ExecSCSICmd *
 	s->CDBByte[4]   = (pos >> 8) & 0xFF;
 	s->CDBByte[5]   = pos & 0xFF;
     
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -860,7 +876,7 @@ int ASPI_Read_CD_LBA(int adr, int length, unsigned char sector, unsigned char fl
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -890,7 +906,7 @@ int ASPI_Read_CD_LBA(int adr, int length, unsigned char sector, unsigned char fl
 	fprintf(debug_SCD_file, "\n\nREAD CD LBA :\n Deb : %d   length : %d\n\n", adr, length);
 #endif
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -914,7 +930,7 @@ int ASPI_Read_CD_LBA(int adr, int length, unsigned char sector, unsigned char fl
 //	s->CDBByte[9]      = 0xF8;           // retrieve all data and field
 	s->CDBByte[10]     = sub_chan;
     
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -935,7 +951,7 @@ int ASPI_Read_One_CD_LBA(int adr, unsigned char flag, unsigned char sub_chan, in
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -963,7 +979,7 @@ int ASPI_Read_One_CD_LBA(int adr, unsigned char flag, unsigned char sub_chan, in
 	fprintf(debug_SCD_file, "\n\nREAD One CD LBA :\n Deb : %d\n\n", adr);
 #endif
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -983,7 +999,7 @@ int ASPI_Read_One_CD_LBA(int adr, unsigned char flag, unsigned char sub_chan, in
 	s->CDBByte[9]      = 0x10;           // this works in almost case 
 	s->CDBByte[10]     = sub_chan;
     
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -1005,7 +1021,7 @@ int ASPI_Read_CD_MSF(_msf *start, _msf *end, unsigned char sector, unsigned char
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -1052,7 +1068,7 @@ int ASPI_Read_CD_MSF(_msf *start, _msf *end, unsigned char sector, unsigned char
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 12;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -1075,7 +1091,7 @@ int ASPI_Read_CD_MSF(_msf *start, _msf *end, unsigned char sector, unsigned char
 //	s->CDBByte[9]      = 0xF8;           // retrieve all data and field
 	s->CDBByte[10]     = sub_chan;
    
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -1097,7 +1113,7 @@ int ASPI_Read_One_CD_MSF(_msf *start, unsigned char flag, unsigned char sub_chan
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -1156,7 +1172,7 @@ int ASPI_Read_One_CD_MSF(_msf *start, unsigned char flag, unsigned char sub_chan
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 12;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -1177,7 +1193,7 @@ int ASPI_Read_One_CD_MSF(_msf *start, unsigned char flag, unsigned char sub_chan
 	s->CDBByte[9]      = 0x10;           // this works in almost case 
 	s->CDBByte[10]     = sub_chan;
    
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);
@@ -1238,7 +1254,7 @@ int ASPI_Get_Position(int async, void (*PostProc) (struct tagSRB32_ExecSCSICmd))
 
 	if ((CUR_DEV + 1) > Num_CD_Drive) return 5;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		if (ASPI_Command_Running) return 1;
 		ASPI_Command_Running = 1;
@@ -1260,7 +1276,7 @@ int ASPI_Get_Position(int async, void (*PostProc) (struct tagSRB32_ExecSCSICmd))
 	s->SRB_SenseLen   = SENSE_LEN;
 	s->SRB_CDBLen     = 12;
 
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		s->SRB_Flags |= SRB_POSTING;
 		s->SRB_PostProc = PostProc;
@@ -1269,7 +1285,7 @@ int ASPI_Get_Position(int async, void (*PostProc) (struct tagSRB32_ExecSCSICmd))
 
 	s->CDBByte[0]   = 0x34;
    
-	if (async)
+	if (async && IsAsyncAllowed())
 	{
 		CDD_Complete = 0;
 		Send_ASPI_Command((LPSRB) s);

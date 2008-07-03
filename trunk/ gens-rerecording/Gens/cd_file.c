@@ -7,11 +7,17 @@
 #include "star_68k.h"
 #include "rom.h"
 #include "mem_S68K.h"
+#include <string.h>
 
 struct _file_track Tracks[100];
 
 char cp_buf[2560];
 char Track_Played;
+
+// Modif N. -- added for cue file support
+_scd_toc g_cuefile_TOC;
+char g_cuefile_TOC_filenames [100] [1024] = {{0}};
+int g_cuefile_TOC_filetype [100] = {0};
 
 int FILE_Init(void)
 {
@@ -27,11 +33,66 @@ void FILE_End(void)
 	Unload_ISO();
 }
 
+// Modif N. -- added helper function for manipulating MSF times
+void AddToMSF(_msf* MSF, int lba, int m, int s, int f)
+{
+	// careful not to do the math directly in the MSF struct
+	// because we need to be able to handle intermediate results that don't fit in an unsigned char
+	m += (int)MSF->M + lba / (60 * 75);
+	s += (int)MSF->S + (lba / 75) % 60;
+	f += (int)MSF->F + lba % 75;
+
+	// carry over the frames into the seconds
+	while(f < 0) // negative carryover
+	{
+		f += 75;
+		s--;
+	}
+	s += f / 75; // positive carryover
+	f %= 75;
+	
+	// carry over the seconds into the minutes
+	while(s < 0) // negative carryover
+	{
+		s += 60;
+		m--;
+	}
+	m += s / 60; // positive carryover
+	s %= 60;
+
+	// output result
+	MSF->M = m;
+	MSF->S = s;
+	MSF->F = f;
+} 
+
+// Modif N. -- added helper function for making a filename in (or relative to) the same directory as some other filename we have
+void MakeFilename(char* filenameWithPath, int bufferSize, const char* otherFileInDirectory, const char* desiredFilename)
+{
+	if(*desiredFilename && desiredFilename[1] == ':')
+		filenameWithPath[0] = 0; // don't fool around if the desired filename is absolute
+	else // truncate after last directory separator:
+	{
+		char* lastSlash;
+		strncpy(filenameWithPath, otherFileInDirectory, bufferSize);
+		filenameWithPath[bufferSize-1] = '\0';
+		lastSlash = strrchr(filenameWithPath, '\\');
+		{
+			char* lastSlash2 = strrchr(filenameWithPath, '/');
+			if(lastSlash2 > lastSlash)
+				lastSlash = lastSlash2;
+		}
+		if(lastSlash)
+			lastSlash[1] = 0;
+	}
+	strncat(filenameWithPath, desiredFilename, bufferSize - strlen(filenameWithPath) - 1);
+}
+
 
 int Load_ISO(char *buf, char *iso_name)
 {
 	HANDLE File_Size;
-	int i, j, num_track, Cur_LBA;
+	int i, j, num_track, Cur_LBA=0, Max_LBA=0, LBA_Deficit=0; // Modif N.
 	FILE *tmp_file;
 	char tmp_name[1024], tmp_ext[10];
 	char exts[20][16] = {
@@ -41,6 +102,8 @@ int Load_ISO(char *buf, char *iso_name)
 		"%d.wav", " %d.wav", "-%d.wav", "_%d.wav", " - %2d.wav"};
 	
 	Unload_ISO();
+
+	memset(&Tracks, 0, sizeof(Tracks));
 
 	if (Detect_Format(iso_name) == SEGACD_IMAGE + 1) Tracks[0].Type = TYPE_BIN;
 	else if (Detect_Format(iso_name) == SEGACD_IMAGE) Tracks[0].Type = TYPE_ISO;
@@ -53,7 +116,6 @@ int Load_ISO(char *buf, char *iso_name)
 
 	if (Tracks[0].Type == TYPE_ISO) Tracks[0].Length >>= 11;	// size in sectors
 	else Tracks[0].Length /= 2352;								// size in sectors
-
 	CloseHandle(File_Size);
 
 	Tracks[0].F = fopen(iso_name, "rb");
@@ -86,90 +148,294 @@ int Load_ISO(char *buf, char *iso_name)
 	else fprintf(debug_SCD_file, "AUDIO\n");
 #endif
 
-	Cur_LBA = Tracks[0].Length;				// Size in sectors
+	// Modif N.
+	//Cur_LBA = Tracks[0].Length;				// Size in sectors
+	Max_LBA = Tracks[0].Length;
+	Cur_LBA = 0;
 
 	strcpy(tmp_name, iso_name);
 
-	for(num_track = 2, i = 0; i < 100; i++)
+	// Modif N. -- added for cue file loading support
+	if(CD_Load_System == FILE_CUE)
 	{
-		for(j = 0; j < 20; j++)
+		memcpy(&SCD.TOC, &g_cuefile_TOC, sizeof(g_cuefile_TOC));
+
+		for(i = 0; i < 100; i++)
 		{
-			tmp_name[strlen(iso_name) - 4] = 0;
-			wsprintf(tmp_ext, exts[j], i);
-			strcat(tmp_name, tmp_ext);
-
-			tmp_file = fopen(tmp_name, "rb");
-
-			if (tmp_file)
+			if(*g_cuefile_TOC_filenames[i] && g_cuefile_TOC.Tracks[i].Type == 0) // audio track from some file
 			{
-				float fs;
+				Tracks[i].Type = g_cuefile_TOC_filetype[i];
 
-				File_Size = CreateFile(tmp_name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-				fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
-
-				Tracks[num_track - SCD.TOC.First_Track].F = tmp_file;
-				
-				SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
-				SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
-
-				LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF));
-
-#ifdef DEBUG_CD
-				fprintf(debug_SCD_file, "Track %i - %02d:%02d:%02d ", num_track - SCD.TOC.First_Track, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.M, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.S, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.F);
-				if (SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type) fprintf(debug_SCD_file, "DATA\n");
-				else fprintf(debug_SCD_file, "AUDIO\n");
-#endif
-		
-				if (j < 10)
+				switch(g_cuefile_TOC_filetype[i])
 				{
-					// MP3 File
-					Tracks[num_track - SCD.TOC.First_Track].Type = TYPE_MP3;
-					fs /= (float) (MP3_Get_Bitrate(Tracks[num_track - 1].F) >> 3);
-					fs *= 75;
-					Tracks[num_track - SCD.TOC.First_Track].Length = (int) fs;
-					Cur_LBA += Tracks[num_track - SCD.TOC.First_Track].Length;
-				}
-				else
-				{
-					// WAV File
-					Tracks[num_track - SCD.TOC.First_Track].Type = TYPE_WAV;
-					Tracks[num_track - SCD.TOC.First_Track].Length = 1000;
-					Cur_LBA += Tracks[num_track - SCD.TOC.First_Track].Length;
-				}
+				case TYPE_ISO:
+				case TYPE_BIN:
+					{
+						int j, Prev_LBA;
+						j = i ? i-1 : j;
+						Cur_LBA = MSF_to_LBA(&SCD.TOC.Tracks[i].MSF);
+						Prev_LBA = MSF_to_LBA(&SCD.TOC.Tracks[j].MSF);
+						if(Tracks[j].Type == TYPE_ISO || Tracks[j].Type == TYPE_BIN)
+						{
+							if(Cur_LBA > Prev_LBA) // fill in length of previous audio track
+							{
+								Tracks[j].Length = Cur_LBA - Prev_LBA;
+							}
+							else // wrong order, deal with it
+							{
+								Tracks[j].Length = MSF_to_LBA(&g_cuefile_TOC.Tracks[i].MSF) - MSF_to_LBA(&g_cuefile_TOC.Tracks[j].MSF);
+								LBA_Deficit = Prev_LBA - Cur_LBA + Tracks[j].Length;
+							}
+						}
+						else // for MP3 we already know how long it should be, so correct our starting position instead
+						{
+							int Expected_LBA = Prev_LBA + Tracks[j].Length;
+							LBA_Deficit += Expected_LBA - Cur_LBA;
+						}
+						if(LBA_Deficit)
+						{
+							_scd_track* track = &SCD.TOC.Tracks[i];
+							AddToMSF(&track->MSF, LBA_Deficit, 0,0,0);
+							Cur_LBA += LBA_Deficit;
+						}
 
-				j = 1000;
-				num_track++;
+						{
+							tmp_file = fopen(g_cuefile_TOC_filenames[i], "rb");
+							if(tmp_file)
+								Tracks[i].F = tmp_file;
+							else
+								Tracks[i].F = Tracks[0].F;
+						}
+					}
+					break;
+				case TYPE_MP3:
+				case TYPE_WAV:
+					{
+						float fs;
+
+						tmp_file = fopen(g_cuefile_TOC_filenames[i], "rb");
+						if(tmp_file && g_cuefile_TOC_filetype[i] != TYPE_WAV) // wav is not supported yet
+						{
+							File_Size = CreateFile(g_cuefile_TOC_filenames[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+							fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
+							Tracks[i].F = tmp_file;
+
+							LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[i].MSF));
+
+							// if the last track was binary, give it room by advancing to the start of the next binary track
+							if(!i || (g_cuefile_TOC_filetype[i-1] == TYPE_ISO || g_cuefile_TOC_filetype[i-1] == TYPE_BIN))
+							{
+								int j;
+								for(j = i+1; g_cuefile_TOC_filetype[j] != TYPE_ISO && g_cuefile_TOC_filetype[j] != TYPE_BIN && j <= 99 && j <= SCD.TOC.Last_Track; j++);
+								if(j <= 99 && j <= SCD.TOC.Last_Track && *g_cuefile_TOC_filenames[j])
+								{
+									SCD.TOC.Tracks[i].MSF = SCD.TOC.Tracks[j].MSF;
+								}
+								else
+								{
+									LBA_to_MSF(Max_LBA, &SCD.TOC.Tracks[i].MSF);
+									AddToMSF(&SCD.TOC.Tracks[i].MSF, LBA_Deficit, 0,2,0);
+								}
+								Cur_LBA = MSF_to_LBA(&SCD.TOC.Tracks[i].MSF);
+							}
+
+//							if(g_cuefile_TOC_filetype[i] == TYPE_MP3)
+							{
+								// MP3 File
+								Tracks[i].Type = TYPE_MP3;
+								fs /= (float) (MP3_Get_Bitrate(Tracks[i].F) >> 3);
+								fs *= 75;
+								Tracks[i].Length = (int) fs - 294; // the mp3 decoder gets unstable at the very end of the song, so subtract a bit to stay on the safe side
+								Cur_LBA += Tracks[i].Length;
+							}
+/*							else
+							{
+								// WAV File
+								Tracks[i].Type = TYPE_WAV;
+								Tracks[i].Length = 1000; // probably needs fixing if WAV is really supported...
+								Cur_LBA += Tracks[i].Length;
+							}*/
+						}
+						else
+						{
+							char errmsg [1280];
+							Tracks[i].Type = TYPE_ISO;
+							Tracks[i].Length = 0;
+							Tracks[i].F = NULL;
+							if(g_cuefile_TOC_filetype[i] == TYPE_WAV)
+							{
+								if(tmp_file)
+								{
+									sprintf(errmsg, "Couldn't use audio file \"%s\" for track %02d because WAV files are not supported. Please use either BINARY audio tracks or MP3 files.", g_cuefile_TOC_filenames[i], SCD.TOC.Tracks[i].Num);
+									fclose(tmp_file);
+								}
+								else
+									sprintf(errmsg, "Couldn't find audio file \"%s\" for track %02d, and WAV files are not supported anyway. Please use either BINARY audio tracks or MP3 files.", g_cuefile_TOC_filenames[i], SCD.TOC.Tracks[i].Num);
+							}
+							else
+								sprintf(errmsg, "Couldn't find audio file \"%s\" for track %02d.", g_cuefile_TOC_filenames[i], SCD.TOC.Tracks[i].Num);
+							MessageBox(GetActiveWindow(), errmsg, "Cue File Warning", MB_OK | MB_ICONWARNING);
+						}
+					}
+					break;
+				}
 			}
 		}
+		num_track = g_cuefile_TOC.Last_Track+1;
+		if(num_track < 2) num_track = 2;
+	}
+	else if(CD_Load_System == FILE_ISO) // old code, when there's no CUE file to figure out where to get the audio tracks from
+	{
+		// this checks for MP3s in a bunch of different possible places and registers tracks for them
+
+		Cur_LBA = Tracks[0].Length;				// Size in sectors
+
+		for(num_track = 2, i = 0; i < 100; i++)
+		{
+			for(j = 0; j < 20; j++)
+			{
+				tmp_name[strlen(iso_name) - 4] = 0;
+				wsprintf(tmp_ext, exts[j], i);
+				strcat(tmp_name, tmp_ext);
+
+				tmp_file = fopen(tmp_name, "rb");
+
+				if (tmp_file)
+				{
+					float fs;
+
+					File_Size = CreateFile(tmp_name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+					fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
+
+					Tracks[num_track - SCD.TOC.First_Track].F = tmp_file;
+					
+					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
+					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
+
+					LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF));
+
+	#ifdef DEBUG_CD
+					fprintf(debug_SCD_file, "Track %i - %02d:%02d:%02d ", num_track - SCD.TOC.First_Track, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.M, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.S, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.F);
+					if (SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type) fprintf(debug_SCD_file, "DATA\n");
+					else fprintf(debug_SCD_file, "AUDIO\n");
+	#endif
+			
+					if (j < 10)
+					{
+						// MP3 File
+						Tracks[num_track - SCD.TOC.First_Track].Type = TYPE_MP3;
+						fs /= (float) (MP3_Get_Bitrate(Tracks[num_track - 1].F) >> 3);
+						fs *= 75;
+						Tracks[num_track - SCD.TOC.First_Track].Length = (int) fs;
+						Cur_LBA += Tracks[num_track - SCD.TOC.First_Track].Length;
+					}
+					else
+					{
+						// WAV File
+						Tracks[num_track - SCD.TOC.First_Track].Type = TYPE_WAV;
+						Tracks[num_track - SCD.TOC.First_Track].Length = 1000;
+						Cur_LBA += Tracks[num_track - SCD.TOC.First_Track].Length;
+					}
+
+					j = 1000;
+					num_track++;
+				}
+			}
+		}
+
+		/*
+		//	Faking some audios tracks if no present
+
+			if (num_track == 2)
+			{
+				for(; num_track < 95; num_track++)
+				{
+					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
+					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
+
+					LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF));
+
+					Cur_LBA += 100;
+				}
+			}
+		*/	
+
+		SCD.TOC.Last_Track = num_track - 1;
+
 	}
 			
-/*	
-//	Faking some audios tracks if no present
-
-	if (num_track == 2)
-	{
-		for(; num_track < 95; num_track++)
-		{
-			SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
-			SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
-
-			LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF));
-
-			Cur_LBA += 100;
-		}
-	}
-*/	
-	SCD.TOC.Last_Track = num_track - 1;
 
 	SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
 	SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;
 
-	LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF));
+	// Modif N.
+	{
+		_scd_track* track;
+		if(!(Tracks[num_track - SCD.TOC.First_Track - 1].Type == TYPE_ISO || Tracks[num_track - SCD.TOC.First_Track - 1].Type == TYPE_BIN))
+		{ // if the last track was an MP3 track, move the max position after it, otherwise we'll use the ISO filesize + the current LBA deficit
+			int Prev_LBA = MSF_to_LBA(&SCD.TOC.Tracks[num_track - SCD.TOC.First_Track - 1].MSF);
+			int Expected_LBA = Prev_LBA + Tracks[num_track - SCD.TOC.First_Track - 1].Length;
+			LBA_Deficit += Expected_LBA - Max_LBA;
+		}
+		track = &SCD.TOC.Tracks[num_track - SCD.TOC.First_Track];
+		LBA_to_MSF(Max_LBA, &track->MSF);
+		AddToMSF(&track->MSF, LBA_Deficit, 0,2,0);
+		Tracks[g_cuefile_TOC.Last_Track - SCD.TOC.First_Track].Length = Max_LBA - Cur_LBA;
+	}
 
 #ifdef DEBUG_CD
 	fprintf(debug_SCD_file, "End CD - %02d:%02d:%02d\n\n", SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.M, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.S, SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF.F);
 #endif
+ 
+	// Modif N. -- warn if the audio track is too long for the Sega CD to be able to address all of it, or fix it if possible to do so safely
+	{
+		_msf ninetyNine = {99,59,74};
+		int ninetyNineLBA, i, firstMP3, maxLBA;
+		ninetyNineLBA = MSF_to_LBA(&ninetyNine);
+		maxLBA = MSF_to_LBA(&SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF);
+		if(maxLBA > ninetyNineLBA)
+		{
+			for(i = 0; i < 100; i++)
+				if(Tracks[i].Type == TYPE_MP3 || Tracks[i].Type == TYPE_WAV)
+					break;
+			firstMP3 = i;
+
+			if(firstMP3 == 1)
+			{
+				// TODO: figure out how to calculate the size of the data section
+				// when we don't know where the first audio track starts.
+				// since I don't know how, I won't risk guessing how far back we can move the first audio track
+			}
+			else if(firstMP3 > 1 && firstMP3 < 100)
+			{
+				int lbadiff = maxLBA - ninetyNineLBA;
+				int lba2 = MSF_to_LBA(&SCD.TOC.Tracks[firstMP3].MSF);
+				int lba1 = MSF_to_LBA(&SCD.TOC.Tracks[firstMP3-1].MSF);
+				int baselbadiff = lba2 - lba1;
+				_msf twoMinutes = {2,0,0}; // only has to be nonzero, but I'll be courteous and give it 2 extra minutes
+				int twoMinutesLBA = MSF_to_LBA(&twoMinutes);
+				int correctionAmount;
+				if(lbadiff > baselbadiff - twoMinutesLBA)
+					correctionAmount = baselbadiff - twoMinutesLBA; // too much to safely correct for all of it
+				else
+					correctionAmount = lbadiff;
+				// move all the tracks back starting at the first MP3
+				for(i = firstMP3 ; i < num_track ; i++)
+					AddToMSF(&SCD.TOC.Tracks[i].MSF, -correctionAmount, 0,0,0);
+			}
+
+			// warn if it's still too much
+			maxLBA = MSF_to_LBA(&SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF);
+			if(maxLBA > ninetyNineLBA)
+			{
+				char errmsg [1024];
+				_msf* lastMSF = &SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].MSF;
+				sprintf(errmsg, "Warning: The CD size including audio is %02d:%02d:%02d, which is longer than the maximum of %02d:%02d:%02d. You may encounter problems with audio tracks not playing correctly.", lastMSF->M, lastMSF->S, lastMSF->F, ninetyNine.M, ninetyNine.S, ninetyNine.F);
+				MessageBox(GetActiveWindow(), errmsg, "CD Loading Warning", MB_OK | MB_ICONWARNING);
+			}
+		}
+	}
 
 	return 0;
 }
@@ -190,11 +456,208 @@ void Unload_ISO(void)
 	}
 }
 
+void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
+{
+	FILE* cueFile = fopen(cue_name, "r");
+
+	char line [1024], temp [1024], filename [1024];
+	filename[0] = 0;
+	for(;;)
+	{
+		fgets(line, 1024, cueFile);
+		if(feof(cueFile) || ferror(cueFile))
+			break;
+		_strupr(line);
+
+		// ignore comment lines
+		if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
+			continue;
+
+		temp[0] = 0;
+		if(1 == sscanf(line, " FILE %s", temp) && temp[0])
+		{
+			if(strstr(line, "BINARY") || strstr(line, "ISO"))
+			{
+				char* ptr;
+				for(ptr=temp;*ptr;ptr++)
+					if(*ptr == '\"')
+						*ptr = 0;
+				ptr=temp; if(!*ptr) ptr++;
+				strcpy(filename, ptr);
+			}
+			break;
+		}
+	}
+
+	fclose(cueFile);
+
+	//fnamebuf[0] = 0;
+	//if(fnamebuf_size) fnamebuf[fnamebuf_size-1] = 0;
+	//strncpy(fnamebuf, filename, fnamebuf_size);
+
+	MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
+	{
+		FILE* isoFile = NULL;
+		if(!(strlen(fnamebuf) > 3 && !_stricmp("CUE", &fnamebuf[strlen(fnamebuf) - 3])))
+			isoFile = fopen(fnamebuf, "rb");
+		if(isoFile)
+		{
+			fclose(isoFile);
+		}
+		else
+		{
+			char* dot;
+			strncpy(fnamebuf, cue_name, fnamebuf_size);
+			fnamebuf[fnamebuf_size-1] = 0;
+			dot = strrchr(fnamebuf, '.');
+			if(dot) *dot = 0;
+			strncat(fnamebuf, ".iso", fnamebuf_size - strlen(fnamebuf) - 1);
+			isoFile = fopen(fnamebuf, "rb");
+			if(isoFile)
+			{
+				fclose(isoFile);
+			}
+			else
+			{
+				MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
+			}
+		}
+	}
+}
+
+
+// Modif N. -- added Load_CUE function
+// This is mainly to support loading CUE files that point to audio data on the CD,
+// but they can also point to specific MP3 files on disk.
+
+// Example of a CUE file:
+/*
+REM lines beginning with REM are comments
+REM the following line says what file the game data is in
+FILE "Some Sega CD Game.iso" BINARY
+REM the first track has the non-audio data
+  TRACK 01 MODE1/2352
+    INDEX 01 00:00:00
+REM all other tracks should be AUDIO
+  TRACK 02 AUDIO
+REM the INDEX 01 says when the song starts (mm:ss:ff), and the INDEX 01 of the next BINARY track determines when it ends
+    INDEX 01 10:00:00
+  TRACK 03 AUDIO
+    INDEX 01 12:00:00
+REM this switches to an MP3 song for track 04
+REM caveat: the track before it will get longer, unless maybe you put the MP3 in a new track at the end of the CUE file and swap the track numbers
+FILE "My_custom_song.mp3" MP3
+  TRACK 04 AUDIO
+    INDEX 01 00:00:00
+REM switch back to CD audio for the rest of the tracks
+FILE "Some Sega CD Game.iso" BINARY
+  TRACK 05 AUDIO
+    INDEX 01 16:00:00
+  TRACK 06 AUDIO
+    INDEX 01 18:00:00
+  TRACK 07 AUDIO
+    INDEX 01 20:59:74
+  TRACK 08 AUDIO
+    INDEX 01 23:00:00
+*/
+
+int Load_CUE(char *buf, char *cue_name)
+{
+	FILE* cueFile = fopen(cue_name, "r");
+	char line [1024], temp [1024], filename [1024];
+	int trackIndex = -1, filetype = TYPE_ISO;
+
+	memset(&g_cuefile_TOC, 0, sizeof(g_cuefile_TOC));
+	filename[0] = 0;
+	g_cuefile_TOC.First_Track = 255;
+	g_cuefile_TOC.Last_Track = 0;
+
+	for(;;)
+	{
+		fgets(line, 1024, cueFile);
+		if(feof(cueFile) || ferror(cueFile))
+			break;
+		_strupr(line);
+
+		// ignore comment lines
+		if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
+			continue;
+
+		temp[0] = 0;
+		if(1 == sscanf(line, " FILE %s", temp) && temp[0])
+		{
+			char* ptr;
+			for(ptr=temp;*ptr;ptr++)
+				if(*ptr == '\"')
+					*ptr = 0;
+			ptr=temp; if(!*ptr) ptr++;
+			strcpy(filename, ptr);
+			if(strstr(line, "BINARY") || strstr(line, "ISO"))
+				filetype = TYPE_ISO;
+			else if(strstr(line, "MP3"))
+				filetype = TYPE_MP3;
+			else if(strstr(line, "WAV"))
+				filetype = TYPE_WAV;
+			continue;
+		}
+
+		{
+			int trackNum = -1;
+			if(1 == sscanf(line, " TRACK %d", &trackNum) && trackIndex < 99)
+			{
+				_scd_track* track = &g_cuefile_TOC.Tracks[++trackIndex];
+				track->Num = trackNum;
+				track->Type = strstr(line, "AUDIO") ? 0 : 1;
+				if(g_cuefile_TOC.First_Track > trackNum) g_cuefile_TOC.First_Track = trackNum;
+				if(g_cuefile_TOC.Last_Track < trackNum) g_cuefile_TOC.Last_Track = trackNum;
+				MakeFilename(g_cuefile_TOC_filenames[trackIndex], 1024, cue_name, filename);
+				g_cuefile_TOC_filetype[trackIndex] = filetype;
+				continue;
+			}
+		}
+
+		{
+			int m,s,f;
+			if(3 == sscanf(line, " INDEX 01 %d:%d:%d", &m,&s,&f) && trackIndex >= 0)
+			{
+				_scd_track* track = &g_cuefile_TOC.Tracks[trackIndex];
+				track->MSF.M = m;
+				track->MSF.S = s;
+				track->MSF.F = f;
+				AddToMSF(&track->MSF, 0, 0, (track->Type ? 2 : 4), 0); // not sure why I have to do this
+				continue;
+			}
+		}
+	}
+
+	fclose(cueFile);
+
+	if(g_cuefile_TOC.First_Track > g_cuefile_TOC.Last_Track)
+		g_cuefile_TOC.First_Track = g_cuefile_TOC.Last_Track;
+
+	Get_CUE_ISO_Filename(filename, 1024, cue_name);
+
+	if(filename)
+	{
+		int retval;
+
+		retval = Load_ISO(buf, filename);
+		if(retval == -1)
+		{
+			MakeFilename(filename, 1024, cue_name, filename);
+		}
+		return retval;
+	}
+
+	return -1;
+}
 
 int FILE_Read_One_LBA_CDC(void)
 {
 	int where_read;
 	
+	//struct cdcstruct cdc = CDC; // enable this for stupid debuggers that don't realize CDC is a variable
+
 	if (CDD.Control & 0x0100)					// DATA
 	{
 		if (Tracks[0].F == NULL) return -1;
@@ -206,7 +669,9 @@ int FILE_Read_One_LBA_CDC(void)
 		if (Tracks[0].Type == TYPE_ISO) where_read <<= 11;
 		else where_read = (where_read * 2352 + 16);
 
-//		memset(cp_buf, 0, 2048);
+		// TODO: this memset needs to happen instead of the fread when playing track 01 from the BIOS
+		//       but I don't know what the condition is supposed to be (maybe !(CDC.CTRL.B.B1 & 0x20))
+		//memset(cp_buf, 0, 2048);
 
 		fseek(Tracks[0].F, where_read, SEEK_SET);
 		fread(cp_buf, 1, 2048, Tracks[0].F);
@@ -217,12 +682,48 @@ int FILE_Read_One_LBA_CDC(void)
 	}
 	else										// AUDIO
 	{
-		int rate, channel;
+		int rate, channel, index;
+		extern int fatal_mp3_error;
+		index = SCD.Cur_Track - SCD.TOC.First_Track;
 		
-		if (Tracks[SCD.Cur_Track - SCD.TOC.First_Track].Type == TYPE_MP3)
+		if (Tracks[index].Type == TYPE_MP3)
 		{
-			MP3_Update(cp_buf, &rate, &channel, 0);
+			if(fatal_mp3_error) // Modif N. -- added check to prevent highly unpleasant noises if the MP3 decoder explodes (e.g. from a corrupted MP3 file)
+			{
+				memset(cp_buf, 0, 588*4);
+				rate = 44100;
+				channel = 2;
+			}
+			else
+				MP3_Update(cp_buf, &rate, &channel, 0);
 			Write_CD_Audio((short *) cp_buf, rate, channel, 588);
+		}
+		else if(Tracks[index].Type == TYPE_ISO) // Modif N. -- added case to allow using music from the ISO file (cue file support)
+		{
+			if(Tracks[index].F)
+			{
+				// convert virtual LBA (Cur_LBA) to an actual read offset
+				int curTrack = LBA_to_Track(SCD.Cur_LBA);
+				int lbaOffset = SCD.Cur_LBA - Track_to_LBA(curTrack);
+				int lbaBase = SCD.Cur_LBA; 
+				int lba, where_read, i;
+				for(i = 0; i < 100; i++)
+				{
+					int j = i ? i : curTrack-1; // first we check where it normally is, so that we usually leave this loop on the first iteration... if that fails, then loop through the other possible tracks
+					if(g_cuefile_TOC.Tracks[j].Num == curTrack)
+					{
+						lbaBase = MSF_to_LBA(&g_cuefile_TOC.Tracks[j].MSF);
+						break;
+					}
+				}
+				lba = lbaBase + lbaOffset;
+				where_read = (lba - 150) * 588*4 + 16;
+
+				// copy audio data to buffer
+				fseek(Tracks[index].F, where_read, SEEK_SET);
+				fread(cp_buf, 1, 588*4, Tracks[index].F);
+				Write_CD_Audio((short *) cp_buf, 44100, 2, 588);
+			}
 		}
 
 #ifdef DEBUG_CD
@@ -260,8 +761,6 @@ int FILE_Read_One_LBA_CDC(void)
 #endif
 			}
 
-			CDC.STAT.B.B0 = 0x80;
-
 			if (CDC.CTRL.B.B0 & 0x10)		// determine form bit form sub header ?
 			{
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x08;
@@ -271,8 +770,12 @@ int FILE_Read_One_LBA_CDC(void)
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x0C;
 			}
 
-			if (CDC.CTRL.B.B0 & 0x02) CDC.STAT.B.B3 = 0x20;	// ECC done
-			else CDC.STAT.B.B3 = 0x00;	// ECC not done
+			if (CDC.CTRL.B.B0 & 0x02)
+				CDC.STAT.B.B3 = 0x20;	// ECC done
+			else
+				CDC.STAT.B.B3 = 0x00;	// ECC not done
+
+			CDC.STAT.B.B0 = 0x80; // Modif N. -- moved from above, since it looked like a mistake to set it to 0x80 and then check if any bits that can't possibly be set are set
 
 			if (CDC.IFCTRL & 0x20)
 			{
@@ -287,9 +790,9 @@ int FILE_Read_One_LBA_CDC(void)
 			}
 		}
 	}
-	else
+	else				// AUDIO track
 	{
-		SCD.Cur_LBA++;
+		SCD.Cur_LBA++;		// Always increment sector if audio
 
 		CDC.WA.N = (CDC.WA.N + 2352) & 0x7FFF;		// add one sector to WA
 		CDC.PT.N = (CDC.PT.N + 2352) & 0x7FFF;
@@ -303,12 +806,10 @@ int FILE_Read_One_LBA_CDC(void)
 				memcpy(&CDC.Buffer[CDC.PT.N], cp_buf, 2352);
 			}
 
-			CDC.STAT.B.B0 = 0x80;
-
 			if (CDC.CTRL.B.B0 & 0x10)		// determine form bit form sub header ?
 			{
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x08;
-			}
+			} 
 			else
 			{
 				CDC.STAT.B.B2 = CDC.CTRL.B.B1 & 0x0C;
@@ -316,6 +817,8 @@ int FILE_Read_One_LBA_CDC(void)
 
 			if (CDC.CTRL.B.B0 & 0x02) CDC.STAT.B.B3 = 0x20;	// ECC done
 			else CDC.STAT.B.B3 = 0x00;	// ECC not done
+
+			CDC.STAT.B.B0 = 0x80; // Modif N. -- moved from above, since it looked like a mistake to set it to 0x80 and then check if any bits that can't possibly be set are set
 
 			if (CDC.IFCTRL & 0x20)
 			{
