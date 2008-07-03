@@ -322,6 +322,12 @@ void Preload_MP3(FILE** filePtr, int track)
 				}
 				allowContinueToNextTrack = 1;
 				Track_Played = prevTrack;
+
+				if(ferror(*filePtr)) // if we got some error (out of disk space?) give up on pre-loading the MP3
+				{
+					fclose(*filePtr);
+					*filePtr = NULL;
+				}
 			}
 			else
 			{
