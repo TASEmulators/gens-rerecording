@@ -6769,7 +6769,7 @@ void CheatWrite (unsigned int address, T value)
 {
 	for(int i = sizeof(T) - 1; i >=0; i--)
 	{
-		M68K_WBC(address++, (unsigned char) (value >> (i<<3))&0xff);
+		M68K_WBC(address++, (unsigned char) ((value >> (i<<3))&0xff));
 	}
 }
 #ifdef MAPHACK
