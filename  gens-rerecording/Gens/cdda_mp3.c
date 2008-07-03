@@ -274,7 +274,7 @@ void Delete_Preloaded_MP3s(void)
 
 void Preload_MP3(FILE** filePtr, int track)
 {
-	if(filePtr && track >= 0 && track < 100)
+	if(filePtr && track >= 0 && track < 100 && Tracks[track].Type == TYPE_MP3)
 	{
 		if(!*filePtr)
 		{
