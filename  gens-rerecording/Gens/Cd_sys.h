@@ -73,8 +73,8 @@ typedef struct {
 extern int File_Add_Delay;
 extern int CDDA_Enable;
 
-extern int CD_Audio_Buffer_L[8192];
-extern int CD_Audio_Buffer_R[8192];
+extern int CD_Audio_Buffer_L[8192*2];
+extern int CD_Audio_Buffer_R[8192*2];
 extern int CD_Audio_Buffer_Read_Pos;
 extern int CD_Audio_Buffer_Write_Pos;
 extern int CD_Audio_Starting;

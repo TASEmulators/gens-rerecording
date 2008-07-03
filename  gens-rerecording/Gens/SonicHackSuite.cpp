@@ -1157,10 +1157,23 @@ void DrawBoxes()
 				Xpos -= 0x80;
 				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
 			}
-	#ifdef S2
-			if (!(Ram_68k[CardBoard + Fo] & 0x40))
+	#if !(defined S1 || defined SCD)
+			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)
 			{
+				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
+				{
+					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
+					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
+					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
+					DrawBoxMWH(x,y,1,1,0x0000FF,0x001F,0);
+					DrawLine(x-1,y,x+1,y,0xFF0000,0xF800,0);
+					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
+					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
+					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
+				}
+			}
 	#endif
+//			else
 				DrawBoxMWH(Xpos - 8,Ypos,Width2,Height2,0xFF00FF,0xF81F,0);
 /*				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
 				{
@@ -1196,9 +1209,6 @@ void DrawBoxes()
 						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
 					}
 				}*/
-	#ifdef S2
-			}
-	#endif
 			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
 			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0);
 			DrawBoxMWH(Xpos - 8,Ypos,1,1,0x00FF00,0x07E0,0);
@@ -1208,7 +1218,7 @@ void DrawBoxes()
 	//			continue;
 			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
 			{
-#ifndef SCD
+#ifdef S1
 				FindObjectDims(CardBoard,Width,Height);
 #endif
 	//				Ypos -= 0x8;
@@ -1327,14 +1337,14 @@ int SonicCamHack()
 	short origy = (int) CheatRead<signed short>(CAMOFFSET1+4); //signed words with a floor of -255 (which is only reached when travelling upward through level wraps)
 	short xx = max(0,CheatRead<signed short>(P1OFFSET + off + XPo) - 160); 
 	short yy = CheatRead<signed short>(P1OFFSET + off + YPo) - 112;
-#ifndef SCD	//sega CD savestates still aren't stable enough
+//#ifndef SCD	//sega CD savestates still aren't stable enough
 	if((GetKeyState(VK_SCROLL)) || (flags & 0x80) || CheatRead<unsigned char>(0xFFF7CD) ||
 	  (((unsigned short) (x - origx) <= 320) &&
 	  (((unsigned short) (y - origy) <= 240) ||
 	  (((unsigned short) (y + LEVELHEIGHT - origy) <= 224) && (origy >= LEVELHEIGHT - 224)) || //so we don't trigger camhack when going downward through level-wraps
 	  ((origy < 0) && ((y >= LEVELHEIGHT + origy) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
 	  (CheatRead<unsigned char>(INLEVELFLAG) == 0)))
-#endif
+//#endif
 	{
 		CamX = CheatRead<signed short>(CAMOFFSET1);
 		CamY = CheatRead<signed short>(CAMOFFSET1+4);
@@ -1411,8 +1421,11 @@ int SonicCamHack()
 			DisplaySolid();
 			x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 			y = CheatRead<short>(P1OFFSET + off + YPo);
-			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
+			if (GetKeyState(VK_NUMLOCK))
+			{
+				sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
+				PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
+			}
 		}
 		else
 		{

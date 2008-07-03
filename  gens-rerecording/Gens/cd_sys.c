@@ -16,8 +16,8 @@ int File_Add_Delay = 0;
 
 int CDDA_Enable;
 
-int CD_Audio_Buffer_L[8192];
-int CD_Audio_Buffer_R[8192];
+int CD_Audio_Buffer_L[8192 * 2];
+int CD_Audio_Buffer_R[8192 * 2];
 int CD_Audio_Buffer_Read_Pos = 0;
 int CD_Audio_Buffer_Write_Pos = 2000;
 int CD_Audio_Starting;
