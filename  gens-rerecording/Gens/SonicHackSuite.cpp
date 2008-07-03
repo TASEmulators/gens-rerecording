@@ -1367,14 +1367,19 @@ int SonicCamHack()
 
 	Save_State_To_Buffer(Camhack_State_Buffer);
 
-//	origx = (origx > (signed short) xx) ? max(0,xx-320) : max(max(0,xx-320),origx);
-//	origy = (origy > (signed short) yy) ? yy-240 : max(yy-240,origy);
+
+	if (abs(xx - origx) > 640) origx = max(0,xx-640);	//We set the camera no more than 640 pixels distant
+	origy = (origy > (signed short) yy) ? yy-448 : max(yy-448,origy);	//and always above target, because Sonic doesn't like externally forced upward scrolling
+	int xd = XSCROLLRATE;
+	if (xx < origx) xd = -xd;
+	//this is done because scrolling up seems to be handled very differently from scrolling down
+	//See the Hydrocity 1 boss battle in either S3K TAS for confirmation of this
 
 
 	// move the camera closer to begin with if it's really far away
-	int xdiff = origx - xx;
-	int ydiff = origy - yy;
-#if defined(SK)
+//	int xdiff = origx - xx;
+//	int ydiff = origy - yy;
+/*#if defined(SK)
 	if(xdiff < -(640/2+XSCROLLRATE)) xdiff = -(640/2+XSCROLLRATE);
 	if(xdiff > (640/2+XSCROLLRATE)) xdiff = (640/2+XSCROLLRATE);
 	if(ydiff < -(480/2+YSCROLLRATE)) ydiff = -(480/2+YSCROLLRATE);
@@ -1386,7 +1391,7 @@ int SonicCamHack()
 	if(ydiff > (480)) ydiff = (480);
 #endif
 	origx = xx + xdiff;
-	origy = yy + ydiff;
+	origy = yy + ydiff;*/
 
 
 	int numframesx = abs(xx - origx)/XSCROLLRATE;
@@ -1451,18 +1456,23 @@ int SonicCamHack()
 			numframes++; // lagged a frame
 		else
 #else
-//		if (Lag_Frame)
-//			numframes++;
-//		else
+		if ((numframes < maxFrames) && Lag_Frame)
+			numframes++;
+		else
 #endif
 		{
-			// wrong, what if we're to the left of the camera?
-			//if (yy > origy)
-			//	origy += min(YSCROLLRATE,yy-origy);
-			//if (xx > origx)
-			//	origx += min(XSCROLLRATE,xx-origx);
+			//because the game doesn't like being forced to scroll up -- at least in the case of S3K.
+			if (yy > origy)
+				origy += min(YSCROLLRATE,yy-origy);
+			if (xx != origx)
+			{
+				if (abs(xx - origx) <= XSCROLLRATE)
+					origx = xx;
+				else 
+					origx += xd;
+			}
 
-			if(origx != xx)
+/*			if(origx != xx)
 			{
 				if(abs(origx - xx) <= XSCROLLRATE)
 					origx = xx;
@@ -1481,7 +1491,7 @@ int SonicCamHack()
 					if(origy < yy) origy += YSCROLLRATE;
 					else if(origy > yy) origy -= YSCROLLRATE;
 				}
-			}
+			}*/
 		}
 	}
 
