@@ -50,6 +50,10 @@
 // uncomment this to test the 32x-specific parts of the savestates for desyncs
 //#define TEST_32X_FOR_DESYNCS
 
+// uncomment this in addition to one of the above to allow for
+// calling DesyncDetection from elsewhere without forcing it on all frame updates
+//#define MANUAL_DESYNC_CHECKS_ONLY
+
 #if defined(TEST_GENESIS_FOR_DESYNCS) || defined(TEST_SEGACD_FOR_DESYNCS) || defined(TEST_32X_FOR_DESYNCS)
 	#define TEST_FOR_DESYNCS
 	#include <assert.h>
@@ -105,10 +109,10 @@
 
 	static SaveStateData tempData;
 
-	static void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
+	void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
 	{
 #ifdef TEST_GENESIS_FOR_DESYNCS
-		if (!Genesis_Started) return;
+		if (!Genesis_Started && !SegaCD_Started && !_32X_Started) return;
 #endif
 #ifdef TEST_SEGACD_FOR_DESYNCS
 		if (!SegaCD_Started) return;
@@ -116,7 +120,6 @@
 #ifdef TEST_32X_FOR_DESYNCS
 		if (!_32X_Started) return;
 #endif
-
 		// (only if forceCheckingDesync is false)
 		// hold control to save a savestate for frames in a movie for later checking
 		// then turn on scroll lock when replaying those frames later to check them
@@ -175,6 +178,8 @@
 		}
 	}
 
+#ifndef MANUAL_DESYNC_CHECKS_ONLY
+
 	int Do_Genesis_Frame_Real();
 	int Do_Genesis_Frame_No_VDP_Real();
 	int Do_SegaCD_Frame_Real();
@@ -187,21 +192,26 @@
 #define DO_FRAME_HEADER(name, fastname) \
 	int name() \
 	{ \
-		Save_State_To_Buffer(State_Buffer); /* save */ \
-		disableSound = true; \
-		fastname##_Real(); /* run 2 frames */ \
-		fastname##_Real(); \
-		DesyncDetection(1,0); /* save */ \
-		Load_State_From_Buffer(State_Buffer); /* load */ \
-		fastname##_Real(); /* run 2 frames */ \
-		fastname##_Real(); \
-		DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
-		Load_State_From_Buffer(State_Buffer); /* load */ \
-		saveStateDataMap.clear(); \
-		disableSound = false; \
+		if(!((GetAsyncKeyState(VK_TAB) & 0x8000))) { \
+			Save_State_To_Buffer(State_Buffer); /* save */ \
+			disableSound = true; \
+			fastname##_Real(); /* run 2 frames */ \
+			fastname##_Real(); \
+			DesyncDetection(1,0); /* save */ \
+			Load_State_From_Buffer(State_Buffer); /* load */ \
+			fastname##_Real(); /* run 2 frames */ \
+			fastname##_Real(); \
+			DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
+			Load_State_From_Buffer(State_Buffer); /* load */ \
+			saveStateDataMap.clear(); \
+			disableSound = false; \
+		} \
 		return name##_Real(); /* run the frame for real */ \
 	} \
 	int name##_Real()
+#else // MANUAL_DESYNC_CHECKS_ONLY:
+#define DO_FRAME_HEADER(name, fastname) int name()
+#endif
 
 	BOOL IsAsyncAllowed(void)
 	{
