@@ -514,7 +514,7 @@ int Flip(HWND hWnd)
 			0x00B5, 0x00B9, 0x00BD, 0x00C1, 0x00C5, 0x00C9, 0x00CD, 0x00D1, 0x00D4, 0x00D8, 0x00DB, 0x00DE, 0x00E1, 0x00E4, 0x00E7, 0x00EA, 
 			0x00EC, 0x00EE, 0x00F1, 0x00F3, 0x00F4, 0x00F6, 0x00F8, 0x00F9, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FE, 0x00FF, 0x00FF, 0x00FF
 		};
-		char temp[10];
+		char temp[64]; //increased to prevent stack corruption
 		extern unsigned char Ram_68k[64 * 1024];
 		#ifdef SK //Sonic and Knuckles
 		const unsigned char angle = (unsigned char)(Ram_68k[0xB027]);
@@ -539,7 +539,7 @@ int Flip(HWND hWnd)
 		const unsigned char GVo = 0xC;
 		const unsigned char XPo = 0x0;
 		const unsigned char YPo = 0x4;
-		#elif defined S1 //Sonic 1
+		#elif (defined S1) || (defined SCD) //Sonic 1
 		bool Knuckles = Game ? !(strncmp("KNUCKLES",Game->Rom_Name,strlen("KNUCKLES"))) : 0; //Checks the Rom title to see if it's "KNUCKLES THE ECHIDNA IN - SONIC THE HEDGEHOG"
 		const unsigned int P1OFFSET = 0xD008;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 		const unsigned int SinTableOffset = ((Knuckles) ? 0x2980: 0x29F2); // sonic 1: 29F2 S1K: 2980 ... sonic 2: 33CE ... sonic 3: 1D64 //Where in the ROM is the sine table?
