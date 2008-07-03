@@ -274,9 +274,9 @@ void Delete_Preloaded_MP3s(void)
 
 void Preload_MP3(FILE** filePtr, int track)
 {
-	if(filePtr && track >= 0 && track < 100 && Tracks[track].Type == TYPE_MP3)
+	if(filePtr && track >= 0 && track < 100)
 	{
-		if(!*filePtr)
+		if(!*filePtr && Tracks[track].Type == TYPE_MP3)
 		{
 			char str [128], msg [256];
 			int prevTrack = Track_Played;
@@ -335,8 +335,8 @@ void Preload_MP3(FILE** filePtr, int track)
 				*filePtr = fopen(str, "rb");
 			}
 		}
-		preloaded_tracks[track] = *filePtr ? 1 : 0;
 	}
+	preloaded_tracks[track] = (filePtr && *filePtr) ? 1 : 0;
 }
 
 void Preload_Used_MP3s(void)

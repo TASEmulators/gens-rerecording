@@ -17,6 +17,10 @@
 
 #ifdef SONICCAMHACK
 unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
+extern "C" int Do_VDP_Only();
+extern "C" int Do_Genesis_Frame_No_VDP();
+extern "C" unsigned char Lag_Frame;
+
 
 //Gets object height and width for objects that don't use generic collision responses
 //Currently only defined for Sonic 1 objects, due to ease of discovery in hacking community Sonic1 disassemblies.
@@ -193,8 +197,8 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 		const unsigned int SSTLEN = 0x1FCC;
 		const unsigned int SPRITESIZE = 0x4A;
 		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-		const unsigned char XSCROLLRATE = 24;
-		const unsigned char YSCROLLRATE = 32;
+		const unsigned char XSCROLLRATE = 32;
+		const unsigned char YSCROLLRATE = 16;
 	#elif defined S2
 		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 		const unsigned char XPo = 0x8;
@@ -1338,7 +1342,7 @@ int SonicCamHack()
 	  (((unsigned short) (x - origx) <= 320) &&
 	  (((unsigned short) (y - origy) <= 240) ||
 	  (((unsigned short) (y + LEVELHEIGHT - origy) <= 224) && (origy >= LEVELHEIGHT - 224)) || //so we don't trigger camhack when going downward through level-wraps
-	  ((origy < 0) && ((y >= LEVELHEIGHT + origy) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
+	  ((origy < 0) && ((y >= (short)(LEVELHEIGHT + origy)) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
 	  (CheatRead<unsigned char>(INLEVELFLAG) == 0)))
 //#endif
 	{
@@ -1353,7 +1357,7 @@ int SonicCamHack()
 		if (GetKeyState(VK_NUMLOCK))
 		{
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			PutText(Str_Tmp,(x - CamX),y-CamY,0,0,0,0,VERT,ROUGE);
+			PutText(Str_Tmp,(x - CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,VERT,ROUGE);
 		}
 		return retval;
 	}
@@ -1363,12 +1367,36 @@ int SonicCamHack()
 
 	Save_State_To_Buffer(Camhack_State_Buffer);
 
-	origx = (origx > (signed short) xx) ? max(0,xx-320) : max(max(0,xx-320),origx);
-	origy = (origy > (signed short) yy) ? yy-240 : max(yy-240,origy);
-	int numframesx = (xx - origx)/XSCROLLRATE;
-	int numframesy = (yy - origy)/YSCROLLRATE;
+//	origx = (origx > (signed short) xx) ? max(0,xx-320) : max(max(0,xx-320),origx);
+//	origy = (origy > (signed short) yy) ? yy-240 : max(yy-240,origy);
+
+
+	// move the camera closer to begin with if it's really far away
+	int xdiff = origx - xx;
+	int ydiff = origy - yy;
+#if defined(SK)
+	if(xdiff < -(640/2+XSCROLLRATE)) xdiff = -(640/2+XSCROLLRATE);
+	if(xdiff > (640/2+XSCROLLRATE)) xdiff = (640/2+XSCROLLRATE);
+	if(ydiff < -(480/2+YSCROLLRATE)) ydiff = -(480/2+YSCROLLRATE);
+	if(ydiff > (480/2+YSCROLLRATE)) ydiff = (480/2+YSCROLLRATE);
+#else
+	if(xdiff < -(640)) xdiff = -(640); // wish I could make this lower without adding more junk tiles
+	if(xdiff > (640)) xdiff = (640);
+	if(ydiff < -(480)) ydiff = -(480);
+	if(ydiff > (480)) ydiff = (480);
+#endif
+	origx = xx + xdiff;
+	origy = yy + ydiff;
+
+
+	int numframesx = abs(xx - origx)/XSCROLLRATE;
+	int numframesy = abs(yy - origy)/YSCROLLRATE;
 	int numframes = max(numframesx,numframesy) + 1;
 //	numframes += (int) ((numframes/4.0)+0.5);
+
+	static const int maxFrames = 100; // for safety, it shouldn't get this high but if it does we definitely don't want to emulate more frames than this
+	if(numframes > maxFrames)
+		numframes = maxFrames;
 
 	disableSound = true;
 	unsigned char posbuf[SSTLEN];
@@ -1400,36 +1428,76 @@ int SonicCamHack()
 			CheatWrite<unsigned long>(CAMOFFSET4, origy);
 			CheatWrite<unsigned long>(CAMOFFSET4+4, origx);
 		#endif
+			
 		memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
-		if (yy > origy)
-			origy += min(YSCROLLRATE,yy-origy);
-		if (xx > origx)
-			origx += min(XSCROLLRATE,xx-origx);
 
-		if(i == numframes+1)
+
+		//Update_Frame_Fast();
+		// since we're just doing prediction updates,
+		// chances are good we can get away with only updating
+		// the Genesis part of the emulation on these iterations
+		// (it's a lot faster this way)
+		Do_Genesis_Frame_No_VDP();
+
+		if (i == numframes)
 		{
-			Update_Frame();
-			DrawBoxes();
-			DisplaySolid();
-			x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
-			y = CheatRead<short>(P1OFFSET + off + YPo);
-			if (GetKeyState(VK_NUMLOCK))
-			{
-				sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-				PutText(Str_Tmp,(x-CamX)&0xFFF,(y-CamY)&0xFFF,0,0,0,0,VERT,ROUGE);
-			}
+			CamX = CheatRead<signed short>(CAMOFFSET1);
+			CamY = CheatRead<signed short>(CAMOFFSET1+4);
 		}
+
+#ifdef SCD
+		// this seems to work better than checking Lag_Frame in this case
+		if(numframes < maxFrames && time == CheatRead<signed int>(0xFF1514) && (CheatRead<signed short>(0xFF1510) & 0x100))
+			numframes++; // lagged a frame
 		else
+#else
+//		if (Lag_Frame)
+//			numframes++;
+//		else
+#endif
 		{
-			Update_Frame_Fast();
-			if (i == numframes)
+			// wrong, what if we're to the left of the camera?
+			//if (yy > origy)
+			//	origy += min(YSCROLLRATE,yy-origy);
+			//if (xx > origx)
+			//	origx += min(XSCROLLRATE,xx-origx);
+
+			if(origx != xx)
 			{
-				CamX = CheatRead<signed short>(CAMOFFSET1);
-				CamY = CheatRead<signed short>(CAMOFFSET1+4);
+				if(abs(origx - xx) <= XSCROLLRATE)
+					origx = xx;
+				else //if(abs(origx - xx) > 80)
+				{
+					if(origx < xx) origx += XSCROLLRATE;
+					else if(origx > xx) origx -= XSCROLLRATE;
+				}
 			}
-//			if (Lag_Frame) numframes++;
+			if(origy != yy)
+			{
+				if(abs(origy - yy) <= YSCROLLRATE)
+					origy = yy;
+				else //if(abs(origy - yy) > 60)
+				{
+					if(origy < yy) origy += YSCROLLRATE;
+					else if(origy > yy) origy -= YSCROLLRATE;
+				}
+			}
 		}
 	}
+
+	{
+		Do_VDP_Only();
+		DrawBoxes();
+		DisplaySolid();
+		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
+		y = CheatRead<short>(P1OFFSET + off + YPo);
+		if (GetKeyState(VK_NUMLOCK))
+		{
+			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
+			PutText(Str_Tmp,(x-CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,VERT,ROUGE);
+		}
+	}
+
 	disableSound = false;
 
 	Load_State_From_Buffer(Camhack_State_Buffer);
