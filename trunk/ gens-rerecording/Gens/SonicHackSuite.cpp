@@ -1416,7 +1416,9 @@ int SonicCamHack()
 		CamY = CheatRead<signed short>(CAMOFFSET1+4);
 		int retval = Update_Frame(); // no need for cam hack now
 		offscreen = false;
-		DrawBoxes();
+		#ifndef SCD
+			DrawBoxes();
+		#endif
 		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 		y = CheatRead<short>(P1OFFSET + off + YPo);
