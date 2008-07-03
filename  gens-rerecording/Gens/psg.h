@@ -29,13 +29,15 @@ extern int PSG_Improv;
 extern int *PSG_Buf[2];
 extern int PSG_Len;
 extern unsigned short PSGVol;
-
+extern unsigned char PSG_Save_Full[sizeof(struct _psg)];
 /* end */
 
 void PSG_Write(int data);
 void PSG_Update_SIN(int **buffer, int length);
 void PSG_Update(int **buffer, int length);
 void PSG_Init(int clock, int rate);
+void PSG_Save_State_Full(void);
+void PSG_Restore_State_Full(void); 
 void PSG_Save_State(void);
 void PSG_Restore_State(void);
 

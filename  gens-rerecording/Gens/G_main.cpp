@@ -2853,21 +2853,27 @@ dialogAgain: //Nitsuja added this
 					}
 					else
 					{
+						// Modif N. reload currently-loaded ROM (more thorough than a Reset, apparently necessary) and clear out SRAM and BRAM
+						int wasPaused = Paused;
 						if (Genesis_Started)
 						{
 							Pre_Load_Rom(HWnd,Recent_Rom[0]);
 							MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (_32X_Started)
 						{
-							Reset_32X();
+							Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("32X reseted", "32X reset", 1500)
+			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (SegaCD_Started)
 						{
 							Reset_SegaCD();
 							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+							Format_Backup_Ram();
 						}
+						Paused = wasPaused; 
 					}
 					if(MainMovie.Status==MOVIE_PLAYING && MainMovie.UseState!=0)
 					{

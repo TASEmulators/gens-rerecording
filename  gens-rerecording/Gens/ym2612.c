@@ -2384,7 +2384,60 @@ void YM2612_Update(int **buf, int length)
 #endif
 
 }
+#ifdef _WIN32
+   #include "BaseTsd.h"
+   typedef INT_PTR intptr_t;
+#else
+   #include "stdint.h"
+#endif
 
+int YM2612_Restore_Full(const unsigned char SAVE[sizeof(ym2612_)])
+{
+   int channel = 0;
+   int slot = 0;
+
+   memcpy(&YM2612, SAVE, sizeof(ym2612_));
+
+   // re-pointerify / fix pointers
+   for(channel = 0 ; channel < 6 ; channel++)
+   {
+      for(slot = 0 ; slot < 4 ; slot++)
+      {
+         YM2612.CHANNEL[channel].SLOT[slot].DT = (int*)((intptr_t)YM2612.CHANNEL[channel].SLOT[slot].DT + (int*)&DT_TAB);
+         YM2612.CHANNEL[channel].SLOT[slot].AR = (int*)((intptr_t)YM2612.CHANNEL[channel].SLOT[slot].AR + (int*)&AR_TAB);
+         YM2612.CHANNEL[channel].SLOT[slot].DR = (int*)((intptr_t)YM2612.CHANNEL[channel].SLOT[slot].DR + (int*)&DR_TAB);
+         YM2612.CHANNEL[channel].SLOT[slot].SR = (int*)((intptr_t)YM2612.CHANNEL[channel].SLOT[slot].SR + (int*)&DR_TAB);
+         YM2612.CHANNEL[channel].SLOT[slot].RR = (int*)((intptr_t)YM2612.CHANNEL[channel].SLOT[slot].RR + (int*)&DR_TAB);
+      }
+   }
+
+   return 0;
+}
+
+int YM2612_Save_Full(unsigned char SAVE[sizeof(ym2612_)])
+{
+   ym2612_* ymp = ((ym2612_*)SAVE);
+   int channel = 0;
+   int slot = 0;
+
+   memcpy(SAVE, &YM2612, sizeof(ym2612_));
+
+   // un-pointerify
+
+   for(channel = 0 ; channel < 6 ; channel++)
+   {
+      for(slot = 0 ; slot < 4 ; slot++)
+      {
+         ymp->CHANNEL[channel].SLOT[slot].DT = (int*)((int*)ymp->CHANNEL[channel].SLOT[slot].DT - (int*)&DT_TAB);
+         ymp->CHANNEL[channel].SLOT[slot].AR = (int*)((int*)ymp->CHANNEL[channel].SLOT[slot].AR - (int*)&AR_TAB);
+         ymp->CHANNEL[channel].SLOT[slot].DR = (int*)((int*)ymp->CHANNEL[channel].SLOT[slot].DR - (int*)&DR_TAB);
+         ymp->CHANNEL[channel].SLOT[slot].SR = (int*)((int*)ymp->CHANNEL[channel].SLOT[slot].SR - (int*)&DR_TAB);
+         ymp->CHANNEL[channel].SLOT[slot].RR = (int*)((int*)ymp->CHANNEL[channel].SLOT[slot].RR - (int*)&DR_TAB);
+      }
+   }
+
+   return 0;
+}
 
 int YM2612_Save(unsigned char SAVE[0x200])
 {

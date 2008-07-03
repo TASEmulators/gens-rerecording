@@ -293,7 +293,7 @@ int Load_State(char *Name)
 			else if(switched == 1) //Modif N - "switched to playback" message
 				sprintf(Str_Tmp, "STATE %d LOADED : SWITCHED TO PLAYBACK", Current_State);
 			else if(switched == 2) //Modif N - "switched to playback" message
-				sprintf(Str_Tmp, "STATE %d LOADED : MOVIE FINISHED", Current_State);
+				(Str_Tmp, "STATE %d LOADED : MOVIE FINISHED", Current_State);
 		}
 		Put_Info(Str_Tmp, 2000);
 	}
@@ -709,6 +709,10 @@ int Import_Genesis(unsigned char *Data)
 
 	FrameCount=Data[0x22478]+(Data[0x22479]<<8)+(Data[0x2247A]<<16)+(Data[0x2247B]<<24);
 
+	MainMovie.NbRerecords++;
+	if(MainMovie.Status==MOVIE_RECORDING)
+		MainMovie.LastFrame=FrameCount;
+
 	main68k_GetContext(&Context_68K);
 
 	for(i = 0; i < 24; i++) Set_VDP_Reg(i, Data[0xFA + i]);
@@ -733,7 +737,7 @@ int Import_Genesis(unsigned char *Data)
 		}
 	}
 
-	if(Version >= 6)
+	if(Version == 6)
 	{
 		//Modif N. - saving more stuff (although a couple of these are saved above in a weird way that I don't trust)
 		unsigned int offset = 0x2247C;
@@ -833,8 +837,8 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&Cycles_S68K, Data, offset, 4);
 		ImportDataAuto(&Cycles_M68K, Data, offset, 4);
 		ImportDataAuto(&Cycles_Z80, Data, offset, 4);
-	ImportDataAuto(&VDP_Status, Data, offset, 4);
-	ImportDataAuto(&VDP_Int, Data, offset, 4);
+		ImportDataAuto(&VDP_Status, Data, offset, 4);
+		ImportDataAuto(&VDP_Int, Data, offset, 4);
 		ImportDataAuto(&Ctrl.Write, Data, offset, 4);
 		ImportDataAuto(&Ctrl.DMA_Mode, Data, offset, 4);
 		ImportDataAuto(&Ctrl.DMA, Data, offset, 4);
@@ -861,6 +865,71 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
 	}
+	else if (Version >= 7)
+	{
+		unsigned int offset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX1;
+
+		unsigned char Reg_2[sizeof(ym2612_)];
+		ImportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
+		YM2612_Restore_Full(Reg_2);
+
+		ImportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg)); // some important parts of this weren't saved above
+		PSG_Restore_State_Full();
+	
+		ImportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
+		ImportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
+		ImportDataAuto(&M_Z80.IntAckC, Data, offset, 4);
+
+		ImportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
+
+		ImportDataAuto(&Controller_1_State, Data, offset, 448); // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
+	
+		// apparently necessary
+		ImportDataAuto(&VDP_Status, Data, offset, 4);
+		ImportDataAuto(&VDP_Int, Data, offset, 4);
+		ImportDataAuto(&VDP_Current_Line, Data, offset, 4);
+		ImportDataAuto(&VDP_Num_Lines, Data, offset, 4);
+		ImportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
+		ImportDataAuto(&DMAT_Length, Data, offset, 4);
+		ImportDataAuto(&DMAT_Type, Data, offset, 4);
+		//ImportDataAuto(&CRam_Flag, Data, offset, 4); //emulator flag which causes Gens not to update its draw palette, but doesn't affect sync state
+		ImportDataAuto(&LagCount, Data, offset, 4);
+		ImportDataAuto(&VRam_Flag, Data, offset, 4);
+		ImportDataAuto(MD_Palette, Data, offset, 256 * 2);
+
+		// it's probably safer sync-wise to keep SRAM stuff in the savestate
+		ImportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+		ImportDataAuto(&SRAM_Start, Data, offset, 4);
+		ImportDataAuto(&SRAM_End, Data, offset, 4);
+		ImportDataAuto(&SRAM_ON, Data, offset, 4);
+		ImportDataAuto(&SRAM_Write, Data, offset, 4);
+		ImportDataAuto(&SRAM_Custom, Data, offset, 4);
+
+		// this group I'm not sure about, they don't seem to be necessary but I'm keeping them around just in case
+		ImportDataAuto(&Bank_M68K, Data, offset, 4);
+		ImportDataAuto(&S68K_State, Data, offset, 4);
+		ImportDataAuto(&Z80_State, Data, offset, 4);
+		ImportDataAuto(&Last_BUS_REQ_Cnt, Data, offset, 4);
+		ImportDataAuto(&Last_BUS_REQ_St, Data, offset, 4);
+		ImportDataAuto(&Fake_Fetch, Data, offset, 4);
+		ImportDataAuto(&Game_Mode, Data, offset, 4);
+		ImportDataAuto(&CPU_Mode, Data, offset, 4);
+		ImportDataAuto(&CPL_M68K, Data, offset, 4);
+		ImportDataAuto(&CPL_S68K, Data, offset, 4);
+		ImportDataAuto(&CPL_Z80, Data, offset, 4);
+		ImportDataAuto(&Cycles_S68K, Data, offset, 4);
+		ImportDataAuto(&Cycles_M68K, Data, offset, 4);
+		ImportDataAuto(&Cycles_Z80, Data, offset, 4);
+		ImportDataAuto(&Gen_Mode, Data, offset, 4);
+		ImportDataAuto(&Gen_Version, Data, offset, 4);
+		ImportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
+		ImportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
+		ImportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
+
+		// these aren't saved but they don't seem to be necessary and I don't feel like saving them
+		//ImportDataAuto(&Def_z80_Mem, Data, offset, 0x10000);
+		ImportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+	}
 
 	main68k_SetContext(&Context_68K);
 	return len;
@@ -868,23 +937,16 @@ int Import_Genesis(unsigned char *Data)
 
 void Export_Genesis(unsigned char *Data)
 {
+	S68000CONTEXT Context_68K; // Modif N.: apparently no longer necessary but I'm leaving it here just to be safe: purposely shadows the global Context_68K variable with this local copy to avoid tampering with it while saving
 	unsigned char Reg_1[0x200], *src;
 	int i;
 
 #ifdef _WIN32
-	// warnings disabled because they were highly annoying and not once have I encountered a desync from ignoring them
-	//if(DMAT_Length)
-	//{
-	//	MessageBox(NULL, "Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning", MB_OK | MB_ICONWARNING);
-	//}
-	//if(VDP_Int)
-	//{
-	//	MessageBox(NULL, "Saving during VDP interrupt; savestate may be corrupt. Try advancing the frame and saving again.", "Warning", MB_OK | MB_ICONWARNING);
-	//}
+	if(DMAT_Length)
+	  //MessageBox(NULL, "Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning", MB_OK | MB_ICONWARNING);
 #endif
 
-	// XXX: should save the state of DMA transfer, instead... actually, maybe it is saved already now
-//	while (DMAT_Length) Update_DMA();		// Be sure to finish DMA before save
+	//   while (DMAT_Length) Update_DMA();      // Be sure to finish DMA before save //Modif N.: commented out because it may cause saving to change the current state
 
 	Data[0x00] = 'G';
 	Data[0x01] = 'S';
@@ -892,16 +954,22 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x03] = 0x40;
 	Data[0x04] = 0xE0;
 
-	Data[0x50] = 6;		// Version
-	Data[0x51] = 0;		// Gens
+	Data[0x50] = 7;      // Version
+	Data[0x51] = 0;      // Gens
 
 	PSG_Save_State();
 
 	for(i = 0; i < 8; i++)
 	{
-		Data[0x60 + i * 2] = PSG_Save[i] & 0xFF;
-		Data[0x61 + i * 2] = (PSG_Save[i] >> 8) & 0xFF;
+	  Data[0x60 + i * 2] = PSG_Save[i] & 0xFF;
+	  Data[0x61 + i * 2] = (PSG_Save[i] >> 8) & 0xFF;
 	}
+
+	#ifdef _DEBUG
+	int contextsize1 = main68k_GetContextSize();
+	int contextsize2 = sizeof(Context_68K);
+	assert(contextsize1 == contextsize2);
+	#endif
 
 	main68k_GetContext(&Context_68K);
 
@@ -913,13 +981,13 @@ void Export_Genesis(unsigned char *Data)
 
 	if (Context_68K.sr & 0x2000)
 	{
-		ExportData(&Context_68K.asp, Data, 0xD2, 4);
-		ExportData(&Context_68K.areg[7], Data, 0xD6, 4);
+	  ExportData(&Context_68K.asp, Data, 0xD2, 4);
+	  ExportData(&Context_68K.areg[7], Data, 0xD6, 4);
 	}
 	else
 	{
-		ExportData(&Context_68K.asp, Data, 0xD6, 4);
-		ExportData(&Context_68K.areg[7], Data, 0xD2, 4);
+	  ExportData(&Context_68K.asp, Data, 0xD6, 4);
+	  ExportData(&Context_68K.areg[7], Data, 0xD2, 4);
 	}
 
 	ExportData(&Ctrl.Data, Data, 0x40, 4);
@@ -945,12 +1013,12 @@ void Export_Genesis(unsigned char *Data)
 	src = (unsigned char *) &(VDP_Reg.Set1);
 	for(i = 0; i < 24; i++)
 	{
-		Data[0xFA + i] = *src;
-		src += 4;
+	  Data[0xFA + i] = *src;
+	  src += 4;
 	}
 
-	for(i = 0; i < 0x80; i++) Data[i + 0x112] = CRam[i] & 0xFF;
-	for(i = 0; i < 0x50; i++) Data[i + 0x192] = VSRam[i]  & 0xFF;
+	for(i = 0; i < 0x80; i++) Data[i + 0x112] = CRam[i];
+	for(i = 0; i < 0x50; i++) Data[i + 0x192] = VSRam[i];
 
 	YM2612_Save(Reg_1);
 	for(i = 0; i < 0x200; i++) Data[i + 0x1E4] = Reg_1[i];
@@ -993,150 +1061,93 @@ void Export_Genesis(unsigned char *Data)
 
 	for(i = 0; i < 0x10000; i += 2)
 	{
-		Data[i + 0x2478 + 1] = Ram_68k[i + 0];
-		Data[i + 0x2478 + 0] = Ram_68k[i + 1];
+	  Data[i + 0x2478 + 1] = Ram_68k[i + 0];
+	  Data[i + 0x2478 + 0] = Ram_68k[i + 1];
 	}
 
 	for(i = 0; i < 0x10000; i += 2)
 	{
-		Data[i + 0x12478 + 1] = VRam[i + 0];
-		Data[i + 0x12478 + 0] = VRam[i + 1];
+	  Data[i + 0x12478 + 1] = VRam[i + 0];
+	  Data[i + 0x12478 + 0] = VRam[i + 1];
 	}
-	Data[0x22478]=unsigned char (FrameCount&0xFF);	//Modif
-	Data[0x22479]=unsigned char ((FrameCount>>8)&0xFF);	//Modif
-	Data[0x2247A]=unsigned char ((FrameCount>>16)&0xFF);	//Modif
-	Data[0x2247B]=unsigned char ((FrameCount>>24)&0xFF);	//Modif
+	Data[0x22478]=unsigned char (FrameCount&0xFF);   //Modif
+	Data[0x22479]=unsigned char ((FrameCount>>8)&0xFF);   //Modif
+	Data[0x2247A]=unsigned char ((FrameCount>>16)&0xFF);   //Modif
+	Data[0x2247B]=unsigned char ((FrameCount>>24)&0xFF);   //Modif
 
-//	if(Version >= 6)
-	{
-		//Modif N. - saving more stuff (although a couple of these are saved above in a weird way that I don't trust)
-		unsigned int offset = 0x2247C;
+	//Modif N. - saving more stuff (added everything after this)
 
-		ExportDataAuto(&Context_68K.dreg, Data, offset, 4*8);
-		ExportDataAuto(&Context_68K.areg, Data, offset, 4*8);
-		ExportDataAuto(&Context_68K.asp, Data, offset, 4);
-		ExportDataAuto(&Context_68K.pc, Data, offset, 4);
-		ExportDataAuto(&Context_68K.odometer, Data, offset, 4);
-		ExportDataAuto(&Context_68K.interrupts, Data, offset, 8);
-		ExportDataAuto(&Context_68K.sr, Data, offset, 2);
-		ExportDataAuto(&Context_68K.contextfiller00, Data, offset, 2);
+	unsigned int offset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX1;
 
-		ExportDataAuto(&VDP_Reg.H_Int, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Set1, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Set2, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Pat_ScrA_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Pat_ScrA_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Pat_Win_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Pat_ScrB_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Spr_Att_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Reg6, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.BG_Color, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Reg8, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Reg9, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.H_Int, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Set3, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Set4, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.H_Scr_Adr, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Reg14, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Auto_Inc, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Scr_Size, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Win_H_Pos, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Win_V_Pos, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length_L, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length_H, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_L, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_M, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_H, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
+	unsigned char Reg_2[sizeof(ym2612_)];
+	YM2612_Save_Full(Reg_2);
+	ExportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
 
-		ExportDataAuto(&Controller_1_Counter, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Delay, Data, offset, 4);
-		ExportDataAuto(&Controller_1_State, Data, offset, 4);
-		ExportDataAuto(&Controller_1_COM, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Counter, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Delay, Data, offset, 4);
-		ExportDataAuto(&Controller_2_State, Data, offset, 4);
-		ExportDataAuto(&Controller_2_COM, Data, offset, 4);
-		ExportDataAuto(&Memory_Control_Status, Data, offset, 4);
-		ExportDataAuto(&Cell_Conv_Tab, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Type, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Up, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Down, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Left, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Right, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Start, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Mode, Data, offset, 4);
-		ExportDataAuto(&Controller_1_A, Data, offset, 4);
-		ExportDataAuto(&Controller_1_B, Data, offset, 4);
-		ExportDataAuto(&Controller_1_C, Data, offset, 4);
-		ExportDataAuto(&Controller_1_X, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Y, Data, offset, 4);
-		ExportDataAuto(&Controller_1_Z, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Type, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Up, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Down, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Left, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Right, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Start, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Mode, Data, offset, 4);
-		ExportDataAuto(&Controller_2_A, Data, offset, 4);
-		ExportDataAuto(&Controller_2_B, Data, offset, 4);
-		ExportDataAuto(&Controller_2_C, Data, offset, 4);
-		ExportDataAuto(&Controller_2_X, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Y, Data, offset, 4);
-		ExportDataAuto(&Controller_2_Z, Data, offset, 4);
+	PSG_Save_State_Full();
+	ExportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg));  // some important parts of this weren't saved above
 
-		ExportDataAuto(&DMAT_Length, Data, offset, 4);
-		ExportDataAuto(&DMAT_Type, Data, offset, 4);
-		ExportDataAuto(&DMAT_Tmp, Data, offset, 4);
-		ExportDataAuto(&VDP_Current_Line, Data, offset, 4);
-		ExportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
-		ExportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
-		ExportDataAuto(&Bank_M68K, Data, offset, 4);
-		ExportDataAuto(&S68K_State, Data, offset, 4);
-		ExportDataAuto(&Z80_State, Data, offset, 4);
-		ExportDataAuto(&Last_BUS_REQ_Cnt, Data, offset, 4);
-		ExportDataAuto(&Last_BUS_REQ_St, Data, offset, 4);
-	ExportDataAuto(&Fake_Fetch, Data, offset, 4);
-		ExportDataAuto(&Game_Mode, Data, offset, 4);
-		ExportDataAuto(&CPU_Mode, Data, offset, 4);
-		ExportDataAuto(&CPL_M68K, Data, offset, 4);
-		ExportDataAuto(&CPL_S68K, Data, offset, 4);
-		ExportDataAuto(&CPL_Z80, Data, offset, 4);
-		ExportDataAuto(&Cycles_S68K, Data, offset, 4);
-		ExportDataAuto(&Cycles_M68K, Data, offset, 4);
-		ExportDataAuto(&Cycles_Z80, Data, offset, 4);
+	ExportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
+	ExportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
+	ExportDataAuto(&M_Z80.IntAckC, Data, offset, 4);
+
+	ExportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
+
+	ExportDataAuto(&Controller_1_State, Data, offset, 448);   // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
+
+	// apparently necessary
 	ExportDataAuto(&VDP_Status, Data, offset, 4);
 	ExportDataAuto(&VDP_Int, Data, offset, 4);
-		ExportDataAuto(&Ctrl.Write, Data, offset, 4);
-		ExportDataAuto(&Ctrl.DMA_Mode, Data, offset, 4);
-		ExportDataAuto(&Ctrl.DMA, Data, offset, 4);
-		//ExportDataAuto(&CRam_Flag, Data, offset, 4);
-		//offset+=4;
-		ExportDataAuto(&LagCount, Data, offset, 4);
-		ExportDataAuto(&VRam_Flag, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.Auto_Inc, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
-	////	ExportDataAuto(VRam, Data, offset, 65536);
-		ExportDataAuto(CRam, Data, offset, 512);
-	////	ExportDataAuto(VSRam, Data, offset, 64);
-		ExportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
-	////	ExportDataAuto(Spr_Link, Data, offset, 4*256);
-	////	extern int DMAT_Tmp, VSRam_Over;
-	////	ExportDataAuto(&DMAT_Tmp, Data, offset, 4);
-	////	ExportDataAuto(&VSRam_Over, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length_L, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length_H, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_L, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_M, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Src_Adr_H, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
-		ExportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
+	ExportDataAuto(&VDP_Current_Line, Data, offset, 4);
+	ExportDataAuto(&VDP_Num_Lines, Data, offset, 4);
+	ExportDataAuto(&VDP_Num_Vis_Lines, Data, offset, 4);
+	ExportDataAuto(&DMAT_Length, Data, offset, 4);
+	ExportDataAuto(&DMAT_Type, Data, offset, 4);
+	//ExportDataAuto(&CRam_Flag, Data, offset, 4);
+	ExportDataAuto(&LagCount, Data, offset, 4);
+	ExportDataAuto(&VRam_Flag, Data, offset, 4);
+	ExportDataAuto(MD_Palette, Data, offset, 256 * 2);
 
-	}
+	// it's probably safer sync-wise to keep SRAM stuff in the savestate
+	ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+	ExportDataAuto(&SRAM_Start, Data, offset, 4);
+	ExportDataAuto(&SRAM_End, Data, offset, 4);
+	ExportDataAuto(&SRAM_ON, Data, offset, 4);
+	ExportDataAuto(&SRAM_Write, Data, offset, 4);
+	ExportDataAuto(&SRAM_Custom, Data, offset, 4);
+
+	// this group I'm not sure about, they don't seem to be necessary but I'm keeping them around just in case
+	ExportDataAuto(&Bank_M68K, Data, offset, 4);
+	ExportDataAuto(&S68K_State, Data, offset, 4);
+	ExportDataAuto(&Z80_State, Data, offset, 4);
+	ExportDataAuto(&Last_BUS_REQ_Cnt, Data, offset, 4);
+	ExportDataAuto(&Last_BUS_REQ_St, Data, offset, 4);
+	ExportDataAuto(&Fake_Fetch, Data, offset, 4);
+	ExportDataAuto(&Game_Mode, Data, offset, 4);
+	ExportDataAuto(&CPU_Mode, Data, offset, 4);
+	ExportDataAuto(&CPL_M68K, Data, offset, 4);
+	ExportDataAuto(&CPL_S68K, Data, offset, 4);
+	ExportDataAuto(&CPL_Z80, Data, offset, 4);
+	ExportDataAuto(&Cycles_S68K, Data, offset, 4);
+	ExportDataAuto(&Cycles_M68K, Data, offset, 4);
+	ExportDataAuto(&Cycles_Z80, Data, offset, 4);
+	ExportDataAuto(&Gen_Mode, Data, offset, 4);
+	ExportDataAuto(&Gen_Version, Data, offset, 4);
+	ExportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
+	ExportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
+	ExportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
+
+	// these don't seem to be necessary and I don't feel like saving them
+	//ExportDataAuto(&Def_z80_Mem, Data, offset, 0x10000);
+	//ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+
+#ifdef _DEBUG
+	// what I do is add stuff to the format above, then run in debug and let this assert fail.
+	// when that happens, I add (offset-desiredoffset) to GENESIS_LENGTH_EX2, then compile again
+	int desiredoffset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX;
+	assert(offset == desiredoffset);
+#endif
 }
+
 void Import_SegaCD(unsigned char *Data) 
 {
 	S68000CONTEXT Context_sub68K;
@@ -1287,33 +1298,61 @@ void Import_SegaCD(unsigned char *Data)
 		//CDC end
 	//CDD & CDC Data end
 
-//		//Modif N. - seems like we should be saving these...?
-//		unsigned int offset = 0xE19A4;
-//		ImportDataAuto(&File_Add_Delay, Data, offset, 4);
-////		ImportDataAuto(&CDDA_Enable, Data, offset, 4);
-//		ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
-//		ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
-//		ImportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
-//		ImportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
-//		ImportDataAuto(&CD_Audio_Starting, Data, offset, 4);
-//		ImportDataAuto(&CD_Present, Data, offset, 4);
-//		ImportDataAuto(&CD_Load_System, Data, offset, 4);
-//		ImportDataAuto(&CD_Timer_Counter, Data, offset, 4);
-//		ImportDataAuto(&CDD_Complete, Data, offset, 4);
-//		ImportDataAuto(&track_number, Data, offset, 4);
-//		ImportDataAuto(&CD_timer_st, Data, offset, 4);
-//		ImportDataAuto(&CD_LBA_st, Data, offset, 4);
-//		ImportDataAuto(&SCD.TOC.First_Track, Data, offset, 1);
-//		ImportDataAuto(&SCD.TOC.Last_Track, Data, offset, 1);
-//		for(int i = 0; i < 100; i++)
-//		{
-//			ImportDataAuto(&SCD.TOC.Tracks[i].Type, Data, offset, 1);
-//			ImportDataAuto(&SCD.TOC.Tracks[i].Num, Data, offset, 1);
-//			ImportDataAuto(&SCD.TOC.Tracks[i].MSF.M, Data, offset, 1);
-//			ImportDataAuto(&SCD.TOC.Tracks[i].MSF.S, Data, offset, 1);
-//			ImportDataAuto(&SCD.TOC.Tracks[i].MSF.F, Data, offset, 1);
-//		}
-//		ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+	//Modif N. - extra stuff added to save/set for synchronization reasons
+	// I'm not sure how much of this really needs to be saved, should check it sometime
+
+	unsigned int offset = SEGACD_LENGTH_EX1;
+
+	ImportDataAuto(&File_Add_Delay, Data, offset, 4);
+	ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
+	ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
+	ImportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
+	ImportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
+	ImportDataAuto(&CD_Audio_Starting, Data, offset, 4);
+	ImportDataAuto(&CD_Present, Data, offset, 4);
+	ImportDataAuto(&CD_Load_System, Data, offset, 4);
+	ImportDataAuto(&CD_Timer_Counter, Data, offset, 4);
+	ImportDataAuto(&CDD_Complete, Data, offset, 4);
+	ImportDataAuto(&track_number, Data, offset, 4);
+	ImportDataAuto(&CD_timer_st, Data, offset, 4);
+	ImportDataAuto(&CD_LBA_st, Data, offset, 4);
+	ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+
+	ImportDataAuto(&SCD, Data, offset, sizeof(SCD));
+	ImportDataAuto(&CDC, Data, offset, sizeof(CDC));
+	ImportDataAuto(&CDD, Data, offset, sizeof(CDD));
+	ImportDataAuto(&COMM, Data, offset, sizeof(COMM));
+
+	ImportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
+	ImportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
+
+	ImportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
+	ImportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
+	ImportDataAuto(&Buffer_Adr, Data, offset, 4);
+	ImportDataAuto(&Vector_Adr, Data, offset, 4);
+	ImportDataAuto(&Jmp_Adr, Data, offset, 4);
+	ImportDataAuto(&Float_Part, Data, offset, 4);
+	ImportDataAuto(&Draw_Speed, Data, offset, 4);
+	ImportDataAuto(&XS, Data, offset, 4);
+	ImportDataAuto(&YS, Data, offset, 4);
+	ImportDataAuto(&DXS, Data, offset, 4);
+	ImportDataAuto(&DYS, Data, offset, 4);
+	ImportDataAuto(&XD, Data, offset, 4);
+	ImportDataAuto(&YD, Data, offset, 4);
+	ImportDataAuto(&XD_Mul, Data, offset, 4);
+	ImportDataAuto(&H_Dot, Data, offset, 4);
+
+	ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+
+#ifdef _DEBUG
+	int desiredoffset = SEGACD_LENGTH_EX;
+	assert(offset == desiredoffset);
+#endif
+
+	sub68k_SetContext(&Context_sub68K); // this was moved here from earlier in the function
+
+	M68K_Set_Prg_Ram();
+	MS68K_Set_Word_Ram();
 }
 
 void Export_SegaCD(unsigned char *Data) 
@@ -1453,33 +1492,56 @@ void Export_SegaCD(unsigned char *Data)
 		//CDC end
 	//CDD & CDC Data end
 
-//		//Modif N. - seems like we should be saving these...?
-//		unsigned int offset = 0xE19A4;
-//		ExportDataAuto(&File_Add_Delay, Data, offset, 4);
-////		ExportDataAuto(&CDDA_Enable, Data, offset, 4);
-//		ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
-//		ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
-//		ExportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
-//		ExportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
-//		ExportDataAuto(&CD_Audio_Starting, Data, offset, 4);
-//		ExportDataAuto(&CD_Present, Data, offset, 4);
-//		ExportDataAuto(&CD_Load_System, Data, offset, 4);
-//		ExportDataAuto(&CD_Timer_Counter, Data, offset, 4);
-//		ExportDataAuto(&CDD_Complete, Data, offset, 4);
-//		ExportDataAuto(&track_number, Data, offset, 4);
-//		ExportDataAuto(&CD_timer_st, Data, offset, 4);
-//		ExportDataAuto(&CD_LBA_st, Data, offset, 4);
-//		ExportDataAuto(&SCD.TOC.First_Track, Data, offset, 1);
-//		ExportDataAuto(&SCD.TOC.Last_Track, Data, offset, 1);
-//		for(int i = 0; i < 100; i++)
-//		{
-//			ExportDataAuto(&SCD.TOC.Tracks[i].Type, Data, offset, 1);
-//			ExportDataAuto(&SCD.TOC.Tracks[i].Num, Data, offset, 1);
-//			ExportDataAuto(&SCD.TOC.Tracks[i].MSF.M, Data, offset, 1);
-//			ExportDataAuto(&SCD.TOC.Tracks[i].MSF.S, Data, offset, 1);
-//			ExportDataAuto(&SCD.TOC.Tracks[i].MSF.F, Data, offset, 1);
-//		}
-//		ExportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+   //Modif N. - extra stuff added to save/set for synchronization reasons
+   // I'm not sure how much of this really needs to be saved, should check it sometime
+
+	unsigned int offset = SEGACD_LENGTH_EX1;
+
+	ExportDataAuto(&File_Add_Delay, Data, offset, 4);
+	ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
+	ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
+	ExportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
+	ExportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
+	ExportDataAuto(&CD_Audio_Starting, Data, offset, 4);
+	ExportDataAuto(&CD_Present, Data, offset, 4);
+	ExportDataAuto(&CD_Load_System, Data, offset, 4);
+	ExportDataAuto(&CD_Timer_Counter, Data, offset, 4);
+	ExportDataAuto(&CDD_Complete, Data, offset, 4);
+	ExportDataAuto(&track_number, Data, offset, 4);
+	ExportDataAuto(&CD_timer_st, Data, offset, 4);
+	ExportDataAuto(&CD_LBA_st, Data, offset, 4);
+	ExportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+
+	ExportDataAuto(&SCD, Data, offset, sizeof(SCD));
+	ExportDataAuto(&CDC, Data, offset, sizeof(CDC));
+	ExportDataAuto(&CDD, Data, offset, sizeof(CDD));
+	ExportDataAuto(&COMM, Data, offset, sizeof(COMM));
+
+	ExportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
+	ExportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
+
+	ExportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
+	ExportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
+	ExportDataAuto(&Buffer_Adr, Data, offset, 4);
+	ExportDataAuto(&Vector_Adr, Data, offset, 4);
+	ExportDataAuto(&Jmp_Adr, Data, offset, 4);
+	ExportDataAuto(&Float_Part, Data, offset, 4);
+	ExportDataAuto(&Draw_Speed, Data, offset, 4);
+	ExportDataAuto(&XS, Data, offset, 4);
+	ExportDataAuto(&YS, Data, offset, 4);
+	ExportDataAuto(&DXS, Data, offset, 4);
+	ExportDataAuto(&DYS, Data, offset, 4);
+	ExportDataAuto(&XD, Data, offset, 4);
+	ExportDataAuto(&YD, Data, offset, 4);
+	ExportDataAuto(&XD_Mul, Data, offset, 4);
+	ExportDataAuto(&H_Dot, Data, offset, 4);
+
+	ExportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+
+#ifdef _DEBUG
+	int desiredoffset = SEGACD_LENGTH_EX;
+	assert(offset == desiredoffset);
+#endif
 }
 
 void Import_32X(unsigned char *Data)
@@ -2699,13 +2761,14 @@ void S_Format_BRAM(unsigned char *buf)
 
 void Format_Backup_Ram(void)
 {
-	memset(Ram_Backup, 0, 8 * 1024);
+   memset(Ram_Backup, 0, 0x2000); // Modif N. -- changed the numbers here to hex to make it easier to see what's going on
 
-	S_Format_BRAM(&Ram_Backup[0x1FC0]);
+   S_Format_BRAM(&Ram_Backup[0x2000-0x40]);
 
-	memset(Ram_Backup_Ex, 0, 64 * 1024);
+   memset(Ram_Backup_Ex, 0, 0x10000);
+
+   S_Format_BRAM(&Ram_Backup_Ex[0x10000-0x40]); // Modif N. -- added this to get closer to the actual formatting, so that fewer games will require you to format the RAM from the BIOS before playing them
 }
-
 
 int Load_BRAM(void)
 {

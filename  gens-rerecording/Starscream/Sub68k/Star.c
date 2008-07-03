@@ -409,7 +409,6 @@ static void gen_variables(void) {
 		emit("__xsp                  dd 0\n");
 	}
 /*	align(4);*/
-	emit("contextend:\n");
 	emit("__cycles_needed        dd 0\n");
 	emit("__cycles_leftover      dd 0\n");
 	emit("__fetch_region_start   dd 0\n");/* Fetch region cache */
@@ -438,7 +437,9 @@ static void gen_variables(void) {
 	emit("__io_fetchbased_pc     dd 0\n");
 	emit("__access_address       dd 0\n");
 
-emit("save_01				dd 0\n");		// Stef Add (Gens)
+	emit("save_01				dd 0\n");		// Stef Add (Gens)
+	emit("save_02				dd 0\n");
+	emit("contextend:\n");
 
 }
 
