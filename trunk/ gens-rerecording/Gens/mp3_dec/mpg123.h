@@ -31,11 +31,13 @@
 #  define real double
 #endif
 
+/* // Modif N. -- disabled because it conflicts with another definition of INLINE and we don't need it anyway
 #ifdef __GNUC__
 #define INLINE inline
 #else
 #define INLINE
 #endif
+*/
 
 /* AUDIOBUFSIZE = n*64 with n=1,2,3 ...  */
 #define		AUDIOBUFSIZE		16384

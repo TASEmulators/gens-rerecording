@@ -19,6 +19,7 @@ bool Def_Read_Only = true; //Upth-Add - For the new Default Read Only toggle
 char track = 1 | 2 | 4;
 extern int AVIRecording;
 typeMovie MainMovie;
+extern "C" char preloaded_tracks [100]; // Modif N. -- added
 
 //Modif
 void MoviePlayingStuff()
@@ -222,6 +223,70 @@ void MoviePlayPlayer3()
 		}
 	}
 }
+
+// Modif N. -- added
+void CompressBoolArray(char* output, int outputBytes, const char* input, int inputBytes)
+{
+	int outByte = 0, bit = 0, curByte = 0;
+	for(int inByte = 0; inByte < inputBytes && outByte < outputBytes; bit++)
+	{
+		if(bit == 8)
+		{
+			bit = 0;
+			output[outByte++] = curByte;
+			curByte = 0;
+		}
+		curByte |= input[inByte++] << bit;
+	}
+	if(outByte < outputBytes)
+		output[outByte] = curByte;
+}
+void DecompressBoolArray(char* output, int outputBytes, const char* input, int inputBytes, int trueValue=1)
+{
+	int outByte = 0, bit = 0;
+	for(int inByte = 0; inByte < inputBytes && outByte < outputBytes; bit++)
+	{
+		if(bit == 8)
+		{
+			bit = 0;
+			inByte++;
+			if(inByte >= inputBytes)
+				return;
+		}
+
+		output[outByte++] = (input[inByte] & (1 << bit)) ? trueValue : 0;
+	}
+}
+// kind of a sneaky way of adding this information to the not-really-extendable GMV format
+// it won't always work if the note is really long but that's ok because it's completely non-essential information anyway
+void EmbedPreloadedTracksInNote(char* note)
+{
+	int i;
+	for(i = 0; i < 40; i++)
+		if(!note[i])
+			break;
+	i++; // after the null
+	char compressed [13];
+	CompressBoolArray(compressed, 13, preloaded_tracks, 100);
+	for(int j = 0; i < 40 && j < 13; i++, j++)
+		note[i] = compressed[j];
+}
+void ExtractPreloadedTracksFromNote(char* note)
+{
+	int i, j;
+	for(i = 0; i < 40; i++)
+		if(!note[i])
+			break;
+	i++; // after the null
+	char compressed [13] = {0};
+	for(j = 0; i < 40 && j < 13; i++, j++)
+		compressed[j] = note[i];
+	DecompressBoolArray(preloaded_tracks, min(100, j*8), compressed, j, 2); // 2 == "on and don't reset until next use"
+	return;
+}
+
+
+
 //Modif
 void MovieRecordingStuff()
 {
@@ -374,6 +439,9 @@ void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
 	MovieDest->Vfreq=MovieSrc->Vfreq;
 	MovieDest->TriplePlayerHack=MovieSrc->TriplePlayerHack;
 	MovieDest->StateRequired=MovieSrc->StateRequired;
+
+	if(MovieDest == &MainMovie) // Modif N.
+		ExtractPreloadedTracksFromNote(MovieSrc->Note);
 }
 
 void GetMovieInfo(char *FileName,typeMovie *aMovie)
@@ -518,6 +586,7 @@ int OpenMovieFile(typeMovie *aMovie)
 	return 1;
 }
 
+
 void WriteMovieHeader(typeMovie *aMovie)
 {
 	unsigned char t;
@@ -546,6 +615,7 @@ void WriteMovieHeader(typeMovie *aMovie)
 			fputc(t,aMovie->File);
 		}
 		fseek(aMovie->File,24,SEEK_SET);
+		EmbedPreloadedTracksInNote(aMovie->Note);
 		fwrite(aMovie->Note,40,1,aMovie->File);
 	}
 }

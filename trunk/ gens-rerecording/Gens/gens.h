@@ -56,6 +56,8 @@ int Do_SegaCD_Frame(void);
 int Do_SegaCD_Frame_Cycle_Accurate(void);
 int Do_SegaCD_Frame_No_VDP_Cycle_Accurate(void);
 
+BOOL IsAsyncAllowed(void);
+
 #ifdef __cplusplus
 }
 #endif /* #ifdef __cplusplus */

@@ -2038,6 +2038,8 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 			break;
 	}
 
+	Put_Info("   Gens Initialized", 1); // Modif N. -- added mainly to clear out some message gunk
+
 	Gens_Running = 1;
 
 	return TRUE;
@@ -2720,7 +2722,8 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					return 0;
 				case ID_RECORD_MOVIE:	//Modif
 					if(!(Game))
-						return 0;
+						if(SendMessage(hWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
+							return 0;
 //					if(MainMovie.File!=NULL || MainMovie.Status==MOVIE_FINISHED) //Modif N - disabled; if the user chose record, they meant it!
 //						return 0;
 					MINIMIZE
@@ -2828,7 +2831,13 @@ dialogAgain: //Nitsuja added this
 //					if(MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED)
 //						CloseMovieFile(&MainMovie);
 					if(!(Game))
-						return 0;
+ 						if(SendMessage(hWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
+							return 0;
+
+					// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
+					if(!MainMovie.ReadOnly && MainMovie.File)
+						WriteMovieHeader(&MainMovie);
+
 					MINIMIZE
 					DialogsOpen++;
 					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), hWnd, (DLGPROC) PlayMovieProc);
@@ -4715,13 +4724,13 @@ HMENU Build_Main_Menu(void)
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
 	//Upth-Add - Menu Tools_Movies
 	i = 0;
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie/Resume record from savestate","","&Play Movie/Resume record from savestate"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie or Resume record from savestate"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),ID_RECORD_MOVIE,"Record New Movie","","Record &New Movie"); //Modif
 	MENU_L(Tools_Movies,i++,Flags ,ID_RESUME_RECORD,"Resume record from now","","&Resume record from now"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((SpliceFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SPLICE,"Input Splice","\tShift-S","&Input Splice"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((SeekFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),IDC_SEEK_FRAME,"Seek to Frame","","Seek to &Frame"); //Modif
-	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
 	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif
+	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
  	//Upth-Add - Menu Movies_Tracks
 	i = 0;
 	MENU_L(Movies_Tracks,i++,Flags,ID_MOVIE_CHANGETRACK_ALL,"All Players","\tCtrl-Shift-0","&All Players"); //Modif
@@ -4894,7 +4903,7 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			WORD_L(IDC_INFO_GG, "Informations GG", "", "Informations about GG/Patch codes");
 			WORD_L(IDC_GGINFO1, "Game Genie info 1", "", "Both Game Genie code and Patch code are supported.");
@@ -5082,7 +5091,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			WORD_L(IDD_DIRECTORIES, "Directories configuration", "", "Directories configuration");
 			WORD_L(IDC_DIRECTORIES, "Setting directories", "", "Configure directories");
@@ -5240,7 +5249,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			WORD_L(IDD_FILES, "Files configuration", "", "Files configuration");
 			WORD_L(IDC_GENESISBIOS_FILE, "Setting Genesis bios file", "", "Configure Genesis bios file");
@@ -5458,7 +5467,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			
 			SendDlgItemMessage(hDlg, IDC_RADIO_PLAY_START, BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
@@ -5837,7 +5846,7 @@ LRESULT CALLBACK PromptSpliceFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			strcpy(Str_Tmp,"Enter the frame you wish to rerecord to.");
 			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
@@ -5950,7 +5959,7 @@ LRESULT CALLBACK PromptSeekFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			strcpy(Str_Tmp,"Enter the frame you wish to seek to.");
 			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
@@ -6031,7 +6040,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			index = (int)lParam;
 			sprintf(Str_Tmp,"%08X",rswatches[index].Address);
@@ -6189,7 +6198,7 @@ LRESULT CALLBACK PromptWatchNameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			strcpy(Str_Tmp,"Enter a name for this RAM address.");
 			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
@@ -6272,7 +6281,7 @@ LRESULT CALLBACK RecordMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			//SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 				
 			if((Controller_1_Type&1)==1)
@@ -7681,7 +7690,7 @@ LRESULT CALLBACK VolumeProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			for (int i = IDC_MASTVOL; i <= IDC_CDDAVOL; i++)
 			{
 				SendDlgItemMessage(hDlg,i,TBM_SETTICFREQ,(WPARAM)32,0);
@@ -7812,7 +7821,7 @@ LRESULT CALLBACK AboutProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			return true;
 			break;
 
@@ -7873,7 +7882,7 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			WORD_L(IDC_STATIC_CONT, "Contrast", "", "Contrast");
 			WORD_L(IDC_STATIC_BRIGHT, "Brightness", "", "Brightness");
@@ -7990,7 +7999,7 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			WORD_L(IDC_AUTOFIXCHECKSUM, "Auto Fix Checksum", "", "Auto Fix Checksum");
 			WORD_L(IDC_AUTOPAUSE, "Auto Pause", "", "Auto Pause");
@@ -8186,7 +8195,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			SetWindowPos(hDlg, NULL, r.left + (dx1 - dx2), r.top + (dy1 - dy2), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			Tex0 = GetDlgItem(hDlg, IDC_STATIC_TEXT0);
 

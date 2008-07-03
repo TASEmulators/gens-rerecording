@@ -4,5 +4,5 @@
 #define CAMXPOS	0xFFAE08
 #define CAMYPOS 0xFFAE06
 int SonicCamHack();
-extern bool disableSound;
+extern "C" int disableSound;
 #endif

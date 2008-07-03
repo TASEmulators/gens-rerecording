@@ -603,7 +603,7 @@ int Play_CDD_c3(void)
 		SCD.Status_CDC &= ~1;			// Stop read data with CDC
 		Wait_Read_Complete();
 	}
-	else if(CD_Load_System == FILE_CUE) // Modif N. -- added
+	else //if(CD_Load_System == FILE_CUE) // Modif N. -- added
 		SCD.Status_CDC &= ~1;
 
 	// MSF of the track to play in TC buffer
@@ -636,7 +636,7 @@ int Play_CDD_c3(void)
 	else if (SCD.Status_CDD != PLAYING)
 	{
 		delay += 20;
-		delay >>= 2; // Modif N. -- added
+		delay >>= 2; // Modif N. -- added for consistency
 	}
 
 	SCD.Status_CDD = PLAYING;
@@ -653,7 +653,7 @@ int Play_CDD_c3(void)
 	{
 		CDD.Control &= ~0x0100;				// AUDIO
 		CD_Audio_Starting = 1;
-		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA();
+		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA(1);
 	}
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
@@ -750,7 +750,7 @@ int Resume_CDD_c7(void)
 		SCD.Status_CDC &= ~1;			// Stop read data with CDC
 		Wait_Read_Complete();
 	}
-	else if(CD_Load_System == FILE_CUE) // Modif N. -- added
+	else //if(CD_Load_System == FILE_CUE) // Modif N. -- added
 		SCD.Status_CDC &= ~1;
 
 	SCD.Cur_Track = LBA_to_Track(SCD.Cur_LBA);
@@ -777,7 +777,7 @@ int Resume_CDD_c7(void)
 	{
 		CDD.Control &= ~0x0100;				// AUDIO
 		CD_Audio_Starting = 1;
-		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA();
+		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA(1);
 	}
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
@@ -965,11 +965,15 @@ int CDD_Def(void)
  *   Others CD functions   *
  **************************/
 
+extern int disableSound; // Gens.cpp
 
 void Write_CD_Audio(short *Buf, int rate, int channel, int length)
 {
 	unsigned int length_src, length_dst;
 	unsigned int pos_src, pas_src;
+
+	if(disableSound)
+		return;
 
 	if (rate == 0) return;
 	if (Sound_Rate == 0) return;

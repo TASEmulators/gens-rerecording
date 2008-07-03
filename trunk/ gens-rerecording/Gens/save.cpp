@@ -46,7 +46,12 @@ unsigned short FrameBuffer[336 * 240];
 unsigned int FrameBuffer32[336 * 240];
 unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
 bool UseMovieStates;
-extern long x, y, xg, yg;
+//extern long x, y, xg, yg; // G_Main.cpp
+extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
+extern "C" int fatal_mp3_error; // cdda_mp3.c
+extern "C" char preloaded_tracks [100]; // cdda_mp3.c
+extern "C" char Track_Played; // cd_file.c
+
 
 int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 {
@@ -220,7 +225,7 @@ int Load_State(char *Name)
 	FILE *f;
 	unsigned char *buf;
 	int len;
-	unsigned short *palbuf;
+//	unsigned short *palbuf;
 
 	len = GENESIS_STATE_LENGTH;
 	if (Genesis_Started); //So it doesn't return zero if the SegaCD and 32X aren't running
@@ -1058,7 +1063,7 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x418] = (unsigned char) (M_Z80.IY.w.IY & 0xFF);
 	Data[0x419] = (unsigned char) (M_Z80.IY.w.IY >> 8);
 	Data[0x41C] = (unsigned char) (z80_Get_PC(&M_Z80) & 0xFF);
-	Data[0x41D] = (unsigned char) (z80_Get_PC(&M_Z80) >> 8);
+	Data[0x41D] = (unsigned char) ((z80_Get_PC(&M_Z80) >> 8) & 0xFF);
 	Data[0x420] = (unsigned char) (M_Z80.SP.w.SP & 0xFF);
 	Data[0x421] = (unsigned char) (M_Z80.SP.w.SP >> 8);
 	Data[0x424] = (unsigned char) (z80_Get_AF2(&M_Z80) & 0xFF);
@@ -1196,7 +1201,7 @@ void Import_SegaCD(unsigned char *Data)
 		}
 
 		
-		ImportData(&(Context_sub68K.odometer), Data, 0x5A, 4);
+		ImportData(&Context_sub68K.odometer, Data, 0x5A, 4);
 
 		ImportData(Context_sub68K.interrupts, Data, 0x60, 8);
 
@@ -1296,7 +1301,9 @@ void Import_SegaCD(unsigned char *Data)
 			CDD.Seconde = CDD_Data[5];
 			CDD.Frame = CDD_Data[6];
 			CDD.Ext = CDD_Data[7];
-			if (CDD.Status & PLAYING) int unused = Resume_CDD_c7();
+			if (CDD.Status & PLAYING)
+				if (IsAsyncAllowed()) // Modif N. -- disabled call to resume in synchronous mode (it's unnecessary there and can cause desyncs)
+					int unused = Resume_CDD_c7();
 		//CDD end
 
 		//CDC
@@ -1316,7 +1323,7 @@ void Import_SegaCD(unsigned char *Data)
 			ImportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ImportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ImportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-			ImportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
+//			ImportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large //Modif N. -- removed entirely, seems unnecessary for sync or anything else for that matter
 		//CDC end
 	//CDD & CDC Data end
 
@@ -1327,8 +1334,8 @@ void Import_SegaCD(unsigned char *Data)
 		unsigned int offset = SEGACD_LENGTH_EX1;
 
 		ImportDataAuto(&File_Add_Delay, Data, offset, 4);
-		ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
-		ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
+//		ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192); // removed, seems to be unnecessary
+//		ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192); // removed, seems to be unnecessary
 		ImportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
 		ImportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
 		ImportDataAuto(&CD_Audio_Starting, Data, offset, 4);
@@ -1342,7 +1349,7 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
 
 		ImportDataAuto(&SCD, Data, offset, sizeof(SCD));
-		ImportDataAuto(&CDC, Data, offset, sizeof(CDC));
+		//ImportDataAuto(&CDC, Data, offset, sizeof(CDC)); // removed, seems unnecessary/redundant
 		ImportDataAuto(&CDD, Data, offset, sizeof(CDD));
 		ImportDataAuto(&COMM, Data, offset, sizeof(COMM));
 
@@ -1368,6 +1375,13 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
 		ImportDataAuto(&Rom_Data[0x72], Data, offset, 2); 	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
 
+		ImportDataAuto(&fatal_mp3_error, Data, offset, 4);
+		ImportDataAuto(&Current_OUT_Pos, Data, offset, 4);
+		ImportDataAuto(&Current_OUT_Size, Data, offset, 4);
+		ImportDataAuto(&Track_Played, Data, offset, 1);
+		ImportDataAuto(preloaded_tracks, Data, offset, 100);
+		//ImportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
+
 #ifdef _DEBUG
 		int desiredoffset = SEGACD_LENGTH_EX;
 		assert(offset == desiredoffset);
@@ -1389,12 +1403,9 @@ void Export_SegaCD(unsigned char *Data)
 	sub68k_GetContext(&Context_sub68K);
 
 	//sub68K bit goes here
-		src = (unsigned char *) &(Context_sub68K.dreg[0]);
-		for(i = 0; i < 8 * 4; i++) Data[i] = *src++;
+		ExportData(&Context_sub68K.dreg[0], Data, 0x0, 8 * 4);
 		ExportData(&Context_sub68K.areg[0], Data, 0x20, 8 * 4);
-
 		ExportData(&Context_sub68K.pc, Data, 0x48, 4);
-
 		ExportData(&Context_sub68K.sr, Data, 0x50, 2);
 
 		if(Context_sub68K.sr & 0x2000)
@@ -1409,7 +1420,7 @@ void Export_SegaCD(unsigned char *Data)
 		}
 		ExportData(&Context_sub68K.odometer, Data, 0x5A, 4);
 
-		for(i = 0; i < 8; i++) Data[0x60 + i] = Context_sub68K.interrupts[i];
+		ExportData(Context_sub68K.interrupts, Data, 0x60, 8);
 
 		ExportData(&Ram_Word_State, Data, 0x6C, 4);
 
@@ -1513,7 +1524,7 @@ void Export_SegaCD(unsigned char *Data)
 			ExportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ExportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ExportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-			ExportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
+//			ExportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large //Modif N. -- removed entirely, seems unnecessary for sync or anything else for that matter
 		//CDC end
 	//CDD & CDC Data end
 
@@ -1523,8 +1534,8 @@ void Export_SegaCD(unsigned char *Data)
 	unsigned int offset = SEGACD_LENGTH_EX1;
 
 	ExportDataAuto(&File_Add_Delay, Data, offset, 4);
-	ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
-	ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
+//	ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192); // removed, seems to be unnecessary
+//	ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192); // removed, seems to be unnecessary
 	ExportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
 	ExportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
 	ExportDataAuto(&CD_Audio_Starting, Data, offset, 4);
@@ -1538,7 +1549,7 @@ void Export_SegaCD(unsigned char *Data)
 	ExportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
 
 	ExportDataAuto(&SCD, Data, offset, sizeof(SCD));
-	ExportDataAuto(&CDC, Data, offset, sizeof(CDC));
+	//ExportDataAuto(&CDC, Data, offset, sizeof(CDC)); // removed, seems unnecessary/redundant
 	ExportDataAuto(&CDD, Data, offset, sizeof(CDD));
 	ExportDataAuto(&COMM, Data, offset, sizeof(COMM));
 
@@ -1563,6 +1574,13 @@ void Export_SegaCD(unsigned char *Data)
 
 	ExportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
 	ExportDataAuto(&Rom_Data[0x72], Data, offset, 2);	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
+
+	ExportDataAuto(&fatal_mp3_error, Data, offset, 4);
+	ExportDataAuto(&Current_OUT_Pos, Data, offset, 4);
+	ExportDataAuto(&Current_OUT_Size, Data, offset, 4);
+	ExportDataAuto(&Track_Played, Data, offset, 1);
+	ExportDataAuto(preloaded_tracks, Data, offset, 100);
+	//ExportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
 
 #ifdef _DEBUG
 	int desiredoffset = SEGACD_LENGTH_EX;

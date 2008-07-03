@@ -84,7 +84,7 @@
 		SaveStateData difference;
 		bool ok = true;
 		firstFailureByte = -1;
-		for(int i = 0 ; i < CHECKED_STATE_LENGTH ; i++)
+		for(int i = 0; i < CHECKED_STATE_LENGTH; i++)
 		{
 			unsigned char diff = data2.State_Buffer[i] - data1.State_Buffer[i];
 			difference.State_Buffer[i] = diff;
@@ -203,9 +203,25 @@
 	} \
 	int name##_Real()
 
+	BOOL IsAsyncAllowed(void)
+	{
+		// no asynchronous stuff allowed when testing for desyncs
+		return false;
+	}
+
 #else // !TEST_FOR_DESYNCS:
 
 #define DO_FRAME_HEADER(name, fastname) int name()
+
+	BOOL IsAsyncAllowed(void)
+	{
+		// no asynchronous stuff allowed when playng or recording a movie
+		if(MainMovie.Status == MOVIE_RECORDING)
+			return false;
+		if(MainMovie.Status == MOVIE_PLAYING)
+			return false;
+		return true;
+	}
 
 #endif // TEST_FOR_DESYNCS
 
