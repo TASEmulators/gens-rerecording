@@ -37,11 +37,16 @@ unsigned short Blend (unsigned short Src, unsigned short Dest, unsigned char str
 	return (rf << 11) | (gf << 5) | bf;
 
 }
-void PutText (char *string, short x, short y, unsigned short xn, unsigned short yn, unsigned short xx, unsigned short yx, int outstyle, int style)
+void PutText (char *string, short x, short y, short xl, short yl, short xh, short yh, int outstyle, int style)
 {
+	xl = max(xl,0);
+	yl = max(xl,0);
+	xh = min(xh + 319,318);
+	yh = min(yh + 217,217);
+	xh -= 4 * strlen(string);
 	x = x - ((5 * (strlen(string) - 1))/2);
-	x = min(max(x,max(xn,1)),min(xx,318 - 4 * strlen(string)));
-	y = min(max(y - 3,max(yn,1)),min(yx,217));
+	x = min(max(x,max(xl,1)),min(xh,318 - 4 * strlen(string)));
+	y = min(max(y - 3,max(yl,1)),yh);
 	const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
 	const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
 	for(int i = 0 ; i < 8 ; i++)

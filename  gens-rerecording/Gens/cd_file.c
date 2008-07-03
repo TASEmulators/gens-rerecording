@@ -459,67 +459,69 @@ void Unload_ISO(void)
 void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
 {
 	FILE* cueFile = fopen(cue_name, "r");
-
-	char line [1024], temp [1024], filename [1024];
-	filename[0] = 0;
-	for(;;)
+	if (cueFile)
 	{
-		fgets(line, 1024, cueFile);
-		if(feof(cueFile) || ferror(cueFile))
-			break;
-		_strupr(line);
-
-		// ignore comment lines
-		if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
-			continue;
-
-		temp[0] = 0;
-		if(1 == sscanf(line, " FILE %s", temp) && temp[0])
+		char line [1024], temp [1024], filename [1024];
+		filename[0] = 0;
+		for(;;)
 		{
-			if(strstr(line, "BINARY") || strstr(line, "ISO"))
+			fgets(line, 1024, cueFile);
+			if(feof(cueFile) || ferror(cueFile))
+				break;
+			_strupr(line);
+
+			// ignore comment lines
+			if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
+				continue;
+
+			temp[0] = 0;
+			if(1 == sscanf(line, " FILE %s", temp) && temp[0])
 			{
-				char* ptr;
-				for(ptr=temp;*ptr;ptr++)
-					if(*ptr == '\"')
-						*ptr = 0;
-				ptr=temp; if(!*ptr) ptr++;
-				strcpy(filename, ptr);
+				if(strstr(line, "BINARY") || strstr(line, "ISO"))
+				{
+					char* ptr;
+					for(ptr=temp;*ptr;ptr++)
+						if(*ptr == '\"')
+							*ptr = 0;
+					ptr=temp; if(!*ptr) ptr++;
+					strcpy(filename, ptr);
+				}
+				break;
 			}
-			break;
 		}
-	}
 
-	fclose(cueFile);
+		fclose(cueFile);
 
-	//fnamebuf[0] = 0;
-	//if(fnamebuf_size) fnamebuf[fnamebuf_size-1] = 0;
-	//strncpy(fnamebuf, filename, fnamebuf_size);
+		//fnamebuf[0] = 0;
+		//if(fnamebuf_size) fnamebuf[fnamebuf_size-1] = 0;
+		//strncpy(fnamebuf, filename, fnamebuf_size);
 
-	MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
-	{
-		FILE* isoFile = NULL;
-		if(!(strlen(fnamebuf) > 3 && !_stricmp("CUE", &fnamebuf[strlen(fnamebuf) - 3])))
-			isoFile = fopen(fnamebuf, "rb");
-		if(isoFile)
+		MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
 		{
-			fclose(isoFile);
-		}
-		else
-		{
-			char* dot;
-			strncpy(fnamebuf, cue_name, fnamebuf_size);
-			fnamebuf[fnamebuf_size-1] = 0;
-			dot = strrchr(fnamebuf, '.');
-			if(dot) *dot = 0;
-			strncat(fnamebuf, ".iso", fnamebuf_size - strlen(fnamebuf) - 1);
-			isoFile = fopen(fnamebuf, "rb");
+			FILE* isoFile = NULL;
+			if(!(strlen(fnamebuf) > 3 && !_stricmp("CUE", &fnamebuf[strlen(fnamebuf) - 3])))
+				isoFile = fopen(fnamebuf, "rb");
 			if(isoFile)
 			{
 				fclose(isoFile);
 			}
 			else
 			{
-				MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
+				char* dot;
+				strncpy(fnamebuf, cue_name, fnamebuf_size);
+				fnamebuf[fnamebuf_size-1] = 0;
+				dot = strrchr(fnamebuf, '.');
+				if(dot) *dot = 0;
+				strncat(fnamebuf, ".iso", fnamebuf_size - strlen(fnamebuf) - 1);
+				isoFile = fopen(fnamebuf, "rb");
+				if(isoFile)
+				{
+					fclose(isoFile);
+				}
+				else
+				{
+					MakeFilename(fnamebuf, fnamebuf_size, cue_name, filename);
+				}
 			}
 		}
 	}

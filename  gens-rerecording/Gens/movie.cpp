@@ -227,7 +227,7 @@ void MovieRecordingStuff()
 {
 	if (!MainMovie.Recorded) MainMovie.Recorded = true;
 	if (track & TRACK1)
-		if (!(GetKeyState(VK_SCROLL) || GetKeyState(VK_NUMLOCK)) || (FrameCount > Track1_FrameCount)) Track1_FrameCount = FrameCount;
+		if (/*!(GetKeyState(VK_SCROLL) || GetKeyState(VK_NUMLOCK)) || */(FrameCount > Track1_FrameCount)) Track1_FrameCount = FrameCount;
 	if (track & TRACK2)
 		Track2_FrameCount = FrameCount;
 	if ((track & TRACK3) && MainMovie.TriplePlayerHack)
@@ -244,7 +244,7 @@ void MovieRecordingStuff()
 		Build_Main_Menu();
 	}
 	char PadData[3]; //Modif
-	if (GetKeyState(VK_SCROLL))
+/*	if (GetKeyState(VK_SCROLL))
 	{
 		int temp[4];
 		temp[0] = Controller_1_A;
@@ -271,7 +271,7 @@ void MovieRecordingStuff()
 		Controller_1_Right = temp[3];
 	}
 	else
-	{
+	{*/
 	if (!(track & 1))
 	{
 		Controller_1_Up = Controller_1_Down = Controller_1_Left = Controller_1_Right = 1;
@@ -302,7 +302,7 @@ void MovieRecordingStuff()
 		Controller_1C_X = Controller_1C_Y = Controller_1C_Z = Controller_1C_Mode = 1;
 		if (Track3_FrameCount >= FrameCount) MoviePlayPlayer3();
 	}
-	}
+//	}
 	PadData[0]=Controller_1_Up+(Controller_1_Down<<1)+(Controller_1_Left<<2)+(Controller_1_Right<<3)
 		+(Controller_1_A<<4)+(Controller_1_B<<5)+(Controller_1_C<<6)+(Controller_1_Start<<7);
 	if(MainMovie.TriplePlayerHack)

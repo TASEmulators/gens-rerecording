@@ -1366,6 +1366,7 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&H_Dot, Data, offset, 4);
 
 		ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+		ImportDataAuto(&Rom_Data[0x72], Data, offset, 2); 	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
 
 #ifdef _DEBUG
 		int desiredoffset = SEGACD_LENGTH_EX;
@@ -1561,6 +1562,7 @@ void Export_SegaCD(unsigned char *Data)
 	ExportDataAuto(&H_Dot, Data, offset, 4);
 
 	ExportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+	ExportDataAuto(&Rom_Data[0x72], Data, offset, 2);	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
 
 #ifdef _DEBUG
 	int desiredoffset = SEGACD_LENGTH_EX;
