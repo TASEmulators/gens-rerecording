@@ -36,6 +36,7 @@ unsigned short CDDAVol = 256;
 
 _scd SCD;
 
+
 #ifdef DEBUG_CD
 FILE *debug_SCD_file;
 #endif
@@ -74,7 +75,6 @@ if (!CD_Present)					\
 }
 
 
-
 void MSB2DWORD(unsigned int *d, unsigned char *b)
 {
 	unsigned int  retVal;
@@ -103,27 +103,42 @@ void LBA_to_MSF(int lba, _msf *MSF)
 	MSF->F = lba % 75;
 }
 
+// Modif N. -- extracted function
+static int MSF_to_Ordered(_msf *MSF)
+{
+	//return MSF_to_LBA(MSF);
+	return (MSF->M << 16) + (MSF->S << 8) + MSF->F;
+}
 
 unsigned int MSF_to_Track(_msf *MSF)
 {
-	int i, Start, Cur;
+	// Modif N. -- changed to give better results (nothing goes silent) if the tracks are out of order
+	int i, Start, Cur=0, BestIndex=-1;
+	unsigned int BestValue=~0;
 
-	Start = (MSF->M << 16) + (MSF->S << 8) + MSF->F;
+	Start = MSF_to_Ordered(MSF);
 
 	for(i = SCD.TOC.First_Track; i <= (SCD.TOC.Last_Track + 1); i++)
 	{
-		Cur = SCD.TOC.Tracks[i - SCD.TOC.First_Track].MSF.M << 16;
-		Cur += SCD.TOC.Tracks[i - SCD.TOC.First_Track].MSF.S << 8;
-		Cur += SCD.TOC.Tracks[i - SCD.TOC.First_Track].MSF.F;
+		if(i > SCD.TOC.First_Track)
+			Cur = MSF_to_Ordered(&SCD.TOC.Tracks[i - SCD.TOC.First_Track].MSF);
+
 #ifdef DEBUG_CD
 //	fprintf(debug_SCD_file, " i = %d  start = %.8X  cur = %.8X\n", i, Start, Cur);
 #endif
-		if (Cur > Start) break;
+		if (Start >= Cur && (unsigned int)(Start - Cur) < BestValue)
+		{
+			BestIndex = i;
+			BestValue = Start - Cur;
+		}
 	}
 
-	--i;
-	
-	if (i > SCD.TOC.Last_Track) return 100;
+	if(BestIndex != -1)
+		i = BestIndex;
+	else
+		return SCD.TOC.Last_Track;
+
+	if (i > SCD.TOC.Last_Track) return SCD.TOC.Last_Track;
 	if (i < SCD.TOC.First_Track) i = SCD.TOC.First_Track;
 
 	return (unsigned) i;
@@ -275,10 +290,42 @@ int Reset_CD(char *buf, char *iso_name)
 	}
 	else
 	{
-		CD_Load_System = FILE_ISO;
-		Load_ISO(buf, iso_name);
-		CD_Present = 1;
-		return 0;
+		char* dot = strrchr(iso_name, '.');
+		if(dot && !stricmp(dot, ".cue"))
+		{
+			CD_Load_System = FILE_CUE;
+			Load_CUE(buf, iso_name);
+			CD_Present = 1;
+			return 0;
+		}
+		else
+		{
+			// first look for a CUE file with the same name as the ISO
+			char temp_cue_name[1024], *dot;
+			FILE* temp_cue_file;
+			strncpy(temp_cue_name, iso_name, 1024);
+			temp_cue_name[1024-1] = 0;
+			dot = strrchr(temp_cue_name, '.');
+			if(dot) *dot = 0;
+			strncat(temp_cue_name, ".cue", 1024 - strlen(temp_cue_name) - 1);
+			temp_cue_file = fopen(temp_cue_name, "rb");
+			if(temp_cue_file)
+			{
+				fclose(temp_cue_file);
+				CD_Load_System = FILE_CUE;
+				Load_CUE(buf, temp_cue_name);
+				CD_Present = 1;
+				return 0;
+			}
+			else
+			{
+				// no CUE file found, so just load the ISO alone, even though we won't be able to use any CD audio that's in it
+				CD_Load_System = FILE_ISO;
+				Load_ISO(buf, iso_name);
+				CD_Present = 1;
+				return 0;
+			}
+		}
 	}
 }
 
@@ -393,7 +440,6 @@ int Get_Pos_CDD_c20(void)
 
 	return 0;
 }
-
 
 int Get_Track_Pos_CDD_c21(void)
 {
@@ -557,6 +603,8 @@ int Play_CDD_c3(void)
 		SCD.Status_CDC &= ~1;			// Stop read data with CDC
 		Wait_Read_Complete();
 	}
+	else if(CD_Load_System == FILE_CUE) // Modif N. -- added
+		SCD.Status_CDC &= ~1;
 
 	// MSF of the track to play in TC buffer
 
@@ -585,7 +633,11 @@ int Play_CDD_c3(void)
 		ASPI_Seek(SCD.Cur_LBA, 1, ASPI_Fast_Seek_COMP);
 		ASPI_Flush_Cache_CDC();
 	}
-	else if (SCD.Status_CDD != PLAYING) delay += 20;
+	else if (SCD.Status_CDD != PLAYING)
+	{
+		delay += 20;
+		delay >>= 2; // Modif N. -- added
+	}
 
 	SCD.Status_CDD = PLAYING;
 	CDD.Status = 0x0102;
@@ -601,7 +653,7 @@ int Play_CDD_c3(void)
 	{
 		CDD.Control &= ~0x0100;				// AUDIO
 		CD_Audio_Starting = 1;
-		if (CD_Load_System == FILE_ISO) FILE_Play_CD_LBA();
+		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA();
 	}
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
@@ -698,6 +750,8 @@ int Resume_CDD_c7(void)
 		SCD.Status_CDC &= ~1;			// Stop read data with CDC
 		Wait_Read_Complete();
 	}
+	else if(CD_Load_System == FILE_CUE) // Modif N. -- added
+		SCD.Status_CDC &= ~1;
 
 	SCD.Cur_Track = LBA_to_Track(SCD.Cur_LBA);
 
@@ -723,7 +777,7 @@ int Resume_CDD_c7(void)
 	{
 		CDD.Control &= ~0x0100;				// AUDIO
 		CD_Audio_Starting = 1;
-		if (CD_Load_System == FILE_ISO) FILE_Play_CD_LBA();
+		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA();
 	}
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
@@ -809,12 +863,19 @@ int Close_Tray_CDD_cC(void)
 
 		memset(new_iso, 0, 1024);
 
-		while (!Change_File_L(new_iso, Rom_Dir, "Load SegaCD image file", "SegaCD image file\0*.bin;*.iso;*.raw\0All files\0*.*\0\0", ""));
-		Reload_SegaCD(new_iso);
+		// Modif N. -- made the action cancellable
+		//if(!IsMovieActive()) // TODO: enable this check since we don't support recording of disc switches
+		{
+			if(Change_File_L(new_iso, Rom_Dir, "Load SegaCD image file", "SegaCD image file\0*.bin;*.cue;*.iso;*.raw\0All files\0*.*\0\0", ""))
+			{
+				Reload_SegaCD(new_iso);
 
-		CD_Present = 1;
+				CD_Present = 1;
 
-		SCD.Status_CDD = STOPPED;
+				SCD.Status_CDD = STOPPED;
+			}
+		}
+
 		CDD.Status = 0x0000;
 
 		CDD.Minute = 0;

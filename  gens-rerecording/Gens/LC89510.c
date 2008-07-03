@@ -705,7 +705,7 @@ void CDD_Import_Command(void)
 			Fast_Rewind_CDD_c9();
 			break;
 
-		case 0xA:	// RECOVER INITIAL STATE (?)
+		case 0xA:	// LOOP
 			CDD_cA();
 			break;
 

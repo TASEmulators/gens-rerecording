@@ -19,6 +19,11 @@ int freqs_mp3[9] = { 44100, 48000, 32000,
                   22050, 24000, 16000 ,
                   11025 , 12000 , 8000 };
 
+// Modif N. -- added variable. Set when MP3 decoding fails, reset when attempting to play a new MP3.
+// The point of this is to turn what was previously a crash
+// into an error that only stops the MP3 playback part of the program for the particular MP3 that couldn't play
+int fatal_mp3_error = 0;
+
 
 int MP3_Init(void)
 {
@@ -37,6 +42,8 @@ void MP3_Reset(void)
 	Current_OUT_Size = 0;
 
 	memset(buf_out, 0, 8 * 1024);
+
+	fatal_mp3_error = 0;
 }
 
 
@@ -82,7 +89,13 @@ int MP3_Length_LBA(FILE *f)
 	{
 		if ((header & 0x0000E0FF) == 0x0000E0FF)
 		{
-			len += decode_header_gens(&fr, header);
+			float decode_header_res = decode_header_gens(&fr, header);
+			if(!decode_header_res)
+			{
+				//fatal_mp3_error = 1;
+				break;
+			}
+			len += decode_header_res;
 
 #ifdef DEBUG_CD
 			fprintf(debug_SCD_file, "mp3 length update = %f\n", len);
@@ -124,9 +137,17 @@ int MP3_Find_Frame(FILE *f, int pos_wanted)
 
 		if ((header & 0x0000E0FF) == 0x0000E0FF)
 		{
+			float decode_header_res;
+
 			prev_pos = ftell(f) - 1;
 
-			cur_pos += (float) decode_header_gens(&fr, header) * (float) 0.075;
+			decode_header_res = decode_header_gens(&fr, header);
+			if(!decode_header_res)
+			{
+				fatal_mp3_error = 1;
+				break;
+			}
+			cur_pos += (float) decode_header_res * (float) 0.075;
 
 //fprintf(debug_SCD_file, "		hearder find at= %d	= %.8X\n", ftell(f) - 1, header);
 //fprintf(debug_SCD_file, "		current time = %g\n", cur_pos);
@@ -160,11 +181,12 @@ int MP3_Update_IN(void)
 	size_read = fread(buf_in, 1, 8 * 1024, Tracks[Track_Played].F);
 	Current_IN_Pos += size_read;
 
-	if (size_read <= 0)
+	if (size_read <= 0 || fatal_mp3_error)
 	{
 		// go to the next track
 
 		Track_Played++;
+		fatal_mp3_error = 0;
 		ResetMP3_Gens(&mp);
 
 		if (Track_Played > 99)
@@ -191,13 +213,20 @@ int MP3_Update_IN(void)
 		Current_IN_Pos += size_read;
 	}
 
+	if(fatal_mp3_error)
+		return 1;
+
 	if (decodeMP3(&mp, buf_in, size_read, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK)
 	{
 		fseek(Tracks[Track_Played].F, Current_IN_Pos, SEEK_SET);
 		size_read = fread(buf_in, 1, 8 * 1024, Tracks[Track_Played].F);
 		Current_IN_Pos += size_read;
 
-		if (decodeMP3(&mp, buf_in, size_read, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK) return 1;
+		if (decodeMP3(&mp, buf_in, size_read, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK)
+		{
+			fatal_mp3_error = 1;
+			return 1;
+		}
 	}
 
 	return 0;
@@ -207,6 +236,9 @@ int MP3_Update_IN(void)
 int MP3_Update_OUT(void)
 {
 	Current_OUT_Pos = 0;
+
+	if(fatal_mp3_error)
+		return 1;
 
 	if (decodeMP3(&mp, NULL, 0, buf_out, 8 * 1024, &Current_OUT_Size) != MP3_OK)
 	{
@@ -229,6 +261,7 @@ int MP3_Play(int track, int lba_pos)
 
 	Current_IN_Pos = MP3_Find_Frame(Tracks[Track_Played].F, lba_pos);
 
+	fatal_mp3_error = 0;
 	ResetMP3_Gens(&mp);
 	MP3_Update_IN();
 

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-extern struct
+extern struct cdcstruct
 {
 	unsigned int RS0;
 	unsigned int RS1;
