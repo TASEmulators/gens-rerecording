@@ -816,6 +816,7 @@ int Init_Genesis(struct Rom *MD_Rom)
 
 	Byte_Swap(Rom_Data, Rom_Size);
 
+	M68K_Init(); // Modif N. -- added, also added to Init_Genesis, for symmetry
 	M68K_Reset(0,1);
 	Z80_Reset();
 	Reset_VDP();
@@ -2127,12 +2128,14 @@ int Init_SegaCD(char *iso_name)
 	Rom_Data[0x73] = 0xFF;
 	Byte_Swap(Rom_Data, Rom_Size);
 
+	M68K_Init(); // Modif N. -- added, also added to Init_Genesis, for symmetry
 	M68K_Reset(2,1);
+	S68K_Init(); // Modif N. -- added, needed to fully reset the sub68k
 	S68K_Reset();
 	Z80_Reset();
 	Reset_VDP();
-	LC89510_Reset();
 	Init_RS_GFX();
+	LC89510_Reset();
 
 	if (CPU_Mode)
 	{
@@ -2173,6 +2176,16 @@ int Init_SegaCD(char *iso_name)
 		Update_Frame = Do_SegaCD_Frame;
 		Update_Frame_Fast = Do_SegaCD_Frame_No_VDP;
 	}
+
+	// Modif N. -- added: (copied from Reset_SegaCD())
+	Reset_PCM();
+	YM2612_Reset();
+	File_Add_Delay = 0;
+	CD_Audio_Buffer_Read_Pos = 0;
+	CD_Audio_Buffer_Write_Pos = 2000;
+	CD_Timer_Counter = 0;
+
+	track_number = 0; // Modif N. -- added, was never initialized before 
 	reset_address_info();
 
 	return 1;

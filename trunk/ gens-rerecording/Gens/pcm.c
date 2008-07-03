@@ -74,6 +74,7 @@ void Reset_PCM(void)
 		PCM_Chip.Channel[i].Step_B = 0;
 		PCM_Chip.Channel[i].Data = 0;
 	}
+	PCM_Chip.Bank = 0; // Modif N. -- added, was never initialized before 
 }
 
 /* Change sample rate of PCM */

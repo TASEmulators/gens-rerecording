@@ -11,483 +11,8 @@
 
 #ifdef SONICCAMHACK
 unsigned char genesisbuf[GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX];
-void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
+void DisplaySolid ()
 {
-	unsigned char Num = CheatRead<unsigned char>(index);
-	switch (Num)
-	{
-//#ifdef S1
-		case 0x0C:
-		case 0x44:
-			X = 0x8;
-			Y = 0x20;
-			return;
-		case 0x10:
-			if (CheatRead<unsigned char>(index + 0x28) & 4)
-				X = min(0xFE,CheatRead<unsigned short>(index + 0x32)),Y = 0x10;
-			else
-				Y = min(0xFE,CheatRead<unsigned short>(index + 0x32)),X = 0x10;
-			return;
-		case 0x11:
-			X = CheatRead<unsigned char>(index + 0x28);
-			X <<= 3;
-			X += 8;
-			Y = 8;
-			return;
-		case 0x12:
-		case 0x46:
-		case 0x47:
-		case 0x51:
-		case 0x76:
-		case 0x7B:
-			X = Y = 0x10;
-			return;
-		case 0x15:
-		case 0x56:
-		case 0x61:
-		case 0x6B:
-		case 0x70:
-		case 0x71:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = CheatRead<unsigned char>(index + 0x16);
-			return;
-		case 0x18:
-		case 0x52:
-		case 0x59:
-		case 0x5A:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 9;
-			return;
-		case 0x1A:
-		case 0x5E:
-			X = 0x30;
-			Y = CheatRead<unsigned char>(index + 0x16);
-			return;
-		case 0x2A:
-			X = 6;
-			Y = 0x20;
-		case 0x2F:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = (CheatRead<unsigned char>(index + 0x1A) == 2)?0x30:0x20;
-			return;
-		case 0x30:
-			X = 0x20;
-			Y = (CheatRead<unsigned char>(index + 0x24) < 3)?0x48:0x38;
-			return;
-		case 0x31:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0xC;
-			return;
-		case 0x32:
-			X = 0x10;
-			Y = 5;
-			return;
-		case 0x33:
-		case 0x5B:
-		case 0x83:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0x10;
-			return;
-		case 0x36:
-			X = ((CheatRead<unsigned char>(index + 0x1A) == 5) || (CheatRead<unsigned char>(index + 0x1A) == 1))?0x10:CheatRead<unsigned char>(index + 0x19);
-			Y = (CheatRead<unsigned char>(index + 0x1A) == 5)?4:((CheatRead<unsigned char>(index + 0x1A) == 1)?0x14:0x10);
-			return;
-		case 0x3B:
-			X = Y = 0x10;
-			return;
-		case 0x3C:
-			X = 0x10;
-			Y = 0x20;
-			return;
-		case 0x3E:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0x18;
-			if (CheatRead<unsigned char>(index + 0x24) == 0x04)
-				Y = 0x08;
-			return;
-		case 0x41:
-			X = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?8:0x10;
-			Y = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?0xE:0x8;
-			return;
-//		case 0x44:
-//			X = 8;
-//			Y = 0x20;
-//			return;
-		case 0x45:
-			X = 0xC;
-			Y = 0x20;
-			return;
-		case 0x4E:
-			X = 0x20;
-			Y = 0x18;
-			return;
-		case 0x53:
-			X = 0x20;
-			Y = 9;
-			return;
-		case 0x64:
-			X = Y = (CheatRead<unsigned char>(index + 0x2E)) ? 0x10 : 8;
-			return;
-		case 0x66:
-			X = 0x25;
-			Y = 0x30;
-			return;
-		case 0x69:
-			X = (CheatRead<unsigned char>(index + 0x24) == 2)?0x40:0x10;
-			Y = (CheatRead<unsigned char>(index + 0x24) == 2)?0xC:0x7;
-			return;
-		case 0x6F:
-			X=0x10;
-			Y=0x7;
-			return;
-		case 0x79:
-			X=0x8;
-			Y=(CheatRead<unsigned char>(index + 0x24) == 2)?0x20:0x8;
-			return;
-		case 0x84:
-			X = 0x20;
-			Y = 0x60;
-			return;
-		case 0x85:
-			X = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x10:0x20;
-			Y = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x70:0x14;
-			return;
-		case 0x86:
-			X = Y = 8;
-			return;
-//#endif
-		default:
-			X = Y = 3;
-	}
-}
-#define ENEMY 0
-#define ROUT 1
-#define HURT 2
-#define SPEC 3
-int ColorTable32[4] = {0x8000FF,0x00FFFF,0xFF0000,0x00FF00};
-short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
-	// Sonic camera hack
-	#ifdef SK
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x10;
-		const unsigned char YPo = 0x14;
-		const unsigned char XVo = 0x18;
-		const unsigned char YVo = 0x1A;
-		const unsigned char To = 0x28;
-		const unsigned char Wo = 0x1F;
-		const unsigned char Ho = 0x1E;
-		const unsigned char Fo = 0x4;
-		const unsigned int CAMOFFSET1 = 0xFFEE78;
-		const unsigned int CAMOFFSET2 = 0xFFEE80;
-		const unsigned int INLEVELFLAG = 0xFFB004;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x1FCC;
-		const unsigned int SPRITESIZE = 0x4A;
-		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-		const unsigned char XSCROLLRATE = 24;
-		const unsigned char YSCROLLRATE = 32;
-	#elif defined S2
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x2600;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int CAMOFFSET1 = 0xFFEE00;
-		const unsigned int INLEVELFLAG = 0xFFB001;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#elif defined S1
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFFF710;
-		const unsigned int CAMOFFSET3 = 0xFFFDB8;
-		const unsigned int CAMOFFSET4 = 0xFFF616;
-		const unsigned int INLEVELFLAG = 0xFFD04B;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#endif
-		const unsigned char SizeTableX[] = {0x04, 0x14, 0x0C, 0x14, 0x04, 0x0C, 0x10, 0x06, 0x18, 0x0C, 0x10, 0x08, 0x14,
-											0x14, 0x0E, 0x18, 0x28, 0x10, 0x08, 0x20, 0x40, 0x80, 0x20, 0x08, 0x04, 0x20, 
-											0x0C, 0x08, 0x18, 0x28, 0x04, 0x04, 0x04, 0x04, 0x18, 0x0C, 0x48, 0x18, 0x10, 
-											0x20, 0x04, 0x18, 0x20, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x02, 0x20};
-		const unsigned char SizeTableY[] = {0x04, 0x14, 0x14, 0x0C, 0x10, 0x12, 0x10, 0x06, 0x0C, 0x10, 0x0C, 0x08, 0x10, 
-											0x08, 0x0E, 0x18, 0x10, 0x18, 0x10, 0x70, 0x20, 0x20, 0x20, 0x08, 0x04, 0x08, 
-											0x0C, 0x04, 0x04, 0x04, 0x08, 0x18, 0x28, 0x20, 0x18, 0x18, 0x08, 0x28, 0x04, 
-											0x02, 0x40, 0x80, 0x10, 0x20, 0x30, 0x40, 0x50, 0x02, 0x01, 0x08, 0x1C};
-//unsigned short CamX = 0;
-//short CamY = 0;
-unsigned short PX = 0;
-unsigned short PY = 0;
-bool offscreen = false;
-unsigned short (*GETBLOCK)(int X,int Y);
-unsigned short GetBlockS1(int X,int Y) 
-{
-	return (X >> 8) + ((Y & 0x700) >> 1);
-}
-unsigned short GetBlockS2(int X,int Y)
-{
-	return ((X >> 7) & 0x7F) + ((Y << 1) & 0xF00);
-}
-unsigned short GetBlockSK(int X,int Y)
-{
-	return CheatRead<unsigned short>(0xFF8008 + ((Y >> 5) & CheatRead<unsigned short>(0xFFEEAE))) + (X >> 7);
-}
-void DrawBoxes()
-{
-	if (!GetKeyState(VK_SCROLL))
-	{
-		PX = CheatRead<unsigned short>(P1OFFSET + XPo);
-		PY = CheatRead<unsigned short>(P1OFFSET + YPo);
-		short Xpos,Ypos;
-		unsigned char Height,Width,Height2,Width2,Type;
-		bool Touchable;
-		unsigned int DrawColor32;
-		unsigned short DrawColor16;
-		for (unsigned int CardBoard = P1OFFSET; CardBoard < P1OFFSET + SSTLEN; CardBoard += SPRITESIZE)
-		{
-			if (!CheatRead<unsigned long>(0xFF0000 + CardBoard)) continue;
-			Xpos = CheatRead<short>(CardBoard + XPo);
-			Ypos = CheatRead<short>(CardBoard + YPo);
-			if ((CheatRead<unsigned char>(CardBoard + Fo) & 4) && !(Xpos | Ypos)) continue;
-			Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
-			Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
-			Touchable = (CheatRead<unsigned char>(CardBoard + To)?true:false);
-			if (Touchable) Type = (CheatRead<unsigned char>(CardBoard + To) & 0xC0) >> 6, DrawColor32=ColorTable32[Type],DrawColor16=ColorTable16[Type];
-			else DrawColor32 = 0xFFFFFF, DrawColor16 = 0xFFFF;
-			Height2 = CheatRead<unsigned char>(CardBoard + Ho);
-			Width2 = CheatRead<unsigned char>(CardBoard + Wo);
-			#ifdef SK
-				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x22) == 0x39);
-			#else
-				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x1A) == 0x39);
-			#endif
-			if (CardBoard == P1OFFSET)
-			{
-	//			bool instashield = ((Ram_68k[0xFFBA] == 01) && !(Ram_68k[0xFE2C]) && !(Ram_68k[0xFE2D]) && (Ram_68k[0xFED1] == 2));
-				Width = 10;
-				Height = (ducking) ? 0xA : CheatRead<unsigned char>(CardBoard + Ho);
-	//			if (instashield)
-	//			{
-	//				Width = 0x18;
-	//				Height = 0x18;
-	//			}
-			}
-			unsigned char angle = CheatRead<unsigned char>(CardBoard + 0x26);
-			angle += 0x20;
-			if (angle & 0x40) Width2 ^= Height2, Height2 ^= Width2, Width2 ^= Height2;
-			Xpos += 8;	
-			if ((CheatRead<unsigned char>(CardBoard + Fo) & 0x4) || (CheatRead<unsigned char>(CardBoard) == 0x7D)) {
-				Xpos -= CamX;
-				Ypos -= CamY;
-			}
-			else {
-				Xpos -= 0x80;
-				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
-			}
-	#ifdef S2
-			if (!(Ram_68k[CardBoard + Fo] & 0x40))
-			{
-	#endif
-				Width2 = min(Width2,0xFE);
-				Height2 = min(Height2,0xFE);
-				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
-					}
-				}
-				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
-					}
-				}
-	#ifdef S2
-			}
-	#endif
-			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
-			for (char jxq = 0; jxq <=2; jxq++)
-			{
-				for (char Jxq = 0; Jxq <=2; Jxq++)
-				{
-					if (Bits32)
-					{
-						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
-						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
-						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
-					}
-				}
-			}
-			if(Bits32)
-			{
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
-				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-			}
-			else
-			{
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
-				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
-			}
-	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
-	//			continue;
-			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
-			{
-				FindObjectDims(CardBoard,Width,Height);
-	//				Ypos -= 0x8;
-			}
-			if (CheatRead<unsigned char>(CardBoard) == 0x7D) Width = Height = 0x10;
-			Height = min(Height,0xFE);
-			Width = min(Width,0xFE);
-			for (unsigned char JXQ = 0; JXQ <= Width; JXQ++)
-			{
-				if(Bits32)
-				{
-					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
-				}
-				else
-				{
-					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
-				}
-			}
-			for (unsigned char JXQ = 0; JXQ <= Height; JXQ++)
-			{
-				if(Bits32)
-				{
-					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
-					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
-				}
-				else
-				{
-					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
-					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
-				}
-			}
-			sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
-			Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
-			Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLEU);
-			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLEU);
-			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(217,Ypos-3)),BLEU);
-			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);
-		}
-	#ifdef S2
-		for (unsigned short CardBoard = 0xE806; CardBoard < 0xEE00; CardBoard += 6)
-		{
-			if (((* (short *) &(Ram_68k[CardBoard + 2])) == -1) || !(CheatRead<unsigned char>(INLEVELFLAG))) break;
-			else if ((* (short *) &(Ram_68k[CardBoard + 2])) && !(*(short *) &(Ram_68k[CardBoard])))
-			{
-				Width2 = Height2 = 6;
-				Xpos = *(short *) &(Ram_68k[CardBoard + 2]) - CamX;
-				Ypos = *(short *) &(Ram_68k[CardBoard + 4]) - CamY;
-				Xpos += 8;
-				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
-				MD_Screen32[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0xFF;
-				MD_Screen[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0x1F;
-				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
-					}
-				}
-				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
-					}
-				}
-			}
-		}
-	#endif
-	}
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
 		unsigned short BLOCKSIZE,TILEMASK;
 		unsigned char BLOCKSHIFT,SOLIDSHIFT,DRAWSHIFT;
@@ -1391,6 +916,484 @@ void DrawBoxes()
 		}
 	}
 }
+void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
+{
+	unsigned char Num = CheatRead<unsigned char>(index);
+	switch (Num)
+	{
+//#ifdef S1
+		case 0x0C:
+		case 0x44:
+			X = 0x8;
+			Y = 0x20;
+			return;
+		case 0x10:
+			if (CheatRead<unsigned char>(index + 0x28) & 4)
+				X = min(0xFE,CheatRead<unsigned short>(index + 0x32)),Y = 0x10;
+			else
+				Y = min(0xFE,CheatRead<unsigned short>(index + 0x32)),X = 0x10;
+			return;
+		case 0x11:
+			X = CheatRead<unsigned char>(index + 0x28);
+			X <<= 3;
+			X += 8;
+			Y = 8;
+			return;
+		case 0x12:
+		case 0x46:
+		case 0x47:
+		case 0x51:
+		case 0x76:
+		case 0x7B:
+			X = Y = 0x10;
+			return;
+		case 0x15:
+		case 0x56:
+		case 0x61:
+		case 0x6B:
+		case 0x70:
+		case 0x71:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = CheatRead<unsigned char>(index + 0x16);
+			return;
+		case 0x18:
+		case 0x52:
+		case 0x59:
+		case 0x5A:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 9;
+			return;
+		case 0x1A:
+		case 0x5E:
+			X = 0x30;
+			Y = CheatRead<unsigned char>(index + 0x16);
+			return;
+		case 0x2A:
+			X = 6;
+			Y = 0x20;
+		case 0x2F:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = (CheatRead<unsigned char>(index + 0x1A) == 2)?0x30:0x20;
+			return;
+		case 0x30:
+			X = 0x20;
+			Y = (CheatRead<unsigned char>(index + 0x24) < 3)?0x48:0x38;
+			return;
+		case 0x31:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0xC;
+			return;
+		case 0x32:
+			X = 0x10;
+			Y = 5;
+			return;
+		case 0x33:
+		case 0x5B:
+		case 0x83:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0x10;
+			return;
+		case 0x36:
+			X = ((CheatRead<unsigned char>(index + 0x1A) == 5) || (CheatRead<unsigned char>(index + 0x1A) == 1))?0x10:CheatRead<unsigned char>(index + 0x19);
+			Y = (CheatRead<unsigned char>(index + 0x1A) == 5)?4:((CheatRead<unsigned char>(index + 0x1A) == 1)?0x14:0x10);
+			return;
+		case 0x3B:
+			X = Y = 0x10;
+			return;
+		case 0x3C:
+			X = 0x10;
+			Y = 0x20;
+			return;
+		case 0x3E:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0x18;
+			if (CheatRead<unsigned char>(index + 0x24) == 0x04)
+				Y = 0x08;
+			return;
+		case 0x41:
+			X = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?8:0x10;
+			Y = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?0xE:0x8;
+			return;
+//		case 0x44:
+//			X = 8;
+//			Y = 0x20;
+//			return;
+		case 0x45:
+			X = 0xC;
+			Y = 0x20;
+			return;
+		case 0x4E:
+			X = 0x20;
+			Y = 0x18;
+			return;
+		case 0x53:
+			X = 0x20;
+			Y = 9;
+			return;
+		case 0x64:
+			X = Y = (CheatRead<unsigned char>(index + 0x2E)) ? 0x10 : 8;
+			return;
+		case 0x66:
+			X = 0x25;
+			Y = 0x30;
+			return;
+		case 0x69:
+			X = (CheatRead<unsigned char>(index + 0x24) == 2)?0x40:0x10;
+			Y = (CheatRead<unsigned char>(index + 0x24) == 2)?0xC:0x7;
+			return;
+		case 0x6F:
+			X=0x10;
+			Y=0x7;
+			return;
+		case 0x79:
+			X=0x8;
+			Y=(CheatRead<unsigned char>(index + 0x24) == 2)?0x20:0x8;
+			return;
+		case 0x84:
+			X = 0x20;
+			Y = 0x60;
+			return;
+		case 0x85:
+			X = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x10:0x20;
+			Y = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x70:0x14;
+			return;
+		case 0x86:
+			X = Y = 8;
+			return;
+//#endif
+		default:
+			X = Y = 3;
+	}
+}
+#define ENEMY 0
+#define ROUT 1
+#define HURT 2
+#define SPEC 3
+int ColorTable32[4] = {0x8000FF,0x00FFFF,0xFF0000,0x00FF00};
+short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
+	// Sonic camera hack
+	#ifdef SK
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x10;
+		const unsigned char YPo = 0x14;
+		const unsigned char XVo = 0x18;
+		const unsigned char YVo = 0x1A;
+		const unsigned char To = 0x28;
+		const unsigned char Wo = 0x1F;
+		const unsigned char Ho = 0x1E;
+		const unsigned char Fo = 0x4;
+		const unsigned int CAMOFFSET1 = 0xFFEE78;
+		const unsigned int CAMOFFSET2 = 0xFFEE80;
+		const unsigned int INLEVELFLAG = 0xFFB004;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x1FCC;
+		const unsigned int SPRITESIZE = 0x4A;
+		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
+		const unsigned char XSCROLLRATE = 24;
+		const unsigned char YSCROLLRATE = 32;
+	#elif defined S2
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x2600;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int CAMOFFSET1 = 0xFFEE00;
+		const unsigned int INLEVELFLAG = 0xFFB001;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+	#elif defined S1
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFFF710;
+		const unsigned int CAMOFFSET3 = 0xFFFDB8;
+		const unsigned int CAMOFFSET4 = 0xFFF616;
+		const unsigned int INLEVELFLAG = 0xFFD04B;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+	#endif
+		const unsigned char SizeTableX[] = {0x04, 0x14, 0x0C, 0x14, 0x04, 0x0C, 0x10, 0x06, 0x18, 0x0C, 0x10, 0x08, 0x14,
+											0x14, 0x0E, 0x18, 0x28, 0x10, 0x08, 0x20, 0x40, 0x80, 0x20, 0x08, 0x04, 0x20, 
+											0x0C, 0x08, 0x18, 0x28, 0x04, 0x04, 0x04, 0x04, 0x18, 0x0C, 0x48, 0x18, 0x10, 
+											0x20, 0x04, 0x18, 0x20, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x02, 0x20};
+		const unsigned char SizeTableY[] = {0x04, 0x14, 0x14, 0x0C, 0x10, 0x12, 0x10, 0x06, 0x0C, 0x10, 0x0C, 0x08, 0x10, 
+											0x08, 0x0E, 0x18, 0x10, 0x18, 0x10, 0x70, 0x20, 0x20, 0x20, 0x08, 0x04, 0x08, 
+											0x0C, 0x04, 0x04, 0x04, 0x08, 0x18, 0x28, 0x20, 0x18, 0x18, 0x08, 0x28, 0x04, 
+											0x02, 0x40, 0x80, 0x10, 0x20, 0x30, 0x40, 0x50, 0x02, 0x01, 0x08, 0x1C};
+//unsigned short CamX = 0;
+//short CamY = 0;
+unsigned short PX = 0;
+unsigned short PY = 0;
+bool offscreen = false;
+unsigned short (*GETBLOCK)(int X,int Y);
+unsigned short GetBlockS1(int X,int Y) 
+{
+	return (X >> 8) + ((Y & 0x700) >> 1);
+}
+unsigned short GetBlockS2(int X,int Y)
+{
+	return ((X >> 7) & 0x7F) + ((Y << 1) & 0xF00);
+}
+unsigned short GetBlockSK(int X,int Y)
+{
+	return CheatRead<unsigned short>(0xFF8008 + ((Y >> 5) & CheatRead<unsigned short>(0xFFEEAE))) + (X >> 7);
+}
+void DrawBoxes()
+{
+	if (!GetKeyState(VK_SCROLL))
+	{
+		PX = CheatRead<unsigned short>(P1OFFSET + XPo);
+		PY = CheatRead<unsigned short>(P1OFFSET + YPo);
+		short Xpos,Ypos;
+		unsigned char Height,Width,Height2,Width2,Type;
+		bool Touchable;
+		unsigned int DrawColor32;
+		unsigned short DrawColor16;
+		for (unsigned int CardBoard = P1OFFSET; CardBoard < P1OFFSET + SSTLEN; CardBoard += SPRITESIZE)
+		{
+			if (!CheatRead<unsigned long>(0xFF0000 + CardBoard)) continue;
+			Xpos = CheatRead<short>(CardBoard + XPo);
+			Ypos = CheatRead<short>(CardBoard + YPo);
+			if ((CheatRead<unsigned char>(CardBoard + Fo) & 4) && !(Xpos | Ypos)) continue;
+			Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
+			Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
+			Touchable = (CheatRead<unsigned char>(CardBoard + To)?true:false);
+			if (Touchable) Type = (CheatRead<unsigned char>(CardBoard + To) & 0xC0) >> 6, DrawColor32=ColorTable32[Type],DrawColor16=ColorTable16[Type];
+			else DrawColor32 = 0xFFFFFF, DrawColor16 = 0xFFFF;
+			Height2 = CheatRead<unsigned char>(CardBoard + Ho);
+			Width2 = CheatRead<unsigned char>(CardBoard + Wo);
+			#ifdef SK
+				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x22) == 0x39);
+			#else
+				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x1A) == 0x39);
+			#endif
+			if (CardBoard == P1OFFSET)
+			{
+	//			bool instashield = ((Ram_68k[0xFFBA] == 01) && !(Ram_68k[0xFE2C]) && !(Ram_68k[0xFE2D]) && (Ram_68k[0xFED1] == 2));
+				Width = 10;
+				Height = (ducking) ? 0xA : CheatRead<unsigned char>(CardBoard + Ho);
+	//			if (instashield)
+	//			{
+	//				Width = 0x18;
+	//				Height = 0x18;
+	//			}
+			}
+			unsigned char angle = CheatRead<unsigned char>(CardBoard + 0x26);
+			angle += 0x20;
+			if (angle & 0x40) Width2 ^= Height2, Height2 ^= Width2, Width2 ^= Height2;
+			Xpos += 8;	
+			if ((CheatRead<unsigned char>(CardBoard + Fo) & 0x4) || (CheatRead<unsigned char>(CardBoard) == 0x7D)) {
+				Xpos -= CamX;
+				Ypos -= CamY;
+			}
+			else {
+				Xpos -= 0x80;
+				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
+			}
+	#ifdef S2
+			if (!(Ram_68k[CardBoard + Fo] & 0x40))
+			{
+	#endif
+				Width2 = min(Width2,0xFE);
+				Height2 = min(Height2,0xFE);
+				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
+				{
+					if (Bits32) 
+					{
+						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
+					}
+					else
+					{
+						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
+					}
+				}
+				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
+				{
+					if (Bits32) 
+					{
+						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
+						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
+					}
+					else
+					{
+						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
+						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
+					}
+				}
+	#ifdef S2
+			}
+	#endif
+			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
+			for (char jxq = 0; jxq <=2; jxq++)
+			{
+				for (char Jxq = 0; Jxq <=2; Jxq++)
+				{
+					if (Bits32)
+					{
+						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
+						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x00FF00;
+						MD_Screen32[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
+						MD_Screen32[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x00FF00;
+					}
+					else
+					{
+						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
+						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos - Jxq)))] =0x07E0;
+						MD_Screen[max(8,min(327,(Xpos - jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
+						MD_Screen[max(8,min(327,(Xpos + jxq))) + 336 * max(0,min(223,(Ypos + Jxq)))] =0x07E0;
+					}
+				}
+			}
+			if(Bits32)
+			{
+				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen32[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen32[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
+				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
+				MD_Screen32[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
+			}
+			else
+			{
+				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen[max(8,min(327,(Xpos - 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen[max(8,min(327,(Xpos + 1))) + 336 * max(0,min(223,(Ypos)))] = 0;
+				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
+				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos + 1)))] = 0;
+				MD_Screen[max(8,min(327,(Xpos))) + 336 * max(0,min(223,(Ypos - 1)))] = 0;
+			}
+	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
+	//			continue;
+			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
+			{
+				FindObjectDims(CardBoard,Width,Height);
+	//				Ypos -= 0x8;
+			}
+			if (CheatRead<unsigned char>(CardBoard) == 0x7D) Width = Height = 0x10;
+			Height = min(Height,0xFE);
+			Width = min(Width,0xFE);
+			for (unsigned char JXQ = 0; JXQ <= Width; JXQ++)
+			{
+				if(Bits32)
+				{
+					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor32;
+				}
+				else
+				{
+					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height))))] = DrawColor16;
+				}
+			}
+			for (unsigned char JXQ = 0; JXQ <= Height; JXQ++)
+			{
+				if(Bits32)
+				{
+					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor32;
+					MD_Screen32[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor32;
+				}
+				else
+				{
+					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos - Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos - JXQ))))] = DrawColor16;
+					MD_Screen[max(8,min(327,(Xpos + Width))) + (336 * max(0,min(223,(Ypos + JXQ))))] = DrawColor16;
+				}
+			}
+			sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
+			Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
+			Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLEU);
+			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLEU);
+			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(217,Ypos-3)),BLEU);
+			Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);
+		}
+	#ifdef S2
+		for (unsigned short CardBoard = 0xE806; CardBoard < 0xEE00; CardBoard += 6)
+		{
+			if (((* (short *) &(Ram_68k[CardBoard + 2])) == -1) || !(CheatRead<unsigned char>(INLEVELFLAG))) break;
+			else if ((* (short *) &(Ram_68k[CardBoard + 2])) && !(*(short *) &(Ram_68k[CardBoard])))
+			{
+				Width2 = Height2 = 6;
+				Xpos = *(short *) &(Ram_68k[CardBoard + 2]) - CamX;
+				Ypos = *(short *) &(Ram_68k[CardBoard + 4]) - CamY;
+				Xpos += 8;
+				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
+				MD_Screen32[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0xFF;
+				MD_Screen[max(8,min(327,Xpos)) + (336 * max(0,min(223,Ypos)))] = 0x1F;
+				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
+				{
+					if (Bits32) 
+					{
+						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF;
+					}
+					else
+					{
+						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0x1F;
+					}
+				}
+				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
+				{
+					if (Bits32) 
+					{
+						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF;
+						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF;
+					}
+					else
+					{
+						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0x1F;
+						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0x1F;
+					}
+				}
+			}
+		}
+	#endif
+	}
+}
 int SonicCamHack()
 {
 #ifdef SK
@@ -1465,6 +1468,7 @@ int SonicCamHack()
 		int retval = Update_Frame(); // no need for cam hack now
 		offscreen = false;
 		DrawBoxes();
+		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 		y = CheatRead<short>(P1OFFSET + off + YPo);
 		if (!GetKeyState(VK_SCROLL))
@@ -1519,6 +1523,7 @@ int SonicCamHack()
 		{
 			Update_Frame();
 			DrawBoxes();
+			DisplaySolid();
 			x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 			y = CheatRead<short>(P1OFFSET + off + YPo);
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);

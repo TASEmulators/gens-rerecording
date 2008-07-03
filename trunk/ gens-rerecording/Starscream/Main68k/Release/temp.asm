@@ -56,7 +56,6 @@ __odometer             dd 0
 __interrupts           db 0,0,0,0,0,0,0,0
 __sr                   dw 0
 __contextfiller00      dw 0
-contextend:
 __cycles_needed        dd 0
 __cycles_leftover      dd 0
 __fetch_region_start   dd 0
@@ -75,6 +74,7 @@ __access_address       dd 0
 
 save_01				dd 0
 save_02				dd 0
+contextend:
 section .text
 bits 32
 
