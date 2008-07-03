@@ -1,4 +1,6 @@
-TODO: update this document
+TODO: update this document (here's a start: open gens.sln in Visual Studio 2005 and choose Build Solution. If it complains about ddraw.h missing you'll need to install a DirectX SDK first.)
+
+
 
 You need Visual C++ 6.0 with the DirectX 7.0 Runtime library and NASM installed
 in the root directory of the drive where you've checked out Gens (\nasm) to
