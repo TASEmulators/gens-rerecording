@@ -33,6 +33,9 @@
 #include "misc.h"
 #include "cd_sys.h"
 #include "movie.h"
+#ifdef _DEBUG
+#include <assert.h>
+#endif
 
 int Current_State = 0;
 char State_Dir[1024] = "";
@@ -606,10 +609,10 @@ others
 +42A00-829FF : FB1 & FB2
 
 */
-
+unsigned char Version;
 int Import_Genesis(unsigned char *Data)
 {
-	unsigned char Reg_1[0x200], Version, *src;
+	unsigned char Reg_1[0x200], *src;
 	int i;
 
 //	VDP_Int = 0;
@@ -709,9 +712,9 @@ int Import_Genesis(unsigned char *Data)
 
 	FrameCount=Data[0x22478]+(Data[0x22479]<<8)+(Data[0x2247A]<<16)+(Data[0x2247B]<<24);
 
-	MainMovie.NbRerecords++;
-	if(MainMovie.Status==MOVIE_RECORDING)
-		MainMovie.LastFrame=FrameCount;
+//	MainMovie.NbRerecords++;
+//	if(MainMovie.Status==MOVIE_RECORDING)
+//		MainMovie.LastFrame=FrameCount;
 
 	main68k_GetContext(&Context_68K);
 
@@ -864,10 +867,11 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg.DMA_Src_Adr_H, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
+		offset = 0x3558D;
 	}
 	else if (Version >= 7)
 	{
-		unsigned int offset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX1;
+		unsigned int offset = 0x22480;	//Modif U. - Got rid of about 12KB of 00 bytes.
 
 		unsigned char Reg_2[sizeof(ym2612_)];
 		ImportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
@@ -895,7 +899,7 @@ int Import_Genesis(unsigned char *Data)
 		//ImportDataAuto(&CRam_Flag, Data, offset, 4); //emulator flag which causes Gens not to update its draw palette, but doesn't affect sync state
 		ImportDataAuto(&LagCount, Data, offset, 4);
 		ImportDataAuto(&VRam_Flag, Data, offset, 4);
-		ImportDataAuto(MD_Palette, Data, offset, 256 * 2);
+		ImportDataAuto(&CRam, Data, offset, 256 * 2);
 
 		// it's probably safer sync-wise to keep SRAM stuff in the savestate
 		ImportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
@@ -1017,7 +1021,7 @@ void Export_Genesis(unsigned char *Data)
 	  src += 4;
 	}
 
-	for(i = 0; i < 0x80; i++) Data[i + 0x112] = CRam[i];
+	for(i = 0; i < 0x80; i++) Data[i + 0x112] = (CRam[i] & 0xFF);
 	for(i = 0; i < 0x50; i++) Data[i + 0x192] = VSRam[i];
 
 	YM2612_Save(Reg_1);
@@ -1077,7 +1081,7 @@ void Export_Genesis(unsigned char *Data)
 
 	//Modif N. - saving more stuff (added everything after this)
 
-	unsigned int offset = GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX1;
+	unsigned int offset = 0x22480; // Modif U. - got rid of about 12 KB of 00 bytes.
 
 	unsigned char Reg_2[sizeof(ym2612_)];
 	YM2612_Save_Full(Reg_2);
@@ -1105,7 +1109,7 @@ void Export_Genesis(unsigned char *Data)
 	//ExportDataAuto(&CRam_Flag, Data, offset, 4);
 	ExportDataAuto(&LagCount, Data, offset, 4);
 	ExportDataAuto(&VRam_Flag, Data, offset, 4);
-	ExportDataAuto(MD_Palette, Data, offset, 256 * 2);
+	ExportDataAuto(&CRam, Data, offset, 256 * 2);
 
 	// it's probably safer sync-wise to keep SRAM stuff in the savestate
 	ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
@@ -1138,7 +1142,7 @@ void Export_Genesis(unsigned char *Data)
 
 	// these don't seem to be necessary and I don't feel like saving them
 	//ExportDataAuto(&Def_z80_Mem, Data, offset, 0x10000);
-	//ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+	ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
 
 #ifdef _DEBUG
 	// what I do is add stuff to the format above, then run in debug and let this assert fail.
@@ -1298,51 +1302,53 @@ void Import_SegaCD(unsigned char *Data)
 		//CDC end
 	//CDD & CDC Data end
 
-	//Modif N. - extra stuff added to save/set for synchronization reasons
-	// I'm not sure how much of this really needs to be saved, should check it sometime
+	if (Version >= 7)
+	{
+		//Modif N. - extra stuff added to save/set for synchronization reasons
+		// I'm not sure how much of this really needs to be saved, should check it sometime
+		unsigned int offset = SEGACD_LENGTH_EX1;
 
-	unsigned int offset = SEGACD_LENGTH_EX1;
+		ImportDataAuto(&File_Add_Delay, Data, offset, 4);
+		ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
+		ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
+		ImportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
+		ImportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
+		ImportDataAuto(&CD_Audio_Starting, Data, offset, 4);
+		ImportDataAuto(&CD_Present, Data, offset, 4);
+		ImportDataAuto(&CD_Load_System, Data, offset, 4);
+		ImportDataAuto(&CD_Timer_Counter, Data, offset, 4);
+		ImportDataAuto(&CDD_Complete, Data, offset, 4);
+		ImportDataAuto(&track_number, Data, offset, 4);
+		ImportDataAuto(&CD_timer_st, Data, offset, 4);
+		ImportDataAuto(&CD_LBA_st, Data, offset, 4);
+		ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
 
-	ImportDataAuto(&File_Add_Delay, Data, offset, 4);
-	ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192);
-	ImportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192);
-	ImportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
-	ImportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
-	ImportDataAuto(&CD_Audio_Starting, Data, offset, 4);
-	ImportDataAuto(&CD_Present, Data, offset, 4);
-	ImportDataAuto(&CD_Load_System, Data, offset, 4);
-	ImportDataAuto(&CD_Timer_Counter, Data, offset, 4);
-	ImportDataAuto(&CDD_Complete, Data, offset, 4);
-	ImportDataAuto(&track_number, Data, offset, 4);
-	ImportDataAuto(&CD_timer_st, Data, offset, 4);
-	ImportDataAuto(&CD_LBA_st, Data, offset, 4);
-	ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+		ImportDataAuto(&SCD, Data, offset, sizeof(SCD));
+		ImportDataAuto(&CDC, Data, offset, sizeof(CDC));
+		ImportDataAuto(&CDD, Data, offset, sizeof(CDD));
+		ImportDataAuto(&COMM, Data, offset, sizeof(COMM));
 
-	ImportDataAuto(&SCD, Data, offset, sizeof(SCD));
-	ImportDataAuto(&CDC, Data, offset, sizeof(CDC));
-	ImportDataAuto(&CDD, Data, offset, sizeof(CDD));
-	ImportDataAuto(&COMM, Data, offset, sizeof(COMM));
+		ImportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
+		ImportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
 
-	ImportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
-	ImportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
+		ImportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
+		ImportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
+		ImportDataAuto(&Buffer_Adr, Data, offset, 4);
+		ImportDataAuto(&Vector_Adr, Data, offset, 4);
+		ImportDataAuto(&Jmp_Adr, Data, offset, 4);
+		ImportDataAuto(&Float_Part, Data, offset, 4);
+		ImportDataAuto(&Draw_Speed, Data, offset, 4);
+		ImportDataAuto(&XS, Data, offset, 4);
+		ImportDataAuto(&YS, Data, offset, 4);
+		ImportDataAuto(&DXS, Data, offset, 4);
+		ImportDataAuto(&DYS, Data, offset, 4);
+		ImportDataAuto(&XD, Data, offset, 4);
+		ImportDataAuto(&YD, Data, offset, 4);
+		ImportDataAuto(&XD_Mul, Data, offset, 4);
+		ImportDataAuto(&H_Dot, Data, offset, 4);
 
-	ImportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
-	ImportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
-	ImportDataAuto(&Buffer_Adr, Data, offset, 4);
-	ImportDataAuto(&Vector_Adr, Data, offset, 4);
-	ImportDataAuto(&Jmp_Adr, Data, offset, 4);
-	ImportDataAuto(&Float_Part, Data, offset, 4);
-	ImportDataAuto(&Draw_Speed, Data, offset, 4);
-	ImportDataAuto(&XS, Data, offset, 4);
-	ImportDataAuto(&YS, Data, offset, 4);
-	ImportDataAuto(&DXS, Data, offset, 4);
-	ImportDataAuto(&DYS, Data, offset, 4);
-	ImportDataAuto(&XD, Data, offset, 4);
-	ImportDataAuto(&YD, Data, offset, 4);
-	ImportDataAuto(&XD_Mul, Data, offset, 4);
-	ImportDataAuto(&H_Dot, Data, offset, 4);
-
-	ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+		ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+	}
 
 #ifdef _DEBUG
 	int desiredoffset = SEGACD_LENGTH_EX;
