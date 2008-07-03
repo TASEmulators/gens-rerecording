@@ -11,13 +11,282 @@
 
 #ifdef SONICCAMHACK
 unsigned char genesisbuf[GENESIS_STATE_LENGTH + GENESIS_LENGTH_EX];
+#ifdef SCD
+#include "mem_s68k.h"
+unsigned char scdbuf[SEGACD_LENGTH_EX];
+#endif
+void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
+{
+	unsigned char Num = CheatRead<unsigned char>(index);
+	switch (Num)
+	{
+//#ifdef S1
+		case 0x0C:
+		case 0x44:
+			X = 0x8;
+			Y = 0x20;
+			return;
+		case 0x10:
+			if (CheatRead<unsigned char>(index + 0x28) & 4)
+				X = min(0xFE,CheatRead<unsigned short>(index + 0x32)),Y = 0x10;
+			else
+				Y = min(0xFE,CheatRead<unsigned short>(index + 0x32)),X = 0x10;
+			return;
+		case 0x11:
+			X = CheatRead<unsigned char>(index + 0x28);
+			X <<= 3;
+			X += 8;
+			Y = 8;
+			return;
+		case 0x12:
+		case 0x46:
+		case 0x47:
+		case 0x51:
+		case 0x76:
+		case 0x7B:
+			X = Y = 0x10;
+			return;
+		case 0x15:
+		case 0x56:
+		case 0x61:
+		case 0x6B:
+		case 0x70:
+		case 0x71:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = CheatRead<unsigned char>(index + 0x16);
+			return;
+		case 0x18:
+		case 0x52:
+		case 0x59:
+		case 0x5A:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 9;
+			return;
+		case 0x1A:
+		case 0x5E:
+			X = 0x30;
+			Y = CheatRead<unsigned char>(index + 0x16);
+			return;
+		case 0x2A:
+			X = 6;
+			Y = 0x20;
+		case 0x2F:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = (CheatRead<unsigned char>(index + 0x1A) == 2)?0x30:0x20;
+			return;
+		case 0x30:
+			X = 0x20;
+			Y = (CheatRead<unsigned char>(index + 0x24) < 3)?0x48:0x38;
+			return;
+		case 0x31:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0xC;
+			return;
+		case 0x32:
+			X = 0x10;
+			Y = 5;
+			return;
+		case 0x33:
+		case 0x5B:
+		case 0x83:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0x10;
+			return;
+		case 0x36:
+			X = ((CheatRead<unsigned char>(index + 0x1A) == 5) || (CheatRead<unsigned char>(index + 0x1A) == 1))?0x10:CheatRead<unsigned char>(index + 0x19);
+			Y = (CheatRead<unsigned char>(index + 0x1A) == 5)?4:((CheatRead<unsigned char>(index + 0x1A) == 1)?0x14:0x10);
+			return;
+		case 0x3B:
+			X = Y = 0x10;
+			return;
+		case 0x3C:
+			X = 0x10;
+			Y = 0x20;
+			return;
+		case 0x3E:
+			X = CheatRead<unsigned char>(index + 0x17);
+			Y = 0x18;
+			if (CheatRead<unsigned char>(index + 0x24) == 0x04)
+				Y = 0x08;
+			return;
+		case 0x41:
+			X = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?8:0x10;
+			Y = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?0xE:0x8;
+			return;
+//		case 0x44:
+//			X = 8;
+//			Y = 0x20;
+//			return;
+		case 0x45:
+			X = 0xC;
+			Y = 0x20;
+			return;
+		case 0x4E:
+			X = 0x20;
+			Y = 0x18;
+			return;
+		case 0x53:
+			X = 0x20;
+			Y = 9;
+			return;
+		case 0x64:
+			X = Y = (CheatRead<unsigned char>(index + 0x2E)) ? 0x10 : 8;
+			return;
+		case 0x66:
+			X = 0x25;
+			Y = 0x30;
+			return;
+		case 0x69:
+			X = (CheatRead<unsigned char>(index + 0x24) == 2)?0x40:0x10;
+			Y = (CheatRead<unsigned char>(index + 0x24) == 2)?0xC:0x7;
+			return;
+		case 0x6F:
+			X=0x10;
+			Y=0x7;
+			return;
+		case 0x79:
+			X=0x8;
+			Y=(CheatRead<unsigned char>(index + 0x24) == 2)?0x20:0x8;
+			return;
+		case 0x84:
+			X = 0x20;
+			Y = 0x60;
+			return;
+		case 0x85:
+			X = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x10:0x20;
+			Y = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x70:0x14;
+			return;
+		case 0x86:
+			X = Y = 8;
+			return;
+//#endif
+		default:
+			X = Y = 3;
+	}
+}
+#define ENEMY 0
+#define ROUT 1
+#define HURT 2
+#define SPEC 3
+int ColorTable32[4] = {0x8000FF,0x00FFFF,0xFF0000,0x00FF00};
+unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
+	// Sonic camera hack
+	#ifdef SK
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x10;
+		const unsigned char YPo = 0x14;
+		const unsigned char XVo = 0x18;
+		const unsigned char YVo = 0x1A;
+		const unsigned char To = 0x28;
+		const unsigned char Wo = 0x1F;
+		const unsigned char Ho = 0x1E;
+		const unsigned char Fo = 0x4;
+		const unsigned int CAMOFFSET1 = 0xFFEE78;
+		const unsigned int CAMOFFSET2 = 0xFFEE80;
+		const unsigned int INLEVELFLAG = 0xFFB004;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x1FCC;
+		const unsigned int SPRITESIZE = 0x4A;
+		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
+		const unsigned char XSCROLLRATE = 24;
+		const unsigned char YSCROLLRATE = 32;
+	#elif defined S2
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x2600;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int CAMOFFSET1 = 0xFFEE00;
+		const unsigned int INLEVELFLAG = 0xFFB001;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+	#elif defined SCD
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFF1926;
+		const unsigned int CAMOFFSET3 = 0xFFFCA4;
+		const unsigned int INLEVELFLAG = 0xFFD001;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+	#elif defined S1
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFFF710;
+		const unsigned int CAMOFFSET3 = 0xFFFDB8;
+		const unsigned int CAMOFFSET4 = 0xFFF616;
+		const unsigned int INLEVELFLAG = 0xFFD04B;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+	#endif
+		const unsigned char SizeTableX[] = {0x04, 0x14, 0x0C, 0x14, 0x04, 0x0C, 0x10, 0x06, 0x18, 0x0C, 0x10, 0x08, 0x14,
+											0x14, 0x0E, 0x18, 0x28, 0x10, 0x08, 0x20, 0x40, 0x80, 0x20, 0x08, 0x04, 0x20, 
+											0x0C, 0x08, 0x18, 0x28, 0x04, 0x04, 0x04, 0x04, 0x18, 0x0C, 0x48, 0x18, 0x10, 
+											0x20, 0x04, 0x18, 0x20, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x02, 0x20};
+		const unsigned char SizeTableY[] = {0x04, 0x14, 0x14, 0x0C, 0x10, 0x12, 0x10, 0x06, 0x0C, 0x10, 0x0C, 0x08, 0x10, 
+											0x08, 0x0E, 0x18, 0x10, 0x18, 0x10, 0x70, 0x20, 0x20, 0x20, 0x08, 0x04, 0x08, 
+											0x0C, 0x04, 0x04, 0x04, 0x08, 0x18, 0x28, 0x20, 0x18, 0x18, 0x08, 0x28, 0x04, 
+											0x02, 0x40, 0x80, 0x10, 0x20, 0x30, 0x40, 0x50, 0x02, 0x01, 0x08, 0x1C};
+//unsigned short CamX = 0;
+//short CamY = 0;
+unsigned short PX = 0;
+unsigned short PY = 0;
+bool offscreen = false;
+unsigned short (*GETBLOCK)(int X,int Y);
+unsigned short GetBlockS1(int X,int Y) 
+{
+	return (X >> 8) + ((Y & 0x700) >> 1);
+}
+unsigned short GetBlockSCD(int X,int Y) 
+{
+	return (X >> 8) + ((Y & 0xF00) >> 1);
+}
+unsigned short GetBlockS2(int X,int Y)
+{
+	return ((X >> 7) & 0x7F) + ((Y << 1) & 0xF00);
+}
+unsigned short GetBlockSK(int X,int Y)
+{
+	return CheatRead<unsigned short>(0xFF8008 + ((Y >> 5) & CheatRead<unsigned short>(0xFFEEAE))) + (X >> 7);
+}
 void DisplaySolid ()
 {
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
 		unsigned short BLOCKSIZE,TILEMASK;
 		unsigned char BLOCKSHIFT,SOLIDSHIFT,DRAWSHIFT;
 		bool S3;
-		#ifdef S1
+	#ifdef S1
 		COLARR = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x055236 : 0x062A00);
 		COLARR2 = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x056236 : 0x063A00);
 		ANGARR = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x055136 : 0x062900);
@@ -25,6 +294,21 @@ void DisplaySolid ()
 		BLOCKSIZE = 0x100;
 		GETBLOCK = GetBlockS1;//(X >> 8) + ((Y & 0x700) >> 1)
 		BLOCKSTART = 0xFFA400;
+		BLOCKSHIFT = 9;
+		SOLIDSHIFT = 0xD;
+		DRAWSHIFT = 0xB;
+		TILEMASK = 0x7FF;
+		S3 = 0;
+	#elif defined SCD
+		static unsigned int NITSUJA = 0x2011E8;
+		static unsigned int STEALTH = 0;
+		ANGARR = CheatRead<unsigned int>(NITSUJA);
+		COLARR = ANGARR + 0x100;
+		COLARR2 = COLARR + 0x1000;
+		CAMMASK = 0xFF00;	
+		BLOCKSIZE = 0x100;
+		GETBLOCK = GetBlockSCD;//(X >> 8) + ((Y & 0x700) >> 1)
+		BLOCKSTART = 0xFFA000;
 		BLOCKSHIFT = 9;
 		SOLIDSHIFT = 0xD;
 		DRAWSHIFT = 0xB;
@@ -57,7 +341,36 @@ void DisplaySolid ()
 		TILEMASK = 0x3FF;
 		S3 = !(* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3);
 	#endif
+	if (CheatRead<unsigned int>(NITSUJA) != STEALTH) 
+	{
+		int addr = 0x200000;
+		bool found = false;
+		while ((addr <= 0x23FFFC) && !found)
+		{
+			addr += 2;
+			if (CheatRead<unsigned int>(addr) == 0x6100FE16)
+			{
+				if (CheatRead<unsigned int>(addr + 4) == 0x0C810021)
+				{
+					found = true;
+				}
+			}
+		}
+		if (found) 
+		{
+			NITSUJA = addr + 0x38;
+			STEALTH = CheatRead<unsigned int>(NITSUJA);
+			ANGARR = STEALTH;
+			COLARR = ANGARR + 0x100;
+			COLARR2 = COLARR + 0x1000;
+		}
+		else return;
+	}
+#ifdef SCD
+	if (CheatRead<char>(INLEVELFLAG))
+#else
 	if (((CheatRead<char>(0xFFF600) & 0x7F) == 0x18)||((CheatRead<char>(0xFFF600) & 0x7F) == 8)||((CheatRead<char>(0xFFF600) & 0x7F) == 12))
+#endif
 	{
 		unsigned long ColMapPt;
 		int X,TempX,Y,TempY;
@@ -83,7 +396,7 @@ void DisplaySolid ()
 				#else
 					Block = CheatRead<unsigned char>(BLOCKSTART + BlockNum);
 				#endif
-				#ifdef S1
+				#if defined S1 || defined SCD
 					if (Block)
 					{
 						if (Block & 0x80) 
@@ -96,16 +409,16 @@ void DisplaySolid ()
 							}
 						}
 						Block--;
+						if ((GetKeyState(VK_CAPITAL)))
+						{
+							sprintf(Str_Tmp,"%02X",Block);
+							Print_Text(Str_Tmp,2,min(max((X-CamX)-1,0),310),min(max(Y-CamY,1),215),BLANC);
+							Print_Text(Str_Tmp,2,min(max((X-CamX)+1,2),312),min(max(Y-CamY,1),215),BLANC);
+							Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)-1,0),214),BLANC);
+							Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)+1,2),216),BLANC);
+							Print_Text(Str_Tmp,2,max(X-CamX,1),min(max(Y-CamY,1),215),BLEU);
+						}
 					#endif
-					if ((GetKeyState(VK_CAPITAL)))
-					{
-						sprintf(Str_Tmp,"%02X",Block);
-						Print_Text(Str_Tmp,2,min(max((X-CamX)-1,0),310),min(max(Y-CamY,1),215),BLANC);
-						Print_Text(Str_Tmp,2,min(max((X-CamX)+1,2),312),min(max(Y-CamY,1),215),BLANC);
-						Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)-1,0),214),BLANC);
-						Print_Text(Str_Tmp,2,min(max((X-CamX),1),311),min(max((Y-CamY)+1,2),216),BLANC);
-						Print_Text(Str_Tmp,2,max(X-CamX,1),min(max(Y-CamY,1),215),BLEU);
-					}
 					TempY = Y;
 					while ((TempY < Y + BLOCKSIZE) && (TempY < CamY + 224))
 					{
@@ -118,9 +431,12 @@ void DisplaySolid ()
 								while ((TempX + 0x10) < CamX) TempX += 0x10;
 								if (TempX < X + BLOCKSIZE)
 								{
-									#ifdef S1
+									#if defined S1
 										TileNum = ((TempX >> 4) & 0xF) + (TempY & 0xF0);
 										Tile = CheatRead<short>(0xFF0000 | (((unsigned short)Block << BLOCKSHIFT) + (TileNum << 1)));
+									#elif defined SCD
+										TileNum = ((TempX >> 4) & 0xF) + (TempY & 0xF0);
+										Tile = CheatRead<short>(0x210000 | (((unsigned short)Block << BLOCKSHIFT) + (TileNum << 1)));
 									#else
 										TileNum = ((TempX >> 3) & 0xE) + (TempY & 0x70);
 										Tile = CheatRead<short>(0xFF0000 | (((unsigned short)Block << BLOCKSHIFT) + TileNum));
@@ -135,10 +451,10 @@ void DisplaySolid ()
 											ColMapPt += 0xF7B4;
 											ColMapPt = CheatRead<unsigned long>(0xFF0000 | ColMapPt);
 											if (S3) ColMapPt++;
-											short ColInd = (Rom_Data[(ColMapPt + (Tile << 1)) ^ 1] & 0xFF) << 4;
+											short ColInd = (CheatRead<unsigned char>(ColMapPt + (Tile << 1)) & 0xFF) << 4;
 										#else
 											ColMapPt = ((ColMapPt & 2)?0xFFFFD900:0xFFFFD600);
-											ColInd = (Rom_Data[ColMapPt + Tile ^ 1] & 0xFF) << 4;
+											ColInd = (CheatRead<unsigned char>(ColMapPt + Tile) & 0xFF) << 4;
 										#endif
 										if (SolidType & 1)
 										{
@@ -147,7 +463,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -193,7 +509,7 @@ void DisplaySolid ()
 											while (blahy < 0x10) 
 											{
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
-												width = Rom_Data[COLARR2 + ColInd + (blahy ^ 1)];
+												width = CheatRead<unsigned char>(COLARR2 + ColInd + blahy);
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
 												if (DrawType & 1) width = 0 - width;
 												if (width <= 0x10)
@@ -236,7 +552,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -282,7 +598,7 @@ void DisplaySolid ()
 									Tile &= TILEMASK;
 									if (!Tile) {TempX +=0x10; continue;}
 									if (!SolidType) {TempX +=0x10; continue;}
-									#ifndef S1
+									#if !(defined S1 || defined SCD)
 										ColMapPt = (SOLIDSHIFT & 2);
 										#ifdef SK
 											ColMapPt <<= 1;
@@ -466,7 +782,7 @@ void DisplaySolid ()
 							}
 						}
 						TempY += 0x10;
-				#ifdef S1
+				#if defined S1 || defined SCD
 					}
 				#endif
 				}
@@ -521,7 +837,7 @@ void DisplaySolid ()
 //										if (!SolidType) {TempX +=0x10; continue;}
 										unsigned long ColMapPt = CheatRead<unsigned long>(0xFFF796);
 										if (S3) ColMapPt++;
-										short ColInd = (Rom_Data[(ColMapPt + (Tile << 1)) ^ 1] & 0xFF) << 4;
+										short ColInd = (CheatRead<unsigned char>(ColMapPt + (Tile << 1)) & 0xFF) << 4;
 										if (SolidType & 1)
 										{
 											unsigned char height;
@@ -529,7 +845,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -575,7 +891,7 @@ void DisplaySolid ()
 											while (blahy < 0x10) 
 											{
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
-												width = Rom_Data[COLARR2 + ColInd + (blahy ^ 1)];
+												width = CheatRead<unsigned char>(COLARR2 + ColInd + blahy);
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
 												if (DrawType & 1) width = 0 - width;
 												if (width <= 0x10)
@@ -618,7 +934,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -663,7 +979,7 @@ void DisplaySolid ()
 										if (!Tile) {TempX +=0x10; continue;}
 										if (!SolidType) {TempX +=0x10; continue;}
 										ColMapPt = CheatRead<unsigned long>(0xFFF796);
-										ColInd = (Rom_Data[(ColMapPt + (Tile << 1)) ^ 1] & 0xFF) << 4;
+										ColInd = (CheatRead<unsigned char>(ColMapPt + (Tile << 1)) & 0xFF) << 4;
 										if (SolidType & 1)
 										{
 											unsigned char height;
@@ -671,7 +987,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -717,7 +1033,7 @@ void DisplaySolid ()
 											while (blahy < 0x10) 
 											{
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
-												width = Rom_Data[COLARR2 + ColInd + (blahy ^ 1)];
+												width = CheatRead<unsigned char>(COLARR2 + ColInd + blahy);
 												if (DrawType & 2) blahy = ~blahy, blahy &= 0xF;
 												if (DrawType & 1) width = 0 - width;
 												if (width <= 0x10)
@@ -760,7 +1076,7 @@ void DisplaySolid ()
 											while (blahx < 0x10) 
 											{
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
-												height = Rom_Data[COLARR + ColInd + (blahx ^ 1)];
+												height = CheatRead<unsigned char>(COLARR + ColInd + blahx);
 												if (DrawType & 1) blahx = ~blahx, blahx &= 0xF;
 												if (DrawType & 2) height = 0 - height;
 												if (height <= 0x10)
@@ -915,247 +1231,6 @@ void DisplaySolid ()
 			}
 		}
 	}
-}
-void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
-{
-	unsigned char Num = CheatRead<unsigned char>(index);
-	switch (Num)
-	{
-//#ifdef S1
-		case 0x0C:
-		case 0x44:
-			X = 0x8;
-			Y = 0x20;
-			return;
-		case 0x10:
-			if (CheatRead<unsigned char>(index + 0x28) & 4)
-				X = min(0xFE,CheatRead<unsigned short>(index + 0x32)),Y = 0x10;
-			else
-				Y = min(0xFE,CheatRead<unsigned short>(index + 0x32)),X = 0x10;
-			return;
-		case 0x11:
-			X = CheatRead<unsigned char>(index + 0x28);
-			X <<= 3;
-			X += 8;
-			Y = 8;
-			return;
-		case 0x12:
-		case 0x46:
-		case 0x47:
-		case 0x51:
-		case 0x76:
-		case 0x7B:
-			X = Y = 0x10;
-			return;
-		case 0x15:
-		case 0x56:
-		case 0x61:
-		case 0x6B:
-		case 0x70:
-		case 0x71:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = CheatRead<unsigned char>(index + 0x16);
-			return;
-		case 0x18:
-		case 0x52:
-		case 0x59:
-		case 0x5A:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 9;
-			return;
-		case 0x1A:
-		case 0x5E:
-			X = 0x30;
-			Y = CheatRead<unsigned char>(index + 0x16);
-			return;
-		case 0x2A:
-			X = 6;
-			Y = 0x20;
-		case 0x2F:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = (CheatRead<unsigned char>(index + 0x1A) == 2)?0x30:0x20;
-			return;
-		case 0x30:
-			X = 0x20;
-			Y = (CheatRead<unsigned char>(index + 0x24) < 3)?0x48:0x38;
-			return;
-		case 0x31:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0xC;
-			return;
-		case 0x32:
-			X = 0x10;
-			Y = 5;
-			return;
-		case 0x33:
-		case 0x5B:
-		case 0x83:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0x10;
-			return;
-		case 0x36:
-			X = ((CheatRead<unsigned char>(index + 0x1A) == 5) || (CheatRead<unsigned char>(index + 0x1A) == 1))?0x10:CheatRead<unsigned char>(index + 0x19);
-			Y = (CheatRead<unsigned char>(index + 0x1A) == 5)?4:((CheatRead<unsigned char>(index + 0x1A) == 1)?0x14:0x10);
-			return;
-		case 0x3B:
-			X = Y = 0x10;
-			return;
-		case 0x3C:
-			X = 0x10;
-			Y = 0x20;
-			return;
-		case 0x3E:
-			X = CheatRead<unsigned char>(index + 0x17);
-			Y = 0x18;
-			if (CheatRead<unsigned char>(index + 0x24) == 0x04)
-				Y = 0x08;
-			return;
-		case 0x41:
-			X = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?8:0x10;
-			Y = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?0xE:0x8;
-			return;
-//		case 0x44:
-//			X = 8;
-//			Y = 0x20;
-//			return;
-		case 0x45:
-			X = 0xC;
-			Y = 0x20;
-			return;
-		case 0x4E:
-			X = 0x20;
-			Y = 0x18;
-			return;
-		case 0x53:
-			X = 0x20;
-			Y = 9;
-			return;
-		case 0x64:
-			X = Y = (CheatRead<unsigned char>(index + 0x2E)) ? 0x10 : 8;
-			return;
-		case 0x66:
-			X = 0x25;
-			Y = 0x30;
-			return;
-		case 0x69:
-			X = (CheatRead<unsigned char>(index + 0x24) == 2)?0x40:0x10;
-			Y = (CheatRead<unsigned char>(index + 0x24) == 2)?0xC:0x7;
-			return;
-		case 0x6F:
-			X=0x10;
-			Y=0x7;
-			return;
-		case 0x79:
-			X=0x8;
-			Y=(CheatRead<unsigned char>(index + 0x24) == 2)?0x20:0x8;
-			return;
-		case 0x84:
-			X = 0x20;
-			Y = 0x60;
-			return;
-		case 0x85:
-			X = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x10:0x20;
-			Y = (CheatRead<unsigned char>(index + 0x24) > 0xA)?0x70:0x14;
-			return;
-		case 0x86:
-			X = Y = 8;
-			return;
-//#endif
-		default:
-			X = Y = 3;
-	}
-}
-#define ENEMY 0
-#define ROUT 1
-#define HURT 2
-#define SPEC 3
-int ColorTable32[4] = {0x8000FF,0x00FFFF,0xFF0000,0x00FF00};
-short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
-	// Sonic camera hack
-	#ifdef SK
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x10;
-		const unsigned char YPo = 0x14;
-		const unsigned char XVo = 0x18;
-		const unsigned char YVo = 0x1A;
-		const unsigned char To = 0x28;
-		const unsigned char Wo = 0x1F;
-		const unsigned char Ho = 0x1E;
-		const unsigned char Fo = 0x4;
-		const unsigned int CAMOFFSET1 = 0xFFEE78;
-		const unsigned int CAMOFFSET2 = 0xFFEE80;
-		const unsigned int INLEVELFLAG = 0xFFB004;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x1FCC;
-		const unsigned int SPRITESIZE = 0x4A;
-		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-		const unsigned char XSCROLLRATE = 24;
-		const unsigned char YSCROLLRATE = 32;
-	#elif defined S2
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x2600;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int CAMOFFSET1 = 0xFFEE00;
-		const unsigned int INLEVELFLAG = 0xFFB001;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#elif defined S1
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFFF710;
-		const unsigned int CAMOFFSET3 = 0xFFFDB8;
-		const unsigned int CAMOFFSET4 = 0xFFF616;
-		const unsigned int INLEVELFLAG = 0xFFD04B;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#endif
-		const unsigned char SizeTableX[] = {0x04, 0x14, 0x0C, 0x14, 0x04, 0x0C, 0x10, 0x06, 0x18, 0x0C, 0x10, 0x08, 0x14,
-											0x14, 0x0E, 0x18, 0x28, 0x10, 0x08, 0x20, 0x40, 0x80, 0x20, 0x08, 0x04, 0x20, 
-											0x0C, 0x08, 0x18, 0x28, 0x04, 0x04, 0x04, 0x04, 0x18, 0x0C, 0x48, 0x18, 0x10, 
-											0x20, 0x04, 0x18, 0x20, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x02, 0x20};
-		const unsigned char SizeTableY[] = {0x04, 0x14, 0x14, 0x0C, 0x10, 0x12, 0x10, 0x06, 0x0C, 0x10, 0x0C, 0x08, 0x10, 
-											0x08, 0x0E, 0x18, 0x10, 0x18, 0x10, 0x70, 0x20, 0x20, 0x20, 0x08, 0x04, 0x08, 
-											0x0C, 0x04, 0x04, 0x04, 0x08, 0x18, 0x28, 0x20, 0x18, 0x18, 0x08, 0x28, 0x04, 
-											0x02, 0x40, 0x80, 0x10, 0x20, 0x30, 0x40, 0x50, 0x02, 0x01, 0x08, 0x1C};
-//unsigned short CamX = 0;
-//short CamY = 0;
-unsigned short PX = 0;
-unsigned short PY = 0;
-bool offscreen = false;
-unsigned short (*GETBLOCK)(int X,int Y);
-unsigned short GetBlockS1(int X,int Y) 
-{
-	return (X >> 8) + ((Y & 0x700) >> 1);
-}
-unsigned short GetBlockS2(int X,int Y)
-{
-	return ((X >> 7) & 0x7F) + ((Y << 1) & 0xF00);
-}
-unsigned short GetBlockSK(int X,int Y)
-{
-	return CheatRead<unsigned short>(0xFF8008 + ((Y >> 5) & CheatRead<unsigned short>(0xFFEEAE))) + (X >> 7);
 }
 void DrawBoxes()
 {
@@ -1456,18 +1531,20 @@ int SonicCamHack()
 	short origy = (int) CheatRead<signed short>(CAMOFFSET1+4); //signed words with a floor of -255 (which is only reached when travelling upward through level wraps)
 	short xx = max(0,CheatRead<signed short>(P1OFFSET + off + XPo) - 160); 
 	short yy = CheatRead<signed short>(P1OFFSET + off + YPo) - 112;
+#ifndef SCD
 	if((GetKeyState(VK_SCROLL)) || (flags & 0x80) || CheatRead<unsigned char>(0xFFF7CD) ||
 	  (((unsigned short) (x - origx) <= 320) &&
 	  (((unsigned short) (y - origy) <= 240) ||
 	  (((unsigned short) (y + LEVELHEIGHT - origy) <= 224) && (origy >= LEVELHEIGHT - 224)) || //so we don't trigger camhack when going downward through level-wraps
 	  ((origy < 0) && ((y >= LEVELHEIGHT + origy) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
 	  (CheatRead<unsigned char>(INLEVELFLAG) == 0)))
+#endif
 	{
 		CamX = CheatRead<signed short>(CAMOFFSET1);
 		CamY = CheatRead<signed short>(CAMOFFSET1+4);
 		int retval = Update_Frame(); // no need for cam hack now
 		offscreen = false;
-		DrawBoxes();
+//		DrawBoxes();
 		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 		y = CheatRead<short>(P1OFFSET + off + YPo);
@@ -1482,6 +1559,9 @@ int SonicCamHack()
 	xx = (CheatRead<signed short>(P1OFFSET + off + XPo) - 160);
 	yy = (CheatRead<signed short>(P1OFFSET + off + YPo) - 112); 
 	Export_Genesis(genesisbuf);
+	#ifdef SCD
+	Export_SegaCD(scdbuf);
+	#endif
 	origx = (origx > (signed short) xx) ? max(0,xx-320) : max(max(0,xx-320),origx);
 	origy = (origy > (signed short) yy) ? yy-240 : max(yy-240,origy);
 	int numframesx = (xx - origx)/XSCROLLRATE;
@@ -1507,6 +1587,10 @@ int SonicCamHack()
 			CheatWrite<signed short>(CAMOFFSET2, origx);
 			CheatWrite<signed short>(CAMOFFSET2+4, origy);
 		#endif
+		#ifdef SCD
+			CheatWrite<signed short>(CAMOFFSET3, origx);
+			CheatWrite<signed short>(CAMOFFSET3+4, origy);
+		#endif
 		#ifdef S1
 			CheatWrite<unsigned long>(CAMOFFSET3, origx);
 			CheatWrite<unsigned long>(CAMOFFSET4, origy);
@@ -1522,7 +1606,7 @@ int SonicCamHack()
 		if(i == numframes+1)
 		{
 			Update_Frame();
-			DrawBoxes();
+//			DrawBoxes();
 			DisplaySolid();
 			x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
 			y = CheatRead<short>(P1OFFSET + off + YPo);

@@ -1348,12 +1348,11 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&H_Dot, Data, offset, 4);
 
 		ImportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
-	}
-
 #ifdef _DEBUG
 	int desiredoffset = SEGACD_LENGTH_EX;
 	assert(offset == desiredoffset);
 #endif
+	}
 
 	sub68k_SetContext(&Context_sub68K); // this was moved here from earlier in the function
 
