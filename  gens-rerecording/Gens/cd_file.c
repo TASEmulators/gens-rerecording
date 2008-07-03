@@ -304,6 +304,7 @@ int Load_ISO(char *buf, char *iso_name)
 			for(jj = 0; jj < 40; jj++)
 			{
 				int j = jj % 20;
+				strcpy(tmp_name, iso_name);
 				if(jj < 20)
 				{
 					if(isoNamelen <= 4) break;
