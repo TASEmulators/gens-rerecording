@@ -913,7 +913,7 @@
 
 	.bad
 		mov ax, 0
-		pop ebx
+;		pop ebx
 		ret
 
 	ALIGN4
