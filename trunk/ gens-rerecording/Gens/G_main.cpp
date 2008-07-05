@@ -190,6 +190,7 @@ char rs_c='s';
 char rs_o='=';
 char rs_t='s';
 int rs_param=0, rs_val=0;
+bool PaintsEnabled = true;
 
 typeMovie SubMovie;
 unsigned long SpliceFrame = 0;
@@ -433,7 +434,7 @@ int Set_Current_State(HWND hWnd, int Num)
 
 int Change_Stretch(void)
 {
-	if ((Full_Screen) && (Render_FS > 1)) return(0);
+	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1)) return(0);
 	
 	Flag_Clr_Scr = 1;
 
@@ -592,86 +593,50 @@ int Change_Plane (HWND hWnd, int num)
 	Build_Main_Menu();
 	return (1);
 }
-void Blit_EPX(unsigned char *Dest, int pitch, int x, int y, int offset)
+
+template<typename pixel>
+void Blit_EPX_T(pixel* Src, pixel* Dest, int pitch, int x, int y)
 {
-	if ((pitch / 336) < 8)
+	for(int j = 0; j < y; j++)
 	{
-		unsigned short* Src = MD_Screen;
-		Dest -= 32;
-		x += 16;
-
-		for(int j = 0; j < y; j++)
+		pixel* SrcLine = Src + 336*j;
+		pixel* DstLine1 = (pixel*)((unsigned char*)Dest + pitch*(j*2));
+		pixel* DstLine2 = (pixel*)((unsigned char*)Dest + pitch*(j*2+1));
+		for(int i = 0; i < x; i++)
 		{
-			unsigned short* SrcLine = (unsigned short*)Src + 336*j;
-			unsigned short* DstLine1 = (unsigned short*)Dest + pitch*j;
-			unsigned short* DstLine2 = (unsigned short*)((unsigned char*)Dest + pitch*(j*2+1));
-			for(int i = 0; i < x; i++)
+			pixel L = *(SrcLine-1);
+			pixel C = *(SrcLine);
+			pixel R = *(SrcLine+1);
+			if(L != R)
 			{
-				const short L = *(SrcLine-1);
-				const short C = *(SrcLine);
-				const short R = *(SrcLine+1);
-				if(L != R)
+				pixel U = *(SrcLine-336);
+				pixel D = *(SrcLine+336);
+				if(U != D)
 				{
-					const short U = *(SrcLine-336);
-					const short D = *(SrcLine+336);
-					if(U != D)
-					{
-						*DstLine1++ = (U == L) ? U : C;
-						*DstLine1++ = (R == U) ? R : C;
-						*DstLine2++ = (L == D) ? L : C;
-						*DstLine2++ = (D == R) ? D : C;
-						SrcLine++;
-						continue;
-					}
+					*DstLine1++ = (U == L) ? U : C;
+					*DstLine1++ = (R == U) ? R : C;
+					*DstLine2++ = (L == D) ? L : C;
+					*DstLine2++ = (D == R) ? D : C;
+					SrcLine++;
+					continue;
 				}
-				*DstLine1++ = C; 
-				*DstLine1++ = C; 
-				*DstLine2++ = C; 
-				*DstLine2++ = C; 
-				SrcLine++;
 			}
-		}
-	}
-	else
-	{
-		unsigned int* Src = MD_Screen32;
-		Dest -= 64;
-		x += 16;
-
-		for(int j = 0; j < y; j++)
-		{
-			unsigned int* SrcLine = (unsigned int*)Src + 336*j;
-			unsigned int* DstLine1 = (unsigned int*)((unsigned char*)Dest + pitch*(j*2));//(unsigned int*)Dest + pitch*j;
-			unsigned int* DstLine2 = (unsigned int*)((unsigned char*)Dest + pitch*(j*2+1));
-			for(int i = 0; i < x; i++)
-			{
-				const int L = *(SrcLine-1);
-				const int C = *(SrcLine);
-				const int R = *(SrcLine+1);
-				if(L != R)
-				{
-					const int U = *(SrcLine-336);
-					const int D = *(SrcLine+336);
-					if(U != D)
-					{
-						*DstLine1++ = (U == L) ? U : C;
-						*DstLine1++ = (R == U) ? R : C;
-						*DstLine2++ = (L == D) ? L : C;
-						*DstLine2++ = (D == R) ? D : C;
-						SrcLine++;
-						continue;
-					}
-				}
-				*DstLine1++ = C; 
-				*DstLine1++ = C; 
-				*DstLine2++ = C; 
-				*DstLine2++ = C; 
-				SrcLine++;
-			}
+			*DstLine1++ = C; 
+			*DstLine1++ = C; 
+			*DstLine2++ = C; 
+			*DstLine2++ = C; 
+			SrcLine++;
 		}
 	}
 }
 
+void Blit_EPX(unsigned char *Dest, int pitch, int x, int y, int offset)
+{
+	if(Bits32)
+		Blit_EPX_T(MD_Screen32 + 8, (unsigned int*)Dest, pitch, x, y);
+	else
+		Blit_EPX_T(MD_Screen + 8, (unsigned short*)Dest, pitch, x, y);
+}
 
 int Set_Render(HWND hWnd, int Full, int Num, int Force)
 {
@@ -682,17 +647,23 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	
 	if (Full)
 	{
-		Rend = &Render_FS;
-		Blit = &Blit_FS;
+		Rend = &Render_FS; // Render_FS = ...
+		Blit = &Blit_FS; // Blit_FS = ...
 	}
 	else
 	{
-		Rend = &Render_W;
-		Blit = &Blit_W;
+		Rend = &Render_W; // Render_W = ...
+		Blit = &Blit_W; // Blit_W = ...
 	}
 
 	Old_Rend = *Rend;
 	Flag_Clr_Scr = 1;
+
+	bool reinit = false;
+	if(!((Full == Full_Screen) && ((Num >=2) && (Old_Rend >= 2)) && (!Force)))
+		reinit = true;
+	else if(Bits32 && Num > 2) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
+		Num = 2; // we don't support any modes past this in 32-bit mode
 
 	switch(Num)
 	{
@@ -883,7 +854,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 			}
 			break;
 
-		case 10: // EPX
+		case 10:
 			if (Have_MMX)
 			{
 				*Rend = 10;
@@ -906,7 +877,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 			break;
 	}
 
-	if (!((Full == Full_Screen) && ((Num >=2) && (Old_Rend >= 2)) && (!Force)))
+	if(reinit)
 	{
 		RECT r;
 
@@ -2455,11 +2426,16 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (Full_Screen)
 			{
 				Clear_Sound_Buffer();
-				SetCursorPos(40, 30);
+				//SetCursorPos(40, 30);
 				while (ShowCursor(false) >= 0);
 				while (ShowCursor(true) < 0);
+				POINT point;
+				GetCursorPos(&point);
+				SendMessage(hWnd, WM_PAINT, 0,0);
 				Restore_Primary();
-				TrackPopupMenu(Gens_Menu, TPM_LEFTALIGN | TPM_TOPALIGN, 20, 20, NULL, hWnd, NULL);
+				PaintsEnabled = false;
+				TrackPopupMenu(Gens_Menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, NULL, hWnd, NULL);
+				PaintsEnabled = true;
 				while (ShowCursor(true) < 0);
 				while (ShowCursor(false) >= 0);
 			}
@@ -2476,8 +2452,11 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				hDC = BeginPaint(hWnd, &ps);
 
-				Clear_Primary_Screen(HWnd);
-				Flip(hWnd);
+				if(PaintsEnabled)
+				{
+					Clear_Primary_Screen(HWnd);
+					Flip(hWnd);
+				}
 
 				EndPaint(hWnd, &ps);
 				break;
@@ -3095,6 +3074,7 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_FS_SAME_RES: //Upth-Add - toggle the same-res fullscreen flag
 					FS_No_Res_Change = !(FS_No_Res_Change);
 					Build_Main_Menu();
+					if (Full_Screen) Set_Render(hWnd, 1, Render_FS, true); // Modif N. -- if already in fullscreen, take effect immediately
 					return 0;
 
 				case ID_GRAPHICS_COLOR_ADJUST:
@@ -4430,7 +4410,7 @@ HMENU Build_Main_Menu(void)
 
 	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
 
-	if ((Full_Screen) && (Render_FS > 1))
+	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1))
 	{
 		MENU_L(Graphics, i++, Flags | MF_UNCHECKED | MF_GRAYED, ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
 	}

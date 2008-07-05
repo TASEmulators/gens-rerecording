@@ -201,10 +201,10 @@ int Init_DDraw(HWND hWnd)
 	if (Full_Screen) Rend = Render_FS;
 	else Rend = Render_W;
 
-	if (DirectDrawCreate(NULL, &lpDD_Init, NULL) != DD_OK)
+	if (FAILED(DirectDrawCreate(NULL, &lpDD_Init, NULL)))
 		return Init_Fail(hWnd, "Error with DirectDrawCreate !");
 
-	if (lpDD_Init->QueryInterface(IID_IDirectDraw4, (LPVOID *) &lpDD) != DD_OK)
+	if (FAILED(lpDD_Init->QueryInterface(IID_IDirectDraw4, (LPVOID *) &lpDD)))
 		return Init_Fail(hWnd, "Error with QueryInterface !\nUpgrade your DirectX version.");
 
 	lpDD_Init->Release();
@@ -223,24 +223,25 @@ int Init_DDraw(HWND hWnd)
 		Recalculate_Palettes();
 	}
 
+//#if 0 // note: disabling this branch can help with debugging fullscreen mode (vsync needs to be off too)
 	if (Full_Screen)
 		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
 	else
+//#endif
 		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
 
-	if (rval != DD_OK)
+	if (FAILED(rval))
 		return Init_Fail(hWnd, "Error with lpDD->SetCooperativeLevel !");
 	
 	if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Set a floor for the resolution
-     if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - 320x240 for single, 640x480 for double and other
-	if (Full_Screen && (Render_FS >= 2)) //Upth-Modif - Since software blits don't stretch right, we'll use 640x480 for those render modes
+    if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - 320x240 for single, 640x480 for double and other
+
+	//if (Full_Screen && Render_FS >= 2) //Upth-Modif - Since software blits don't stretch right, we'll use 640x480 for those render modes
+	// Modif N. removed the forced 640x480 case because it caused "windowed fullscreen mode" to be ignored and because I fixed the fullscreen software blit stretching
+
+	if (Full_Screen && !(FS_No_Res_Change))
 	{
-		if (lpDD->SetDisplayMode(640, 480, 16, 0, 0) != DD_OK)
-			return Init_Fail(hWnd, "Error with lpDD->SetDisplayMode !");
-	}
-	else if (Full_Screen && !(FS_No_Res_Change)) //Upth-Add - Otherwise we use the resolution the user set.
-	{
-		if (lpDD->SetDisplayMode(Res_X, Res_Y, 16, 0, 0) != DD_OK)
+		if (FAILED(lpDD->SetDisplayMode(Res_X, Res_Y, 16, 0, 0)))
 			return Init_Fail(hWnd, "Error with lpDD->SetDisplayMode !");
 	}
 
@@ -259,7 +260,7 @@ int Init_DDraw(HWND hWnd)
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 	}
 
-	if (lpDD->CreateSurface(&ddsd, &lpDDS_Primary, NULL ) != DD_OK)
+	if (FAILED(lpDD->CreateSurface(&ddsd, &lpDDS_Primary, NULL )))
 		return Init_Fail(hWnd, "Error with lpDD->CreateSurface !");
 
 	if (Full_Screen)
@@ -268,7 +269,7 @@ int Init_DDraw(HWND hWnd)
 		{
 			ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
 
-			if (lpDDS_Primary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDS_Flip) != DD_OK)
+			if (FAILED(lpDDS_Primary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDS_Flip)))
 				return Init_Fail(hWnd, "Error with lpDDPrimary->GetAttachedSurface !");
 
 			lpDDS_Blit = lpDDS_Flip;
@@ -277,13 +278,13 @@ int Init_DDraw(HWND hWnd)
 	}
 	else
 	{
-		if (lpDD->CreateClipper(0, &lpDDC_Clipper, NULL ) != DD_OK)
+		if (FAILED(lpDD->CreateClipper(0, &lpDDC_Clipper, NULL )))
 			return Init_Fail(hWnd, "Error with lpDD->CreateClipper !");
 
-		if (lpDDC_Clipper->SetHWnd(0, hWnd) != DD_OK)
+		if (FAILED(lpDDC_Clipper->SetHWnd(0, hWnd)))
 			return Init_Fail(hWnd, "Error with lpDDC_Clipper->SetHWnd !");
 
-		if (lpDDS_Primary->SetClipper(lpDDC_Clipper) != DD_OK)
+		if (FAILED(lpDDS_Primary->SetClipper(lpDDC_Clipper)))
 			return Init_Fail(hWnd, "Error with lpDDS_Primary->SetClipper !");
 	}
 
@@ -304,17 +305,18 @@ int Init_DDraw(HWND hWnd)
 		ddsd.dwHeight = 480;
 	}
 
-	if (lpDD->CreateSurface(&ddsd, &lpDDS_Back, NULL) != DD_OK)
+	if (FAILED(lpDD->CreateSurface(&ddsd, &lpDDS_Back, NULL)))
 		return Init_Fail(hWnd, "Error with lpDD->CreateSurface !");
 
-	if (!Full_Screen) lpDDS_Blit = lpDDS_Back;
+	if (!Full_Screen || (Rend >= 2 && (FS_No_Res_Change || Res_X != 640 || Res_Y != 480)))
+		lpDDS_Blit = lpDDS_Back;
 
 	if (Rend < 2)
 	{
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd);
 
-		if (lpDDS_Back->GetSurfaceDesc(&ddsd) != DD_OK)
+		if (FAILED(lpDDS_Back->GetSurfaceDesc(&ddsd)))
 			return Init_Fail(hWnd, "Error with lpDD_Back->GetSurfaceDesc !");
 
 		ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_LPSURFACE | DDSD_PIXELFORMAT;
@@ -324,19 +326,36 @@ int Init_DDraw(HWND hWnd)
 		{
 			ddsd.lpSurface = &MD_Screen32[0];
 			ddsd.lPitch = 336 * 4;
-			Build_Main_Menu();
 		}
 		else 
 		{
 			ddsd.lpSurface = &MD_Screen[0];
 			ddsd.lPitch = 336 * 2;
-			Bits32 = 0;
 		}
-		Build_Main_Menu();
 
-		if (lpDDS_Back->SetSurfaceDesc(&ddsd, 0) != DD_OK)
+		if (FAILED(lpDDS_Back->SetSurfaceDesc(&ddsd, 0)))
 			return Init_Fail(hWnd, "Error with lpDD_Back->SetSurfaceDesc !");
 	}
+
+	// make sure Bits32 is correct (which it could easily not be at this point)
+	{
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize = sizeof(ddsd);
+
+		if (FAILED(lpDDS_Blit->GetSurfaceDesc(&ddsd)))
+			return Init_Fail(hWnd, "Error with lpDDS_Blit->GetSurfaceDesc !");
+
+		Bits32 = (ddsd.ddpfPixelFormat.dwRGBBitCount > 16) ? 1 : 0;
+	}
+
+	// make sure the render mode is still valid (changing options in a certain order can make it invalid at this point)
+	if (Bits32 && Rend > 2)
+	{
+		Set_Render(hWnd, Full_Screen, Rend, false);
+	}
+
+	// make sure the menu reflects the current mode (which it generally won't yet if we changed to/from 32-bit mode in this function)
+	Build_Main_Menu();
 
 	return 1;
 }
@@ -378,19 +397,24 @@ void End_DDraw()
 }
 
 
-HRESULT RestoreGraphics()
+HRESULT RestoreGraphics(HWND hWnd)
 {
-	HRESULT rval;
+	HRESULT rval1 = lpDDS_Primary->Restore();
+	HRESULT rval2 = lpDDS_Back->Restore();
 
-	rval = lpDDS_Primary->Restore();
-	rval = lpDDS_Back->Restore();
+	// Modif N. -- fixes lost surface handling when the color depth has changed
+	if (rval1 == DDERR_WRONGMODE || rval2 == DDERR_WRONGMODE)
+		return Init_DDraw(hWnd) ? DD_OK : DDERR_GENERIC;
 
-	return rval;
+	return SUCCEEDED(rval2) ? rval1 : rval2;
 }
 
 
 int Clear_Primary_Screen(HWND hWnd)
 {
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
 	DDSURFACEDESC2 ddsd;
 	DDBLTFX ddbltfx;
 	RECT RD;
@@ -439,6 +463,9 @@ int Clear_Primary_Screen(HWND hWnd)
 
 int Clear_Back_Screen(HWND hWnd)
 {
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
 	DDSURFACEDESC2 ddsd;
 	DDBLTFX ddbltfx;
 
@@ -459,28 +486,106 @@ void Restore_Primary(void)
 {
 	if (lpDD && Full_Screen && FS_VSync)
 	{
-		while (lpDDS_Primary->GetFlipStatus(DDGFS_ISFLIPDONE) != DD_OK);
+		while (lpDDS_Primary->GetFlipStatus(DDGFS_ISFLIPDONE) == DDERR_SURFACEBUSY);
 		lpDD->FlipToGDISurface();
 	}
 }
 
-int Flip(HWND hWnd)
+// Render_Mode is input, RectDest is input and output, everything else is output only
+void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ratio_X, float& Ratio_Y, int& Dep)
 {
-	HRESULT rval;
-	DDSURFACEDESC2 ddsd;
-	RECT RectDest, RectSrc;
-	POINT p;
-	float Ratio_X, Ratio_Y;
-	int Dep, i;
+	Ratio_X = (float) RectDest.right / 320.0f;  //Upth-Modif - why use two lines of code
+	Ratio_Y = (float) RectDest.bottom / 240.0f; //Upth-Modif - when you can do this?
+	Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - and here we floor the value
+
+	POINT q; //Upth-Add - For determining the correct ratio
+	q.x = RectDest.right; //Upth-Add - we need to get
+	q.y = RectDest.bottom; //Upth-Add - the bottom-right corner
+
+	if (Render_Mode < 2)
+	{
+		RectSrc.top = 0;
+		RectSrc.bottom = VDP_Num_Vis_Lines;
+
+		if ((VDP_Num_Vis_Lines == 224) && (Stretch == 0))
+		{
+			RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
+			RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis
+		}
+	}
+	else
+	{
+		if (VDP_Num_Vis_Lines == 224)
+		{
+			RectSrc.top = 8 * 2;
+			RectSrc.bottom = (224 + 8) * 2;
+
+			if (Stretch == 0)
+			{
+				RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
+				RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis again
+			}
+		}
+		else
+		{
+			RectSrc.top = 0; //Upth-Modif - Was "0 * 2"
+			RectSrc.bottom = (240 * 2);
+		}
+	}
+
+	if ((VDP_Reg.Set4 & 0x1) || (Debug))
+	{
+		Dep = 0;
+
+		if (Render_Mode < 2)
+		{
+			RectSrc.left = 8 + 0 ;
+			RectSrc.right = 8 + 320;
+		}
+		else
+		{
+			RectSrc.left = 0; //Upth-Modif - Was "0 * 2"
+			RectSrc.right = 320 * 2;
+		}
+		RectDest.left = (int) ((q.x - (320 * Ratio_X))/2); //Upth-Add - center the picture
+		RectDest.right = (int) (320 * Ratio_X) + RectDest.left; //Upth-Add - along the x axis
+	}
+	else // less-wide X resolution:
+	{
+		Dep = 64;
+
+		if (Stretch == 0)
+		{
+			RectDest.left = (int) ((q.x - (256 * Ratio_X))/2); //Upth-Modif - center the picture properly
+			RectDest.right = (int) (256 * Ratio_X) + RectDest.left; //Upth-Modif - along the x axis
+		}
+
+		if (Render_Mode < 2)
+		{
+			RectSrc.left = 8 + 0;
+			RectSrc.right = 8 + 256;
+		}
+		else
+		{
+			RectSrc.left = 32 * 2;
+			RectSrc.right = (256 * 2) + (32 * 2);
+		}
+	}
+}
+
+// text, recording status, etc.
+void DrawInformationOnTheScreen()
+{
+	int i;
+	int n,j,m,l[3]; //UpthModif - Added l[3] for use when displaying input
+	char FCTemp[256],pos;
 	static float FPS = 0.0f, frames[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 	static unsigned int old_time = 0, view_fps = 0, index_fps = 0, freq_cpu[2] = {0, 0};
 	unsigned int new_time[2];
-	int n,j,m,l[3]; //UpthModif - Added l[3] for use when displaying input
-	char FCTemp[256],pos;
-	static unsigned int CircleFrameCount =0;
 
 	if (MainMovie.Status == MOVIE_RECORDING)
 	{
+		static unsigned int CircleFrameCount =0;
 		if((CircleFrameCount++)%64 < 32)
 		{
 			m=0;
@@ -990,7 +1095,6 @@ int Flip(HWND hWnd)
 	
 	}
 
-	ddsd.dwSize = sizeof(ddsd);
 	//// XXX: I forgot to delete this
 	//// (intentionally for now; something similar could be used for RAM watching of other things)
 	//// SONIC THE HEDGEHOG 3 SPEEDOMETER HACK
@@ -1089,6 +1193,23 @@ int Flip(HWND hWnd)
 		}
 		Print_Text(Info_String, strlen(Info_String), 10, 210, FPS_Style);
 	}
+}
+
+int Flip(HWND hWnd)
+{
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
+	HRESULT rval;
+	DDSURFACEDESC2 ddsd;
+	ddsd.dwSize = sizeof(ddsd);
+	RECT RectDest, RectSrc;
+	POINT p;
+	float Ratio_X, Ratio_Y;
+	int Dep = 0;
+	int bpp = Bits32 ? 4 : 2; // Modif N. -- added: bytes per pixel
+
+	DrawInformationOnTheScreen(); // Modif N. -- moved all this stuff out to its own function
 
 	if (Fast_Blur) Half_Blur();
 
@@ -1096,7 +1217,7 @@ int Flip(HWND hWnd)
 	{
 		int FS_X,FS_Y; //Upth-Add - So we can set the fullscreen resolution to the current res without changing the value that gets saved to the config
 		if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Flooring the resolution to 320x240
-	      if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - or 640x480, as appropriate
+	    if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - or 640x480, as appropriate
 		if (FS_No_Res_Change) { //Upth-Add - If we didn't change resolution when we went Full Screen
 			DEVMODE temp;
 			EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&temp); //Upth-Add - Gets the current screen resolution
@@ -1160,6 +1281,8 @@ int Flip(HWND hWnd)
 			{
 				rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
+				if (FAILED(rval)) goto cleanup_flip;
+
 				if (Render_FS == 0)
 					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * (240 - VDP_Num_Vis_Lines) >> 1) + Dep), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
 				else
@@ -1208,6 +1331,8 @@ int Flip(HWND hWnd)
 			{
 				rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
+				if (FAILED(rval)) goto cleanup_flip;
+
 				if (Render_FS == 0)
 					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * (240 - VDP_Num_Vis_Lines) >> 1) + Dep), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
 				else
@@ -1254,125 +1379,66 @@ int Flip(HWND hWnd)
 		{
 			rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
-			if (rval != DD_OK) return 1;	// Assuming surface busy ...
+			if (FAILED(rval)) goto cleanup_flip;
 
-			Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * ((240 - VDP_Num_Vis_Lines) >> 1) + Dep) << 1), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
+			Blit_FS((unsigned char *) ddsd.lpSurface + ddsd.lPitch * (240 - VDP_Num_Vis_Lines) + Dep * bpp, ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, (16 + Dep) * bpp);
 
 			lpDDS_Blit->Unlock(NULL);
 
-			if (FS_VSync)
+			if (lpDDS_Blit == lpDDS_Back)
 			{
-				lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
+				RectDest.left = 0;
+				RectDest.top = 0;
+				RectDest.right = GetSystemMetrics(SM_CXSCREEN); // not SM_XVIRTUALSCREEN since we only want the primary monitor if there's more than one
+				RectDest.bottom = GetSystemMetrics(SM_CYSCREEN);
+
+				CalculateDrawArea(Render_FS, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
+
+				if (FS_VSync)
+				{
+					int vb;
+					lpDD->GetVerticalBlankStatus(&vb);
+					if (!vb) lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
+				}
+
+				lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
+
+			}
+			else
+			{
+				if (FS_VSync)
+				{
+					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
+				}
 			}
 		}
 	}
 	else
 	{
-		p.x = p.y = 0;
 		GetClientRect(hWnd, &RectDest);
-		POINT q; //Upth-Add - For determining the correct ratio in windowed mode
-		q.x = RectDest.right; //Upth-Add - we need to get
-		q.y = RectDest.bottom; //Upth-Add - the bottom-right corner
-		ClientToScreen(hWnd, &p);
+		CalculateDrawArea(Render_W, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
 
-		Ratio_X = (float) RectDest.right / 320.0f;  //Upth-Modif - why use two lines of code
-		Ratio_Y = (float) RectDest.bottom / 240.0f; //Upth-Modif - when you can do this?
-		Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - and here we floor the value
-
-		if (Render_W < 2)
+		int Clr_Cmp_Val = ((VDP_Reg.Set4 & 0x1) || (Debug)) ? 40 : 32;
+		if (Flag_Clr_Scr != Clr_Cmp_Val)
 		{
-			RectSrc.top = 0;
-			RectSrc.bottom = VDP_Num_Vis_Lines;
-
-			if ((VDP_Num_Vis_Lines == 224) && (Stretch == 0))
-			{
-				RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
-				RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis
-			}
-		}
-		else
-		{
-			if (VDP_Num_Vis_Lines == 224)
-			{
-				RectSrc.top = 8 * 2;
-				RectSrc.bottom = (224 + 8) * 2;
-
-				if (Stretch == 0)
-				{
-					RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
-					RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis again
-				}
-			}
-			else
-			{
-				RectSrc.top = 0; //Upth-Modif - Was "0 * 2"
-				RectSrc.bottom = (240 * 2);
-			}
-		}
-
-		if ((VDP_Reg.Set4 & 0x1) || (Debug))
-		{
-			Dep = 0;
-
-			if (Flag_Clr_Scr != 40)
-			{
-				Clear_Primary_Screen(hWnd);
-				Clear_Back_Screen(hWnd);
-				Flag_Clr_Scr = 40;
-			}
-
-			if (Render_W < 2)
-			{
-				RectSrc.left = 8 + 0 ;
-				RectSrc.right = 8 + 320;
-			}
-			else
-			{
-				RectSrc.left = 0; //Upth-Modif - Was "0 * 2"
-				RectSrc.right = 320 * 2;
-			}
-			RectDest.left = (int) ((q.x - (320 * Ratio_X))/2); //Upth-Add - center the picture
-			RectDest.right = (int) (320 * Ratio_X) + RectDest.left; //Upth-Add - along the x axis
-		}
-		else
-		{
-			Dep = 64;
-
-			if (Stretch == 0)
-			{
-				RectDest.left = (int) ((q.x - (256 * Ratio_X))/2); //Upth-Modif - center the picture properly
-				RectDest.right = (int) (256 * Ratio_X) + RectDest.left; //Upth-Modif - along the x axis
-			}
-
-			if (Flag_Clr_Scr != 32)
-			{
-				Flag_Clr_Scr = 32;
-				Clear_Primary_Screen(hWnd);
-				Clear_Back_Screen(hWnd);
-			}
-
-			if (Render_W < 2)
-			{
-				RectSrc.left = 8 + 0;
-				RectSrc.right = 8 + 256;
-			}
-			else
-			{
-				RectSrc.left = 32 * 2;
-				RectSrc.right = (256 * 2) + (32 * 2);
-			}
+			Clear_Primary_Screen(hWnd);
+			Clear_Back_Screen(hWnd);
+			Flag_Clr_Scr = Clr_Cmp_Val;
 		}
 
 		if (Render_W >= 2)
 		{
 			rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
-			if (rval != DD_OK) return 1;	// Assuming surface busy ...
+			if (FAILED(rval)) goto cleanup_flip;
 
-			Blit_W((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * ((240 - VDP_Num_Vis_Lines) >> 1) + Dep) << 1), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
+			Blit_W((unsigned char *) ddsd.lpSurface + ddsd.lPitch * (240 - VDP_Num_Vis_Lines) + Dep * bpp, ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, (16 + Dep) * bpp);
 
 			lpDDS_Blit->Unlock(NULL);
 		}
+
+		p.x = p.y = 0;
+		ClientToScreen(hWnd, &p);
 
 		RectDest.top += p.y; //Upth-Modif - this part moves the picture into the window
 		RectDest.bottom += p.y; //Upth-Modif - I had to move it after all of the centering
@@ -1384,9 +1450,7 @@ int Flip(HWND hWnd)
 			if (W_VSync)
 			{
 				int vb;
-
 				lpDD->GetVerticalBlankStatus(&vb);
-
 				if (!vb) lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
 			}
 
@@ -1395,7 +1459,10 @@ int Flip(HWND hWnd)
 		}
 	}
 
-	if (rval == DDERR_SURFACELOST) rval = RestoreGraphics();
+cleanup_flip:
+	if (rval == DDERR_SURFACELOST)
+		rval = RestoreGraphics(hWnd);
+
 	return 1;
 }
 
@@ -2129,7 +2196,7 @@ int Take_Shot()
 	ddsd.dwSize = sizeof(ddsd);
 	rval = lpDDS_Primary->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
-	if (rval == DD_OK)
+	if (SUCCEEDED(rval))
 	{
 		Save_Shot((unsigned char *) ddsd.lpSurface + (RD.top * ddsd.lPitch) + (RD.left * (ddsd.ddpfPixelFormat.dwRGBBitCount >> 3)), (Mode_555 & 1) | (Bits32 ? 2 : 0), (RD.right - RD.left), (RD.bottom - RD.top), ddsd.lPitch);
 		lpDDS_Primary->Unlock(NULL);
