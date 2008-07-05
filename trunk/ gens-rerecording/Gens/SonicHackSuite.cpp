@@ -1114,6 +1114,7 @@ void DrawBoxes()
 						unsigned char zone = CheatRead<unsigned char>(0xFF1506);
 						if (zone == 3) addr += 8;
 						if (zone == 5) addr += 0xC;
+						if (zone == 6) addr += 0x5E;
 						SizeTableX = addr + 8;	//the touch size array immediately follows the end of TouchResponse
 						SizeTableY = SizeTableX + 1; //so we update the touch size array pointers
 						SizeTableBlah = CheatRead<unsigned int>(SizeTableX);	//and the "oh shit it movied" flag
@@ -1394,7 +1395,7 @@ int SonicCamHack()
 #ifdef SCD
 		time = CheatRead<signed int>(0xFF1514);
 #endif
-	for(int i = 0 ; i < numframes+2 ; i++)
+	for(int i = 0 ; i <= numframes ; i++)
 	{
 		#ifdef SK
 			CheatWrite<unsigned char>(0xFFEE0B, 1); // Freezes world.*/
@@ -1445,7 +1446,7 @@ int SonicCamHack()
 		else
 #endif
 		{
-			//because the game doesn't like being forced to scroll up -- at least in the case of S3K.
+			//because the game doesn't like being forced to scroll up.
 			if (yy > origy)
 				origy += min(YSCROLLRATE,yy-origy);
 			if (xx != origx)
@@ -1455,32 +1456,11 @@ int SonicCamHack()
 				else 
 					origx += xd;
 			}
-
-/*			if(origx != xx)
-			{
-				if(abs(origx - xx) <= XSCROLLRATE)
-					origx = xx;
-				else //if(abs(origx - xx) > 80)
-				{
-					if(origx < xx) origx += XSCROLLRATE;
-					else if(origx > xx) origx -= XSCROLLRATE;
-				}
-			}
-			if(origy != yy)
-			{
-				if(abs(origy - yy) <= YSCROLLRATE)
-					origy = yy;
-				else //if(abs(origy - yy) > 60)
-				{
-					if(origy < yy) origy += YSCROLLRATE;
-					else if(origy > yy) origy -= YSCROLLRATE;
-				}
-			}*/
 		}
 	}
-
 	{
-		Do_VDP_Only();
+		Update_Frame();	//Do_VDP_Only won't process palette swaps at a certain line
+		//and also won't work at all for 32X, if this ever gets adapted for Knuckles Chaotix
 		DrawBoxes();
 		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
