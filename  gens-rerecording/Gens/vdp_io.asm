@@ -14,6 +14,7 @@ section .data align=64
 	extern MD_Palette
 	extern MD_Palette32
 	extern MD_Screen
+	extern MD_Screen32
 	extern Sprite_Struct
 	extern Sprite_Visible
 	extern CPL_M68K
@@ -336,6 +337,14 @@ section .text align=64
 		add ebx, 4
 		dec ecx
 		jnz .loop_MD_Screen
+
+		mov ebx, MD_Screen32
+		mov ecx, (336 * 240 / 1)
+	.loop_MD_Screen32
+		mov [ebx], eax
+		add ebx, 4
+		dec ecx
+		jnz .loop_MD_Screen32
 
 		mov ebx, VRam
 		mov ecx, (1024 * 16)
