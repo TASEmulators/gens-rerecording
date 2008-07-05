@@ -32,6 +32,7 @@ char preloaded_tracks [100] = {0};
 extern BOOL IsAsyncAllowed(void);
 extern void Put_Info(char *Message, int Duree);
 extern char Gens_Path[1024];
+extern char played_tracks_linear [101];
 #define PRELOADED_MP3_DIRECTORY "temp"
 #define PRELOADED_MP3_FILENAME "\\track%02d.pcm"
 
@@ -198,6 +199,7 @@ int MP3_Update_IN(void)
 		// go to the next track
 
 		SCD.Cur_Track = ++Track_Played + 1; // because Cur_Track may or may not have already been incremented, and it's 1-based whereas Track_Played is 0-based
+		played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 
 		rv = FILE_Play_CD_LBA(1);
 		if(rv)

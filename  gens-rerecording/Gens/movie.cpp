@@ -19,7 +19,7 @@ bool Def_Read_Only = true; //Upth-Add - For the new Default Read Only toggle
 char track = 1 | 2 | 4;
 extern int AVIRecording;
 typeMovie MainMovie;
-extern "C" char preloaded_tracks [100]; // Modif N. -- added
+extern "C" char preloaded_tracks [100], played_tracks_linear [101]; // Modif N. -- added
 
 //Modif
 void MoviePlayingStuff()
@@ -267,7 +267,7 @@ void EmbedPreloadedTracksInNote(char* note)
 			break;
 	i++; // after the null
 	char compressed [13];
-	CompressBoolArray(compressed, 13, preloaded_tracks, 100);
+	CompressBoolArray(compressed, 13, played_tracks_linear, 100);
 	for(int j = 0; i < 40 && j < 13; i++, j++)
 		note[i] = compressed[j];
 }
@@ -281,7 +281,10 @@ void ExtractPreloadedTracksFromNote(char* note)
 	char compressed [13] = {0};
 	for(j = 0; i < 40 && j < 13; i++, j++)
 		compressed[j] = note[i];
-	DecompressBoolArray(preloaded_tracks, min(100, j*8), compressed, j, 2); // 2 == "on and don't reset until next use"
+	DecompressBoolArray(played_tracks_linear, min(100, j*8), compressed, j);
+	for(i = 0; i < min(100, j*8); i++)
+		if(played_tracks_linear[i])
+			preloaded_tracks[i] = 2; // 2 == "force preload if MP3"
 	return;
 }
 

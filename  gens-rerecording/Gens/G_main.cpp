@@ -881,9 +881,9 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	{
 		RECT r;
 
-		End_DDraw();
-
 		if (Sound_Initialised) Clear_Sound_Buffer();
+
+		End_DDraw();
 
 		if (Full_Screen = Full)
 		{

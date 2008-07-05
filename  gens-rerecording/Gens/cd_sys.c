@@ -34,6 +34,8 @@ unsigned int CD_timer_st;	// Used for CD timer
 unsigned int CD_LBA_st;		// Used for CD timer
 unsigned short CDDAVol = 256;
 
+char played_tracks_linear [101] = {0};
+
 _scd SCD;
 
 
@@ -497,6 +499,7 @@ int Get_Current_Track_CDD_c22(void)
 	CDD.Status |= SCD.Status_CDD;
 
 	SCD.Cur_Track = LBA_to_Track(SCD.Cur_LBA);
+	played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
 	else CDD.Minute = INT_TO_BCDW(SCD.Cur_Track);
@@ -613,6 +616,7 @@ int Play_CDD_c3(void)
 	MSF.F = (CDD.Trans_Comm[6] & 0xF) + (CDD.Trans_Comm[7] & 0xF) * 10;
 
 	SCD.Cur_Track = MSF_to_Track(&MSF);
+	played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 
 	new_lba = MSF_to_LBA(&MSF);
 	delay = new_lba - SCD.Cur_LBA;
@@ -654,6 +658,7 @@ int Play_CDD_c3(void)
 		CDD.Control &= ~0x0100;				// AUDIO
 		CD_Audio_Starting = 1;
 		if (!(CD_Load_System == CDROM_)) FILE_Play_CD_LBA(1);
+		played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 	}
 
 	if (SCD.Cur_Track == 100) CDD.Minute = 0x0A02;
@@ -683,6 +688,7 @@ int Seek_CDD_c4(void)
 	MSF.F = (CDD.Trans_Comm[6] & 0xF) + (CDD.Trans_Comm[7] & 0xF) * 10;
 
 	SCD.Cur_Track = MSF_to_Track(&MSF);
+	played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 	SCD.Cur_LBA = MSF_to_LBA(&MSF);
 	CDC_Update_Header();
 
@@ -754,6 +760,7 @@ int Resume_CDD_c7(void)
 		SCD.Status_CDC &= ~1;
 
 	SCD.Cur_Track = LBA_to_Track(SCD.Cur_LBA);
+	played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 
 #ifdef DEBUG_CD
 	LBA_to_MSF(SCD.Cur_LBA, &MSF);
