@@ -49,7 +49,7 @@ bool UseMovieStates;
 //extern long x, y, xg, yg; // G_Main.cpp
 extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
 extern "C" int fatal_mp3_error; // cdda_mp3.c
-extern "C" char preloaded_tracks [100]; // cdda_mp3.c
+extern "C" char played_tracks_linear [101]; // cd_sys.c
 extern "C" char Track_Played; // cd_file.c
 extern "C" int FILE_Play_CD_LBA(int async);
 
@@ -1379,7 +1379,7 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&Current_OUT_Pos, Data, offset, 4);
 		ImportDataAuto(&Current_OUT_Size, Data, offset, 4);
 		ImportDataAuto(&Track_Played, Data, offset, 1);
-		ImportDataAuto(preloaded_tracks, Data, offset, 100);
+		ImportDataAuto(played_tracks_linear, Data, offset, 100);
 		//ImportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
 
 #ifdef _DEBUG
@@ -1579,7 +1579,7 @@ void Export_SegaCD(unsigned char *Data)
 	ExportDataAuto(&Current_OUT_Pos, Data, offset, 4);
 	ExportDataAuto(&Current_OUT_Size, Data, offset, 4);
 	ExportDataAuto(&Track_Played, Data, offset, 1);
-	ExportDataAuto(preloaded_tracks, Data, offset, 100);
+	ExportDataAuto(played_tracks_linear, Data, offset, 100);
 	//ExportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
 
 #ifdef _DEBUG
