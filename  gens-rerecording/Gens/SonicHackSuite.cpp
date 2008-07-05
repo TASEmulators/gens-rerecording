@@ -1025,7 +1025,9 @@ void DisplaySolid()
 			for (short x = 8; x<328;x++)
 			{	
 				if (!SolidMap[(y*336)+x]) continue;
-				unsigned int pix = MD_Screen32[(y*336)+x];
+				unsigned int pix;
+				if(Bits32) pix = MD_Screen32[(y*336)+x];
+				else pix = Pix16To32(MD_Screen[(y*336)+x]);
 				short r,g,b;
 				r = (pix >> 16) & 0xFF;
 				g = (pix >> 8) & 0xFF;
@@ -1061,7 +1063,9 @@ void DisplaySolid()
 				if (b < 0) b = 0;		//blue floor
 				if (b > 0xFF) b = 0xFF;	//blue ceiling
 				pix = (r << 16) | (g << 8) | b;
-				MD_Screen32[(y*336)+x]=pix;	//Todo: allow display in 16-bit color mode.
+
+				if(Bits32) MD_Screen32[(y*336)+x] = pix;
+				else MD_Screen[(y*336)+x] = Pix32To16(pix);
 			}
 		}
 	}
@@ -1337,14 +1341,13 @@ int SonicCamHack()
 	short origy = (int) CheatRead<signed short>(CAMOFFSET1+4); //signed words with a floor of -255 (which is only reached when travelling upward through level wraps)
 	short xx = max(0,CheatRead<signed short>(P1OFFSET + off + XPo) - 160); 
 	short yy = CheatRead<signed short>(P1OFFSET + off + YPo) - 112;
-//#ifndef SCD	//sega CD savestates still aren't stable enough
+
 	if((GetKeyState(VK_SCROLL)) || (flags & 0x80) || CheatRead<unsigned char>(0xFFF7CD) ||
 	  (((unsigned short) (x - origx) <= 320) &&
 	  (((unsigned short) (y - origy) <= 240) ||
 	  (((unsigned short) (y + LEVELHEIGHT - origy) <= 224) && (origy >= LEVELHEIGHT - 224)) || //so we don't trigger camhack when going downward through level-wraps
 	  ((origy < 0) && ((y >= (short)(LEVELHEIGHT + origy)) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
 	  (CheatRead<unsigned char>(INLEVELFLAG) == 0)))
-//#endif
 	{
 		CamX = CheatRead<signed short>(CAMOFFSET1);
 		CamY = CheatRead<signed short>(CAMOFFSET1+4);
@@ -1374,25 +1377,6 @@ int SonicCamHack()
 	if (xx < origx) xd = -xd;
 	//this is done because scrolling up seems to be handled very differently from scrolling down
 	//See the Hydrocity 1 boss battle in either S3K TAS for confirmation of this
-
-
-	// move the camera closer to begin with if it's really far away
-//	int xdiff = origx - xx;
-//	int ydiff = origy - yy;
-/*#if defined(SK)
-	if(xdiff < -(640/2+XSCROLLRATE)) xdiff = -(640/2+XSCROLLRATE);
-	if(xdiff > (640/2+XSCROLLRATE)) xdiff = (640/2+XSCROLLRATE);
-	if(ydiff < -(480/2+YSCROLLRATE)) ydiff = -(480/2+YSCROLLRATE);
-	if(ydiff > (480/2+YSCROLLRATE)) ydiff = (480/2+YSCROLLRATE);
-#else
-	if(xdiff < -(640)) xdiff = -(640); // wish I could make this lower without adding more junk tiles
-	if(xdiff > (640)) xdiff = (640);
-	if(ydiff < -(480)) ydiff = -(480);
-	if(ydiff > (480)) ydiff = (480);
-#endif
-	origx = xx + xdiff;
-	origy = yy + ydiff;*/
-
 
 	int numframesx = abs(xx - origx)/XSCROLLRATE;
 	int numframesy = abs(yy - origy)/YSCROLLRATE;

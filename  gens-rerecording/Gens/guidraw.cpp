@@ -196,3 +196,23 @@ void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned shor
 		Pixel(x + JXQ, y + off, color32, color16, wrap, Opac);
 	}
 }
+
+// from: xxxxxxxxRRRRRxxxGGGGGGxxBBBBBxxx
+//   to:                 RRRRRGGGGGGBBBBB
+unsigned short Pix32To16 (unsigned int Src)
+{
+	int rm = Src & 0xF80000;
+	int gm = Src & 0xFC00;
+	int bm = Src & 0xF8;
+	return (rm >> 8) | (gm >> 5) | (bm >> 3);
+}
+
+// from:                 RRRRRGGGGGGBBBBB
+//   to: 00000000RRRRR000GGGGGG00BBBBB000
+unsigned int Pix16To32 (unsigned short Src)
+{
+	int rm = Src & 0xF800;
+	int gm = Src & 0x7E0;
+	int bm = Src & 0x1F;
+	return (rm << 8) | (gm << 5) | (bm << 3);
+}
