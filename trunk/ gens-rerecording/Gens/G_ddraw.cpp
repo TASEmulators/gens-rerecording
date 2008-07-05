@@ -77,6 +77,10 @@ int (*Update_Frame_Fast)();
 	#define ALT_X_RATIO_RES 320
 #endif
 
+#define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
+#define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount)
+
+
 
 // if you have to debug something in fullscreen mode
 // but the fullscreen lock prevents you from seeing the debugger
@@ -120,7 +124,7 @@ int (*Update_Frame_Fast)();
 					Print_Text(Info_String, strlen(Info_String), 10, 210, Message_Style);\
 				}\
 			}\
-			Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);\
+			Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);\
 		}\
 	}
 #ifdef SONICCAMHACK
@@ -569,7 +573,7 @@ void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ra
 		}
 	}
 
-	if ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL))
+	if (IS_FULL_X_RESOLUTION)
 	{
 		Dep = 0;
 
@@ -783,7 +787,7 @@ void DrawInformationOnTheScreen()
 			n=FRAME_COUNTER_TOP_RIGHT+4704;
 			int prevn = n;
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -811,7 +815,7 @@ void DrawInformationOnTheScreen()
 			n=prevn+2352;
 			prevn=n;
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -839,7 +843,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%d:%d",yvel,yjumpvel);
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -867,7 +871,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%u:%03u",ypos,yspos);
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -895,7 +899,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%d:%d:%05.2f"/**/,*((short *) (&Ram_68k[P1OFFSET + GVo])),(signed char)angle,((signed char)angle)*(90.0/64.0));
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -924,7 +928,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 	//		sprintf(temp,"%d",CalcFuckFrames());
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
+			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -967,7 +971,7 @@ void DrawInformationOnTheScreen()
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition;
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+			if (!IS_FULL_X_RESOLUTION && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 				n-=64;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
@@ -1009,7 +1013,7 @@ void DrawInformationOnTheScreen()
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition+2352;
-			if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+			if (!IS_FULL_X_RESOLUTION && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 				n-=64;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
@@ -1095,7 +1099,7 @@ void DrawInformationOnTheScreen()
 		if(Controller_1C_Z) FCTemp[12+12+10]='@';
 		if(Controller_1C_Mode) FCTemp[12+12+11]='@';
 		n=FrameCounterPosition-2352;
-		if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+		if (!IS_FULL_X_RESOLUTION && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 			n-=64;
 		for(pos=0;pos<12;pos++) //upthmodif
 		{
@@ -1266,7 +1270,7 @@ int Flip(HWND hWnd)
 		Ratio_Y = (float) FS_Y / 240.0f; //Upth-Add - Find the current size-ratio on the y-axis
 		Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - Floor them to the smaller value for correct ratio display
 		
-		if ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL))
+		if (IS_FULL_X_RESOLUTION)
 		{
 			if (Flag_Clr_Scr != 40)
 			{
@@ -1413,7 +1417,7 @@ int Flip(HWND hWnd)
 		{
 			LPDIRECTDRAWSURFACE4 curBlit = lpDDS_Blit;
 #ifdef CORRECT_256_ASPECT_RATIO
-			if(!((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL)))
+			if(!IS_FULL_X_RESOLUTION)
 				curBlit = lpDDS_Back; // have to use it or the aspect ratio will be way off
 #endif
 			rval = curBlit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
@@ -1456,7 +1460,7 @@ int Flip(HWND hWnd)
 		GetClientRect(hWnd, &RectDest);
 		CalculateDrawArea(Render_W, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
 
-		int Clr_Cmp_Val = ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL)) ? 40 : 32;
+		int Clr_Cmp_Val = IS_FULL_X_RESOLUTION ? 40 : 32;
 		if (Flag_Clr_Scr != Clr_Cmp_Val)
 		{
 			Clear_Primary_Screen(hWnd);
@@ -1528,7 +1532,7 @@ int Update_Gens_Logo(HWND hWnd)
 	zoom_x = (1 / zoom_x) * 1;
 	zoom_y = 1;
 
-	if (VDP_Reg.Set4 & 0x1)
+	if (IS_FULL_X_RESOLUTION)
 	{
 		for(j = 0; j < 240; j++)
 		{
@@ -1754,7 +1758,7 @@ int Update_Emulation(HWND hWnd)
 		}
 	    if(AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 		{
-			if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+			if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 		}
 		UpdateInput(); //Modif N
 		if(MainMovie.Status==MOVIE_RECORDING)	//Modif
@@ -1800,7 +1804,7 @@ int Update_Emulation(HWND hWnd)
 						UpdateInput(); //Modif N
 						if(AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 						{
-							if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+							if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 						}
 						if(MainMovie.Status==MOVIE_RECORDING)	//Modif
 							MovieRecordingStuff();
@@ -1827,7 +1831,7 @@ int Update_Emulation(HWND hWnd)
 				{
 					if(AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 					{
-						if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+						if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 					}
 					UpdateInput(); //Modif N
 					if(MainMovie.Status==MOVIE_RECORDING)	//Modif
@@ -1885,7 +1889,7 @@ int Update_Emulation(HWND hWnd)
 			for (; Frame_Number > 1; Frame_Number--)
 			{
 				if(AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
-					if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+					if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 				UpdateInput(); //Modif N
 				if(MainMovie.Status==MOVIE_RECORDING)	//Modif
 					MovieRecordingStuff();
@@ -1911,7 +1915,7 @@ int Update_Emulation(HWND hWnd)
 			if (Frame_Number)
 			{
 				if(AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
-					if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+					if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 				UpdateInput(); //Modif N
 				if(MainMovie.Status==MOVIE_RECORDING)	//Modif
 					MovieRecordingStuff();
@@ -1946,7 +1950,7 @@ int Update_Emulation_One(HWND hWnd)
 		MovieRecordingStuff();
 	if (AVIRecording!=0 && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 	{
-		if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),(VDP_Reg.Set4 & 0x01),(VDP_Reg.Set2 & 0x08),hWnd);
+		if (!CleanAvi) Save_Shot_AVI(Bits32?(unsigned char *) MD_Screen32:(unsigned char *) MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION,hWnd);
 	}
 	FrameCount++; //Modif
 	Lag_Frame = 1;
@@ -2122,7 +2126,7 @@ int Take_Shot()
 	{
 		if (Render_FS == 0)
 		{
-			if ((Stretch) || (VDP_Reg.Set2 & 0x08))
+			if ((Stretch) || IS_FULL_Y_RESOLUTION)
 			{
 				RD.top = 0;
 				RD.bottom = 240;
@@ -2132,7 +2136,7 @@ int Take_Shot()
 				RD.top = 8;
 				RD.bottom = 224 + 8;
 			}
-			if ((Stretch) || (VDP_Reg.Set4 & 0x01) && Game)
+			if ((Stretch) || IS_FULL_X_RESOLUTION)
 			{
 				RD.left = 0;
 				RD.right = 320;
@@ -2145,7 +2149,7 @@ int Take_Shot()
 		}
 		else if (Render_FS == 1)
 		{
-			if ((Stretch) || (VDP_Reg.Set2 & 0x08))
+			if ((Stretch) || IS_FULL_Y_RESOLUTION)
 			{
 				RD.top = 0;
 				RD.bottom = 480;
@@ -2155,7 +2159,7 @@ int Take_Shot()
 				RD.top = 16;
 				RD.bottom = 448 + 16;
 			}
-			if ((Stretch) || (VDP_Reg.Set4 & 0x01))
+			if ((Stretch) || IS_FULL_X_RESOLUTION)
 			{
 				RD.left = 0;
 				RD.right = 640;
@@ -2168,7 +2172,7 @@ int Take_Shot()
 		}
 		else
 		{
-			if (VDP_Reg.Set2 & 0x08)
+			if IS_FULL_Y_RESOLUTION
 			{
 				RD.top = 0;
 				RD.bottom = 480;
@@ -2178,7 +2182,7 @@ int Take_Shot()
 				RD.top = 16;
 				RD.bottom = 448 + 16;
 			}
-			if (VDP_Reg.Set4 & 0x01)
+			if (IS_FULL_X_RESOLUTION)
 			{
 				RD.left = 0;
 				RD.right = 640;
@@ -2203,12 +2207,12 @@ int Take_Shot()
 
 		if (Render_W == 0)
 		{
-			if ((!Stretch) && ((VDP_Reg.Set2 & 0x08) == 0))
+			if ((!Stretch) && !IS_FULL_Y_RESOLUTION)
 			{
 				RD.top += 8;
 				RD.bottom -= 8;
 			}
-			if ((!Stretch) && ((VDP_Reg.Set4 & 0x01) == 0))
+			if ((!Stretch) && !IS_FULL_X_RESOLUTION)
 			{
 				RD.left += 32;
 				RD.right -= 32;
@@ -2217,12 +2221,12 @@ int Take_Shot()
 		}
 		else
 		{
-			if ((!Stretch) && ((VDP_Reg.Set2 & 0x08) == 0))
+			if ((!Stretch) && !IS_FULL_Y_RESOLUTION)
 			{
 				RD.top += 16;
 				RD.bottom -= 16;
 			}
-			if ((!Stretch) && ((VDP_Reg.Set4 & 0x01) == 0))
+			if ((!Stretch) && !IS_FULL_X_RESOLUTION)
 			{
 				RD.left += 64;
 				RD.right -= 64;

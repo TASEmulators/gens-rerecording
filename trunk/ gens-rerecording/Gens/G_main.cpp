@@ -3433,22 +3433,22 @@ dialogAgain: //Nitsuja added this
 					if (Check_If_Kaillera_Running()) return 0;
 
 					if (Genesis_Started)
-					{
 						Reset_Genesis();
-						MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
-					}
 					else if (_32X_Started)
-					{
 						Reset_32X();
-						MESSAGE_L("32X reseted", "32X reset", 1500)
-					}
 					else if (SegaCD_Started)
-					{
 						Reset_SegaCD();
-						MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
-					}
+
 					FrameCount=0;
 					LagCount = 0;
+
+					if (Genesis_Started)
+						MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+					else if (_32X_Started)
+						MESSAGE_L("32X reseted", "32X reset", 1500)
+					else if (SegaCD_Started)
+						MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+
 					return 0;
 
 				case ID_CPU_RESET68K:
