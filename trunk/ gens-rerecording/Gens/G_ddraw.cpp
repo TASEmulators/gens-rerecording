@@ -1095,9 +1095,7 @@ void DrawInformationOnTheScreen()
 	
 	}
 
-	//// XXX: I forgot to delete this
-	//// (intentionally for now; something similar could be used for RAM watching of other things)
-	//// SONIC THE HEDGEHOG 3 SPEEDOMETER HACK
+	//// original SONIC THE HEDGEHOG 3 SPEEDOMETER HACK
 	//{
 	//	char temp [128];
 	//	extern unsigned char Ram_68k[64 * 1024];
