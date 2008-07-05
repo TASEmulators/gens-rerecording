@@ -148,7 +148,7 @@ int Country = -1;
 int Country_Order[3];
 int Kaillera_Client_Running = 0;
 int Intro_Style = 0;
-int SegaCD_Accurate = 0;
+int SegaCD_Accurate = 1;
 int Gens_Running = 0;
 int WinNT_Flag = 0;
 int Gens_Priority;

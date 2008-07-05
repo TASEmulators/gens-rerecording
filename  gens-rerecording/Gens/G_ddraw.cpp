@@ -21,6 +21,7 @@
 #include "moviegfx.h"
 #include "io.h"
 #include "hackscommon.h"
+#include "guidraw.h"
 //#define SONICSPEEDHACK
 //#define SONICCAMHACK
 //#define SK
@@ -65,6 +66,26 @@ void (*Blit_FS)(unsigned char *Dest, int pitch, int x, int y, int offset);
 void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
 int (*Update_Frame)();
 int (*Update_Frame_Fast)();
+
+// Modif N. -- added
+#define CORRECT_256_ASPECT_RATIO
+#ifndef CORRECT_256_ASPECT_RATIO
+	// actually wrong, the genesis image is not supposed to get thinner in this mode
+	#define ALT_X_RATIO_RES 256
+#else
+	// keep same aspect ratio as 320x240
+	#define ALT_X_RATIO_RES 320
+#endif
+
+
+// if you have to debug something in fullscreen mode
+// but the fullscreen lock prevents you from seeing the debugger
+// when a breakpoint/assertion/crash/whatever happens,
+// then it might help to define this.
+// absolutely don't leave it enabled by default though, not even in _DEBUG
+//#define DISABLE_EXCLUSIVE_FULLSCREEN_LOCK
+
+
 //#define MAPHACK
 #ifndef MAPHACK
 #define Update_RAM_Cheats(); 
@@ -196,6 +217,8 @@ int Init_DDraw(HWND hWnd)
 	HRESULT rval;
 	DDSURFACEDESC2 ddsd;
 
+	int oldBits32 = Bits32;
+
 	End_DDraw();
 	
 	if (Full_Screen) Rend = Render_FS;
@@ -223,12 +246,15 @@ int Init_DDraw(HWND hWnd)
 		Recalculate_Palettes();
 	}
 
-//#if 0 // note: disabling this branch can help with debugging fullscreen mode (vsync needs to be off too)
+#ifdef DISABLE_EXCLUSIVE_FULLSCREEN_LOCK
+	FS_VSync = 0;
+	rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+#else
 	if (Full_Screen)
 		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
 	else
-//#endif
 		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+#endif
 
 	if (FAILED(rval))
 		return Init_Fail(hWnd, "Error with lpDD->SetCooperativeLevel !");
@@ -346,6 +372,16 @@ int Init_DDraw(HWND hWnd)
 			return Init_Fail(hWnd, "Error with lpDDS_Blit->GetSurfaceDesc !");
 
 		Bits32 = (ddsd.ddpfPixelFormat.dwRGBBitCount > 16) ? 1 : 0;
+
+		// also prevent the colors from sometimes being messed up for 1 frame if we changed color depth
+
+		if(Bits32 && !oldBits32)
+			for(int i = 0 ; i < 336 * 240 ; i++)
+				MD_Screen32[i] = Pix16To32(MD_Screen[i]);
+
+		if(!Bits32 && oldBits32)
+			for(int i = 0 ; i < 336 * 240 ; i++)
+				MD_Screen[i] = Pix32To16(MD_Screen32[i]);
 	}
 
 	// make sure the render mode is still valid (changing options in a certain order can make it invalid at this point)
@@ -533,7 +569,7 @@ void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ra
 		}
 	}
 
-	if ((VDP_Reg.Set4 & 0x1) || (Debug))
+	if ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL))
 	{
 		Dep = 0;
 
@@ -556,8 +592,8 @@ void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ra
 
 		if (Stretch == 0)
 		{
-			RectDest.left = (int) ((q.x - (256 * Ratio_X))/2); //Upth-Modif - center the picture properly
-			RectDest.right = (int) (256 * Ratio_X) + RectDest.left; //Upth-Modif - along the x axis
+			RectDest.left = (int) ((q.x - (ALT_X_RATIO_RES * Ratio_X))/2); //Upth-Modif - center the picture properly
+			RectDest.right = (int) (ALT_X_RATIO_RES * Ratio_X) + RectDest.left; //Upth-Modif - along the x axis
 		}
 
 		if (Render_Mode < 2)
@@ -747,7 +783,7 @@ void DrawInformationOnTheScreen()
 			n=FRAME_COUNTER_TOP_RIGHT+4704;
 			int prevn = n;
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -775,7 +811,7 @@ void DrawInformationOnTheScreen()
 			n=prevn+2352;
 			prevn=n;
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -803,7 +839,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%d:%d",yvel,yjumpvel);
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -831,7 +867,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%u:%03u",ypos,yspos);
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -859,7 +895,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 			sprintf(temp,"%d:%d:%05.2f"/**/,*((short *) (&Ram_68k[P1OFFSET + GVo])),(signed char)angle,((signed char)angle)*(90.0/64.0));
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -888,7 +924,7 @@ void DrawInformationOnTheScreen()
 			strcpy(temp,"");
 	//		sprintf(temp,"%d",CalcFuckFrames());
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
-			if ((VDP_Reg.Set4 & 0x1)==0)
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game)
 				n-=64;	
 			for(pos=0;(int)pos<strlen(temp);pos++)
 			{
@@ -931,7 +967,7 @@ void DrawInformationOnTheScreen()
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition;
-			if ((VDP_Reg.Set4 & 0x1)==0 && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 				n-=64;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
@@ -973,7 +1009,7 @@ void DrawInformationOnTheScreen()
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition+2352;
-			if ((VDP_Reg.Set4 & 0x1)==0 && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+			if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 				n-=64;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
@@ -1059,7 +1095,7 @@ void DrawInformationOnTheScreen()
 		if(Controller_1C_Z) FCTemp[12+12+10]='@';
 		if(Controller_1C_Mode) FCTemp[12+12+11]='@';
 		n=FrameCounterPosition-2352;
-		if ((VDP_Reg.Set4 & 0x1)==0 && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
+		if ((VDP_Reg.Set4 & 0x1)==0 && Game && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 			n-=64;
 		for(pos=0;pos<12;pos++) //upthmodif
 		{
@@ -1198,7 +1234,7 @@ int Flip(HWND hWnd)
 	if(!lpDD)
 		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
 
-	HRESULT rval;
+	HRESULT rval = DD_OK;
 	DDSURFACEDESC2 ddsd;
 	ddsd.dwSize = sizeof(ddsd);
 	RECT RectDest, RectSrc;
@@ -1230,7 +1266,7 @@ int Flip(HWND hWnd)
 		Ratio_Y = (float) FS_Y / 240.0f; //Upth-Add - Find the current size-ratio on the y-axis
 		Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - Floor them to the smaller value for correct ratio display
 		
-		if ((VDP_Reg.Set4 & 0x1) || (Debug))
+		if ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL))
 		{
 			if (Flag_Clr_Scr != 40)
 			{
@@ -1267,8 +1303,8 @@ int Flip(HWND hWnd)
 			}
 			else
 			{
-				RectDest.left = (int) ((FS_X - (320 * Ratio_X))/2); //Upth-Modif - Centering the screen left-right
-				RectDest.right = (int) (256 * Ratio_X + RectDest.left); //Upth-modif - again
+				RectDest.left = (int) ((FS_X - (ALT_X_RATIO_RES * Ratio_X))/2); //Upth-Modif - Centering the screen left-right
+				RectDest.right = (int) (ALT_X_RATIO_RES * Ratio_X + RectDest.left); //Upth-modif - again
 			}
 			RectDest.top = (int) ((FS_Y - (240 * Ratio_Y))/2); //Upth-Add - Centers the screen top-bottom, in case Ratio_X was the floor.
 		}
@@ -1375,15 +1411,20 @@ int Flip(HWND hWnd)
 		}
 		else
 		{
-			rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
+			LPDIRECTDRAWSURFACE4 curBlit = lpDDS_Blit;
+#ifdef CORRECT_256_ASPECT_RATIO
+			if(!((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL)))
+				curBlit = lpDDS_Back; // have to use it or the aspect ratio will be way off
+#endif
+			rval = curBlit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
 			if (FAILED(rval)) goto cleanup_flip;
 
 			Blit_FS((unsigned char *) ddsd.lpSurface + ddsd.lPitch * (240 - VDP_Num_Vis_Lines) + Dep * bpp, ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, (16 + Dep) * bpp);
 
-			lpDDS_Blit->Unlock(NULL);
+			curBlit->Unlock(NULL);
 
-			if (lpDDS_Blit == lpDDS_Back)
+			if (curBlit == lpDDS_Back) // note: this can happen in windowed fullscreen, or if CORRECT_256_ASPECT_RATIO is defined and the current display mode is 256 pixels across
 			{
 				RectDest.left = 0;
 				RectDest.top = 0;
@@ -1400,7 +1441,6 @@ int Flip(HWND hWnd)
 				}
 
 				lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
-
 			}
 			else
 			{
@@ -1416,7 +1456,7 @@ int Flip(HWND hWnd)
 		GetClientRect(hWnd, &RectDest);
 		CalculateDrawArea(Render_W, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
 
-		int Clr_Cmp_Val = ((VDP_Reg.Set4 & 0x1) || (Debug)) ? 40 : 32;
+		int Clr_Cmp_Val = ((VDP_Reg.Set4 & 0x1) || (Debug) || (Game == NULL)) ? 40 : 32;
 		if (Flag_Clr_Scr != Clr_Cmp_Val)
 		{
 			Clear_Primary_Screen(hWnd);
@@ -2092,7 +2132,7 @@ int Take_Shot()
 				RD.top = 8;
 				RD.bottom = 224 + 8;
 			}
-			if ((Stretch) || (VDP_Reg.Set4 & 0x01))
+			if ((Stretch) || (VDP_Reg.Set4 & 0x01) && Game)
 			{
 				RD.left = 0;
 				RD.right = 320;
