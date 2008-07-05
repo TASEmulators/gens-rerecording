@@ -18,7 +18,7 @@ char Track_Played;
 _scd_toc g_cuefile_TOC;
 char g_cuefile_TOC_filenames [100] [1024] = {{0}};
 int g_cuefile_TOC_filetype [100] = {0};
-extern char preloaded_tracks [100]; // added for synchronous MP3 code
+extern char preloaded_tracks [100], played_tracks_linear [101]; // added for synchronous MP3 code
 void Delete_Preloaded_MP3s(void);
 
 
@@ -482,6 +482,7 @@ void Unload_ISO(void)
 		Tracks[i].F_decoded = NULL;
 		Tracks[i].Length = 0;
 		Tracks[i].Type = 0;
+		played_tracks_linear[i] = 0;
 		if(preloaded_tracks[i] == 1) // intentionally does not clear if the value is 2
 			preloaded_tracks[i] = 0;
 	}
@@ -599,6 +600,7 @@ int Load_CUE(char *buf, char *cue_name)
 {
 	FILE* cueFile = fopen(cue_name, "r");
 	char line [1024], temp [1024], filename [1024];
+	char* ptr,* tempPtr;
 	int trackIndex = -1, filetype = TYPE_ISO;
 
 	memset(&g_cuefile_TOC, 0, sizeof(g_cuefile_TOC));
@@ -617,8 +619,37 @@ int Load_CUE(char *buf, char *cue_name)
 		if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
 			continue;
 
+		// parse filename from the current line string
 		temp[0] = 0;
-		if(1 == sscanf(line, " FILE %s", temp) && temp[0])
+		tempPtr = temp;
+		ptr = line;
+		while(*ptr && (*ptr == ' ' || *ptr == '\t')) ptr++;
+		if(!strncmp(ptr, "FILE", 4))
+		{
+			int inQuotes = 0;
+			char afterFile = ptr[4];
+			ptr += 4;
+			while(*ptr && (*ptr == ' ' || *ptr == '\t')) ptr++;
+			if(afterFile == ' ' || afterFile == '\t' || afterFile == '\"')
+			while(*ptr && *ptr != '\n' && *ptr != '\r')
+			{
+				if((*ptr == ' ' || *ptr == '\t') && !inQuotes)
+					break;
+
+				*tempPtr++ = *ptr;
+
+				if(*ptr == '\"')
+					if(inQuotes)
+						break;
+					else
+						inQuotes = 1;
+
+				ptr++;
+			}
+			*tempPtr = 0;
+		}
+
+		if(temp[0]) // if a filename was found
 		{
 			char* ptr;
 			for(ptr=temp;*ptr;ptr++)
