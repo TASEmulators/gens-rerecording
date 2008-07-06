@@ -13,8 +13,8 @@ public:
 	static inline pix16 Blend (pix16 A, pix16 B);
 	static inline pix32 Blend (pix32 A, pix32 B, int AWeight, int BWeight, int Shift);
 	static inline pix16 Blend (pix16 A, pix16 B, int AWeight, int BWeight, int Shift);
-	static inline pix32 Blend (pix32 To, pix32 From, int Opac);
-	static inline pix16 Blend (pix16 To, pix16 From, int Opac);
+	static inline pix32 Blend (pix32 To, pix32 From, int Opac); // 256 Opac means To is returned
+	static inline pix16 Blend (pix16 To, pix16 From, int Opac); // 0 Opac means From is returned
 
 	static inline pix32 Blend (pix32 A, pix32 B, pix32 C, pix32 D);
 	static inline pix16 Blend (pix16 A, pix16 B, pix16 C, pix16 D);
