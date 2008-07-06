@@ -1,42 +1,9 @@
 #include <windows.h>
 #include "guidraw.h"
+#include "drawutil.h"
 #include "math.h"
 #include "misc.h"
-unsigned int Blend (unsigned int Src, unsigned int Dest, unsigned char str)
-{
-	short Opac = str + 1;
-	int rs = Src >> 16 & 0xff;
-	int gs = Src >>  8 & 0xff;
-	int bs = Src       & 0xff;
-	int rd = Dest >> 16 & 0xff;
-	int gd = Dest >>  8 & 0xff;
-	int bd = Dest       & 0xff;
-	rs *= Opac, gs *= Opac, bs *= Opac;
-	Opac = 0x100 - Opac;
-	rd *= Opac, gd *= Opac, bd *= Opac;
-	int rf = (rs + rd) >> 8;
-	int gf = (gs + gd) >> 8;
-	int bf = (bs + bd) >> 8;
-	return (rf << 16) | (gf << 8) | bf;
-}
-unsigned short Blend (unsigned short Src, unsigned short Dest, unsigned char str)
-{
-	short Opac = str + 1;
-	int rs = Src  >> 11 & 0x1f;
-	int gs = Src  >>  5 & 0x3f;
-	int bs = Src       & 0x1f;
-	int rd = Dest >> 11 & 0x1f;
-	int gd = Dest >>  5 & 0x3f;
-	int bd = Dest       & 0x1f;
-	rs *= Opac, gs *= Opac, bs *= Opac;
-	Opac = 0x100 - Opac;
-	rd *= Opac, gd *= Opac, bd *= Opac;
-	int rf = (rs + rd) >> 8;
-	int gf = (gs + gd) >> 8;
-	int bf = (bs + bd) >> 8;
-	return (rf << 11) | (gf << 5) | bf;
 
-}
 void PutText (char *string, short x, short y, short xl, short yl, short xh, short yh, int outstyle, int style)
 {
 	xl = max(xl,0);
@@ -73,13 +40,14 @@ void Pixel (short x, short y, unsigned int color32, unsigned short color16, char
 	x = max(0,min(319,x));
 	y = max(0,min(223,y));
 	x+=8;
-	color32 = Blend(color32,MD_Screen32[x + (y * 336)], Opac);
-	color16 = Blend(color16,MD_Screen[x + (y * 336)], Opac);
+	color32 = DrawUtil::Blend(color32,MD_Screen32[x + (y * 336)], Opac);
+	color16 = DrawUtil::Blend(color16,MD_Screen[x + (y * 336)], Opac);
 	if (Bits32) 
 		MD_Screen32[x + (336 * y)] = color32;
 	else
 		MD_Screen[x + (336 * y)] = color16;
 }
+
 void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigned int color32,unsigned short color16,char wrap, unsigned char Opac)
 {
 	bool steep = abs(dy) > abs(dx);
@@ -111,6 +79,7 @@ void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigne
 		}
 	}	
 }
+
 void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 	short dx = x2 - x1;
@@ -129,6 +98,7 @@ void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsi
 	}
 	else DrawLineBress(x1,y1,x2,y2,dx,dy,color32,color16,wrap, Opac);
 }
+
 void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 	if (x1 > x2) x1^=x2, x2^=x1,x1^=x2;
@@ -144,6 +114,7 @@ void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, un
 		Pixel(x2,JXQ,color32,color16,wrap, Opac);
 	}
 }
+
 void DrawBoxCWH (short x, short y, short w, short h, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 	for (short JXQ = 0; JXQ <= w; JXQ++)
@@ -157,6 +128,7 @@ void DrawBoxCWH (short x, short y, short w, short h, unsigned int color32, unsig
 		Pixel(x + w,y + JXQ, color32, color16, wrap, Opac);
 	}
 }
+
 void DrawBoxMWH (short x, short y, short w, short h, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 	for (short JXQ = 0; JXQ <= w; JXQ++)
@@ -174,6 +146,7 @@ void DrawBoxMWH (short x, short y, short w, short h, unsigned int color32, unsig
 		Pixel(x + w,y + JXQ, color32, color16, wrap, Opac);
 	}
 }
+
 void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 	short off = r;
@@ -195,24 +168,4 @@ void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned shor
 		Pixel(x - JXQ, y + off, color32, color16, wrap, Opac);
 		Pixel(x + JXQ, y + off, color32, color16, wrap, Opac);
 	}
-}
-
-// from: xxxxxxxxRRRRRxxxGGGGGGxxBBBBBxxx
-//   to:                 RRRRRGGGGGGBBBBB
-unsigned short Pix32To16 (unsigned int Src)
-{
-	int rm = Src & 0xF80000;
-	int gm = Src & 0xFC00;
-	int bm = Src & 0xF8;
-	return (rm >> 8) | (gm >> 5) | (bm >> 3);
-}
-
-// from:                 RRRRRGGGGGGBBBBB
-//   to: 00000000RRRRR000GGGGGG00BBBBB000
-unsigned int Pix16To32 (unsigned short Src)
-{
-	int rm = Src & 0xF800;
-	int gm = Src & 0x7E0;
-	int bm = Src & 0x1F;
-	return (rm << 8) | (gm << 5) | (bm << 3);
 }

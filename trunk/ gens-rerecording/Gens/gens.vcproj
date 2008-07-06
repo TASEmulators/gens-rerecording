@@ -243,6 +243,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cblit.cpp"
+				>
+			</File>
+			<File
 				RelativePath="CCnet.c"
 				>
 				<FileConfiguration
@@ -421,6 +425,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\drawutil.cpp"
+				>
 			</File>
 			<File
 				RelativePath="G_ddraw.cpp"
@@ -1046,7 +1054,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1254,7 +1262,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1416,6 +1424,10 @@
 			</File>
 			<File
 				RelativePath="Debug.h"
+				>
+			</File>
+			<File
+				RelativePath=".\drawutil.h"
 				>
 			</File>
 			<File
