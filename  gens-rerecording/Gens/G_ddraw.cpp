@@ -21,7 +21,7 @@
 #include "moviegfx.h"
 #include "io.h"
 #include "hackscommon.h"
-#include "guidraw.h"
+#include "drawutil.h"
 //#define SONICSPEEDHACK
 //#define SONICCAMHACK
 //#define SK
@@ -381,18 +381,15 @@ int Init_DDraw(HWND hWnd)
 
 		if(Bits32 && !oldBits32)
 			for(int i = 0 ; i < 336 * 240 ; i++)
-				MD_Screen32[i] = Pix16To32(MD_Screen[i]);
+				MD_Screen32[i] = DrawUtil::Pix16To32(MD_Screen[i]);
 
 		if(!Bits32 && oldBits32)
 			for(int i = 0 ; i < 336 * 240 ; i++)
-				MD_Screen[i] = Pix32To16(MD_Screen32[i]);
+				MD_Screen[i] = DrawUtil::Pix32To16(MD_Screen32[i]);
 	}
 
 	// make sure the render mode is still valid (changing options in a certain order can make it invalid at this point)
-	if (Bits32 && Rend > 2)
-	{
-		Set_Render(hWnd, Full_Screen, Rend, false);
-	}
+	Set_Render(hWnd, Full_Screen, -1, false);
 
 	// make sure the menu reflects the current mode (which it generally won't yet if we changed to/from 32-bit mode in this function)
 	Build_Main_Menu();

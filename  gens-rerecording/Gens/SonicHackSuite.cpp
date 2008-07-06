@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "guidraw.h"
+#include "drawutil.h"
 #include "SonicHackSuite.h"
 #include "HacksCommon.h"
 #include "misc.h"
@@ -1027,7 +1028,7 @@ void DisplaySolid()
 				if (!SolidMap[(y*336)+x]) continue;
 				unsigned int pix;
 				if(Bits32) pix = MD_Screen32[(y*336)+x];
-				else pix = Pix16To32(MD_Screen[(y*336)+x]);
+				else pix = DrawUtil::Pix16To32(MD_Screen[(y*336)+x]);
 				short r,g,b;
 				r = (pix >> 16) & 0xFF;
 				g = (pix >> 8) & 0xFF;
@@ -1065,7 +1066,7 @@ void DisplaySolid()
 				pix = (r << 16) | (g << 8) | b;
 
 				if(Bits32) MD_Screen32[(y*336)+x] = pix;
-				else MD_Screen[(y*336)+x] = Pix32To16(pix);
+				else MD_Screen[(y*336)+x] = DrawUtil::Pix32To16(pix);
 			}
 		}
 	}

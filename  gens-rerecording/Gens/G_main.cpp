@@ -221,7 +221,7 @@ LRESULT CALLBACK PromptWatchNameProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK EditWatchProc(HWND, UINT, WPARAM, LPARAM);
 void DoMovieSplice();
 
-int Set_Render(HWND hWnd, int Num, bool Force);
+int Set_Render(HWND hWnd, int Full, int Num, int Force);
 HMENU Build_Main_Menu(void);
 bool Save_Watches()
 {
@@ -594,48 +594,109 @@ int Change_Plane (HWND hWnd, int num)
 	return (1);
 }
 
-template<typename pixel>
-void Blit_EPX_T(pixel* Src, pixel* Dest, int pitch, int x, int y)
+typedef void (*BlitFunc)(unsigned char*, int, int, int, int);
+
+void Set_Rend_Int(int Num, int* Rend, BlitFunc* Blit)
 {
-	for(int j = 0; j < y; j++)
+	bool quiet = false;
+	if(Num == -1)
 	{
-		pixel* SrcLine = Src + 336*j;
-		pixel* DstLine1 = (pixel*)((unsigned char*)Dest + pitch*(j*2));
-		pixel* DstLine2 = (pixel*)((unsigned char*)Dest + pitch*(j*2+1));
-		for(int i = 0; i < x; i++)
-		{
-			pixel L = *(SrcLine-1);
-			pixel C = *(SrcLine);
-			pixel R = *(SrcLine+1);
-			if(L != R)
+		Num = *Rend;
+		quiet = true;
+	}
+	else
+	{
+		*Rend = Num;
+	}
+
+	switch(Num)
+	{
+		case 0:
+			if (Have_MMX) *Blit = Blit_X1_MMX;
+			else *Blit = Blit_X1;
+			break;
+
+		case 1:
+			if (Have_MMX) *Blit = Blit_X2_MMX;
+			else *Blit = Blit_X2;
+			break;
+
+		case 2:
+			*Blit = CBlit_EPX;
+			break;
+
+		case 3:
+			if (Bits32) *Blit = CBlit_X2_Int;
+			else if (Have_MMX) *Blit = Blit_X2_Int_MMX;
+			else *Blit = Blit_X2_Int;
+			break;
+
+		case 4:
+			if (Bits32) *Blit = CBlit_Scanline;
+			else if (Have_MMX) *Blit = Blit_Scanline_MMX;
+			else *Blit = Blit_Scanline;
+			break;
+
+		case 5:
+			if (!Bits32 && Have_MMX) *Blit = Blit_Scanline_50_MMX;
+			else *Blit = CBlit_Scanline_50;
+			break;
+
+		case 6:
+			if (!Bits32 && Have_MMX) *Blit = Blit_Scanline_25_MMX;
+			else *Blit = CBlit_Scanline_25;
+			break;
+
+		case 7:
+			if (Bits32) *Blit = CBlit_Scanline_Int;
+			else if (Have_MMX) *Blit = Blit_Scanline_Int_MMX;
+			else *Blit = Blit_Scanline_Int;
+			break;
+
+		case 8:
+			if (!Bits32 && Have_MMX) *Blit = Blit_Scanline_50_Int_MMX;
+			else *Blit = CBlit_Scanline_50_Int;
+			break;
+
+		case 9:
+			if (!Bits32 && Have_MMX) *Blit = Blit_Scanline_25_Int_MMX;
+			else *Blit = CBlit_Scanline_25_Int;
+			break;
+
+		case 10:
+			if (Have_MMX) *Blit = Blit_2xSAI_MMX;
+			else
 			{
-				pixel U = *(SrcLine-336);
-				pixel D = *(SrcLine+336);
-				if(U != D)
-				{
-					*DstLine1++ = (U == L) ? U : C;
-					*DstLine1++ = (R == U) ? R : C;
-					*DstLine2++ = (L == D) ? L : C;
-					*DstLine2++ = (D == R) ? D : C;
-					SrcLine++;
-					continue;
-				}
+				*Rend = 7;
+				*Blit = Blit_Scanline_Int;
 			}
-			*DstLine1++ = C; 
-			*DstLine1++ = C; 
-			*DstLine2++ = C; 
-			*DstLine2++ = C; 
-			SrcLine++;
+			break;
+
+		default:
+			*Rend = 1;
+			if (Have_MMX) *Blit = Blit_X2_MMX;
+			else *Blit = Blit_X2;
+			break;
+	}
+
+	if(!quiet)
+	{
+		switch(*Rend)
+		{
+		case 0: MESSAGE_L("Render selected : NORMAL", "Render selected : NORMAL", 1500); break;
+		case 1: MESSAGE_L("Render selected : DOUBLE", "Render selected : DOUBLE", 1500); break;
+		case 2: MESSAGE_L("Render selected : EPX 2X SCALE", "Render selected : EPX 2X SCALE", 1500); break;
+		case 3: MESSAGE_L("Render selected : INTERPOLATED", "Render selected : INTERPOLATED", 1500); break;
+		case 4: MESSAGE_L("Render selected : FULL SCANLINE", "Render selected : FULL SCANLINE", 1500); break;
+		case 5: MESSAGE_L("Render selected : 50% SCANLINE", "Render selected : 50% SCANLINE", 1500); break;
+		case 6: MESSAGE_L("Render selected : 25% SCANLINE", "Render selected : 25% SCANLINE", 1500); break;
+		case 7: MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500); break;
+		case 8: MESSAGE_L("Render selected : INTERPOLATED 50% SCANLINE", "Render selected : INTERPOLATED 50% SCANLINE", 1500); break;
+		case 9: MESSAGE_L("Render selected : INTERPOLATED 25% SCANLINE", "Render selected : INTERPOLATED 25% SCANLINE", 1500); break;
+		case 10: MESSAGE_L("Render selected : 2XSAI KREED'S ENGINE", "Render selected : 2XSAI KREED'S ENGINE", 1500); break;
+		default: MESSAGE_L("Render selected : ??????", "Render selected : ??????", 1500); break;
 		}
 	}
-}
-
-void Blit_EPX(unsigned char *Dest, int pitch, int x, int y, int offset)
-{
-	if(Bits32)
-		Blit_EPX_T(MD_Screen32 + 8, (unsigned int*)Dest, pitch, x, y);
-	else
-		Blit_EPX_T(MD_Screen + 8, (unsigned short*)Dest, pitch, x, y);
 }
 
 int Set_Render(HWND hWnd, int Full, int Num, int Force)
@@ -643,7 +704,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	Setting_Render = TRUE;
 
 	int Old_Rend, *Rend;
-	void (**Blit)(unsigned char*, int, int, int, int);
+	BlitFunc* Blit;
 	
 	if (Full)
 	{
@@ -660,222 +721,12 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	Flag_Clr_Scr = 1;
 
 	bool reinit = false;
-	if(!((Full == Full_Screen) && ((Num >=2) && (Old_Rend >= 2)) && (!Force)))
+	if(Full != Full_Screen || (Num != -1 && (Num<2 || Old_Rend<2)) || Force)
 		reinit = true;
-	else if(Bits32 && Num > 2) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
-		Num = 2; // we don't support any modes past this in 32-bit mode
+	else if(Bits32 && Num == 10) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
+		Num = 2; // we don't support 2xSaI in 32-bit mode
 
-	switch(Num)
-	{
-		case -1:
-			switch(Old_Rend)
-			{
-				case 0:
-					if (Have_MMX) *Blit = Blit_X1_MMX;
-					else *Blit = Blit_X1;
-					break;
-
-				case 1:
-					if (Have_MMX) *Blit = Blit_X2_MMX;
-					else *Blit = Blit_X2;
-					break;
-
-				case 2: // EPX
-					*Blit = Blit_EPX;
-					break;
-
-				case 3:
-					if (Have_MMX) *Blit = Blit_X2_Int_MMX;
-					else *Blit =  Blit_X2_Int;
-					break;
-
-				case 4:
-					if (Have_MMX) *Blit = Blit_Scanline_MMX;
-					else *Blit = Blit_Scanline;
-					break;
-
-				case 5:
-					if (Have_MMX) *Blit = Blit_Scanline_50_MMX;
-					else
-					{
-						*Rend = 1;
-						*Blit = Blit_X2;
-					}
-					break;
-
-				case 6:
-					if (Have_MMX) *Blit = Blit_Scanline_25_MMX;
-					else
-					{
-						*Rend = 1;
-						*Blit = Blit_X2;
-					}
-					break;
-
-				case 7:
-					if (Have_MMX) *Blit = Blit_Scanline_Int_MMX;
-					else *Blit = Blit_Scanline_Int;
-					break;
-
-				case 8:
-					if (Have_MMX) *Blit = Blit_Scanline_50_Int_MMX;
-					else
-					{
-						*Rend = 1;
-						*Blit = Blit_X2;
-					}
-					break;
-
-				case 9:
-					if (Have_MMX) *Blit = Blit_Scanline_25_Int_MMX;
-					else
-					{
-						*Rend = 1;
-						*Blit = Blit_X2;
-					}
-					break;
-
-				case 10:
-					if (Have_MMX) *Blit = Blit_2xSAI_MMX;
-					else
-					{
-						*Rend = 1;
-						*Blit = Blit_X2;
-					}
-					break;
-
-
-				default:
-					*Rend = 1;
-					if (Have_MMX) *Blit = Blit_X2_MMX;
-					else *Blit = Blit_X2;
-					break;
-			}
-			break;
-
-		case 0:
-			*Rend = 0;
-			if (Have_MMX) *Blit = Blit_X1_MMX;
-			else *Blit = Blit_X1;
-			MESSAGE_L("Render selected : NORMAL", "Render selected : NORMAL", 1500)
-			break;
-
-		case 1:
-			*Rend = 1;
-			if (Have_MMX) *Blit = Blit_X2_MMX;
-			else *Blit = Blit_X2;
-			MESSAGE_L("Render selected : DOUBLE", "Render selected : DOUBLE", 1500)
-			break;
-
-		case 2:
-			*Rend = 2;
-			*Blit = Blit_EPX;
-			MESSAGE_L("Render selected : EPX 2X SCALE", "Render selected : EPX 2X SCALE", 1500)
-			break;
-
-
-		case 3:
-			*Rend = 3;
-			if (Have_MMX) *Blit = Blit_X2_Int_MMX;
-			else *Blit = Blit_X2_Int;
-			MESSAGE_L("Render selected : INTERPOLATED", "Render selected : INTERPOLATED", 1500)
-			break;
-		case 4:
-			*Rend = 4;
-			if (Have_MMX) *Blit = Blit_Scanline_MMX;
-			else *Blit = Blit_Scanline;
-			MESSAGE_L("Render selected : FULL SCANLINE", "Render selected : FULL SCANLINE", 1500)
-			break;
-
-
-		case 5:
-			if (Have_MMX)
-			{
-				*Rend = 5;
-				*Blit = Blit_Scanline_50_MMX;
-				MESSAGE_L("Render selected : 50% SCANLINE", "Render selected : 50% SCANLINE", 1500)
-			}
-			else
-			{
-				*Rend = 7;
-				*Blit = Blit_Scanline_Int;
-				MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500)
-			}
-			break;
-		case 6:
-			if (Have_MMX)
-			{
-				*Rend = 6;
-				*Blit = Blit_Scanline_25_MMX;
-				MESSAGE_L("Render selected : 25% SCANLINE", "Render selected : 25% SCANLINE", 1500)
-			}
-			else
-			{
-				*Rend = 4;
-				*Blit = Blit_Scanline;
-				MESSAGE_L("Render selected : FULL SCANLINE", "Render selected : FULL SCANLINE", 1500)
-			}
-			break;
-
-		case 7:
-			*Rend = 7;
-			if (Have_MMX) *Blit = Blit_Scanline_Int_MMX;
-			else *Blit = Blit_Scanline_Int;
-			MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500)
-			break;
-
-		case 8:
-			if (Have_MMX)
-			{
-				*Rend = 8;
-				*Blit = Blit_Scanline_50_Int_MMX;
-				MESSAGE_L("Render selected : INTERPOLATED 50% SCANLINE", "Render selected : INTERPOLATED 50% SCANLINE", 1500)
-			}
-			else
-			{
-				*Rend = 7;
-				*Blit = Blit_Scanline_Int;
-				MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500)
-			}
-			break;
-
-		case 9:
-			if (Have_MMX)
-			{
-				*Rend = 9;
-				*Blit = Blit_Scanline_25_Int_MMX;
-				MESSAGE_L("Render selected : INTERPOLATED 25% SCANLINE", "Render selected : INTERPOLATED 25% SCANLINE", 1500)
-			}
-			else
-			{
-				*Rend = 7;
-				*Blit = Blit_Scanline_Int;
-				MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500)
-			}
-			break;
-
-		case 10:
-			if (Have_MMX)
-			{
-				*Rend = 10;
-				*Blit = Blit_2xSAI_MMX;
-				MESSAGE_L("Render selected : 2XSAI KREED'S ENGINE", "Render selected : 2XSAI KREED'S ENGINE", 1500)
-			}
-			else
-			{
-				*Rend = 7;
-				*Blit = Blit_Scanline_Int;
-				MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500)
-			}
-			break;
-
-		default:
-			*Rend = 1;
-			if (Have_MMX) *Blit = Blit_X2_MMX;
-			else *Blit = Blit_X2;
-			MESSAGE_L("Render selected : DOUBLE", "Render selected : DOUBLE", 1500)
-			break;
-	}
+	Set_Rend_Int(Num, Rend, Blit);
 
 	if(reinit)
 	{
@@ -922,6 +773,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 		return retval;
 	}
 
+	InvalidateRect(hWnd, NULL, FALSE);
 	Build_Main_Menu();
 	Setting_Render = FALSE;
 	return 1;
@@ -4445,19 +4297,19 @@ HMENU Build_Main_Menu(void)
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 1) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_DOUBLE, "Double", "", "&Double");
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 2) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_EPX, "EPX", "", "&EPX"); //Modif N.
 
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
 
 	if (Have_MMX)
 	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
 	}
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "&Interpolated Scanline");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "&Interpolated Scanline");
 	if (Have_MMX)
 	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
 		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 10) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_2XSAI, "2xSAI (Kreed)", "", "2xSAI (&Kreed)");
 	}
 
