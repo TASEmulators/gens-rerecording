@@ -40,8 +40,8 @@ void Pixel (short x, short y, unsigned int color32, unsigned short color16, char
 	x = max(0,min(319,x));
 	y = max(0,min(223,y));
 	x+=8;
-	color32 = DrawUtil::Blend(color32,MD_Screen32[x + (y * 336)], Opac);
-	color16 = DrawUtil::Blend(color16,MD_Screen[x + (y * 336)], Opac);
+	color32 = DrawUtil::Blend(color32,MD_Screen32[x + (y * 336)], (int)Opac+1);
+	color16 = DrawUtil::Blend(color16,MD_Screen[x + (y * 336)], (int)Opac+1);
 	if (Bits32) 
 		MD_Screen32[x + (336 * y)] = color32;
 	else
