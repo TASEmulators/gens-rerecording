@@ -1,8 +1,6 @@
 //TODO - Move map-dump hack here
-//TODO - convert hitbox display to make use of new GUI drawing functions 
 //TODO - enable separate activation of Camhack, hitbox display, and solidity display (separate #defines)
 //TODO - fix object sizes for Sonic 2, Sonic CD, Sonic 3, Sonic & Knuckles
-//TODO - Display hitboxes around rings in Sonic 3, Sonic & Knuckles
 //TODO - Make use of Sonic 3 and Sonic & Knuckle's "touchable object" table in hitbox display, to keep from displaying "ghost" boxes
 #include <stdio.h>
 #include <windows.h>
@@ -1081,6 +1079,12 @@ void DrawBoxes()
 		PX = CheatRead<unsigned short>(P1OFFSET + XPo);
 		PY = CheatRead<unsigned short>(P1OFFSET + YPo);
 		short Xpos,Ypos;
+		short baky = CamY;
+#ifdef SK
+		LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
+#endif
+		if (CamY < 0) CamY += LEVELHEIGHT;
+		short diff = LEVELHEIGHT - CamY;
 		unsigned char Height,Width,Height2,Width2,Type;
 		bool Touchable;
 		unsigned int DrawColor32;
@@ -1090,6 +1094,7 @@ void DrawBoxes()
 			if (!CheatRead<unsigned long>(0xFF0000 + CardBoard)) continue;
 			Xpos = CheatRead<short>(CardBoard + XPo);
 			Ypos = CheatRead<short>(CardBoard + YPo);
+			if ((Ypos < (224 - diff)) && (diff < 224)) Ypos += LEVELHEIGHT;
 			if ((CheatRead<unsigned char>(CardBoard + Fo) & 4) && !(Xpos | Ypos)) continue;
 			Touchable = (CheatRead<unsigned char>(CardBoard + To)?true:false);
 			if (Touchable)
@@ -1163,24 +1168,6 @@ void DrawBoxes()
 				Xpos -= 0x80;
 				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
 			}
-	#if !(defined S1 || defined SCD)
-			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)
-			{
-				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
-				{
-					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
-					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
-					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
-					DrawBoxMWH(x,y,1,1,0x0000FF,0x001F,0);
-					DrawLine(x-1,y,x+1,y,0xFF0000,0xF800,0);
-					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
-					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
-					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
-				}
-			}
-	#endif
-//			else
-				DrawBoxMWH(Xpos - 8,Ypos,Width2,Height2,0xFF00FF,0xF81F,0);
 /*				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
 				{
 					if (Bits32) 
@@ -1216,10 +1203,6 @@ void DrawBoxes()
 					}
 				}*/
 			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
-			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0);
-			DrawBoxMWH(Xpos - 8,Ypos,1,1,0x00FF00,0x07E0,0);
-			DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,0,0,0);
-			DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,0,0,0);
 	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
 	//			continue;
 			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
@@ -1229,8 +1212,29 @@ void DrawBoxes()
 #endif
 	//				Ypos -= 0x8;
 			}
+	#if !(defined S1 || defined SCD)
+			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)
+			{
+				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
+				{
+					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
+					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
+					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
+					DrawBoxMWH(x,y,1,1,0x0000FF,0x001F,0);
+					DrawLine(x-1,y,x+1,y,0xFF0000,0xF800,0);
+					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
+					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
+					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
+				}
+			}
+			else
+	#endif
+				DrawBoxMWH(Xpos - 8,Ypos,Width2,Height2,0xFF00FF,0xF81F,0,-1,1);
 			if (CheatRead<unsigned char>(CardBoard) == 0x7D) Width = Height = 0x10;
-			DrawBoxMWH(Xpos - 8, Ypos, Width, Height, DrawColor32, DrawColor16,0);
+			DrawBoxMWH(Xpos - 8, Ypos, Width, Height, DrawColor32, DrawColor16,0,-1,1);
+			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0,-1,1,-1);
+			DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,0,0,0);
+			DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,0,0,0);
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
@@ -1255,10 +1259,30 @@ void DrawBoxes()
 				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
 				
 				Pixel(Xpos - 8, Ypos, 0xFF, 0x1F, 0);
-				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 1);
+				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 1,-1,1);
+			}
+		}
+	#elif defined SK
+		unsigned int Nitsuja = CheatRead<unsigned int>(0xFFEE46);
+		unsigned int Stealth = CheatRead<unsigned short>(0xFFEE4A);
+		if (Stealth & 0x8000) Stealth |= 0xFF0000;
+		for (unsigned int CardBoard = CheatRead<unsigned int>(0xFFEE42); CardBoard < Nitsuja; CardBoard += 4, Stealth += 2)	//ring table
+		{
+			if (!CheatRead<unsigned char>(INLEVELFLAG)) break;
+			else if (CheatRead<short>(CardBoard) && !CheatRead<short>(Stealth))
+			{
+				Width2 = Height2 = 6;
+				Xpos = CheatRead<short>(CardBoard) - CamX;
+				Ypos = CheatRead<short>(CardBoard + 2) - CamY;
+				if ((Ypos < (224 - diff)) && (diff < 224)) Ypos += LEVELHEIGHT;
+				Xpos += 8;
+				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
+				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 1,-1,1);
+				Pixel(Xpos - 8, Ypos, 0xFF, 0x1F, 0);
 			}
 		}
 	#endif
+		CamY = baky;
 	}
 }
 //Function which focuses the camera on a specified object in a sonic game

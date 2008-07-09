@@ -40,7 +40,7 @@ void RKADrawBoxes()
 //		Ypos -= Height2;
 //		Height2 = min(Height2,0xFE);
 //		Width2 = min(Width2,0xFE);
-		DrawBoxCWH(Xpos - Width2,Ypos - Height2,Width2 * 2, Height2, -1, -1, -1);
+		DrawBoxCWH(Xpos - Width2,Ypos - Height2,Width2 * 2, Height2, -1, -1, -1,-1,1);
 /*		for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
 		{
 			int x1 = Xpos - JXQ, x2 = Xpos + JXQ;
@@ -186,7 +186,7 @@ void RKADrawBoxes()
 			}
 			if (attack)
 			{
-				DrawBoxCWH(Xpos - Width2,Ypos - Height2,Width2 * 2, Height2, 0xFF0000, 0xF800, -1);
+				DrawBoxCWH(Xpos - Width2,Ypos - Height2,Width2 * 2, Height2, 0xFF0000, 0xF800, -1,-1,1);
 /*				Height2 >>= 1;
 				Ypos -= Height2;
 				Width2 = min(Width2,0xFE);

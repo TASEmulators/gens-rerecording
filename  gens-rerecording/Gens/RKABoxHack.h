@@ -1,5 +1,6 @@
 #ifndef _RKABOXHACK_H
 #define _RKABOXHACK_H
+#include "hackdefs.h"
 #ifdef RKABOXHACK
 #define POSOFFSET 0xC000
 #define SSTLEN 0x2000
