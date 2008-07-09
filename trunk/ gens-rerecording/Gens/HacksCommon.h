@@ -20,5 +20,9 @@ void CheatWrite (unsigned int address, T Value)
 	}
 }
 extern unsigned short CamX;
+#ifdef SONICCAMHACK
+extern short CamY;
+#else
 extern unsigned short CamY;
+#endif
 #endif
