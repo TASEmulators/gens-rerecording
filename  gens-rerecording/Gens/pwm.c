@@ -2,6 +2,7 @@
 
 #include "SH2.h"
 #include "mem_SH2.h"
+#include <memory.h>
 
 #define PWM_BUF_SIZE 4
 #if PWM_BUF_SIZE == 8

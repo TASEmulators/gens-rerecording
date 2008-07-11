@@ -451,6 +451,7 @@
 #define IDC_C_OR		               42147
 #define IDC_PREVIOUSVALUE              42147
 #define IDC_SPECIFICVALUE              42148
+#define IDC_CHEATEDITVALUE             42156
 #define IDC_SPECIFICADDRESS            42157
 #define IDC_NUMBEROFCHANGES            42158
 #define IDC_C_XOR			           42158
@@ -480,6 +481,11 @@
 #define IDC_CDDAVOL					   43306
 #define ID_CHANGE_CLEANAVI			   43310
 #define ID_CHANGE_PALLOCK			   43311
+
+#define IDC_STATIC_TEXT3               43400
+#define IDC_STATIC_TEXT4               43401
+#define IDC_STATIC_TEXT5               43402
+#define IDC_STATIC_TEXT6               43403
 
 #define IDB_WARNING                     102
 #define IDC_STATIC_WARNING_BITMAP       1000

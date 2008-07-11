@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "ym2612.h"
+#include <memory.h>
 
 
 /********************************************

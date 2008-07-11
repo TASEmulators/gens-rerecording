@@ -43,7 +43,7 @@ void CDD_Reset(void)
 
 void CDC_Reset(void)
 {
-	int i;
+	//int i;
 
 	// Reseting CDC
 	
@@ -83,7 +83,8 @@ void LC89510_Reset(void)
 
 void Update_CDC_TRansfert(void)
 {
-	unsigned int i, dep, length, add_dest;
+	//unsigned int i;
+	unsigned int dep, length, add_dest;
 	unsigned char *dest;
 	
 	if ((SCD.Status_CDC & 0x08) == 0) return;

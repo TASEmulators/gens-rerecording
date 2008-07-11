@@ -13,6 +13,7 @@
 #include "cd_sys.h"
 #include "star_68k.h"
 #include "Mem_M68k.h"
+#include <memory.h>
 
 #define PCM_STEP_SHIFT 11
 
@@ -250,7 +251,8 @@ void Write_PCM_Reg(unsigned int Reg, unsigned int Data)
 int Update_PCM(int **buf, int Length)
 {
 	int i, j;
-	int *bufL, *bufR, *volL, *volR;
+	int *bufL, *bufR;
+	//int *volL, *volR;
 	unsigned int Addr, k;
 	struct pcm_chan_ *CH;
 

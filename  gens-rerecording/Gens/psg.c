@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "psg.h"
+#include <memory.h>
 
 
 /* Defines */

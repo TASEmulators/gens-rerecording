@@ -23,7 +23,7 @@ extern struct mpstr *gmp;
 #define WRITE_SAMPLE(samples,sum,clip) \
   if( (sum) > 32767.0) { *(samples) = 0x7fff; (clip)++; } \
   else if( (sum) < -32768.0) { *(samples) = -0x8000; (clip)++; } \
-  else { *(samples) = sum; }
+  else { *(samples) = (short)sum; }
 
 int synth_1to1_mono(real *bandPtr,unsigned char *samples,int *pnt)
 {
