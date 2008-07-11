@@ -6720,23 +6720,23 @@ void Update_RAM_Cheats()
 			xg = 0;
 
 		//CheatWrite<unsigned short>(0xFFF700, x);
-		CheatWrite<unsigned short>(0xFFEE78, x); // set camera position x
-		CheatWrite<unsigned short>(0xFFEE80, x);
+		CheatWrite<unsigned short>(0xFFEE78, (unsigned short)x); // set camera position x
+		CheatWrite<unsigned short>(0xFFEE80, (unsigned short)x);
 //		CheatWrite<unsigned long>(0xFFA80C, x);
 //		CheatWrite<unsigned long>(0xFFA814, x);
 //		CheatWrite<unsigned long>(0xFFA818, x);
 		//CheatWrite<unsigned short>(0xFFF704, y);
-		CheatWrite<unsigned short>(0xFFEE78+4, y);  // set camera position y
-		CheatWrite<unsigned short>(0xFFEE80+4, y);
+		CheatWrite<unsigned short>(0xFFEE78+4, (unsigned short)y);  // set camera position y
+		CheatWrite<unsigned short>(0xFFEE80+4, (unsigned short)y);
 //		CheatWrite<unsigned long>(0xFFA80C+4, y);
 //		CheatWrite<unsigned long>(0xFFA814+4, y);
 //		CheatWrite<unsigned long>(0xFFA818+4, y);
 		if(GetAsyncKeyState(VK_OEM_COMMA))
 		{
 			//CheatWrite(0xFFD008,x+160);
-			CheatWrite<short>(0xFFB010, x+160);
+			CheatWrite<short>(0xFFB010, (short)x+160);
 			//CheatWrite(0xFFD00C,y+112);
-			CheatWrite<short>(0xFFB014, y+120);
+			CheatWrite<short>(0xFFB014, (short)y+120);
 		}
 		//CheatWrite<unsigned short>(0xFFB004, CheatRead<unsigned short>(0xB004) & ~0x4); // no death
 		//CheatWrite<unsigned short>(0xFFB00B, CheatRead<unsigned short>(0xB00B) & ~0x80); // no death
@@ -7503,7 +7503,7 @@ LRESULT CALLBACK VolumeProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	RECT r;
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
-	static unsigned char TempMast, Temp2612, TempPSG, TempDAC, TempPCM, TempCDDA, TempPWM;
+	static unsigned short TempMast, Temp2612, TempPSG, TempDAC, TempPCM, TempCDDA, TempPWM;
 
 	switch(uMsg)
 	{
@@ -7590,25 +7590,25 @@ LRESULT CALLBACK VolumeProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			switch (i)
 			{
 				case IDC_MASTVOL:
-					MastVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					MastVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_2612VOL:
-					YM2612Vol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					YM2612Vol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_PSGVOL:
-					PSGVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					PSGVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_DACVOL:
-					DACVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					DACVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_PCMVOL:
-					PCMVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					PCMVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_CDDAVOL:
-					CDDAVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					CDDAVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				case IDC_PWMVOL:
-					PWMVol = 256 - SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
+					PWMVol = 256 - (short)SendDlgItemMessage(hDlg,i,TBM_GETPOS,(WPARAM)0,(LPARAM)0);
 					break;
 				default:
 					break;
@@ -8097,7 +8097,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 					Controller_2D_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
                     LeftRightEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_LEFTRIGHT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif
                     NumLoadEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif N.
-					StateSelectCfg = SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0);
+					StateSelectCfg = (unsigned char)SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0);
 					Make_IO_Table();
 					End_Input();
 					DialogsOpen--;

@@ -11,7 +11,7 @@ void PutText (char *string, short x, short y, short xl, short yl, short xh, shor
 	yh = min(yh + 217,217);
 	xh -= 4 * strlen(string);
 	x = x - ((5 * (strlen(string) - 1))/2);
-	x = min(max(x,max(xl,1)),min(xh,318 - 4 * strlen(string)));
+	x = min(max(x,max(xl,1)),min(xh,318 - 4 * (int)strlen(string)));
 	y = min(max(y - 3,max(yl,1)),yh);
 	const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
 	const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};

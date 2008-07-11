@@ -15,7 +15,7 @@ void CheatWrite (unsigned int address, T Value)
 {
 	for (int i = sizeof(T) - 1; i >= 0; i--)
 	{
-		M68K_WB(address + i, (Value & 0xFF));
+		M68K_WB(address + i, (unsigned char)(Value & 0xFF));
 		Value >>= 8;
 	}
 }

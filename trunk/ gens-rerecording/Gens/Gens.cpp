@@ -262,7 +262,7 @@ unsigned int Pal32_XRAY[0x10000];
 			}\
 		}*/
 #define POST_LINE \
-		for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
+		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 		{\
 			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
 			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
@@ -270,7 +270,7 @@ unsigned int Pal32_XRAY[0x10000];
 		}
 #define POST_LINE_32X_M01 {\
 VRam_Ind*=2;\
-	for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
+	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
 		unsigned short Pix = _32X_VDP_CRam[pix];\
@@ -288,7 +288,7 @@ VRam_Ind*=2;\
 	}\
 }
 #define POST_LINE_32X_M10 \
-for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
+for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 {\
 	unsigned short pix = VRam_32X[VRam_Ind++];\
 	if ((pix & 0x8000) || !(MD_Screen[Pixel] & 0xF))\
@@ -320,7 +320,7 @@ for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] 
 }
 #define POST_LINE_32X_SM01 {\
 VRam_Ind*=2;\
-	for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
+	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
 		unsigned short Pix = _32X_VDP_CRam[pix];\
@@ -339,7 +339,7 @@ VRam_Ind*=2;\
 }
 #define POST_LINE_32X_M01_P {\
 VRam_Ind*=2;\
-	for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
+	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
 		unsigned short Pix = _32X_VDP_CRam[pix];\
@@ -357,7 +357,7 @@ VRam_Ind*=2;\
 	}\
 }
 #define POST_LINE_32X_M10_P \
-for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
+for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 {\
 	unsigned short pix = VRam_32X[VRam_Ind++];\
 	if (!(pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
@@ -374,7 +374,7 @@ for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] 
 }
 #define POST_LINE_32X_SM01_P {\
 VRam_Ind*=2;\
-	for (int Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
+	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
 		unsigned short Pix = _32X_VDP_CRam[pix];\

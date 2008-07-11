@@ -786,7 +786,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
@@ -814,7 +814,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
@@ -842,7 +842,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
@@ -870,7 +870,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
@@ -898,7 +898,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
@@ -927,7 +927,7 @@ void DrawInformationOnTheScreen()
 			if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
 			if (!IS_FULL_X_RESOLUTION)
 				n-=64;	
-			for(pos=0;(int)pos<strlen(temp);pos++)
+			for(pos=0;pos<(int)strlen(temp);pos++)
 			{
 				m=(temp[pos]-'-')*30;
 				for(j=0;j<7;j++,n+=330)
