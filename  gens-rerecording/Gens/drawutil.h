@@ -27,6 +27,15 @@ public:
 	static inline pix32 Pix16To32 (pix16 Src);
 	static inline pix16 Pix32To16 (pix32 Src);
 
+	static inline pix16 Make16 (int R, int G, int B);
+	static inline pix32 Make32 (int R, int G, int B);
+	static inline int GetR (pix16 Src);
+	static inline int GetR (pix32 Src);
+	static inline int GetG (pix16 Src);
+	static inline int GetG (pix32 Src);
+	static inline int GetB (pix16 Src);
+	static inline int GetB (pix32 Src);
+
 	enum
 	{
 		RMASK_16 = 0xF800,
@@ -85,6 +94,7 @@ inline pix32 DrawUtil::Add (pix32 A, pix32 B) {
 
 // from: xxxxxxxxRRRRRxxxGGGGGGxxBBBBBxxx
 //   to:                 RRRRRGGGGGGBBBBB
+// todo: round instead of truncate?
 inline pix16 DrawUtil::Pix32To16 (pix32 Src)
 {
 	int rm = Src & 0xF80000;
@@ -102,5 +112,42 @@ inline pix32 DrawUtil::Pix16To32 (pix16 Src)
 	int bm = Src & 0x1F;
 	return (rm << 8) | (gm << 5) | (bm << 3);
 }
+
+inline pix16 DrawUtil::Make16 (int R, int G, int B)
+{
+	return ((R & 0x1F) << 11) | ((G & 0x3F) << 5) | ((B & 0x1F) << 0);
+}
+
+inline pix32 DrawUtil::Make32 (int R, int G, int B)
+{
+	return ((R & 0xFF) << 16) | ((G & 0xFF) << 8) | ((B & 0xFF) << 0);
+}
+
+inline int DrawUtil::GetR (pix16 Src)
+{
+	return (Src >> 8) & 0xF8;
+}
+inline int DrawUtil::GetG (pix16 Src)
+{
+	return (Src >> 3) & 0xFC;
+}
+inline int DrawUtil::GetB (pix16 Src)
+{
+	return (Src << 3) & 0xF8;
+}
+
+inline int DrawUtil::GetR (pix32 Src)
+{
+	return (Src >> 16) & 0xFF;
+}
+inline int DrawUtil::GetG (pix32 Src)
+{
+	return (Src >> 8) & 0xFF;
+}
+inline int DrawUtil::GetB (pix32 Src)
+{
+	return (Src >> 0) & 0xFF;
+}
+
 
 #endif
