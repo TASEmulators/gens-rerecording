@@ -88,6 +88,8 @@
 		SaveStateData difference;
 		bool ok = true;
 		firstFailureByte = -1;
+		static const int maxFailures = 4000; // print at most this many failure at once
+		int numFailures = 0;
 		for(int i = 0; i < CHECKED_STATE_LENGTH; i++)
 		{
 			unsigned char diff = data2.State_Buffer[i] - data1.State_Buffer[i];
@@ -102,6 +104,9 @@
 					ok = false;
 					firstFailureByte = i;
 				}
+				numFailures++;
+				if(numFailures > maxFailures)
+					break;
 			}
 		}
 		return ok;
@@ -126,7 +131,7 @@
 		bool checkingDesync = (GetKeyState(VK_LCONTROL) & 0x8000) != 0;
 		int checkingDesyncPart = GetKeyState(VK_SCROLL) ? 1 : 0;
 		if(!forceCheckingDesync)
-			checkingDesync |= checkingDesyncPart;
+			checkingDesync |= !!checkingDesyncPart;
 		else
 		{
 			checkingDesync = true;
