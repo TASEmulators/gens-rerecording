@@ -26,6 +26,7 @@ void Blit_2xSAI_MMX(unsigned char *Dest, int pitch, int x, int y, int offset);
 
 // blitters/filters implemented in C that work in 16- or 32-bit color depth
 void CBlit_EPX(unsigned char *Dest, int pitch, int x, int y, int offset);
+void CBlit_EPXPlus(unsigned char *Dest, int pitch, int x, int y, int offset);
 void CBlit_X2_Int(unsigned char *Dest, int pitch, int x, int y, int offset);
 void CBlit_Scanline(unsigned char *Dest, int pitch, int x, int y, int offset);
 void CBlit_Scanline_Int(unsigned char *Dest, int pitch, int x, int y, int offset);
