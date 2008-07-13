@@ -78,22 +78,22 @@ char *mapped_cd;
 #define GENS_VERSION_H 2 * 65536 + 10
 
 #define MINIMIZE								\
-if (Sound_Initialised) Clear_Sound_Buffer();	\
+{if (Sound_Initialised) Clear_Sound_Buffer();	\
 if (Full_Screen)								\
 {												\
 	Set_Render(hWnd, 0, -1, true);				\
 	FS_Minimised = 1;							\
-}
+}}
 
 #define MENU_L(smenu, pos, flags, id, str, suffixe, def)										\
-GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
+{GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
 strcat(Str_Tmp, (suffixe));																			\
-InsertMenu((smenu), (pos), (flags), (id), Str_Tmp);
+InsertMenu((smenu), (pos), (flags), (id), Str_Tmp);}
 
 #define WORD_L(id, str, suffixe, def)															\
-GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
+{GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
 strcat(Str_Tmp, (suffixe));																			\
-SetDlgItemText(hDlg, id, Str_Tmp);
+SetDlgItemText(hDlg, id, Str_Tmp);}
 
 #define MESSAGE_L(str, def, time)																	\
 {																									\
@@ -672,6 +672,10 @@ void Set_Rend_Int(int Num, int* Rend, BlitFunc* Blit)
 			}
 			break;
 
+		case 11:
+			*Blit = CBlit_EPXPlus;
+			break;
+
 		default:
 			*Rend = 1;
 			if (Have_MMX) *Blit = Blit_X2_MMX;
@@ -694,6 +698,7 @@ void Set_Rend_Int(int Num, int* Rend, BlitFunc* Blit)
 		case 8: MESSAGE_L("Render selected : INTERPOLATED 50% SCANLINE", "Render selected : INTERPOLATED 50% SCANLINE", 1500); break;
 		case 9: MESSAGE_L("Render selected : INTERPOLATED 25% SCANLINE", "Render selected : INTERPOLATED 25% SCANLINE", 1500); break;
 		case 10: MESSAGE_L("Render selected : 2XSAI KREED'S ENGINE", "Render selected : 2XSAI KREED'S ENGINE", 1500); break;
+		case 11: MESSAGE_L("Render selected : EPX+", "Render selected : EPX+", 1500); break;
 		default: MESSAGE_L("Render selected : ??????", "Render selected : ??????", 1500); break;
 		}
 	}
@@ -724,7 +729,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	if(Full != Full_Screen || (Num != -1 && (Num<2 || Old_Rend<2)) || Force)
 		reinit = true;
 	else if(Bits32 && Num == 10) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
-		Num = 2; // we don't support 2xSaI in 32-bit mode
+		Num = 11; // we don't support 2xSaI in 32-bit mode
 
 	Set_Rend_Int(Num, Rend, Blit);
 
@@ -2947,6 +2952,9 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_RENDER_EPX:
 					Set_Render(hWnd, Full_Screen, 2, false);
 					return 0;
+				case ID_GRAPHICS_RENDER_EPXPLUS:
+					Set_Render(hWnd, Full_Screen, 11, false);
+					return 0;
 
 				case ID_GRAPHICS_RENDER_DOUBLE_INT:
 					Set_Render(hWnd, Full_Screen, 3, false);
@@ -3006,17 +3014,15 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_GRAPHICS_PREVIOUS_RENDER:
-					if ((Full_Screen) && (Render_FS > 0)) Set_Render(hWnd, 1, Render_FS - 1, false);
-					else if ((!Full_Screen) && (Render_W > 0)) Set_Render(hWnd, 0, Render_W - 1, false);
-					return 0;
-
 				case ID_GRAPHICS_NEXT_RENDER:
-				{
-					int Rend = (Full_Screen?Render_FS:Render_W);
-					if ((Full_Screen) && (Render_FS < (Bits32?2:10))) Set_Render(hWnd, 1, Render_FS + 1, false);
-					else if ((!Full_Screen) && (Render_W < (Bits32?2:10))) Set_Render(hWnd, 0, Render_W + 1, false);
+					{
+						int& Rend = Full_Screen ? Render_FS : Render_W;
+						int RendOrder [] = {-1, 0,1,2,11,Bits32?-2:10,3,4,5,6,7,8,9, -1,-1};
+						int index = 1; for(; RendOrder[index] != Rend && index<sizeof(RendOrder)/sizeof(*RendOrder)-1; index++);
+						do {index += (LOWORD(wParam) == ID_GRAPHICS_PREVIOUS_RENDER) ? -1 : 1;} while(RendOrder[index] == -2);
+						Set_Render(hWnd, Full_Screen, RendOrder[index], false);
+					}
 					return 0;
-				}
 
 				case ID_GRAPHICS_STRETCH:
 					Change_Stretch();
@@ -4296,21 +4302,26 @@ HMENU Build_Main_Menu(void)
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_NORMAL, "Normal", "", "&Normal");
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 1) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_DOUBLE, "Double", "", "&Double");
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 2) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_EPX, "EPX", "", "&EPX"); //Modif N.
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 11) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_EPXPLUS, "EPX+", "", "EP&X+"); //Modif N.
 
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
-
-	if (Have_MMX)
-	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
-	}
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "&Interpolated Scanline");
-	if (Have_MMX)
-	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (/*Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED :*/ ((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
+	if (Have_MMX && !Bits32)
 		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 10) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_2XSAI, "2xSAI (Kreed)", "", "2xSAI (&Kreed)");
+
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
+
+	if (Have_MMX)
+	{
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
+	}
+
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "Interpolated Scanline");
+
+	if (Have_MMX)
+	{
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
 	}
 
 	// Menu GraphicsLayers
