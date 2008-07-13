@@ -1590,219 +1590,282 @@ void Export_SegaCD(unsigned char *Data)
 
 void Import_32X(unsigned char *Data)
 {
-//	unsigned char *src;
-	int i;
+	unsigned int offset = 0;
 
-	for(i = 0; i < 0x1000; i++) M_SH2.Cache[i] = Data[i];
-	for(i = 0; i < 0x200; i++) SH2_Write_Byte(&M_SH2, 0xFFFFFE00 + i, Data[0x1000 + i]);
+	for(int contextNum=0; contextNum<2; contextNum++)
+	{
+		SH2_CONTEXT* context = (contextNum == 0) ? &M_SH2 : &S_SH2;
 
-	ImportData(&(M_SH2.R[0]), Data, 0x1200, 16 * 4);
+		ImportDataAuto(context->Cache, Data, offset, sizeof(context->Cache));
+		ImportDataAuto(context->R, Data, offset, sizeof(context->R));
+		ImportDataAuto(&context->SR, Data, offset, sizeof(context->SR));
+		ImportDataAuto(&context->INT, Data, offset, sizeof(context->INT));
+		ImportDataAuto(&context->GBR, Data, offset, sizeof(context->GBR));
+		ImportDataAuto(&context->VBR, Data, offset, sizeof(context->VBR));
+		ImportDataAuto(context->INT_QUEUE, Data, offset, sizeof(context->INT_QUEUE));
+		ImportDataAuto(&context->MACH, Data, offset, sizeof(context->MACH));
+		ImportDataAuto(&context->MACL, Data, offset, sizeof(context->MACL));
+		ImportDataAuto(&context->PR, Data, offset, sizeof(context->PR));
+		ImportDataAuto(&context->PC, Data, offset, sizeof(context->PC));
+		ImportDataAuto(&context->Status, Data, offset, sizeof(context->Status));
+		ImportDataAuto(&context->Base_PC, Data, offset, sizeof(context->Base_PC));
+		ImportDataAuto(&context->Fetch_Start, Data, offset, sizeof(context->Fetch_Start));
+		ImportDataAuto(&context->Fetch_End, Data, offset, sizeof(context->Fetch_End));
+		ImportDataAuto(&context->DS_Inst, Data, offset, sizeof(context->DS_Inst));
+		ImportDataAuto(&context->DS_PC, Data, offset, sizeof(context->DS_PC));
+		ImportDataAuto(&context->Odometer, Data, offset, sizeof(context->Odometer));
+		ImportDataAuto(&context->Cycle_TD, Data, offset, sizeof(context->Cycle_TD));
+		ImportDataAuto(&context->Cycle_IO, Data, offset, sizeof(context->Cycle_IO));
+		ImportDataAuto(&context->Cycle_Sup, Data, offset, sizeof(context->Cycle_Sup));
+		ImportDataAuto(context->IO_Reg, Data, offset, sizeof(context->IO_Reg));
+		ImportDataAuto(&context->DVCR, Data, offset, sizeof(context->DVCR));
+		ImportDataAuto(&context->DVSR, Data, offset, sizeof(context->DVSR));
+		ImportDataAuto(&context->DVDNTH, Data, offset, sizeof(context->DVDNTH));
+		ImportDataAuto(&context->DVDNTL, Data, offset, sizeof(context->DVDNTL));
+		ImportDataAuto(&context->DRCR0, Data, offset, sizeof(context->DRCR0));
+		ImportDataAuto(&context->DRCR1, Data, offset, sizeof(context->DRCR1));
+		ImportDataAuto(&context->DREQ0, Data, offset, sizeof(context->DREQ0));
+		ImportDataAuto(&context->DREQ1, Data, offset, sizeof(context->DREQ1));
+		ImportDataAuto(&context->DMAOR, Data, offset, sizeof(context->DMAOR));
+		ImportDataAuto(&context->SAR0, Data, offset, sizeof(context->SAR0));
+		ImportDataAuto(&context->DAR0, Data, offset, sizeof(context->DAR0));
+		ImportDataAuto(&context->TCR0, Data, offset, sizeof(context->TCR0));
+		ImportDataAuto(&context->CHCR0, Data, offset, sizeof(context->CHCR0));
+		ImportDataAuto(&context->SAR1, Data, offset, sizeof(context->SAR1));
+		ImportDataAuto(&context->DAR1, Data, offset, sizeof(context->DAR1));
+		ImportDataAuto(&context->TCR1, Data, offset, sizeof(context->TCR1));
+		ImportDataAuto(&context->CHCR1, Data, offset, sizeof(context->CHCR1));
+		ImportDataAuto(&context->VCRDIV, Data, offset, sizeof(context->VCRDIV));
+		ImportDataAuto(&context->VCRDMA0, Data, offset, sizeof(context->VCRDMA0));
+		ImportDataAuto(&context->VCRDMA1, Data, offset, sizeof(context->VCRDMA1));
+		ImportDataAuto(&context->VCRWDT, Data, offset, sizeof(context->VCRWDT));
+		ImportDataAuto(&context->IPDIV, Data, offset, sizeof(context->IPDIV));
+		ImportDataAuto(&context->IPDMA, Data, offset, sizeof(context->IPDMA));
+		ImportDataAuto(&context->IPWDT, Data, offset, sizeof(context->IPWDT));
+		ImportDataAuto(&context->IPBSC, Data, offset, sizeof(context->IPBSC));
+		ImportDataAuto(&context->BARA, Data, offset, sizeof(context->BARA));
+		ImportDataAuto(&context->BAMRA, Data, offset, sizeof(context->BAMRA));
+		ImportDataAuto(context->WDT_Tab, Data, offset, sizeof(context->WDT_Tab));
+		ImportDataAuto(&context->WDTCNT, Data, offset, sizeof(context->WDTCNT));
+		ImportDataAuto(&context->WDT_Sft, Data, offset, sizeof(context->WDT_Sft));
+		ImportDataAuto(&context->WDTSR, Data, offset, sizeof(context->WDTSR));
+		ImportDataAuto(&context->WDTRST, Data, offset, sizeof(context->WDTRST));
+		ImportDataAuto(context->FRT_Tab, Data, offset, sizeof(context->FRT_Tab));
+		ImportDataAuto(&context->FRTCNT, Data, offset, sizeof(context->FRTCNT));
+		ImportDataAuto(&context->FRTOCRA, Data, offset, sizeof(context->FRTOCRA));
+		ImportDataAuto(&context->FRTOCRB, Data, offset, sizeof(context->FRTOCRB));
+		ImportDataAuto(&context->FRTTIER, Data, offset, sizeof(context->FRTTIER));
+		ImportDataAuto(&context->FRTCSR, Data, offset, sizeof(context->FRTCSR));
+		ImportDataAuto(&context->FRTTCR, Data, offset, sizeof(context->FRTTCR));
+		ImportDataAuto(&context->FRTTOCR, Data, offset, sizeof(context->FRTTOCR));
+		ImportDataAuto(&context->FRTICR, Data, offset, sizeof(context->FRTICR));
+		ImportDataAuto(&context->FRT_Sft, Data, offset, sizeof(context->FRT_Sft));
+		ImportDataAuto(&context->BCR1, Data, offset, sizeof(context->BCR1));
+		ImportDataAuto(&context->FRTCSR, Data, offset, sizeof(context->FRTCSR));
+	}
 
-	SH2_Set_SR(&M_SH2, (Data[0x1243] << 24) + (Data[0x1242] << 16) + (Data[0x1241] << 8) + Data[0x1240]);
-	SH2_Set_GBR(&M_SH2, (Data[0x1247] << 24) + (Data[0x1246] << 16) + (Data[0x1245] << 8) + Data[0x1244]);
-	SH2_Set_VBR(&M_SH2, (Data[0x124B] << 24) + (Data[0x124A] << 16) + (Data[0x1249] << 8) + Data[0x1248]);
-	SH2_Set_MACL(&M_SH2, (Data[0x124F] << 24) + (Data[0x124E] << 16) + (Data[0x124D] << 8) + Data[0x124C]);
-	SH2_Set_MACH(&M_SH2, (Data[0x1253] << 24) + (Data[0x1252] << 16) + (Data[0x1251] << 8) + Data[0x1250]);
-	SH2_Set_PR(&M_SH2, (Data[0x1257] << 24) + (Data[0x1256] << 16) + (Data[0x1255] << 8) + Data[0x1254]);
-	SH2_Set_PC(&M_SH2, (Data[0x125B] << 24) + (Data[0x125A] << 16) + (Data[0x1259] << 8) + Data[0x1258]);
-	M_SH2.Status = (Data[0x125F] << 24) + (Data[0x125E] << 16) + (Data[0x125D] << 8) + Data[0x125C];
+	ImportDataAuto(_32X_Ram, Data, offset, sizeof(_32X_Ram));
+	ImportDataAuto(_MSH2_Reg, Data, offset, sizeof(_MSH2_Reg));
+	ImportDataAuto(_SSH2_Reg, Data, offset, sizeof(_SSH2_Reg));
+	ImportDataAuto(_SH2_VDP_Reg, Data, offset, sizeof(_SH2_VDP_Reg));
+	ImportDataAuto(_32X_Comm, Data, offset, sizeof(_32X_Comm));
+	ImportDataAuto(&_32X_ADEN, Data, offset, sizeof(_32X_ADEN));
+	ImportDataAuto(&_32X_RES, Data, offset, sizeof(_32X_RES));
+	ImportDataAuto(&_32X_FM, Data, offset, sizeof(_32X_FM));
+	ImportDataAuto(&_32X_RV, Data, offset, sizeof(_32X_RV));
+	ImportDataAuto(&_32X_DREQ_ST, Data, offset, sizeof(_32X_DREQ_ST));
+	ImportDataAuto(&_32X_DREQ_SRC, Data, offset, sizeof(_32X_DREQ_SRC));
+	ImportDataAuto(&_32X_DREQ_DST, Data, offset, sizeof(_32X_DREQ_DST));
+	ImportDataAuto(&_32X_DREQ_LEN, Data, offset, sizeof(_32X_DREQ_LEN));
+	ImportDataAuto(_32X_FIFO_A, Data, offset, sizeof(_32X_FIFO_A));
+	ImportDataAuto(_32X_FIFO_B, Data, offset, sizeof(_32X_FIFO_B));
+	ImportDataAuto(&_32X_FIFO_Block, Data, offset, sizeof(_32X_FIFO_Block));
+	ImportDataAuto(&_32X_FIFO_Read, Data, offset, sizeof(_32X_FIFO_Read));
+	ImportDataAuto(&_32X_FIFO_Write, Data, offset, sizeof(_32X_FIFO_Write));
+	ImportDataAuto(&_32X_MINT, Data, offset, sizeof(_32X_MINT));
+	ImportDataAuto(&_32X_SINT, Data, offset, sizeof(_32X_SINT));
+	ImportDataAuto(&_32X_HIC, Data, offset, sizeof(_32X_HIC));
+	ImportDataAuto(&CPL_SSH2, Data, offset, sizeof(CPL_SSH2));
+	ImportDataAuto(&CPL_MSH2, Data, offset, sizeof(CPL_MSH2));
+	ImportDataAuto(&Cycles_MSH2, Data, offset, sizeof(Cycles_MSH2));
+	ImportDataAuto(&Cycles_SSH2, Data, offset, sizeof(Cycles_SSH2));
 
-	for(i = 0; i < 0x1000; i++) S_SH2.Cache[i] = Data[i + 0x1400];
-	for(i = 0; i < 0x200; i++) SH2_Write_Byte(&S_SH2, 0xFFFFFE00 + i, Data[0x2400 + i]);
+	ImportDataAuto(&_32X_VDP, Data, offset, sizeof(_32X_VDP));
+	ImportDataAuto(_32X_VDP_Ram, Data, offset, sizeof(_32X_VDP_Ram));
+	ImportDataAuto(_32X_VDP_CRam, Data, offset, sizeof(_32X_VDP_CRam));
 
-	ImportData(&(S_SH2.R[0]), Data, 0x2600, 16 * 4);
+	ImportDataAuto(Set_SR_Table, Data, offset, sizeof(Set_SR_Table));
+	ImportDataAuto(&Bank_SH2, Data, offset, sizeof(Bank_SH2));
 
-	SH2_Set_SR(&S_SH2, (Data[0x2643] << 24) + (Data[0x2642] << 16) + (Data[0x2641] << 8) + Data[0x2640]);
-	SH2_Set_GBR(&S_SH2, (Data[0x2647] << 24) + (Data[0x2646] << 16) + (Data[0x2645] << 8) + Data[0x2644]);
-	SH2_Set_VBR(&S_SH2, (Data[0x264B] << 24) + (Data[0x264A] << 16) + (Data[0x2649] << 8) + Data[0x2648]);
-	SH2_Set_MACL(&S_SH2, (Data[0x264F] << 24) + (Data[0x264E] << 16) + (Data[0x264D] << 8) + Data[0x264C]);
-	SH2_Set_MACH(&S_SH2, (Data[0x2653] << 24) + (Data[0x2652] << 16) + (Data[0x2651] << 8) + Data[0x2650]);
-	SH2_Set_PR(&S_SH2, (Data[0x2657] << 24) + (Data[0x2656] << 16) + (Data[0x2655] << 8) + Data[0x2654]);
-	SH2_Set_PC(&S_SH2, (Data[0x265B] << 24) + (Data[0x265A] << 16) + (Data[0x2659] << 8) + Data[0x2658]);
-	S_SH2.Status = (Data[0x265F] << 24) + (Data[0x265E] << 16) + (Data[0x265D] << 8) + Data[0x265C];
+	ImportDataAuto(PWM_FIFO_R, Data, offset, sizeof(PWM_FIFO_R));
+	ImportDataAuto(PWM_FIFO_L, Data, offset, sizeof(PWM_FIFO_L));
+	ImportDataAuto(&PWM_RP_R, Data, offset, sizeof(PWM_RP_R));
+	ImportDataAuto(&PWM_WP_R, Data, offset, sizeof(PWM_WP_R));
+	ImportDataAuto(&PWM_RP_L, Data, offset, sizeof(PWM_RP_L));
+	ImportDataAuto(&PWM_WP_L, Data, offset, sizeof(PWM_WP_L));
+	ImportDataAuto(&PWM_Cycles, Data, offset, sizeof(PWM_Cycles));
+	ImportDataAuto(&PWM_Cycle, Data, offset, sizeof(PWM_Cycle));
+	ImportDataAuto(&PWM_Cycle_Cnt, Data, offset, sizeof(PWM_Cycle_Cnt));
+	ImportDataAuto(&PWM_Int, Data, offset, sizeof(PWM_Int));
+	ImportDataAuto(&PWM_Int_Cnt, Data, offset, sizeof(PWM_Int_Cnt));
+	ImportDataAuto(&PWM_Mode, Data, offset, sizeof(PWM_Mode));
+	ImportDataAuto(&PWM_Out_R, Data, offset, sizeof(PWM_Out_R));
+	ImportDataAuto(&PWM_Out_L, Data, offset, sizeof(PWM_Out_L));
 
-	_32X_ADEN = Data[0x2700] & 1;
-	_32X_RV = Data[0x2705] & 1;
+	ImportDataAuto(_32X_Rom, Data, offset, 1024); // just in case some of these bytes are not in fact read-only as was apparently the case with Sega CD games (1024 seems acceptably small)
+	ImportDataAuto(_32X_MSH2_Rom, Data, offset, sizeof(_32X_MSH2_Rom));
+	ImportDataAuto(_32X_SSH2_Rom, Data, offset, sizeof(_32X_SSH2_Rom));
+
 	M68K_32X_Mode();
-	_32X_FM = Data[0x2701] & 0x80;
 	_32X_Set_FB();
-	_32X_MINT = Data[0x2702];
-	_32X_SINT = Data[0x2703];
-	Bank_SH2 = Data[0x2704];
 	M68K_Set_32X_Rom_Bank();
-	
-	/*******
-	FIFO stuff to add here...	
-	 *******/
-	for(i = 0; i < 0x10; i++) SH2_Write_Byte(&M_SH2, 0x4020 + i, Data[0x2740 + i]);
-	for(i = 0; i < 4; i++) SH2_Write_Byte(&M_SH2, 0x4030 + i, Data[0x2750 + i]);
-	/*******
-	Extra PWM stuff to add here...	
-	 *******/
 
-	// Do it to allow VDP write on 32X side
-	_32X_FM = 0x80;
-	_32X_Set_FB();
-
-	for(i = 0; i < 0x10; i++) SH2_Write_Byte(&M_SH2, 0x4100 + i, Data[0x2760 + i]);
-	for(i = 0; i < 0x200; i += 2) SH2_Write_Word(&M_SH2, 0x4200 + i, Data[i + 0x2800 + 0] + (Data[i + 0x2800 + 1] << 8));
-	for(i = 0; i < 0x40000; i++) SH2_Write_Byte(&M_SH2, 0x6000000 + i, Data[0x2A00 + i]);
-
-	_32X_FM = Data[0x2701] & 0x80;
-	_32X_Set_FB();
-
-	if (SH2_Read_Word(&M_SH2, 0x410A) & 1)
+	//Recalculate_Palettes();
+	for (int i = 0; i < 0x100; i++)
 	{
-		ImportData(_32X_VDP_Ram, Data, 0x42A00, 0x20000);
-		for(i = 0; i < 0x20000; i++) _32X_VDP_Ram[i + 0x20000] = Data[0x62A00 + i];
+		_32X_VDP_CRam_Ajusted[i] = _32X_Palette_16B[_32X_VDP_CRam[i]];
+		_32X_VDP_CRam_Ajusted32[i] = _32X_Palette_32B[_32X_VDP_CRam[i]];
 	}
-	else
-	{
-		for(i = 0; i < 0x20000; i++) _32X_VDP_Ram[i + 0x20000] = Data[0x42A00 + i];
-		ImportData(_32X_VDP_Ram, Data, 0x62A00, 0x20000);
-	}
+
+#ifdef _DEBUG
+	int desiredoffset = G32X_LENGTH_EX;
+	assert(offset == desiredoffset);
+#endif
 }
 
 
 void Export_32X(unsigned char *Data)
 {
-//	unsigned char *src;
-	int i;
+	unsigned int offset = 0;
 
-	for(i = 0; i < 0x1000; i++) Data[i] = M_SH2.Cache[i];
-	for(i = 0; i < 0x200; i++) Data[0x1000 + i] = M_SH2.IO_Reg[i];
-
-	ExportData(&M_SH2.R[0], Data, 0x1200, 16 * 4);
-
-	i = SH2_Get_SR(&M_SH2);
-	Data[0x1240] = (unsigned char) (i & 0xFF);
-	Data[0x1241] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x1242] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x1243] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_GBR(&M_SH2);
-	Data[0x1244] = (unsigned char) (i & 0xFF);
-	Data[0x1245] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x1246] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x1247] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_VBR(&M_SH2);
-	Data[0x1248] = (unsigned char) (i & 0xFF);
-	Data[0x1249] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x124A] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x124B] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_MACL(&M_SH2);
-	Data[0x124C] = (unsigned char) (i & 0xFF);
-	Data[0x124D] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x124E] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x124F] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_MACH(&M_SH2);
-	Data[0x1250] = (unsigned char) (i & 0xFF);
-	Data[0x1251] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x1252] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x1253] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_PR(&M_SH2);
-	Data[0x1254] = (unsigned char) (i & 0xFF);
-	Data[0x1255] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x1256] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x1257] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_PC(&M_SH2);
-	Data[0x1258] = (unsigned char) (i & 0xFF);
-	Data[0x1259] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x125A] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x125B] = (unsigned char) ((i >> 24) & 0xFF);
-	i = M_SH2.Status;
-	Data[0x125C] = (unsigned char) (i & 0xFF);
-	Data[0x125D] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x125E] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x125F] = (unsigned char) ((i >> 24) & 0xFF);
-
-	for(i = 0; i < 0x1000; i++) Data[0x1400 + i] = S_SH2.Cache[i];
-	for(i = 0; i < 0x200; i++) Data[0x2400 + i] = S_SH2.IO_Reg[i];
-
-	ExportData(&S_SH2.R[0], Data, 0x2600, 16 * 4);
-
-	i = SH2_Get_SR(&S_SH2);
-	Data[0x2640] = (unsigned char) (i & 0xFF);
-	Data[0x2641] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x2642] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x2643] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_GBR(&S_SH2);
-	Data[0x2644] = (unsigned char) (i & 0xFF);
-	Data[0x2645] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x2646] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x2647] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_VBR(&S_SH2);
-	Data[0x2648] = (unsigned char) (i & 0xFF);
-	Data[0x2649] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x264A] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x264B] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_MACL(&S_SH2);
-	Data[0x264C] = (unsigned char) (i & 0xFF);
-	Data[0x264D] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x264E] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x264F] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_MACH(&S_SH2);
-	Data[0x2650] = (unsigned char) (i & 0xFF);
-	Data[0x2651] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x2652] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x2653] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_PR(&S_SH2);
-	Data[0x2654] = (unsigned char) (i & 0xFF);
-	Data[0x2655] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x2656] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x2657] = (unsigned char) ((i >> 24) & 0xFF);
-	i = SH2_Get_PC(&S_SH2);
-	Data[0x2658] = (unsigned char) (i & 0xFF);
-	Data[0x2659] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x265A] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x265B] = (unsigned char) ((i >> 24) & 0xFF);
-	i = S_SH2.Status;
-	Data[0x265C] = (unsigned char) (i & 0xFF);
-	Data[0x265D] = (unsigned char) ((i >> 8) & 0xFF);
-	Data[0x265E] = (unsigned char) ((i >> 16) & 0xFF);
-	Data[0x265F] = (unsigned char) ((i >> 24) & 0xFF);
-
-	// Do it to allow VDP write on 32X side
-	Data[0x2700] = _32X_ADEN & 1;
-	Data[0x2705] = _32X_RV & 1;
-	Data[0x2701] = _32X_FM & 0x80;
-	Data[0x2702] = _32X_MINT;
-	Data[0x2703] = _32X_SINT;
-	Data[0x2704] = Bank_SH2;
-	
-	/*******
-	FIFO stuff to add here...	
-	 *******/
-	for(i = 0; i < 0x10; i++) Data[0x2740 + i] = SH2_Read_Byte(&M_SH2, 0x4020 + i);
-	for(i = 0; i < 4; i++) Data[0x2750 + i] = SH2_Read_Byte(&M_SH2, 0x4030 + i);
-	/*******
-	Extra PWM stuff to add here...	
-	 *******/
-
-	// Do it to allow VDP write on 32X side
-	_32X_FM = 0x80;
-	_32X_Set_FB();
-
-	for(i = 0; i < 0x10; i++) Data[0x2760 + i] = SH2_Read_Byte(&M_SH2, 0x4100 + i);
-	for(i = 0; i < 0x200; i += 2)
+	for(int contextNum=0; contextNum<2; contextNum++)
 	{
-		Data[i + 0x2800 + 0] = (unsigned char) (SH2_Read_Word(&M_SH2, 0x4200 + i) & 0xFF);
-		Data[i + 0x2800 + 1] = (unsigned char) (SH2_Read_Word(&M_SH2, 0x4200 + i) >> 8);
-	}
-	for(i = 0; i < 0x40000; i++) Data[0x2A00 + i] = SH2_Read_Byte(&M_SH2, 0x6000000 + i);
+		SH2_CONTEXT* context = (contextNum == 0) ? &M_SH2 : &S_SH2;
 
-	_32X_FM = Data[0x2701] & 0x80;
-	_32X_Set_FB();
+		ExportDataAuto(context->Cache, Data, offset, sizeof(context->Cache));
+		ExportDataAuto(context->R, Data, offset, sizeof(context->R));
+		ExportDataAuto(&context->SR, Data, offset, sizeof(context->SR));
+		ExportDataAuto(&context->INT, Data, offset, sizeof(context->INT));
+		ExportDataAuto(&context->GBR, Data, offset, sizeof(context->GBR));
+		ExportDataAuto(&context->VBR, Data, offset, sizeof(context->VBR));
+		ExportDataAuto(context->INT_QUEUE, Data, offset, sizeof(context->INT_QUEUE));
+		ExportDataAuto(&context->MACH, Data, offset, sizeof(context->MACH));
+		ExportDataAuto(&context->MACL, Data, offset, sizeof(context->MACL));
+		ExportDataAuto(&context->PR, Data, offset, sizeof(context->PR));
+		ExportDataAuto(&context->PC, Data, offset, sizeof(context->PC));
+		ExportDataAuto(&context->Status, Data, offset, sizeof(context->Status));
+		ExportDataAuto(&context->Base_PC, Data, offset, sizeof(context->Base_PC));
+		ExportDataAuto(&context->Fetch_Start, Data, offset, sizeof(context->Fetch_Start));
+		ExportDataAuto(&context->Fetch_End, Data, offset, sizeof(context->Fetch_End));
+		ExportDataAuto(&context->DS_Inst, Data, offset, sizeof(context->DS_Inst));
+		ExportDataAuto(&context->DS_PC, Data, offset, sizeof(context->DS_PC));
+		ExportDataAuto(&context->Odometer, Data, offset, sizeof(context->Odometer));
+		ExportDataAuto(&context->Cycle_TD, Data, offset, sizeof(context->Cycle_TD));
+		ExportDataAuto(&context->Cycle_IO, Data, offset, sizeof(context->Cycle_IO));
+		ExportDataAuto(&context->Cycle_Sup, Data, offset, sizeof(context->Cycle_Sup));
+		ExportDataAuto(context->IO_Reg, Data, offset, sizeof(context->IO_Reg));
+		ExportDataAuto(&context->DVCR, Data, offset, sizeof(context->DVCR));
+		ExportDataAuto(&context->DVSR, Data, offset, sizeof(context->DVSR));
+		ExportDataAuto(&context->DVDNTH, Data, offset, sizeof(context->DVDNTH));
+		ExportDataAuto(&context->DVDNTL, Data, offset, sizeof(context->DVDNTL));
+		ExportDataAuto(&context->DRCR0, Data, offset, sizeof(context->DRCR0));
+		ExportDataAuto(&context->DRCR1, Data, offset, sizeof(context->DRCR1));
+		ExportDataAuto(&context->DREQ0, Data, offset, sizeof(context->DREQ0));
+		ExportDataAuto(&context->DREQ1, Data, offset, sizeof(context->DREQ1));
+		ExportDataAuto(&context->DMAOR, Data, offset, sizeof(context->DMAOR));
+		ExportDataAuto(&context->SAR0, Data, offset, sizeof(context->SAR0));
+		ExportDataAuto(&context->DAR0, Data, offset, sizeof(context->DAR0));
+		ExportDataAuto(&context->TCR0, Data, offset, sizeof(context->TCR0));
+		ExportDataAuto(&context->CHCR0, Data, offset, sizeof(context->CHCR0));
+		ExportDataAuto(&context->SAR1, Data, offset, sizeof(context->SAR1));
+		ExportDataAuto(&context->DAR1, Data, offset, sizeof(context->DAR1));
+		ExportDataAuto(&context->TCR1, Data, offset, sizeof(context->TCR1));
+		ExportDataAuto(&context->CHCR1, Data, offset, sizeof(context->CHCR1));
+		ExportDataAuto(&context->VCRDIV, Data, offset, sizeof(context->VCRDIV));
+		ExportDataAuto(&context->VCRDMA0, Data, offset, sizeof(context->VCRDMA0));
+		ExportDataAuto(&context->VCRDMA1, Data, offset, sizeof(context->VCRDMA1));
+		ExportDataAuto(&context->VCRWDT, Data, offset, sizeof(context->VCRWDT));
+		ExportDataAuto(&context->IPDIV, Data, offset, sizeof(context->IPDIV));
+		ExportDataAuto(&context->IPDMA, Data, offset, sizeof(context->IPDMA));
+		ExportDataAuto(&context->IPWDT, Data, offset, sizeof(context->IPWDT));
+		ExportDataAuto(&context->IPBSC, Data, offset, sizeof(context->IPBSC));
+		ExportDataAuto(&context->BARA, Data, offset, sizeof(context->BARA));
+		ExportDataAuto(&context->BAMRA, Data, offset, sizeof(context->BAMRA));
+		ExportDataAuto(context->WDT_Tab, Data, offset, sizeof(context->WDT_Tab));
+		ExportDataAuto(&context->WDTCNT, Data, offset, sizeof(context->WDTCNT));
+		ExportDataAuto(&context->WDT_Sft, Data, offset, sizeof(context->WDT_Sft));
+		ExportDataAuto(&context->WDTSR, Data, offset, sizeof(context->WDTSR));
+		ExportDataAuto(&context->WDTRST, Data, offset, sizeof(context->WDTRST));
+		ExportDataAuto(context->FRT_Tab, Data, offset, sizeof(context->FRT_Tab));
+		ExportDataAuto(&context->FRTCNT, Data, offset, sizeof(context->FRTCNT));
+		ExportDataAuto(&context->FRTOCRA, Data, offset, sizeof(context->FRTOCRA));
+		ExportDataAuto(&context->FRTOCRB, Data, offset, sizeof(context->FRTOCRB));
+		ExportDataAuto(&context->FRTTIER, Data, offset, sizeof(context->FRTTIER));
+		ExportDataAuto(&context->FRTCSR, Data, offset, sizeof(context->FRTCSR));
+		ExportDataAuto(&context->FRTTCR, Data, offset, sizeof(context->FRTTCR));
+		ExportDataAuto(&context->FRTTOCR, Data, offset, sizeof(context->FRTTOCR));
+		ExportDataAuto(&context->FRTICR, Data, offset, sizeof(context->FRTICR));
+		ExportDataAuto(&context->FRT_Sft, Data, offset, sizeof(context->FRT_Sft));
+		ExportDataAuto(&context->BCR1, Data, offset, sizeof(context->BCR1));
+		ExportDataAuto(&context->FRTCSR, Data, offset, sizeof(context->FRTCSR));
+	}
 
-	if (SH2_Read_Word(&M_SH2, 0x410A) & 1)
-	{
-		ExportData(_32X_VDP_Ram, Data, 0x42A00, 0x20000);
-		for(i = 0; i < 0x20000; i++) Data[0x62A00 + i] = _32X_VDP_Ram[i + 0x20000];
-	}
-	else
-	{
-		for(i = 0; i < 0x20000; i++) Data[0x42A00 + i] = _32X_VDP_Ram[i + 0x20000];
-		ExportData(_32X_VDP_Ram, Data, 0x62A00, 0x20000);
-	}
+	ExportDataAuto(_32X_Ram, Data, offset, sizeof(_32X_Ram));
+	ExportDataAuto(_MSH2_Reg, Data, offset, sizeof(_MSH2_Reg));
+	ExportDataAuto(_SSH2_Reg, Data, offset, sizeof(_SSH2_Reg));
+	ExportDataAuto(_SH2_VDP_Reg, Data, offset, sizeof(_SH2_VDP_Reg));
+	ExportDataAuto(_32X_Comm, Data, offset, sizeof(_32X_Comm));
+	ExportDataAuto(&_32X_ADEN, Data, offset, sizeof(_32X_ADEN));
+	ExportDataAuto(&_32X_RES, Data, offset, sizeof(_32X_RES));
+	ExportDataAuto(&_32X_FM, Data, offset, sizeof(_32X_FM));
+	ExportDataAuto(&_32X_RV, Data, offset, sizeof(_32X_RV));
+	ExportDataAuto(&_32X_DREQ_ST, Data, offset, sizeof(_32X_DREQ_ST));
+	ExportDataAuto(&_32X_DREQ_SRC, Data, offset, sizeof(_32X_DREQ_SRC));
+	ExportDataAuto(&_32X_DREQ_DST, Data, offset, sizeof(_32X_DREQ_DST));
+	ExportDataAuto(&_32X_DREQ_LEN, Data, offset, sizeof(_32X_DREQ_LEN));
+	ExportDataAuto(_32X_FIFO_A, Data, offset, sizeof(_32X_FIFO_A));
+	ExportDataAuto(_32X_FIFO_B, Data, offset, sizeof(_32X_FIFO_B));
+	ExportDataAuto(&_32X_FIFO_Block, Data, offset, sizeof(_32X_FIFO_Block));
+	ExportDataAuto(&_32X_FIFO_Read, Data, offset, sizeof(_32X_FIFO_Read));
+	ExportDataAuto(&_32X_FIFO_Write, Data, offset, sizeof(_32X_FIFO_Write));
+	ExportDataAuto(&_32X_MINT, Data, offset, sizeof(_32X_MINT));
+	ExportDataAuto(&_32X_SINT, Data, offset, sizeof(_32X_SINT));
+	ExportDataAuto(&_32X_HIC, Data, offset, sizeof(_32X_HIC));
+	ExportDataAuto(&CPL_SSH2, Data, offset, sizeof(CPL_SSH2));
+	ExportDataAuto(&CPL_MSH2, Data, offset, sizeof(CPL_MSH2));
+	ExportDataAuto(&Cycles_MSH2, Data, offset, sizeof(Cycles_MSH2));
+	ExportDataAuto(&Cycles_SSH2, Data, offset, sizeof(Cycles_SSH2));
+
+	ExportDataAuto(&_32X_VDP, Data, offset, sizeof(_32X_VDP));
+	ExportDataAuto(_32X_VDP_Ram, Data, offset, sizeof(_32X_VDP_Ram));
+	ExportDataAuto(_32X_VDP_CRam, Data, offset, sizeof(_32X_VDP_CRam));
+
+	ExportDataAuto(Set_SR_Table, Data, offset, sizeof(Set_SR_Table));
+	ExportDataAuto(&Bank_SH2, Data, offset, sizeof(Bank_SH2));
+
+	ExportDataAuto(PWM_FIFO_R, Data, offset, sizeof(PWM_FIFO_R));
+	ExportDataAuto(PWM_FIFO_L, Data, offset, sizeof(PWM_FIFO_L));
+	ExportDataAuto(&PWM_RP_R, Data, offset, sizeof(PWM_RP_R));
+	ExportDataAuto(&PWM_WP_R, Data, offset, sizeof(PWM_WP_R));
+	ExportDataAuto(&PWM_RP_L, Data, offset, sizeof(PWM_RP_L));
+	ExportDataAuto(&PWM_WP_L, Data, offset, sizeof(PWM_WP_L));
+	ExportDataAuto(&PWM_Cycles, Data, offset, sizeof(PWM_Cycles));
+	ExportDataAuto(&PWM_Cycle, Data, offset, sizeof(PWM_Cycle));
+	ExportDataAuto(&PWM_Cycle_Cnt, Data, offset, sizeof(PWM_Cycle_Cnt));
+	ExportDataAuto(&PWM_Int, Data, offset, sizeof(PWM_Int));
+	ExportDataAuto(&PWM_Int_Cnt, Data, offset, sizeof(PWM_Int_Cnt));
+	ExportDataAuto(&PWM_Mode, Data, offset, sizeof(PWM_Mode));
+	ExportDataAuto(&PWM_Out_R, Data, offset, sizeof(PWM_Out_R));
+	ExportDataAuto(&PWM_Out_L, Data, offset, sizeof(PWM_Out_L));
+
+	ExportDataAuto(_32X_Rom, Data, offset, 1024); // just in case some of these bytes are not in fact read-only as was apparently the case with Sega CD games (1024 seems acceptably small)
+	ExportDataAuto(_32X_MSH2_Rom, Data, offset, sizeof(_32X_MSH2_Rom));
+	ExportDataAuto(_32X_SSH2_Rom, Data, offset, sizeof(_32X_SSH2_Rom));
+
+#ifdef _DEBUG
+	int desiredoffset = G32X_LENGTH_EX;
+	assert(offset == desiredoffset);
+#endif
 }
 
 
