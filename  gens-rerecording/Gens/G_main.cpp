@@ -728,7 +728,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	bool reinit = false;
 	if(Full != Full_Screen || (Num != -1 && (Num<2 || Old_Rend<2)) || Force)
 		reinit = true;
-	else if(Bits32 && Num == 10) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
+	else if(Bits32 && (Num>=0?Num:*Rend) == 10) // note: this is in the else statement because Bits32 is only valid to check here if reinit is false
 		Num = 11; // we don't support 2xSaI in 32-bit mode
 
 	Set_Rend_Int(Num, Rend, Blit);
