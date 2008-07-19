@@ -420,6 +420,7 @@ void InitMovie(typeMovie * aMovie)
 	aMovie->TriplePlayerHack=0;
 	aMovie->Type = TYPEGMV;
 	aMovie->Recorded = false;
+	aMovie->ClearSRAM = true;
 }
 
 void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
@@ -442,6 +443,7 @@ void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
 	MovieDest->Vfreq=MovieSrc->Vfreq;
 	MovieDest->TriplePlayerHack=MovieSrc->TriplePlayerHack;
 	MovieDest->StateRequired=MovieSrc->StateRequired;
+	MovieDest->ClearSRAM=MovieSrc->ClearSRAM;
 
 	if(MovieDest == &MainMovie) // Modif N.
 		ExtractPreloadedTracksFromNote(MovieSrc->Note);

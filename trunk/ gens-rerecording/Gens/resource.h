@@ -513,6 +513,7 @@
 #define IDC_OK_PLAY                     1129
 #define IDC_CANCEL_PLAY                 1130
 #define IDC_CHECK_READ_ONLY             1131
+#define IDC_CHECK_CLEAR_SRAM            1200
 #define IDC_EDIT_MOVIE_NAME             1132
 #define IDC_EDIT_MOVIE_STATE            1133
 #define IDC_STATIC_STATE_WARNING        1134
