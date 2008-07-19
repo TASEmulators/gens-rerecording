@@ -48,6 +48,7 @@ struct typeMovie
 	int TriplePlayerHack; // 0=No triple player hack 1=yes
 	unsigned char Type;
 	bool Recorded;
+	bool ClearSRAM;
 };
 extern bool AutoCloseMovie; //Upth-Add - So these flags
 extern bool Def_Read_Only;  //Upth-Add - are externally accessible

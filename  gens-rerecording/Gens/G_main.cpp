@@ -2714,13 +2714,13 @@ dialogAgain: //Nitsuja added this
 						{
 							Pre_Load_Rom(HWnd,Recent_Rom[0]);
 							MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
-			                memset(SRAM, 0, sizeof(SRAM));
+			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (_32X_Started)
 						{
 							Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("32X reseted", "32X reset", 1500)
-			                memset(SRAM, 0, sizeof(SRAM));
+			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (SegaCD_Started)
 						{
@@ -2729,8 +2729,8 @@ dialogAgain: //Nitsuja added this
 							else
 								Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
-			                memset(SRAM, 0, sizeof(SRAM));
-							Format_Backup_Ram();
+			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
+							if(MainMovie.ClearSRAM) Format_Backup_Ram();
 						}
 						Paused = wasPaused; 
 					}
@@ -5316,6 +5316,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			SendDlgItemMessage(hDlg, IDC_RADIO_PLAY_START, BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
 			SendDlgItemMessage(hDlg, IDC_RADIO_PLAY_STATE, BM_SETCHECK, (WPARAM)BST_UNCHECKED, 0);
 			SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)BST_UNCHECKED, 0);
+			SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)BST_CHECKED, 0); // Modif N. -- added checkbox
 	
 			if((Controller_1_Type&1)==1)
 				strcpy(Str_Tmp,"6 BUTTONS");
@@ -5430,11 +5431,12 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),TRUE);
 						else
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),FALSE);
+
 						SubMovie.ReadOnly=(int) (Def_Read_Only) | SubMovie.ReadOnly; //Upth-Add - for the new "Default Read Only" toggle
-						if (SubMovie.ReadOnly) //Upth-Add - And we add a check or not depending on whether the movie is read only
-							SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
-						else 
-							SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)BST_UNCHECKED, 0);
+						SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)(SubMovie.ReadOnly ? BST_CHECKED : BST_UNCHECKED), 0); //Upth-Add - And we add a check or not depending on whether the movie is read only
+
+						SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)(SubMovie.ClearSRAM ? BST_CHECKED : BST_UNCHECKED), 0);
+						
 						if(SubMovie.ReadOnly==0 && SubMovie.Ok!=0 && SubMovie.UseState!=0 && SubMovie.StateOk!=0)
 							EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD ),TRUE);
 						else
@@ -5495,6 +5497,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD ),TRUE);
 					else
 						EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD),FALSE);
+					EnableWindow(GetDlgItem(hDlg,IDC_CHECK_CLEAR_SRAM),TRUE);
 					return true;
 					break;
 				case IDC_RADIO_PLAY_STATE:
@@ -5509,6 +5512,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD ),TRUE);
 					else
 						EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD),FALSE);
+					EnableWindow(GetDlgItem(hDlg,IDC_CHECK_CLEAR_SRAM),FALSE);
 					return true;
 					break;
 				case IDC_BUTTON_BROWSE_MOVIE:
@@ -5548,6 +5552,12 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD),FALSE);
 					return true;
 					break;
+
+				case IDC_CHECK_CLEAR_SRAM:
+					SubMovie.ClearSRAM = !SubMovie.ClearSRAM;
+					SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)(SubMovie.ClearSRAM ? BST_CHECKED : BST_UNCHECKED), 0);
+					return true;
+
 				case IDC_OK_PLAY:
 					if (Full_Screen)
 					{
