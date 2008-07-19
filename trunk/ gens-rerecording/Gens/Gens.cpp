@@ -266,7 +266,8 @@ unsigned int Pal32_XRAY[0x10000];
 				MD_Palette32[128] = MD_Palette32[64] + 0x777777;\
 			}\
 		}*/
-#define POST_LINE \
+//#define POST_LINE
+#define POST_LINE_32X_M00 \
 		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 		{\
 			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
@@ -407,7 +408,7 @@ VRam_Ind*=2;\
 			case 4:\
 			case 8:\
 			case 12:\
-				POST_LINE\
+				POST_LINE_32X_M00\
 				break;\
 			case 1:\
 				POST_LINE_32X_M01\
@@ -428,7 +429,6 @@ VRam_Ind*=2;\
 			case 6:\
 			case 14:\
 				POST_LINE_32X_M10_P\
-				break;\
 				break;\
 			case 9:\
 				POST_LINE_32X_SM01\
@@ -1261,16 +1261,37 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	return(1);
 }
 #endif
+
+void Do_32X_Refresh() // is a separate function to prevent Do_VDP_Only from getting much larger to support this less-common case
+{
+	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+	{
+		//UPDATE_PALETTE32
+		Render_Line_32X();
+		POST_LINE_32X
+	}
+}
+
 int Do_VDP_Only()
 {
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+	if(!_32X_Started)
 	{
-		//UPDATE_PALETTE32
-		Render_Line();
-		//POST_LINE
+		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+		{
+			//UPDATE_PALETTE32
+			Render_Line();
+			//POST_LINE
+		}
+	}
+	else
+	{
+		// Modif N. -- added to fix places where Do_VDP_Only is
+		// assumed to refresh the screen for 32X games
+		// (such as loading savestates and the color adjustment dialog)
+		Do_32X_Refresh();
 	}
 
 	Update_RAM_Search();

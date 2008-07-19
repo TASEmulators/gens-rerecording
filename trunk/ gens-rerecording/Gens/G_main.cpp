@@ -3049,25 +3049,17 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_GRAPHICS_FRAMESKIP_DECREASE:
-					if (Frame_Skip == -1)
-					{
-						Set_Frame_Skip(hWnd, 0);
-					}
+					if (Frame_Skip <= -1)
+						Set_Frame_Skip(hWnd, 8);
 					else
-					{
-						if (Frame_Skip > 0) Set_Frame_Skip(hWnd, Frame_Skip - 1);
-					}
+						Set_Frame_Skip(hWnd, Frame_Skip - 1);
 					return 0;
 
 				case ID_GRAPHICS_FRAMESKIP_INCREASE:
-					if (Frame_Skip == -1)
-					{
-						Set_Frame_Skip(hWnd, 1);
-					}
+					if (Frame_Skip >= 8)
+						Set_Frame_Skip(hWnd, -1);
 					else
-					{
-						if (Frame_Skip < 8) Set_Frame_Skip(hWnd, Frame_Skip + 1);
-					}
+						Set_Frame_Skip(hWnd, Frame_Skip + 1);
 					return 0;
 
 				case ID_GRAPHICS_SPRITEOVER:
@@ -6281,7 +6273,7 @@ void init_list_box(HWND Box, char Strs[][11], int numColumns, int *columnWidths)
 }
 void Update_RAM_Search() //keeps RAM values up to date in the search and watch windows
 {
-	static DWORD previousTime = timeGetTime(); //Modif N - give frame advance sound:
+	static DWORD previousTime = timeGetTime();
 	if ((timeGetTime() - previousTime) < 0x40) return;
 	int watchChanges[128];
 	int changes[128];
