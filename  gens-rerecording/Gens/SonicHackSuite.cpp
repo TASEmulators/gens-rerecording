@@ -1485,7 +1485,6 @@ int SonicCamHack()
 	}
 	{
 		Update_Frame();	//Do_VDP_Only won't process palette swaps at a certain line
-		//and also won't work at all for 32X, if this ever gets adapted for Knuckles Chaotix
 		DrawBoxes();
 		DisplaySolid();
 		x = CheatRead<unsigned short>(P1OFFSET + off + XPo);
