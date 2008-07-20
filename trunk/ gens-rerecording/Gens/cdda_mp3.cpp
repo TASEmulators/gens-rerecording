@@ -474,12 +474,14 @@ DWORD Preload_MP3_Thread(LPVOID lpThreadParameter)
 
 void Preload_MP3(FILE** filePtr, int track)
 {
-	ENTER_CRIT_SECT
-	if(!preloadMP3ThreadArgs.empty())
-	{
-		if(track == curThreadArgs.track || !filePtr || *filePtr || Tracks[track].Type != TYPE_MP3)
-			return;
+	if(!filePtr || *filePtr || Tracks[track].Type != TYPE_MP3)
+		return;
 
+	ENTER_CRIT_SECT
+	if(!noTracksQueued)
+	{
+		if(track == curThreadArgs.track)
+			return;
 		Preload_MP3_Synchronous_Cancel_Exception = track;
 		Preload_MP3_Synchronous_Cancel = true; // start loading this one immediately
 	}
