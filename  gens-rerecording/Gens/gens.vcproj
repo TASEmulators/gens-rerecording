@@ -68,7 +68,7 @@
 				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 				OmitDefaultLibName="true"
 			/>
 			<Tool
@@ -84,12 +84,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib nafxcw.lib vfw32.lib "
+				AdditionalDependencies="libcmt.lib wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib nafxcw.lib vfw32.lib "
 				OutputFile=".\Release/gens.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="LIBC.lib"
+				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Release/gens.pdb"
 				SubSystem="2"
 				TargetMachine="1"
@@ -188,12 +189,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib vfw32.lib "
+				AdditionalDependencies="libcmtd.lib wsock32.lib ddraw.lib dsound.lib dinput.lib dxguid.lib winmm.lib ./libs/zlib.lib htmlhelp.lib vfw32.lib "
 				OutputFile=".\Debug/gens.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="false"
-				IgnoreDefaultLibraryNames="LIBC.lib"
+				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/gens.pdb"
 				SubSystem="2"
@@ -325,24 +326,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="cdda_mp3.c"
+				RelativePath=".\cdda_mp3.cpp"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="Cpu_68k.c"
@@ -1558,10 +1543,6 @@
 			</File>
 			<File
 				RelativePath="Star_68k.h"
-				>
-			</File>
-			<File
-				RelativePath=".\stdafx.h"
 				>
 			</File>
 			<File

@@ -393,7 +393,7 @@ int Write_Sound_Buffer(void *Dump_Buf)
 			rval = lpDSBuffer->Lock(WP * Seg_Length * Bytes_Per_Unit, Seg_Length * Bytes_Per_Unit, &lpvPtr1, &dwBytes1, NULL, NULL, 0);
 		}
 
-		if (rval == DSERR_BUFFERLOST) return 0;
+		if (rval == DSERR_BUFFERLOST || !lpvPtr1) return 0;
 		for(int i = 0; i < Seg_Length; i++) 
 		{
 			Seg_R[i] *= MastVol;
