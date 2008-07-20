@@ -210,6 +210,9 @@ int Load_ISO(char *buf, char *iso_name)
 							else
 								Tracks[i].F = Tracks[0].F;
 							Tracks[i].F_decoded = NULL;
+
+							strncpy(Tracks[i].filename, g_cuefile_TOC_filenames[i], 512);
+							Tracks[i].filename[511] = 0;
 						}
 					}
 					break;
@@ -224,6 +227,9 @@ int Load_ISO(char *buf, char *iso_name)
 							File_Size = CreateFile(g_cuefile_TOC_filenames[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 							fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
 							Tracks[i].F = tmp_file;
+
+							strncpy(Tracks[i].filename, g_cuefile_TOC_filenames[i], 512);
+							Tracks[i].filename[511] = 0;
 
 							LBA_to_MSF(Cur_LBA, &(SCD.TOC.Tracks[i].MSF));
 
@@ -328,8 +334,11 @@ int Load_ISO(char *buf, char *iso_name)
 
 					fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
 
-					Tracks[num_track - SCD.TOC.First_Track].F = tmp_file;
+					Tracks[num_track - SCD.TOC.First_Track].F = tmp_file; 
 					Tracks[num_track - SCD.TOC.First_Track].F_decoded = NULL;
+
+					strncpy(Tracks[num_track - SCD.TOC.First_Track].filename, tmp_name, 512);
+					Tracks[num_track - SCD.TOC.First_Track].filename[511] = 0;
 					
 					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Num = num_track;
 					SCD.TOC.Tracks[num_track - SCD.TOC.First_Track].Type = 0;			// AUDIO
@@ -484,6 +493,7 @@ void Unload_ISO(void)
 		Tracks[i].F_decoded = NULL;
 		Tracks[i].Length = 0;
 		Tracks[i].Type = 0;
+		Tracks[i].filename[0] = 0;
 		played_tracks_linear[i] = 0;
 		if(preloaded_tracks[i] == 1) // intentionally does not clear if the value is 2
 			preloaded_tracks[i] = 0;

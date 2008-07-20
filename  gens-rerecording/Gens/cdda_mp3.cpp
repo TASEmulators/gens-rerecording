@@ -281,6 +281,7 @@ int noTracksQueued = 1;
 
 bool Preload_MP3_Synchronous_Cancel;
 int Preload_MP3_Synchronous_Cancel_Exception = -1;
+bool Waiting_For_Preload_MP3_Synchronous = false;
 void Preload_MP3_Synchronous(FILE** filePtr, int track)
 {
 	if(filePtr && track >= 0 && track < 100)
@@ -354,8 +355,11 @@ void Preload_MP3_Synchronous(FILE** filePtr, int track)
 					// it still prevents other threads from doing processing for long enough
 					// to cause stuttering problems, even with multiple CPU cores present,
 					// so voluntarily give up control of the thread by sleeping every few decoding iterations
-					if(iter % 16 == 0)
-						Sleep(10);
+					if(!Waiting_For_Preload_MP3_Synchronous)
+						if(iter % 16 == 0)
+							Sleep(10);
+						else
+							Sleep(0);
 #endif
 				}
 
@@ -385,6 +389,7 @@ void Preload_MP3_Synchronous(FILE** filePtr, int track)
 
 }
 #include <vector>
+#include <algorithm>
 extern "C" {
 
 class CriticalSection
@@ -425,6 +430,11 @@ struct PreloadMP3ThreadArg
 {
 	FILE** filePtr;
 	int track;
+	int sortPriority;
+
+	bool operator < (const PreloadMP3ThreadArg& other) {
+		return other.sortPriority < sortPriority;
+	}
 };
 std::vector<PreloadMP3ThreadArg> preloadMP3ThreadArgs;
 PreloadMP3ThreadArg curThreadArgs;
@@ -467,7 +477,7 @@ void Preload_MP3(FILE** filePtr, int track)
 	ENTER_CRIT_SECT
 	if(!preloadMP3ThreadArgs.empty())
 	{
-		if(track == curThreadArgs.track)
+		if(track == curThreadArgs.track || !filePtr || *filePtr || Tracks[track].Type != TYPE_MP3)
 			return;
 
 		Preload_MP3_Synchronous_Cancel_Exception = track;
@@ -497,6 +507,25 @@ void Preload_Used_MP3s(void)
 			Preload_MP3(&Tracks[track].F_decoded, track);
 
 	ENTER_CRIT_SECT
+
+	// sort so that the smallest MP3 files load first
+
+	for(unsigned int i = 0; i < preloadMP3ThreadArgs.size(); i++)
+	{
+		const char* filename = Tracks[preloadMP3ThreadArgs[i].track].filename;
+		FILE* file;
+		if(filename && filename[0] && (file = fopen(filename, "rb")))
+		{
+			fseek(file, 0, SEEK_END);
+			preloadMP3ThreadArgs[i].sortPriority = ftell(file);
+			fclose(file);
+		}
+		else
+		{
+			preloadMP3ThreadArgs[i].sortPriority = 0;
+		}
+	}
+	std::sort(preloadMP3ThreadArgs.begin(), preloadMP3ThreadArgs.end());
 
 	EXIT_CRIT_SECT
 }
@@ -552,6 +581,7 @@ FILE* GetMP3TrackFile(int trackIndex, int* pDontLeaveFileOpen, int* pWhere_read)
 #ifdef _WIN32
 	if(!decodedFile)
 	{
+		Waiting_For_Preload_MP3_Synchronous = true;
 		Preload_MP3(&Tracks[trackIndex].F_decoded, trackIndex);
 
 		DWORD tgtime = timeGetTime(); //Modif N - give frame advance sound:
@@ -579,7 +609,7 @@ FILE* GetMP3TrackFile(int trackIndex, int* pDontLeaveFileOpen, int* pWhere_read)
 			}
 #ifdef _WIN32
 			if(!usePartiallyDecodedFile)
-				Sleep(10);
+				Sleep(5);
 #endif // win32
 
 			if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
@@ -591,6 +621,7 @@ FILE* GetMP3TrackFile(int trackIndex, int* pDontLeaveFileOpen, int* pWhere_read)
 		}
 		if(!decodedFile)
 			decodedFile = Tracks[trackIndex].F_decoded;
+		Waiting_For_Preload_MP3_Synchronous = false;
 	}
 #endif // threaded
 
