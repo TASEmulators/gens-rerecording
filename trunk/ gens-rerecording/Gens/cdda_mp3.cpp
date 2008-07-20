@@ -327,7 +327,7 @@ void Preload_MP3_Synchronous(FILE** filePtr, int track)
 			{
 				// decode mp3 to the temporary file
 
-				static const int inSize = 8192, outSize = 8192;
+				static const int inSize = 588*4, outSize = 8192;
 				char temp_in_buf[inSize], temp_out_buf[outSize];
 				int inRead = 0, outRead = 0;
 				int ok = MP3_OK;
