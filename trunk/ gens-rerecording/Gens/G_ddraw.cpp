@@ -180,13 +180,22 @@ int Update_Frame_Fast_Hook()
 	int retval = Update_Frame_Fast();
 	return retval;
 }
-void Put_Info(char *Message, int Duree)
+
+void Put_Info_NonImmediate(char *Message, int Duration)
 {
 	if (Show_Message)
 	{
 		strcpy(Info_String, Message);
-		Info_Time = GetTickCount() + Duree;
+		Info_Time = GetTickCount() + Duration;
 		Message_Showed = 1;
+	}
+}
+
+void Put_Info(char *Message, int Duration)
+{
+	if (Show_Message)
+	{
+		Put_Info_NonImmediate(Message, Duration);
 
 		// Modif N. - in case game is paused or at extremely low speed, update screen on new message
 		if(!Setting_Render)

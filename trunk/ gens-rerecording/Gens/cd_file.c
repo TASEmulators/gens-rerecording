@@ -470,7 +470,9 @@ int Load_ISO(char *buf, char *iso_name)
 void Unload_ISO(void)
 {
 	int i;
-	
+
+	MP3_CancelAllPreloading();
+
 	Track_Played = 99;
 
 	for(i = 0; i < 100; i++)
@@ -753,19 +755,31 @@ int FILE_Read_One_LBA_CDC(void)
 		
 		if (Tracks[index].Type == TYPE_MP3)
 		{
-			if(Tracks[index].F_decoded)
-			{
-				int curTrack = LBA_to_Track(SCD.Cur_LBA);
-				int lbaOffset = SCD.Cur_LBA - Track_to_LBA(curTrack);
-				int lba = lbaOffset;
-				where_read = (lba) * 588*4 + 16;
-				if(where_read < 0) where_read = 0;
+#ifdef _WIN32
+			int forceNoDecode = 1;
+#else
+			int forceNoDecode = 0;
+#endif
 
+			int fileNeedsClose = 0;
+			FILE* decodedFile = GetMP3TrackFile(index, &fileNeedsClose, &where_read);
+
+			if(decodedFile || forceNoDecode)
+			{
 				// copy audio data to buffer
-				fseek(Tracks[index].F_decoded, where_read, SEEK_SET);
-				fread(cp_buf, 1, 588*4, Tracks[index].F_decoded);
-				//memset(cp_buf, 0, 588*4);
+				int outRead = 0;
+				if(decodedFile)
+				{
+					fseek(decodedFile, where_read, SEEK_SET);
+					outRead = fread(cp_buf, 1, 588*4, decodedFile);
+				}
+				if(outRead < 588*4)
+					memset(cp_buf, 0, 588*4); // failed to read, use silence
+
 				Write_CD_Audio((short *) cp_buf, 44100, 2, 588);
+
+				if(fileNeedsClose)
+					fclose(decodedFile);
 			}
 			else // stream it
 			{
