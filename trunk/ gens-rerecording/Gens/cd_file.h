@@ -16,6 +16,7 @@ struct _file_track {
 	FILE *F_decoded;
 	int Length;
 	int Type;
+	char filename [512];
 };
 
 extern struct _file_track Tracks[100];
