@@ -87,12 +87,12 @@ if (Full_Screen)								\
 
 #define MENU_L(smenu, pos, flags, id, str, suffixe, def)										\
 {GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
-strcat(Str_Tmp, (suffixe));																			\
+/*strcat(Str_Tmp, (suffixe));*/ AddHotkeySuffix(Str_Tmp, id, suffixe);							\
 InsertMenu((smenu), (pos), (flags), (id), Str_Tmp);}
 
 #define WORD_L(id, str, suffixe, def)															\
 {GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
-strcat(Str_Tmp, (suffixe));																			\
+/*strcat(Str_Tmp, (suffixe));*/ AddHotkeySuffix(Str_Tmp, id, suffixe);							\
 SetDlgItemText(hDlg, id, Str_Tmp);}
 
 #define MESSAGE_L(str, def, time)																	\
@@ -110,7 +110,7 @@ SetDlgItemText(hDlg, id, Str_Tmp);}
 }
 
 HINSTANCE ghInstance;
-HACCEL hAccelTable;
+HACCEL hAccelTable = NULL;
 WNDCLASS WndClass;
 HWND HWnd;
 HMENU Gens_Menu;
@@ -155,23 +155,28 @@ int Gens_Priority;
 int SS_Actived;
 int DialogsOpen = 0; //Modif
 int SlowDownMode=0; //Modif
-unsigned int QuickSaveKey=0;	//Modif
-unsigned int QuickLoadKey=0;	//Modif
-unsigned int AutoFireKey=0;	//Modif N.
-unsigned int AutoHoldKey=0;	//Modif N.
-unsigned int AutoClearKey=0;	//Modif N.
-int QuickSaveKeyIsPressed=0;	//Modif
-int QuickLoadKeyIsPressed=0;	//Modif
-unsigned int QuickPauseKey=0;	//Modif
-int QuickPauseKeyIsPressed=0;	//Modif
+
+// disabled because their functionality is duplicated by accelerator keys that are now configurable
+//unsigned int QuickSaveKeyDown=0;	//Modif
+//unsigned int QuickLoadKeyDown=0;	//Modif
+//unsigned int QuickPauseKeyDown=0;	//Modif
+//unsigned int SlowDownKeyDown=0;	//Modif
+
+BOOL AutoFireKeyDown=0;	//Modif N.
+BOOL AutoHoldKeyDown=0;	//Modif N.
+BOOL AutoClearKeyDown=0;	//Modif N.
+BOOL FrameAdvanceKeyDown=0; //Modif
+BOOL FastForwardKeyDown=0; //Modif
+
+//int QuickSaveKeyIsPressed=0;	//Modif
+//int QuickLoadKeyIsPressed=0;	//Modif
+//int QuickPauseKeyIsPressed=0;	//Modif
 int SlowDownSpeed=1;	//Modif
-unsigned int SlowDownKey=0;	//Modif
-int SlowDownKeyIsPressed=1;	//Modif
+//int SlowDownKeyIsPressed=1;	//Modif
 int RecordMovieCanceled=1;//Modif
 int PlayMovieCanceled=1; //Modif
 int Disable_Blue_Screen=0; //Modif
 int Never_Skip_Frame=0; //Modif
-unsigned int SkipKey=0; //Modif
 int SkipKeyIsPressed=0; //Modif
 int FrameCounterEnabled=0; //Modif
 int FrameCounterFrames=0; //Modif N.
@@ -180,7 +185,6 @@ int LagCounterFrames=0; //Modif N.
 int ShowInputEnabled=0; //Modif
 int AutoBackupEnabled=0; //Modif
 int LeftRightEnabled=0; //Modif
-int NumLoadEnabled=0; //Modif N.
 int FrameCounterPosition=16*336+32; //Modif
 int MustUpdateMenu=0; // Modif
 bool RamSearchClosed = false;
@@ -220,6 +224,7 @@ LRESULT CALLBACK PromptSeekFrameProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptWatchNameProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK EditWatchProc(HWND, UINT, WPARAM, LPARAM);
 void DoMovieSplice();
+
 
 int Set_Render(HWND hWnd, int Full, int Num, int Force);
 HMENU Build_Main_Menu(void);
@@ -1798,14 +1803,9 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 	if (!HWnd) return FALSE;
 
-	hAccelTable = LoadAccelerators(hInst, MAKEINTRESOURCE(RAC));
-  
 	Identify_CPU();
-
 	i = GetVersion();
- 
-	// Get major and minor version numbers of Windows
-
+ 	// Get major and minor version numbers of Windows
 	if (((i & 0xFF) > 4) || (i & 0x80000000)) WinNT_Flag = 0;
 	else WinNT_Flag = 1;
 
@@ -2093,7 +2093,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			static DWORD tgtime = timeGetTime(); //Modif N - give frame advance sound:
 			static bool soundCleared = false;
 
-			if((Active) && QuickPauseKey!=0)
+			/*if((Active) && QuickPauseKey!=0)
 			{
 				if(Check_Pause_Key())
 				{
@@ -2115,9 +2115,10 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 						Flip(HWnd);
 					}
 				}
-			}
+			}*/
+
 			Check_Misc_Key();
-			if((Active) && !Paused && SkipKey!=0) // so that the frame advance key can pause even if pause on a gamekey isn't set
+			if((Active) && !Paused /*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
 			{
 				if (Check_Skip_Key() && !Paused)
 				{
@@ -2140,14 +2141,13 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				//Modif N - don't hog 100% of CPU power:
 				static int count = 0;
 				count++;
-				unsigned short FFState = GetAsyncKeyState(VK_TAB);
-				if(!((FFState & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && GetActiveWindow()==HWnd)) //Modif N - part of a quick hack to make Tab the fast-forward key
+				if(!(FastForwardKeyDown && GetActiveWindow()==HWnd)) //Modif N - part of a quick hack to make Tab the fast-forward key
 					if(Frame_Skip == -1 || ((count % (Frame_Skip+2)) == 0))
 						Sleep(1); //Modif N
 			}
 			else		// EMULATION PAUSED
 			{
-				if(SkipKey)
+				if(/*SkipKey*/true)
 				{
 					if(Check_Skip_Key() != 0)
 					{
@@ -2832,7 +2832,16 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_BOOTCD:
 					if(MainMovie.File!=NULL)
 						CloseMovieFile(&MainMovie);
-					if (Num_CD_Drive == 0) return 1;
+					if (Num_CD_Drive == 0)
+					{
+						extern int failed_to_load_wnaspi_dll;
+						if(failed_to_load_wnaspi_dll)
+							if(!Full_Screen)
+								MessageBox(NULL, "You need WNASPI32.DLL to run from a CD drive.", "Error", MB_OK);
+							else
+								MESSAGE_L("You need WNASPI32.DLL to run from a CD drive.", "You need WNASPI32.DLL to run from a CD drive.", 1500)
+						return 1;
+					}
 					if (Check_If_Kaillera_Running()) return 0;
 					if (GYM_Playing) Stop_Play_GYM();
 					Free_Rom(Game);			// Don't forget it !
@@ -3072,111 +3081,53 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					return 0;
 
-				case ID_FILES_STATE_0:
-				case ID_FILES_STATE_1:
-				case ID_FILES_STATE_2:
-				case ID_FILES_STATE_3:
-				case ID_FILES_STATE_4:
-				case ID_FILES_STATE_5:
-				case ID_FILES_STATE_6:
-				case ID_FILES_STATE_7:
-				case ID_FILES_STATE_8:
-				case ID_FILES_STATE_9:
-					switch (StateSelectCfg)
-					{
-						case 1:
-						case 3:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_STATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Save_State(Str_Tmp);
-							return 0;
-						case 4:
-						case 5:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_STATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Load_State(Str_Tmp);
-							return 0;
-						default:	//cases 0, 2 or undefined
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_STATE_0);
-							return 0;
-					}
+				case ID_FILES_SAVESTATE_1:
+				case ID_FILES_SAVESTATE_2:
+				case ID_FILES_SAVESTATE_3:
+				case ID_FILES_SAVESTATE_4:
+				case ID_FILES_SAVESTATE_5:
+				case ID_FILES_SAVESTATE_6:
+				case ID_FILES_SAVESTATE_7:
+				case ID_FILES_SAVESTATE_8:
+				case ID_FILES_SAVESTATE_9:
+				case ID_FILES_SAVESTATE_0:
+					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_SAVESTATE_1 + 1) % 10);
+					//if (Check_If_Kaillera_Running()) return 0;
+					Str_Tmp[0] = 0;
+					Get_State_File_Name(Str_Tmp);
+					Save_State(Str_Tmp);
+					return 0;
 
+				case ID_FILES_LOADSTATE_1:
+				case ID_FILES_LOADSTATE_2:
+				case ID_FILES_LOADSTATE_3:
+				case ID_FILES_LOADSTATE_4:
+				case ID_FILES_LOADSTATE_5:
+				case ID_FILES_LOADSTATE_6:
+				case ID_FILES_LOADSTATE_7:
+				case ID_FILES_LOADSTATE_8:
+				case ID_FILES_LOADSTATE_9:
+				case ID_FILES_LOADSTATE_0:
+					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_LOADSTATE_1 + 1) % 10);
+					//if (Check_If_Kaillera_Running()) return 0;
+					Str_Tmp[0] = 0;
+					Get_State_File_Name(Str_Tmp);
+					Load_State(Str_Tmp);
+					return 0;
 
-				case ID_FILES_CTRLSTATE_0: //Modif N - for new loadstate# keys:
-				case ID_FILES_CTRLSTATE_1:
-				case ID_FILES_CTRLSTATE_2:
-				case ID_FILES_CTRLSTATE_3:
-				case ID_FILES_CTRLSTATE_4:
-				case ID_FILES_CTRLSTATE_5:
-				case ID_FILES_CTRLSTATE_6:
-				case ID_FILES_CTRLSTATE_7:
-				case ID_FILES_CTRLSTATE_8:
-				case ID_FILES_CTRLSTATE_9:
-					switch (StateSelectCfg)
-					{
-						case 3:
-						case 5:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_CTRLSTATE_0);
-							return 0;
-						case 2:
-						case 4:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_CTRLSTATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Save_State(Str_Tmp);
-							return 0;
-						default:	//cases 0, 1, or undefined
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_CTRLSTATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Load_State(Str_Tmp);
-							return 0;
-					}
+				case ID_FILES_SETSTATE_1:
+				case ID_FILES_SETSTATE_2:
+				case ID_FILES_SETSTATE_3:
+				case ID_FILES_SETSTATE_4:
+				case ID_FILES_SETSTATE_5:
+				case ID_FILES_SETSTATE_6:
+				case ID_FILES_SETSTATE_7:
+				case ID_FILES_SETSTATE_8:
+				case ID_FILES_SETSTATE_9:
+				case ID_FILES_SETSTATE_0:
+					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_SETSTATE_1 + 1) % 10);
+					return 0;
 
-				case ID_FILES_SFTSTATE_0: //Modif N - for new savestate# keys:
-				case ID_FILES_SFTSTATE_1:
-				case ID_FILES_SFTSTATE_2:
-				case ID_FILES_SFTSTATE_3:
-				case ID_FILES_SFTSTATE_4:
-				case ID_FILES_SFTSTATE_5:
-				case ID_FILES_SFTSTATE_6:
-				case ID_FILES_SFTSTATE_7:
-				case ID_FILES_SFTSTATE_8:
-				case ID_FILES_SFTSTATE_9:
-					switch (StateSelectCfg)
-					{
-						case 1:
-						case 4:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_STATE_0);
-							return 0;
-						case 2:
-						case 3:
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_SFTSTATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Load_State(Str_Tmp);
-							return 0;
-						default:	//cases 0, 5 or undefined
-							Set_Current_State(hWnd, LOWORD(wParam) - ID_FILES_SFTSTATE_0);
-							if (!NumLoadEnabled) return 0; //Nitsuja added this
-							if (Check_If_Kaillera_Running()) return 0;
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Save_State(Str_Tmp);
-							return 0;
-					}
 				case ID_MOVIE_CHANGETRACK_ALL:
 					track = 1 | 2 | 4;
 					Put_Info("Recording all tracks",1000);
@@ -4072,7 +4023,9 @@ HMENU Build_Main_Menu(void)
 	HMENU Options;
 	HMENU Help;
 
-	HMENU FilesChangeState;
+	//HMENU FilesChangeState;
+	HMENU FilesSaveState;
+	HMENU FilesLoadState;
 	HMENU FilesHistory;
 	HMENU GraphicsRender;
 	HMENU GraphicsLayers; //Nitsuja added this
@@ -4116,7 +4069,9 @@ HMENU Build_Main_Menu(void)
 	Options = CreatePopupMenu();
 	TAS_Tools = CreatePopupMenu(); //Upth-Add - Initialize my new menus
 	Help = CreatePopupMenu();
-	FilesChangeState = CreatePopupMenu();
+	//FilesChangeState = CreatePopupMenu();
+	FilesSaveState = CreatePopupMenu();
+	FilesLoadState = CreatePopupMenu();
 	FilesHistory = CreatePopupMenu();
 	GraphicsRender = CreatePopupMenu();
 	GraphicsLayers = CreatePopupMenu(); //Nitsuja added this
@@ -4172,11 +4127,13 @@ HMENU Build_Main_Menu(void)
 	
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
 	
-	MENU_L(Files, i++, Flags, ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State ...");
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesSaveState, "Save State", "", "Save State");
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesLoadState, "Load State", "", "Load State");
 	MENU_L(Files, i++, Flags, ID_FILES_SAVESTATEAS, "Save State as", "\tShift+F5", "&Save State as...");
-	MENU_L(Files, i++, Flags, ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
-	MENU_L(Files, i++, Flags, ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
-	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesChangeState, "Change State", "\tF6-F7", "C&hange State");
+	MENU_L(Files, i++, Flags, ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State...");
+	//MENU_L(Files, i++, Flags, ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
+	//MENU_L(Files, i++, Flags, ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
+	//MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesChangeState, "Change State", "\tF6-F7", "C&hange State");
 
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
 
@@ -4186,20 +4143,26 @@ HMENU Build_Main_Menu(void)
 		InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
 	}
 
-	MENU_L(Files, i++, Flags, ID_FILES_QUIT, "Quit", "", "&Quit");
+	MENU_L(Files, i++, Flags, ID_FILES_QUIT, "Quit", "Alt F4", "&Quit");
 
 
 
 	// Menu FilesChangeState
 	
+	//for(i = 0; i < 10; i++)
+	//{
+	//	wsprintf(Str_Tmp ,"Set &%d", (i+1)%10);
+	//	MENU_L(FilesChangeState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SETSTATE_1 + i, Str_Tmp, "", Str_Tmp);
+	//}
 	for(i = 0; i < 10; i++)
 	{
-		wsprintf(Str_Tmp ,"&%d", i);
-
-		if(Current_State == i)
-			InsertMenu(FilesChangeState, i, Flags | MF_CHECKED, ID_FILES_STATE_0 + i, Str_Tmp);
-		else
-			InsertMenu(FilesChangeState, i, Flags | MF_UNCHECKED, ID_FILES_STATE_0 + i, Str_Tmp);
+		wsprintf(Str_Tmp ,"Save &%d", (i+1)%10);
+		MENU_L(FilesSaveState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SAVESTATE_1 + i, Str_Tmp, "", Str_Tmp);
+	}
+	for(i = 0; i < 10; i++)
+	{
+		wsprintf(Str_Tmp ,"Load &%d", (i+1)%10);
+		MENU_L(FilesLoadState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_LOADSTATE_1 + i, Str_Tmp, "", Str_Tmp);
 	}
 
 
@@ -4597,16 +4560,17 @@ HMENU Build_Main_Menu(void)
 	
 	// Menu Options
 
-	MENU_L(Options, 0, MF_BYPOSITION | MF_STRING, ID_OPTIONS_GENERAL, "General ", "", "&General..."); // Modif N: changed Misc... to General...
-	MENU_L(Options, 1, Flags, ID_OPTIONS_JOYPADSETTING, "Joypad", "", "&Joypads...");
-	MENU_L(Options, 2, Flags, ID_OPTIONS_CHANGEDIR, "Directories", "", "&Directories...");
-	MENU_L(Options, 3, Flags, ID_OPTIONS_CHANGEFILES, "Bios/Misc Files", "", "Bios/Misc &Files...");
-	InsertMenu(Options, 4, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Options, 5, Flags | MF_POPUP, (UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
-	MENU_L(Options, 6, Flags | MF_POPUP, (UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
-	InsertMenu(Options, 7, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Options, 8, Flags, ID_OPTIONS_LOADCONFIG, "Load config", "", "&Load config");
-	MENU_L(Options, 9, Flags, ID_OPTIONS_SAVEASCONFIG, "Save config as", "", "&Save config as");
+	i = 0;
+	MENU_L(Options, i++, Flags, ID_OPTIONS_JOYPADSETTING, "Input", "", "&Input...");
+	MENU_L(Options, i++, MF_BYPOSITION | MF_STRING, ID_OPTIONS_GENERAL, "General ", "", "&General..."); // Modif N: changed Misc... to General...
+	MENU_L(Options, i++, Flags, ID_OPTIONS_CHANGEDIR, "Directories", "", "&Directories...");
+	MENU_L(Options, i++, Flags, ID_OPTIONS_CHANGEFILES, "Bios/Misc Files", "", "Bios/Misc &Files...");
+	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
+	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
+	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(Options, i++, Flags, ID_OPTIONS_LOADCONFIG, "Load config", "", "&Load config");
+	MENU_L(Options, i++, Flags, ID_OPTIONS_SAVEASCONFIG, "Save config as", "", "&Save config as");
 
 
 	// Sous-Menu CDDrive
@@ -8025,7 +7989,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	switch(uMsg)
 	{
-		case WM_INITDIALOG:
+		case WM_INITDIALOG: {
 			if (Full_Screen)
 			{
 				while (ShowCursor(false) >= 0);
@@ -8061,12 +8025,12 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				SendDlgItemMessage(hDlg, IDC_COMBO_PADP1 + i, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "6 buttons");
 				SendDlgItemMessage(hDlg, IDC_COMBO_PADP1 + i, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "3 buttons");
 			}
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "# Load, Shift-# save, Ctrl-# select");
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "# Load, Ctrl-# save, Shift-# select");
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Shift-# Load, # save, Ctrl-# select");
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Shift-# Load, Ctrl-# save, # select");
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Ctrl-# Load, # save, Shift-# select");
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Ctrl-# Load, Shift-# save, # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "       # Load,  Shift # save,    Ctrl # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "       # Load,    Ctrl # save, Shift # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Shift # Load,         # save,    Ctrl # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "Shift # Load,    Ctrl # save,        # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "   Ctrl # Load,        # save, Shift # select");
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_INSERTSTRING, (WPARAM) 0, (LONG) (LPTSTR) "   Ctrl # Load, Shift # save,        # select");
 
 			SendDlgItemMessage(hDlg, IDC_COMBO_PORT1, CB_SETCURSEL, (WPARAM) ((Controller_1_Type >> 4) & 1), (LPARAM) 0);
 			SendDlgItemMessage(hDlg, IDC_COMBO_PORT2, CB_SETCURSEL, (WPARAM) ((Controller_2_Type >> 4) & 1), (LPARAM) 0);
@@ -8080,15 +8044,39 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			SendDlgItemMessage(hDlg, IDC_COMBO_PADP2C, CB_SETCURSEL, (WPARAM) (Controller_2C_Type & 1), (LPARAM) 0);
 			SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_SETCURSEL, (WPARAM) (Controller_2D_Type & 1), (LPARAM) 0);
             SendDlgItemMessage(hDlg, IDC_CHECK_LEFTRIGHT, BM_SETCHECK, (WPARAM) (LeftRightEnabled)?BST_CHECKED:BST_UNCHECKED, 0); //Modif
-			if (NumLoadEnabled) EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),TRUE);
-			else EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),FALSE);
-            SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_SETCHECK, (WPARAM) (NumLoadEnabled)?BST_CHECKED:BST_UNCHECKED, 0); //Modif N.
-			if (StateSelectCfg > 5)
-				StateSelectCfg = 0;
-			SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_SETCURSEL, (WPARAM) (StateSelectCfg), (LPARAM) 0);			return true;
-			break;
+			/*if (NumLoadEnabled)*/ EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),TRUE);
+			//else EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),FALSE);
+            //SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_SETCHECK, (WPARAM) (NumLoadEnabled)?BST_CHECKED:BST_UNCHECKED, 0); //Modif N.
+			//if (StateSelectCfg > 5)
+			//	StateSelectCfg = 0;
+			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_SETCURSEL, (WPARAM) (StateSelectCfg), (LPARAM) 0);
+
+			EnableWindow(GetDlgItem(hDlg, IDC_REASSIGNKEY), FALSE);
+			EnableWindow(GetDlgItem(hDlg, IDC_REVERTKEY), FALSE);
+			EnableWindow(GetDlgItem(hDlg, IDC_USEDEFAULTKEY), FALSE);
+			EnableWindow(GetDlgItem(hDlg, IDC_DISABLEKEY), FALSE);
+
+			HWND listbox = GetDlgItem(hDlg, IDC_HOTKEYLIST);
+
+			int stops [1] = {25*4};
+			SendMessage(listbox, LB_SETTABSTOPS, 1, (LONG)(LPSTR)stops);
+
+			PopulateHotkeyListbox(listbox);
+
+			return true;
+		}	break;
 
 		case WM_COMMAND:
+
+			if (HIWORD(wParam) == LBN_SELCHANGE && LOWORD(wParam) == IDC_HOTKEYLIST)
+			{
+				int selCount = SendDlgItemMessage(hDlg, IDC_HOTKEYLIST, LB_GETSELCOUNT, (WPARAM) 0, (LPARAM) 0);
+				EnableWindow(GetDlgItem(hDlg, IDC_REASSIGNKEY), (selCount == 1) ? TRUE : FALSE);
+				EnableWindow(GetDlgItem(hDlg, IDC_REVERTKEY), (selCount >= 1) ? TRUE : FALSE);
+				EnableWindow(GetDlgItem(hDlg, IDC_USEDEFAULTKEY), (selCount >= 1) ? TRUE : FALSE);
+				EnableWindow(GetDlgItem(hDlg, IDC_DISABLEKEY), (selCount >= 1) ? TRUE : FALSE);
+			}
+
 			switch(wParam)
 			{
 				case IDOK:
@@ -8109,90 +8097,15 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 					Controller_2C_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2C, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
 					Controller_2D_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
                     LeftRightEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_LEFTRIGHT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif
-                    NumLoadEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif N.
-					StateSelectCfg = (unsigned char)SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0);
+                    //NumLoadEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif N.
+					//StateSelectCfg = (unsigned char)SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0);
 					Make_IO_Table();
 					End_Input();
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
 					break;
-				case IDC_CHECK_NUMLOAD:
-					if (SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_GETCHECK, 0, 0) == BST_CHECKED) EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),TRUE);
-					else EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),FALSE);
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_SKIP_KEY:	//Modif
-					SetWindowText(Tex0, "SETTING KEY: ADVANCE NEXT FRAME"); //Upth-Modif - We're setting one key. Not multiple keys. This has been bugging me for a while
-					Setting_Skip_Key(hDlg);
-					SetWindowText(Tex0, ""); //Upth-Modif - We aren't setting keys anymore, so why say "SETTING KEYS"?
-					return true;
-					break;
-				case IDC_BUTTON_REMOVE_SKIP_KEY:	//Modif
-					SkipKey=0;
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_SLOW_KEY:	//Modif
-					SetWindowText(Tex0, "SETTING KEY: TOGGLE SLOW MODE");
-					Setting_Slow_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REMOVE_SLOW_KEY:	//Modif
-					SlowDownKey=0;
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_PAUSE_KEY:	//Modif
-					SetWindowText(Tex0, "SETTING KEY: PAUSE");
-					Setting_Quickpause_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REMOVE_PAUSE_KEY:	//Modif
-					QuickPauseKey=0;
-					return true;
-					break;
-				case IDC_BUTTON_REMOVE_QUICK_KEY: //Modif
-					QuickLoadKey=0;
-					QuickSaveKey=0;
-					return true;
-					break;
-				case IDC_BUTTON_QUICKLOAD_KEY:	//Modif
-					SetWindowText(Tex0, "SETTING KEY: QUICKLOAD");
-					Setting_Quickload_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_QUICKSAVE_KEY:	//Modif
-					SetWindowText(Tex0, "SETTING KEY: QUICKSAVE");
-					Setting_Quicksave_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_AUTOFIRE_KEY:	//Modif N.
-					SetWindowText(Tex0, "SETTING KEYS AUTO-FIRE");
-					Setting_Autofire_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_AUTOHOLD_KEY:	//Modif N.
-					SetWindowText(Tex0, "SETTING KEYS AUTO-HOLD");
-					Setting_Autohold_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_AUTOCLEAR_KEY:	//Modif N.
-					SetWindowText(Tex0, "SETTING KEYS CLEARING AUTOS");
-					Setting_Autoclear_Key(hDlg);
-					SetWindowText(Tex0, "");
-					return true;
-					break;
-				case IDC_BUTTON_REMOVE_AUTO_KEY: //Modif N.
-					AutoFireKey=0;
-					AutoHoldKey=0;
-					AutoClearKey=0;
-					return true;
-					break;
+
 				case IDC_BUTTON_SETKEYSP1:
 					Setting_Keys(hDlg, 0, (SendDlgItemMessage(hDlg, IDC_COMBO_PADP1, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1));
 					return true;
@@ -8231,6 +8144,13 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				case IDC_BUTTON_SETKEYSP2D:
 					Setting_Keys(hDlg, 7, (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1));
 					return true;
+					break;
+
+				case IDC_REASSIGNKEY:
+				case IDC_REVERTKEY:
+				case IDC_USEDEFAULTKEY:
+				case IDC_DISABLEKEY:
+					ModifyHotkeyFromListbox(GetDlgItem(hDlg, IDC_HOTKEYLIST), wParam, Tex0, hDlg);
 					break;
 
 				case ID_HELP_HELP:

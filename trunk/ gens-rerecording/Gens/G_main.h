@@ -44,20 +44,29 @@ extern int Intro_Style;
 extern int SegaCD_Accurate;
 extern int DialogsOpen;
 extern int SlowDownMode; //Modif
-extern unsigned int QuickSaveKey;	//Modif
-extern unsigned int QuickLoadKey; //Modif
-extern unsigned int AutoFireKey;	//Modif N.
-extern unsigned int AutoHoldKey; //Modif N.
-extern unsigned int AutoClearKey; //Modif N.
-extern int QuickSaveKeyIsPressed;	//Modif
-extern int QuickLoadKeyIsPressed;	//Modif
-extern unsigned int QuickPauseKey;	//Modif
-extern int QuickPauseKeyIsPressed;	//Modif
+
+//extern unsigned int QuickSaveKey;	//Modif
+//extern unsigned int QuickLoadKey; //Modif
+//extern unsigned int AutoFireKey;	//Modif N.
+//extern unsigned int AutoHoldKey; //Modif N.
+//extern unsigned int AutoClearKey; //Modif N.
+//extern unsigned int QuickPauseKey;	//Modif
+//extern unsigned int SkipKey; //Modif
+//extern unsigned int SlowDownKey;	//Modif
+
+extern BOOL AutoFireKeyDown;	//Modif N.
+extern BOOL AutoHoldKeyDown;	//Modif N.
+extern BOOL AutoClearKeyDown;	//Modif N.
+extern BOOL FrameAdvanceKeyDown; //Modif
+extern BOOL FastForwardKeyDown; // Modif N.
+
+//extern int QuickSaveKeyIsPressed;	//Modif
+//extern int QuickLoadKeyIsPressed;	//Modif
+//extern int QuickPauseKeyIsPressed;	//Modif
 extern int SlowDownSpeed;	//Modif
-extern int SlowDownKeyIsPressed;	//Modif
-extern unsigned int SkipKey; //Modif
+//extern int SlowDownKeyIsPressed;	//Modif
 extern int SkipKeyIsPressed; //Modif
-extern unsigned int SlowDownKey;	//Modif
+
 extern int Disable_Blue_Screen; //Modif
 extern int Never_Skip_Frame; //Modif
 extern int FrameCounterEnabled; //Modif

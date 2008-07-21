@@ -185,7 +185,7 @@ void hook_read_byte()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -246,7 +246,7 @@ void hook_read_word()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -307,7 +307,7 @@ void hook_read_dword()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -366,7 +366,7 @@ void hook_write_byte()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -432,7 +432,7 @@ void hook_write_word()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -493,7 +493,7 @@ void hook_write_dword()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -555,7 +555,7 @@ void hook_dma()
 	unsigned int start, stop;
 	int lcv;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -709,7 +709,7 @@ void hook_write_vram_byte()
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -788,7 +788,7 @@ void hook_write_vram_word()
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -867,7 +867,7 @@ void hook_read_vram_byte()
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -946,7 +946,7 @@ void hook_read_vram_word()
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -1024,7 +1024,7 @@ void hook_vdp_reg()
 {
 	unsigned int start, stop;
 
-	if( !hook_trace ) return;
+	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
