@@ -1730,7 +1730,7 @@ int Update_Emulation(HWND hWnd)
 	int current_div;
 
 	int Temp_Frame_Skip = Frame_Skip; //Modif N - part of a quick hack to make Tab the fast-forward key
-	if((GetAsyncKeyState(VK_TAB) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000) && GetActiveWindow()==hWnd)
+	if(FastForwardKeyDown && GetActiveWindow()==hWnd)
 		Temp_Frame_Skip = 8;
 	if (SeekFrame) // If we've set a frame to seek to
 	{

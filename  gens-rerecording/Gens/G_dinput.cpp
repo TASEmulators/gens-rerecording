@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <vector>
+#include <map>
 #include "resource.h"
 #include "G_Input.h"
 #include "io.h"
@@ -61,6 +63,785 @@ MAKE_AUTO_KEY_VAR(Controller_2_C);
 MAKE_AUTO_KEY_VAR(Controller_2_X);
 MAKE_AUTO_KEY_VAR(Controller_2_Y);
 MAKE_AUTO_KEY_VAR(Controller_2_Z);
+
+
+
+
+
+
+struct InputButton
+{
+	int modifiers; // ex: MOD_ALT | MOD_CONTROL | MOD_SHIFT
+
+	int virtKey; // ex: VK_ESCAPE or 'O'
+	WORD eventID; // send message on press
+
+	int diKey; // ex: DIK_ESCAPE
+	BOOL* alias; // set value = held
+
+	const char* description; // for user display... feel free to change it
+	const char* saveIDString; // for config file... please do not ever change these names or you will break backward compatibility
+
+	BOOL heldNow;
+
+	bool ShouldUseAccelerator() {
+		return eventID && (virtKey > 0x07) && !(modifiers & MOD_WIN);
+	}
+};
+
+#define MOD_NONE 0
+#define VK_NONE 0
+#define ID_NONE 0
+
+static InputButton s_inputButtons [] =
+{
+	{MOD_CONTROL,           'O',       ID_FILES_OPENROM,         0, NULL, "Open ROM", "OpenROMKey"},
+	{MOD_CONTROL,           'C',       ID_FILES_CLOSEROM,        0, NULL, "Close ROM", "CloseROMKey"},
+	{MOD_NONE,              VK_ESCAPE, ID_EMULATION_PAUSED,      0, NULL, "Pause/Unpause", "PauseKey0"},
+	{MOD_NONE,              VK_PAUSE,  ID_EMULATION_PAUSED,      0, NULL, "Pause/Unpause (key 2)", "PauseKey"},
+	{MOD_CONTROL|MOD_SHIFT, 'R',       ID_CPU_RESET,             0, NULL, "Reset Game", "ResetKey"},
+
+//	{MOD_CONTROL|MOD_SHIFT, 'S',       ID_CPU_SOFTRESET,         0, NULL, "Soft Reset CPU", "SoftResetKey"},
+//	{MOD_CONTROL|MOD_SHIFT, 'P',       ID_CPU_ACCURATE_SYNCHRO,  0, NULL, "Accurate Sega CD CPU Sync On/Off", "AccurateSyncKey"},
+
+	{MOD_CONTROL,           'B',       ID_FILES_BOOTCD,          0, NULL, "Boot CD", "BootCDKey"},
+	{MOD_CONTROL,           'V',       ID_FILES_OPENCLOSECD,     0, NULL, "Open/Close CD", "OpenCloseCDKey"},
+
+	{MOD_NONE, VK_TAB,   ID_NONE, 0, &FastForwardKeyDown,  "Fast Forward", "FastForwardKey"},
+	{MOD_NONE, VK_OEM_5, ID_NONE, 0, &FrameAdvanceKeyDown, "Frame Advance", "SkipFrameKey"},
+	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoFireKeyDown,     "Auto-Fire Modifier", "AutoFireKey"},
+	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
+	{MOD_NONE, VK_OEM_3, ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
+
+	{MOD_CONTROL|MOD_SHIFT, VK_OEM_2,      ID_CHANGE_TRACE,      0, NULL, "Instruction Tracing On/Off", "TraceKey"},
+	{MOD_CONTROL|MOD_SHIFT, VK_OEM_PERIOD, ID_CHANGE_HOOK,       0, NULL, "Memory Hooking On/Off", "HookKey"},
+
+	{MOD_CONTROL,           'G',       ID_FILES_GAMEGENIE,       0, NULL, "Game Genie Setup", "GameGenieKey"},
+	{MOD_CONTROL,           'N',       ID_FILES_NETPLAY,         0, NULL, "Netplay Setup", "NetplayKey"},
+
+	{MOD_NONE,              '1',       ID_FILES_LOADSTATE_1,     0, NULL, "Load State 1", "Load1Key"},
+	{MOD_NONE,              '2',       ID_FILES_LOADSTATE_2,     0, NULL, "Load State 2", "Load2Key"},
+	{MOD_NONE,              '3',       ID_FILES_LOADSTATE_3,     0, NULL, "Load State 3", "Load3Key"},
+	{MOD_NONE,              '4',       ID_FILES_LOADSTATE_4,     0, NULL, "Load State 4", "Load4Key"},
+	{MOD_NONE,              '5',       ID_FILES_LOADSTATE_5,     0, NULL, "Load State 5", "Load5Key"},
+	{MOD_NONE,              '6',       ID_FILES_LOADSTATE_6,     0, NULL, "Load State 6", "Load6Key"},
+	{MOD_NONE,              '7',       ID_FILES_LOADSTATE_7,     0, NULL, "Load State 7", "Load7Key"},
+	{MOD_NONE,              '8',       ID_FILES_LOADSTATE_8,     0, NULL, "Load State 8", "Load8Key"},
+	{MOD_NONE,              '9',       ID_FILES_LOADSTATE_9,     0, NULL, "Load State 9", "Load9Key"},
+	{MOD_NONE,              '0',       ID_FILES_LOADSTATE_0,     0, NULL, "Load State 0", "Load0Key"},
+
+	{MOD_SHIFT,             '1',       ID_FILES_SAVESTATE_1,     0, NULL, "Save State 1", "Save1Key"},
+	{MOD_SHIFT,             '2',       ID_FILES_SAVESTATE_2,     0, NULL, "Save State 2", "Save2Key"},
+	{MOD_SHIFT,             '3',       ID_FILES_SAVESTATE_3,     0, NULL, "Save State 3", "Save3Key"},
+	{MOD_SHIFT,             '4',       ID_FILES_SAVESTATE_4,     0, NULL, "Save State 4", "Save4Key"},
+	{MOD_SHIFT,             '5',       ID_FILES_SAVESTATE_5,     0, NULL, "Save State 5", "Save5Key"},
+	{MOD_SHIFT,             '6',       ID_FILES_SAVESTATE_6,     0, NULL, "Save State 6", "Save6Key"},
+	{MOD_SHIFT,             '7',       ID_FILES_SAVESTATE_7,     0, NULL, "Save State 7", "Save7Key"},
+	{MOD_SHIFT,             '8',       ID_FILES_SAVESTATE_8,     0, NULL, "Save State 8", "Save8Key"},
+	{MOD_SHIFT,             '9',       ID_FILES_SAVESTATE_9,     0, NULL, "Save State 9", "Save9Key"},
+	{MOD_SHIFT,             '0',       ID_FILES_SAVESTATE_0,     0, NULL, "Save State 0", "Save0Key"},
+
+	{MOD_CONTROL,           '1',       ID_FILES_SETSTATE_1,      0, NULL, "Set State 1", "Set1Key"},
+	{MOD_CONTROL,           '2',       ID_FILES_SETSTATE_2,      0, NULL, "Set State 2", "Set2Key"},
+	{MOD_CONTROL,           '3',       ID_FILES_SETSTATE_3,      0, NULL, "Set State 3", "Set3Key"},
+	{MOD_CONTROL,           '4',       ID_FILES_SETSTATE_4,      0, NULL, "Set State 4", "Set4Key"},
+	{MOD_CONTROL,           '5',       ID_FILES_SETSTATE_5,      0, NULL, "Set State 5", "Set5Key"},
+	{MOD_CONTROL,           '6',       ID_FILES_SETSTATE_6,      0, NULL, "Set State 6", "Set6Key"},
+	{MOD_CONTROL,           '7',       ID_FILES_SETSTATE_7,      0, NULL, "Set State 7", "Set7Key"},
+	{MOD_CONTROL,           '8',       ID_FILES_SETSTATE_8,      0, NULL, "Set State 8", "Set8Key"},
+	{MOD_CONTROL,           '9',       ID_FILES_SETSTATE_9,      0, NULL, "Set State 9", "Set9Key"},
+	{MOD_CONTROL,           '0',       ID_FILES_SETSTATE_0,      0, NULL, "Set State 0", "Set0Key"},
+
+	{MOD_NONE,              VK_F7,     ID_FILES_NEXTSTATE,       0, NULL, "Set Next State", "SetNextKey"},
+	{MOD_NONE,              VK_F6,     ID_FILES_PREVIOUSSTATE,   0, NULL, "Set Previous State", "SetPrevKey"},
+	{MOD_NONE,              VK_F8,     ID_FILES_LOADSTATE,       0, NULL, "Load Current Savestate", "QuickLoadKey"},
+	{MOD_NONE,              VK_F5,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate", "QuickSaveKey"},
+	{MOD_SHIFT,             VK_F8,     ID_FILES_LOADSTATEAS,     0, NULL, "Load State From...", "LoadFromKey"},
+	{MOD_SHIFT,             VK_F5,     ID_FILES_SAVESTATEAS,     0, NULL, "Save State As...", "SaveAsKey"},
+
+	{MOD_NONE,              VK_F2,     ID_GRAPHICS_FRAMESKIP_AUTO,     0, NULL, "Set Auto Frameskip", "AutoFrameskipKey"},
+	{MOD_NONE,              VK_F3,     ID_GRAPHICS_FRAMESKIP_DECREASE, 0, NULL, "Decrease Frameskip", "PrevFrameskipKey"},
+	{MOD_NONE,              VK_F4,     ID_GRAPHICS_FRAMESKIP_INCREASE, 0, NULL, "Increase Frameskip", "NextFrameskipKey"},
+
+	{MOD_NONE,              VK_F12,    ID_GRAPHICS_NEXT_RENDER,        0, NULL, "Next Render Mode", "NextRenderKey"},
+	{MOD_NONE,              VK_F11,    ID_GRAPHICS_PREVIOUS_RENDER,    0, NULL, "Previous Render Mode", "PrevRenderKey"},
+	{MOD_ALT,               VK_RETURN, ID_GRAPHICS_SWITCH_MODE,        0, NULL, "Fullscreen Mode On/Off", "FullscreenKey"},
+	{MOD_SHIFT,             VK_F2,     ID_GRAPHICS_STRETCH,            0, NULL, "Stretch Graphics On/Off", "StretchKey"},
+	{MOD_SHIFT,             VK_F3,     ID_GRAPHICS_VSYNC,              0, NULL, "VSync On/Off", "VSyncKey"},
+	{MOD_SHIFT,             VK_F9,     ID_GRAPHICS_FORCESOFT,          0, NULL, "Force Software Blit On/Off", "SoftwareBlitKey"},
+	{MOD_NONE,              VK_F9,     ID_OPTIONS_FASTBLUR,            0, NULL, "Motion Blur On/Off", "MotionBlurKey"},
+	{MOD_NONE,              VK_F10,    ID_OPTIONS_SHOWFPS,             0, NULL, "Show Framerate On/Off", "ShowFPSKey"},
+
+	{MOD_NONE,            VK_OEM_MINUS,ID_SLOW_SPEED_MINUS,      0, NULL, "Decrease Speed", "SlowDownKey"},
+	{MOD_NONE,            VK_OEM_PLUS, ID_SLOW_SPEED_PLUS,       0, NULL, "Increase Speed", "SpeedUpKey"},
+	{MOD_NONE,            VK_NONE,     ID_SLOW_MODE,             0, NULL, "Toggle Slow Mode", "ToggleSlowKey"},
+
+	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Take Screenshot", "ScreenshotKey"},
+	{MOD_NONE,              VK_F1,     ID_HELP_HELP,             0, NULL, "Get Help", "HelpKey"},
+
+	{MOD_CONTROL|MOD_SHIFT,   'P',     ID_SOUND_PLAYGYM,         0, NULL, "Play GYM", "GYMKey"},
+	{MOD_NONE,              VK_NONE,   ID_SOUND_STARTWAVDUMP,    0, NULL, "Dump WAV", "WAVKey"},
+
+	{MOD_SHIFT,             VK_F10,    ID_SOUND_DACIMPROV,       0, NULL, "Improved DAC On/Off", "ImpDACKey"},
+	{MOD_SHIFT,             VK_F11,    ID_SOUND_PSGIMPROV,       0, NULL, "Improved PSG On/Off", "ImpPSGKey"},
+	{MOD_SHIFT,             VK_F12,    ID_SOUND_YMIMPROV,        0, NULL, "Improved YM On/Off", "ImpYMKey"},
+
+	{MOD_CONTROL|MOD_SHIFT, '0',       ID_MOVIE_CHANGETRACK_ALL, 0, NULL, "Enable All Tracks", "AllTracksKey"},
+	{MOD_CONTROL|MOD_SHIFT, '1',       ID_MOVIE_CHANGETRACK_1,   0, NULL, "Toggle Player Track 1", "Track1Key"},
+	{MOD_CONTROL|MOD_SHIFT, '2',       ID_MOVIE_CHANGETRACK_2,   0, NULL, "Toggle Player Track 2", "Track2Key"},
+	{MOD_CONTROL|MOD_SHIFT, '3',       ID_MOVIE_CHANGETRACK_3,   0, NULL, "Toggle Player Track 3", "Track3Key"},
+	{MOD_SHIFT,          VK_OEM_COMMA, ID_PREV_TRACK,            0, NULL, "Previous Player Track", "PrevTrackKey"},
+	{MOD_SHIFT,         VK_OEM_PERIOD, ID_NEXT_TRACK,            0, NULL, "Next Player Track", "NextTrackKey"},
+
+	{MOD_NONE,              VK_NONE,   ID_RAM_SEARCH,            0, NULL, "Ram Search", "RamSearchKey"},
+	{MOD_NONE,              VK_NONE,   ID_RAM_WATCH,             0, NULL, "Ram Watch", "RamWatchKey"},
+	{MOD_NONE,              VK_NONE,   ID_PLAY_MOVIE,            0, NULL, "Play Movie", "PlayMovieKey"},
+	{MOD_NONE,              VK_NONE,   ID_RECORD_MOVIE,          0, NULL, "Record Movie", "RecordMovieKey"},
+	{MOD_NONE,              VK_NONE,   ID_STOP_MOVIE,            0, NULL, "Stop Movie", "StopMovieKey"},
+	{MOD_CONTROL,           'T',       ID_TOGGLE_MOVIE_READONLY, 0, NULL, "Toggle Movie Read-Only", "ToggleReadOnlyKey"},
+	{MOD_CONTROL,           'R',       ID_LAG_RESET,             0, NULL, "Reset Lag Counter", "LagResetKey"},
+	{MOD_SHIFT,             'S',       ID_SPLICE,                0, NULL, "Splice Input", "SpliceInputKey"},
+	{MOD_NONE,              VK_NONE,   IDC_SEEK_FRAME,           0, NULL, "Seek To Frame", "SeekToFrameKey"},
+};
+
+static inline int GetNumHotkeys(void)
+{
+	return sizeof(s_inputButtons) / sizeof(s_inputButtons[0]);
+}
+
+static std::map<WORD,int> s_reverseEventLookup;
+
+static InputButton s_defaultInputButtons [sizeof(s_inputButtons) / sizeof(s_inputButtons[0])];
+static bool defaultInputButtonsStored = false;
+static void StoreDefaultInputButtons()
+{
+	if(!defaultInputButtonsStored)
+	{
+		memcpy(s_defaultInputButtons, s_inputButtons, sizeof(s_defaultInputButtons));
+		defaultInputButtonsStored = true;
+	}
+}
+static InputButton s_initialInputButtons [sizeof(s_inputButtons) / sizeof(s_inputButtons[0])];
+static bool initialInputButtonsStored = false;
+static void StoreInitialInputButtons()
+{
+	if(!initialInputButtonsStored)
+	{
+		memcpy(s_initialInputButtons, s_inputButtons, sizeof(s_initialInputButtons));
+		initialInputButtonsStored = true;
+	}
+}
+
+void BuildAccelerators(HACCEL& hAccelTable)
+{
+	if(hAccelTable)
+		DestroyAcceleratorTable(hAccelTable);
+
+	std::vector<ACCEL> accels;
+	int numInputButtons = GetNumHotkeys();
+	for(int i=0; i<numInputButtons; i++)
+	{
+		InputButton& button = s_inputButtons[i];
+		if(button.ShouldUseAccelerator())
+		{
+			// button can be expressed as a Windows accelerator
+			ACCEL accel;
+
+			accel.cmd = button.eventID;
+			accel.key = button.virtKey;
+			accel.fVirt = FVIRTKEY | FNOINVERT;
+			if(button.modifiers & MOD_ALT)
+				accel.fVirt |= FALT;
+			if(button.modifiers & MOD_SHIFT)
+				accel.fVirt |= FSHIFT;
+			if(button.modifiers & MOD_CONTROL)
+				accel.fVirt |= FCONTROL;
+
+			accels.push_back(accel);
+		}
+		else
+		{
+			// button can't be expressed as a Windows accelerator
+			// handle it in Update_Input()
+		}
+	}
+
+	s_reverseEventLookup.clear();
+	for(int i=0; i<numInputButtons; i++)
+		if(s_inputButtons[i].eventID)
+			s_reverseEventLookup[s_inputButtons[i].eventID] = i+1;
+
+	if(!accels.empty())
+		hAccelTable = CreateAcceleratorTable(&accels[0], accels.size());
+	else
+		hAccelTable = NULL;
+}
+
+static void SetButtonToOldDIKey(InputButton& button, int key)
+{
+	if(key)
+	{
+		if(button.diKey == DIK_PAUSE)
+		{
+			// special case this one since VK_PAUSE works much more reliably than DIK_PAUSE
+			button.virtKey = VK_PAUSE;
+			button.diKey = 0;
+		}
+		else
+		{
+			button.virtKey = VK_NONE;
+			button.diKey = key;
+		}
+		button.modifiers = MOD_NONE;
+	}
+}
+
+void SaveAccelerators(char *File_Name)
+{
+	char Str_Tmp[1024];
+	int numInputButtons = GetNumHotkeys();
+	for(int i=0; i<numInputButtons; i++)
+	{
+		InputButton& button = s_inputButtons[i];
+		wsprintf(Str_Tmp, "%d,%d,%d", button.diKey, button.modifiers, button.virtKey); // it's important that diKey comes first, since older versions only had that one
+		WritePrivateProfileString("Input", button.saveIDString, Str_Tmp, File_Name);
+	}
+}
+
+void LoadAccelerators(char *File_Name)
+{
+	StoreDefaultInputButtons();
+	char Str_Tmp[1024];
+	int numInputButtons = GetNumHotkeys();
+	for(int i=0; i<numInputButtons; i++)
+	{
+		InputButton& button = s_inputButtons[i];
+
+		GetPrivateProfileString("Input", button.saveIDString, "", Str_Tmp, 1024, File_Name);
+		if(Str_Tmp[0] != 0)
+		{
+			// found
+			InputButton temp;
+			int read = sscanf(Str_Tmp, "%d, %d, %d", &temp.diKey, &temp.modifiers, &temp.virtKey);
+			if(read == 3)
+			{
+				button.modifiers = temp.modifiers;
+				button.virtKey = temp.virtKey;
+				button.diKey = temp.diKey;
+			}
+			else if(read == 1)
+			{
+				// must be from an older version of Gens, convert it
+				SetButtonToOldDIKey(button, temp.diKey);
+			}
+		}
+		else
+		{
+			// not found, if it's a savestate hotkey then make it honor the StateSelectCfg
+
+			switch(button.eventID)
+			{
+			case ID_FILES_SAVESTATE_1:
+			case ID_FILES_SAVESTATE_2:
+			case ID_FILES_SAVESTATE_3:
+			case ID_FILES_SAVESTATE_4:
+			case ID_FILES_SAVESTATE_5:
+			case ID_FILES_SAVESTATE_6:
+			case ID_FILES_SAVESTATE_7:
+			case ID_FILES_SAVESTATE_8:
+			case ID_FILES_SAVESTATE_9:
+			case ID_FILES_SAVESTATE_0:
+				switch(StateSelectCfg)
+				{
+				case 0: case 5: button.modifiers = MOD_SHIFT; break;
+				case 1: case 3: button.modifiers = MOD_NONE; break;
+				case 2: case 4: button.modifiers = MOD_CONTROL; break;
+				}
+				break;
+
+			case ID_FILES_LOADSTATE_1:
+			case ID_FILES_LOADSTATE_2:
+			case ID_FILES_LOADSTATE_3:
+			case ID_FILES_LOADSTATE_4:
+			case ID_FILES_LOADSTATE_5:
+			case ID_FILES_LOADSTATE_6:
+			case ID_FILES_LOADSTATE_7:
+			case ID_FILES_LOADSTATE_8:
+			case ID_FILES_LOADSTATE_9:
+			case ID_FILES_LOADSTATE_0:
+				switch(StateSelectCfg)
+				{
+				case 0: case 1: button.modifiers = MOD_CONTROL; break;
+				case 2: case 3: button.modifiers = MOD_SHIFT; break;
+				case 4: case 5: button.modifiers = MOD_NONE; break;
+				}
+				break;
+
+			case ID_FILES_SETSTATE_1:
+			case ID_FILES_SETSTATE_2:
+			case ID_FILES_SETSTATE_3:
+			case ID_FILES_SETSTATE_4:
+			case ID_FILES_SETSTATE_5:
+			case ID_FILES_SETSTATE_6:
+			case ID_FILES_SETSTATE_7:
+			case ID_FILES_SETSTATE_8:
+			case ID_FILES_SETSTATE_9:
+			case ID_FILES_SETSTATE_0:
+				switch(StateSelectCfg)
+				{
+				case 0: case 2: button.modifiers = MOD_NONE; break;
+				case 1: case 4: button.modifiers = MOD_SHIFT; break;
+				case 3: case 5: button.modifiers = MOD_CONTROL; break;
+				}
+				break;
+			}
+		}
+	}
+}
+
+
+static const char* alphabet = "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0U\0V\0W\0X\0Y\0Z";
+static const char* digits = "0" "\0" "1" "\0" "2" "\0" "3" "\0" "4" "\0" "5" "\0" "6" "\0" "7" "\0" "8" "\0" "9";
+
+static const char* GetVirtualKeyName(int key)
+{
+	if(key >= 'A' && key <= 'Z')
+		return alphabet + 2 * (key - 'A');
+	if(key >= '0' && key <= '9')
+		return digits + 2 * (key - '0');
+
+	switch(key)
+	{
+	case VK_LBUTTON: return "LeftClick";
+	case VK_RBUTTON: return "RightClick";
+	case VK_CANCEL: return "Cancel";
+	case VK_MBUTTON: return "MiddleClick";
+	case VK_BACK: return "Backspace";
+	case VK_TAB: return "Tab";
+	case VK_CLEAR: return "Clear";
+	case VK_RETURN: return "Enter";
+	case VK_SHIFT: return "Shift";
+	case VK_CONTROL: return "Control";
+	case VK_MENU: return "Alt";
+	case VK_PAUSE: return "Pause";
+	case VK_CAPITAL: return "CapsLock";
+	case VK_KANA: return "Kana/Hangul";
+	case VK_JUNJA: return "Junja";
+	case VK_FINAL: return "Final";
+	case VK_HANJA: return "Hanja/Kanji";
+	case VK_ESCAPE: return "Escape";
+	case VK_CONVERT: return "Convert";
+	case VK_NONCONVERT: return "NoConvert";
+	case VK_ACCEPT: return "Accept";
+	case VK_MODECHANGE: return "Modechange";
+	case VK_SPACE: return "Space";
+	case VK_PRIOR: return "PageUp";
+	case VK_NEXT: return "PageDown";
+	case VK_END: return "End";
+	case VK_HOME: return "Home";
+	case VK_LEFT: return "Left";
+	case VK_UP: return "Up";
+	case VK_RIGHT: return "Right";
+	case VK_DOWN: return "Down";
+	case VK_SELECT: return "Select";
+	case VK_PRINT: return "Print";
+	case VK_EXECUTE: return "Execute";
+	case VK_SNAPSHOT: return "PrintScreen";
+	case VK_INSERT: return "Insert";
+	case VK_DELETE: return "Delete";
+	case VK_HELP: return "Help";
+	case VK_LWIN: return "LWin";
+	case VK_RWIN: return "RWin";
+	case VK_APPS: return "Apps";
+	case VK_SLEEP: return "Sleep";
+	case VK_NUMPAD0: return "Numpad0";
+	case VK_NUMPAD1: return "Numpad1";
+	case VK_NUMPAD2: return "Numpad2";
+	case VK_NUMPAD3: return "Numpad3";
+	case VK_NUMPAD4: return "Numpad4";
+	case VK_NUMPAD5: return "Numpad5";
+	case VK_NUMPAD6: return "Numpad6";
+	case VK_NUMPAD7: return "Numpad7";
+	case VK_NUMPAD8: return "Numpad8";
+	case VK_NUMPAD9: return "Numpad9";
+	case VK_MULTIPLY: return "Numpad*";
+	case VK_ADD: return "Numpad+";
+	case VK_SEPARATOR: return "Separator";
+	case VK_SUBTRACT: return "Numpad-";
+	case VK_DECIMAL: return "Numpad.";
+	case VK_DIVIDE: return "Numpad/";
+	case VK_F1: return "F1";
+	case VK_F2: return "F2";
+	case VK_F3: return "F3";
+	case VK_F4: return "F4";
+	case VK_F5: return "F5";
+	case VK_F6: return "F6";
+	case VK_F7: return "F7";
+	case VK_F8: return "F8";
+	case VK_F9: return "F9";
+	case VK_F10: return "F10";
+	case VK_F11: return "F11";
+	case VK_F12: return "F12";
+	case VK_F13: return "F13";
+	case VK_F14: return "F14";
+	case VK_F15: return "F15";
+	case VK_F16: return "F16";
+	case VK_F17: return "F17";
+	case VK_F18: return "F18";
+	case VK_F19: return "F19";
+	case VK_F20: return "F20";
+	case VK_F21: return "F21";
+	case VK_F22: return "F22";
+	case VK_F23: return "F23";
+	case VK_F24: return "F24";
+	case VK_NUMLOCK: return "NumLock";
+	case VK_SCROLL: return "ScrollLock";
+	case VK_OEM_1: return ";:";
+	case VK_OEM_PLUS: return "=+";
+	case VK_OEM_COMMA: return ",<";
+	case VK_OEM_MINUS: return "-_";
+	case VK_OEM_PERIOD: return ".>";
+	case VK_OEM_2: return "/?";
+	case VK_OEM_3: return "`~";
+	case VK_OEM_4: return "[{";
+	case VK_OEM_5: return "\\|";
+	case VK_OEM_6: return "]}";
+	case VK_OEM_7: return "'\"";
+	case VK_OEM_8: return "OEM_8";
+
+	default:
+		static char unk [8];
+		sprintf(unk, "0x%X", key);
+		return unk;
+	}
+}
+
+static const char* GetDirectInputKeyName(int key)
+{
+	switch(key)
+	{
+	case DIK_ESCAPE: return "Escape";
+	case DIK_1: return "1";
+	case DIK_2: return "2";
+	case DIK_3: return "3";
+	case DIK_4: return "4";
+	case DIK_5: return "5";
+	case DIK_6: return "6";
+	case DIK_7: return "7";
+	case DIK_8: return "8";
+	case DIK_9: return "9";
+	case DIK_0: return "0";
+	case DIK_MINUS: return "-_";
+	case DIK_EQUALS: return "=+";
+	case DIK_BACK: return "Backspace";
+	case DIK_TAB: return "Tab";
+	case DIK_Q: return "Q";
+	case DIK_W: return "W";
+	case DIK_E: return "E";
+	case DIK_R: return "R";
+	case DIK_T: return "T";
+	case DIK_Y: return "Y";
+	case DIK_U: return "U";
+	case DIK_I: return "I";
+	case DIK_O: return "O";
+	case DIK_P: return "P";
+	case DIK_LBRACKET: return "[{";
+	case DIK_RBRACKET: return "]}";
+	case DIK_RETURN: return "Enter";
+	case DIK_LCONTROL: return "LControl";
+	case DIK_A: return "A";
+	case DIK_S: return "S";
+	case DIK_D: return "D";
+	case DIK_F: return "F";
+	case DIK_G: return "G";
+	case DIK_H: return "H";
+	case DIK_J: return "J";
+	case DIK_K: return "K";
+	case DIK_L: return "L";
+	case DIK_SEMICOLON: return ";:";
+	case DIK_APOSTROPHE: return "'\"";
+	case DIK_GRAVE: return "`~";
+	case DIK_LSHIFT: return "LShift";
+	case DIK_BACKSLASH: return "\\|";
+	case DIK_Z: return "Z";
+	case DIK_X: return "X";
+	case DIK_C: return "C";
+	case DIK_V: return "V";
+	case DIK_B: return "B";
+	case DIK_N: return "N";
+	case DIK_M: return "M";
+	case DIK_COMMA: return ",<";
+	case DIK_PERIOD: return ".>";
+	case DIK_SLASH: return "/?";
+	case DIK_RSHIFT: return "RShift";
+	case DIK_MULTIPLY: return "Numpad*";
+	case DIK_LMENU: return "LAlt";
+	case DIK_SPACE: return "Space";
+	case DIK_CAPITAL: return "CapsLock";
+	case DIK_F1: return "F1";
+	case DIK_F2: return "F2";
+	case DIK_F3: return "F3";
+	case DIK_F4: return "F4";
+	case DIK_F5: return "F5";
+	case DIK_F6: return "F6";
+	case DIK_F7: return "F7";
+	case DIK_F8: return "F8";
+	case DIK_F9: return "F9";
+	case DIK_F10: return "F10";
+	case DIK_NUMLOCK: return "NumLock";
+	case DIK_SCROLL: return "ScrollLock";
+	case DIK_NUMPAD7: return "Numpad7";
+	case DIK_NUMPAD8: return "Numpad8";
+	case DIK_NUMPAD9: return "Numpad9";
+	case DIK_SUBTRACT: return "Numpad-";
+	case DIK_NUMPAD4: return "Numpad4";
+	case DIK_NUMPAD5: return "Numpad5";
+	case DIK_NUMPAD6: return "Numpad6";
+	case DIK_ADD: return "Numpad+";
+	case DIK_NUMPAD1: return "Numpad1";
+	case DIK_NUMPAD2: return "Numpad2";
+	case DIK_NUMPAD3: return "Numpad3";
+	case DIK_NUMPAD0: return "Numpad0";
+	case DIK_DECIMAL: return "Numpad.";
+	case DIK_OEM_102: return "<>\\|";
+	case DIK_F11: return "F11";
+	case DIK_F12: return "F12";
+	case DIK_F13: return "F13";
+	case DIK_F14: return "F14";
+	case DIK_F15: return "F15";
+	case DIK_KANA: return "Kana";
+	case DIK_ABNT_C1: return "/?";
+	case DIK_CONVERT: return "Convert";
+	case DIK_NOCONVERT: return "NoConvert";
+	case DIK_YEN: return "Yen";
+	case DIK_ABNT_C2: return "Numpad.";
+	case DIK_NUMPADEQUALS: return "Numpad=";
+	case DIK_PREVTRACK: return "Prevtrack";
+	case DIK_AT: return "@";
+	case DIK_COLON: return ":";
+	case DIK_UNDERLINE: return "_";
+	case DIK_KANJI: return "Kanji";
+	case DIK_STOP: return "Stop";
+	case DIK_AX: return "AX";
+	case DIK_UNLABELED: return "Unlabeled";
+	case DIK_NEXTTRACK: return "Nexttrack";
+	case DIK_NUMPADENTER: return "NumpadEnter";
+	case DIK_RCONTROL: return "RControl";
+	case DIK_MUTE: return "Mute";
+	case DIK_CALCULATOR: return "Calculator";
+	case DIK_PLAYPAUSE: return "PlayPause";
+	case DIK_MEDIASTOP: return "MediaStop";
+	case DIK_VOLUMEDOWN: return "VolumeDown";
+	case DIK_VOLUMEUP: return "VolumeUp";
+	case DIK_WEBHOME: return "WebHome";
+	case DIK_NUMPADCOMMA: return "Numpad,";
+	case DIK_DIVIDE: return "Numpad/";
+	case DIK_SYSRQ: return "Sysrq";
+	case DIK_RMENU: return "RAlt";
+	case DIK_PAUSE: return "Pause";
+	case DIK_HOME: return "Home";
+	case DIK_UP: return "Up";
+	case DIK_PRIOR: return "PageUp";
+	case DIK_LEFT: return "Left";
+	case DIK_RIGHT: return "Right";
+	case DIK_END: return "End";
+	case DIK_DOWN: return "Down";
+	case DIK_NEXT: return "PageDown";
+	case DIK_INSERT: return "Insert";
+	case DIK_DELETE: return "Delete";
+	case DIK_LWIN: return "LWin";
+	case DIK_RWIN: return "RWin";
+	case DIK_APPS: return "Apps";
+	case DIK_POWER: return "Power";
+	case DIK_SLEEP: return "Sleep";
+	case DIK_WAKE: return "Wake";
+	case DIK_WEBSEARCH: return "WebSearch";
+	case DIK_WEBFAVORITES: return "WebFavorites";
+	case DIK_WEBREFRESH: return "WebRefresh";
+	case DIK_WEBSTOP: return "WebStop";
+	case DIK_WEBFORWARD: return "WebForward";
+	case DIK_WEBBACK: return "WebBack";
+	case DIK_MYCOMPUTER: return "MyComputer";
+	case DIK_MAIL: return "Mail";
+	case DIK_MEDIASELECT: return "MediaSelect";
+
+	default:
+		static char unk [8];
+		sprintf(unk, "0x%X", key);
+		return unk;
+	}
+}
+
+void AddHotkeySuffix(char* str, InputButton& button)
+{
+	if(!button.modifiers && !button.virtKey && !button.diKey)
+		return;
+
+	strcat(str, "\t");
+
+//#define MODIFIER_SEPARATOR "+"
+#define MODIFIER_SEPARATOR " "
+
+	if(button.modifiers & MOD_CONTROL)
+		strcat(str, "Ctrl" MODIFIER_SEPARATOR);
+	if(button.modifiers & MOD_SHIFT)
+		strcat(str, "Shift" MODIFIER_SEPARATOR);
+	if(button.modifiers & MOD_ALT)
+		strcat(str, "Alt" MODIFIER_SEPARATOR);
+	if(button.modifiers & MOD_WIN)
+		strcat(str, "Win" MODIFIER_SEPARATOR);
+
+	if(button.virtKey)
+		strcat(str, GetVirtualKeyName(button.virtKey));
+	else if(button.diKey)
+		strcat(str, GetDirectInputKeyName(button.diKey));
+}
+
+
+void AddHotkeySuffix(char* str, int id, const char* defaultSuffix)
+{
+	if(id & 0xFFFF0000)
+		return; // ignore non-WORD menu IDs
+
+	int index = s_reverseEventLookup[id]-1;
+	if(index < 0)
+	{
+		strcat(str, "\t");
+		if(defaultSuffix)
+			strcat(str, defaultSuffix);
+		return;
+	}
+
+	AddHotkeySuffix(str, s_inputButtons[index]);
+}
+
+
+void PopulateHotkeyListbox(HWND listbox)
+{
+	StoreDefaultInputButtons();
+	int numInputButtons = GetNumHotkeys();
+	for(int i=0; i<numInputButtons; i++)
+	{
+		InputButton& button = s_inputButtons[i];
+
+		char str [1024];
+		strcpy(str, button.description);
+		AddHotkeySuffix(str, button);
+
+		SendMessage((HWND) listbox, (UINT) LB_ADDSTRING, (WPARAM) 0, (LPARAM) str);
+	}
+}
+
+void Get_Key_2(InputButton& button);
+static void SetKey (char* message, InputButton& button, HWND hset)
+{
+	if(!lpDI && !Init_Input(ghInstance, hset))
+		MessageBox(NULL,"I failed to initialize the input.","Notice",MB_OK);
+
+	for (int i = 0; i < 256; i++)
+		Keys[i] &= ~0x80;
+
+	Get_Key_2(button);
+
+	MSG m;
+	while (PeekMessage(&m, hset, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
+	while (PeekMessage(&m, hset, WM_LBUTTONDOWN, WM_MBUTTONDBLCLK, PM_REMOVE));
+}
+
+
+void ModifyHotkeyFromListbox(HWND listbox, WORD command, HWND statusText, HWND parentWindow)
+{
+	StoreInitialInputButtons();
+
+	bool rebuildAccelerators = false;
+
+	int numHotkeys = GetNumHotkeys();
+	for(int i=0; i<numHotkeys; i++)
+	{
+		int selected = SendMessage((HWND) listbox, (UINT) LB_GETSEL, (WPARAM) i, (LPARAM) 0);
+		if(selected <= 0)
+			continue;
+
+		InputButton& button = s_inputButtons[i];
+
+		if(button.ShouldUseAccelerator())
+			rebuildAccelerators = true;
+
+		switch(command)
+		{
+			case IDC_REASSIGNKEY:
+				{
+					char str [256];
+					sprintf(str, "SETTING KEY: %s", button.description);
+					SetWindowText(statusText, str);
+					SetKey(str, button, parentWindow);
+					SetWindowText(statusText, "");
+
+					// for convenience, set all similar savestate buttons together when the first one is set to certain keys
+					if(button.virtKey == '1' || button.virtKey == VK_F1)
+					{
+						if(button.eventID == ID_FILES_SAVESTATE_1 || button.eventID == ID_FILES_LOADSTATE_1 || button.eventID == ID_FILES_SETSTATE_1)
+						{
+							for(int j=1;j<=9;j++)
+							{
+								int index2 = s_reverseEventLookup[button.eventID+j]-1;
+								if(index2 >= 0)
+								{
+									InputButton& otherButton = s_inputButtons[index2];
+
+									otherButton.diKey = 0;
+									otherButton.modifiers = button.modifiers;
+									int vk = button.virtKey + j; if(vk == '1' + 9) vk = '0';
+									otherButton.virtKey = vk;
+
+									char str [1024];
+									strcpy(str, otherButton.description);
+									AddHotkeySuffix(str, otherButton);
+
+									SendMessage(listbox, LB_DELETESTRING, index2, 0);  
+									SendMessage(listbox, LB_INSERTSTRING, index2, (LPARAM) str); 
+								}
+							}
+						}
+					}
+				}
+				break;
+			case IDC_REVERTKEY:
+				button.modifiers = s_initialInputButtons[i].modifiers;
+				button.virtKey = s_initialInputButtons[i].virtKey;
+				button.diKey = s_initialInputButtons[i].diKey;
+				break;
+			case IDC_USEDEFAULTKEY:
+				button.modifiers = s_defaultInputButtons[i].modifiers;
+				button.virtKey = s_defaultInputButtons[i].virtKey;
+				button.diKey = s_defaultInputButtons[i].diKey;
+				break;
+			case IDC_DISABLEKEY:
+				button.modifiers = MOD_NONE;
+				button.virtKey = VK_NONE;
+				button.diKey = 0;
+				break;
+		}
+
+		if(button.ShouldUseAccelerator())
+			rebuildAccelerators = true;
+
+		char str [1024];
+		strcpy(str, button.description);
+		AddHotkeySuffix(str, button);
+
+		SendMessage(listbox, LB_DELETESTRING, i, 0);  
+		SendMessage(listbox, LB_INSERTSTRING, i, (LPARAM) str); 
+		SendMessage(listbox, LB_SETSEL, (WPARAM) TRUE, (LPARAM) i); 
+	}
+
+	if(rebuildAccelerators)
+	{
+		extern HACCEL hAccelTable;
+		BuildAccelerators(hAccelTable);
+	}
+}
+
 
 
 int String_Size(char *Chaine)
@@ -195,6 +976,8 @@ int Init_Input(HINSTANCE hInst, HWND hWnd)
 
 	End_Input();
 	
+	StoreDefaultInputButtons();
+
 	rval = DirectInputCreate(hInst, DIRECTINPUT_VERSION, &lpDI, NULL);
 	if (rval != DI_OK)
 	{
@@ -273,6 +1056,36 @@ void Update_Input()
 
 //  MouseX = MouseState.lX;
 //  MouseY = MouseState.lY;
+
+	int numInputButtons = GetNumHotkeys();
+	for(int i=0; i<numInputButtons; i++)
+	{
+		InputButton& button = s_inputButtons[i];
+
+		int pressed = button.diKey ? Check_Key_Pressed(button.diKey) : 0;
+
+		if(button.virtKey || button.modifiers)
+		{
+			bool pressed2 = button.virtKey ? !!(GetAsyncKeyState(button.virtKey) & 0x8000) : true;
+
+			pressed2 &= !(button.modifiers & MOD_CONTROL) == !(GetKeyState(VK_CONTROL) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_SHIFT) == !(GetKeyState(VK_SHIFT) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_ALT) == !(GetKeyState(VK_MENU) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_WIN) == !((GetKeyState(VK_LWIN)|GetKeyState(VK_RWIN)) & 0x8000);
+
+			if(pressed2)
+				pressed = 1;
+		}
+
+		if(button.alias)
+			*button.alias = pressed;
+
+		BOOL oldPressed = button.heldNow;
+		button.heldNow = pressed;
+
+		if(pressed && !oldPressed && button.eventID && !button.ShouldUseAccelerator())
+			SendMessage(HWnd, WM_COMMAND, button.eventID, 0);
+	}
 }
 
 
@@ -334,10 +1147,53 @@ int Check_Key_Pressed(unsigned int key)
 	return 0;
 }
 
+unsigned int Get_Key_Joy(void)
+{
+	int i, j;
+	for(i = 0; i < Nb_Joys; i++)
+	{
+		if (Joy_ID[i])
+		{
+			if (Joy_State[i].lY < -500)
+				return(0x1000 + (0x100 * i) + 0x1);
+
+			if (Joy_State[i].lY > +500)
+				return(0x1000 + (0x100 * i) + 0x2);
+
+			if (Joy_State[i].lX < -500)
+				return(0x1000 + (0x100 * i) + 0x3);
+
+			if (Joy_State[i].lX > +500)
+				return(0x1000 + (0x100 * i) + 0x4);
+
+			for (j = 0; j < 4; j++)
+				if (Joy_State[i].rgdwPOV[j] == 0)
+					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x1);
+
+			for (j = 0; j < 4; j++)
+				if (Joy_State[i].rgdwPOV[j] == 9000)
+					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x2);
+
+			for (j = 0; j < 4; j++)
+				if (Joy_State[i].rgdwPOV[j] == 18000)
+					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x3);
+
+			for (j = 0; j < 4; j++)
+				if (Joy_State[i].rgdwPOV[j] == 27000)
+					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x4);
+
+			for (j = 0; j < 32; j++)
+				if (Joy_State[i].rgbButtons[j])
+					return(0x1010 + (0x100 * i) + j);
+		}
+	}
+
+	return 0;
+}
 
 unsigned int Get_Key(void)
 {
-	int i, j;
+	int i;
 
 	while(1)
 	{
@@ -346,43 +1202,75 @@ unsigned int Get_Key(void)
 		for(i = 1; i < 256; i++)
 			if KEYDOWN(i) return i;
 
-		for(i = 0; i < Nb_Joys; i++)
+		unsigned int joy = Get_Key_Joy();
+		if(joy) return joy;
+	}
+}
+
+void Get_Key_2(InputButton& button)
+{
+	int i;
+
+	int prevMod = 0;
+
+	while(1)
+	{
+		Update_Input();
+
+		int curMod = 0;
+		if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+			curMod |= MOD_CONTROL;
+		if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
+			curMod |= MOD_SHIFT;
+		if(GetAsyncKeyState(VK_MENU) & 0x8000)
+			curMod |= MOD_ALT;
+		if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
+			curMod |= MOD_WIN;
+
+		for(i = 1; i < 256; i++)
 		{
-			if (Joy_ID[i])
+			if(GetAsyncKeyState(i) & 0x8000)
 			{
-				if (Joy_State[i].lY < -500)
-					return(0x1000 + (0x100 * i) + 0x1);
-
-				if (Joy_State[i].lY > +500)
-					return(0x1000 + (0x100 * i) + 0x2);
-
-				if (Joy_State[i].lX < -500)
-					return(0x1000 + (0x100 * i) + 0x3);
-
-				if (Joy_State[i].lX > +500)
-					return(0x1000 + (0x100 * i) + 0x4);
-
-				for (j = 0; j < 4; j++)
-					if (Joy_State[i].rgdwPOV[j] == 0)
-						return(0x1080 + (0x100 * i) + (0x10 * j) + 0x1);
-
-				for (j = 0; j < 4; j++)
-					if (Joy_State[i].rgdwPOV[j] == 9000)
-						return(0x1080 + (0x100 * i) + (0x10 * j) + 0x2);
-
-				for (j = 0; j < 4; j++)
-					if (Joy_State[i].rgdwPOV[j] == 18000)
-						return(0x1080 + (0x100 * i) + (0x10 * j) + 0x3);
-
-				for (j = 0; j < 4; j++)
-					if (Joy_State[i].rgdwPOV[j] == 27000)
-						return(0x1080 + (0x100 * i) + (0x10 * j) + 0x4);
-
-				for (j = 0; j < 32; j++)
-					if (Joy_State[i].rgbButtons[j])
-						return(0x1010 + (0x100 * i) + j);
+				if(i == VK_CONTROL || i == VK_SHIFT || i == VK_MENU || i == VK_LWIN || i == VK_RWIN || i == VK_LSHIFT || i == VK_RSHIFT || i == VK_LCONTROL || i == VK_RCONTROL || i == VK_LMENU || i == VK_RMENU)
+					continue;
+				button.diKey = 0;
+				button.modifiers = curMod;
+				button.virtKey = i;
+				return;
 			}
 		}
+
+		for(i = 1; i < 256; i++)
+		{
+			if KEYDOWN(i)
+			{
+				if(i == DIK_LWIN || i == DIK_RWIN || i == DIK_LSHIFT || i == DIK_RSHIFT || i == DIK_LCONTROL || i == DIK_RCONTROL || i == DIK_LMENU || i == DIK_RMENU)
+					continue;
+				button.diKey = i;
+				button.modifiers = curMod;
+				button.virtKey = VK_NONE;
+				return;
+			}
+		}
+
+		unsigned int joy = Get_Key_Joy();
+		if(joy)
+		{
+			button.diKey = joy;
+			button.modifiers = curMod;
+			button.virtKey = VK_NONE;
+			return;
+		}
+
+		if(!curMod && prevMod)
+		{
+			button.diKey = 0;
+			button.modifiers = prevMod;
+			button.virtKey = VK_NONE;
+			return;
+		}
+
+		prevMod = curMod;
 	}
 }
 
@@ -874,6 +1762,7 @@ void Update_Controllers()
 	#endif
 }
 
+/*
 //Modif N. - moved some existing code into this function to reduce redundancy 
 //Upth-Modif - No longer crashes after subdialog closure; no longer has unneeded sleep calls
 int setupKey (char* message, unsigned int & keyVar, HWND hset)
@@ -889,43 +1778,7 @@ int setupKey (char* message, unsigned int & keyVar, HWND hset)
 
 	return 1;
 }
-
-int Setting_Skip_Key(HWND hset)
-{
-	return setupKey("INPUT KEY FOR ADVANCE FRAME", SkipKey, hset);
-}
-int Setting_Slow_Key(HWND hset)
-{
-	return setupKey("INPUT KEY FOR TOGGLE SLOW MODE", SlowDownKey, hset);
-}
-int Setting_Quickpause_Key(HWND hset)
-{
-	return setupKey("INPUT KEY FOR PAUSE", QuickPauseKey, hset);
-}
-int Setting_Quickload_Key(HWND hset)	//Modif
-{
-	return setupKey("INPUT KEY FOR QUICKLOAD", QuickLoadKey, hset);
-}
-
-int Setting_Quicksave_Key(HWND hset)		//Modif
-{
-	return setupKey("INPUT KEY FOR QUICKSAVE", QuickSaveKey, hset);
-}
-
-int Setting_Autofire_Key(HWND hset)		//Modif N.
-{
-	return setupKey("INPUT KEY FOR AUTO-FIRE", AutoFireKey, hset);
-}
-
-int Setting_Autohold_Key(HWND hset)		//Modif N.
-{
-	return setupKey("INPUT KEY FOR AUTO-HOLD", AutoHoldKey, hset);
-}
-
-int Setting_Autoclear_Key(HWND hset)		//Modif N.
-{
-	return setupKey("INPUT KEY FOR CLEARING AUTOS", AutoClearKey, hset);
-}
+*/
 
 /*int Setting_Keys(HWND hset, int Player, int TypeP) //Upth-Modif - totally redid the controller key redefines. commented out the old version
 {
@@ -1356,7 +2209,7 @@ void Update_Controllers_Net(int num_player)
 	}
 }
 
-int Check_Pause_Key()
+/*int Check_Pause_Key()
 {
 	Update_Input();
 	if(Check_Key_Pressed(QuickPauseKey)==1 && QuickPauseKeyIsPressed==0) //Modif N - allow frame advance key to also pause
@@ -1367,7 +2220,7 @@ int Check_Pause_Key()
 	if(Check_Key_Pressed(QuickPauseKey)==0 && QuickPauseKeyIsPressed==1) //Modif N - allow frame advance key to also pause
 		QuickPauseKeyIsPressed=0;
 	return 0;
-}
+}*/
 
 //Modif N - changed to make frame advance key continuous, after a delay:
 int Check_Skip_Key()
@@ -1375,7 +2228,7 @@ int Check_Skip_Key()
 	Update_Input();
 
 	static time_t lastSkipTime = 0;
-	const int skipPressedNew = Check_Key_Pressed(SkipKey);
+	const int skipPressedNew = FrameAdvanceKeyDown;
 
 	static int checks = 0;
 	if(skipPressedNew && timeGetTime()-lastSkipTime >= 5)
@@ -1405,52 +2258,8 @@ void Check_Misc_Key()
 {
 	Update_Input();
 
-	if(SlowDownKey)
-	{
-		if(Check_Key_Pressed(SlowDownKey)==1 && SlowDownKeyIsPressed==0)
-		{
-			SlowDownKeyIsPressed=1;
-			if(SlowDownMode)
-			{
-				SlowDownMode=0;
-			}
-			else
-			{
-				SlowDownMode=1;
-			}
-			MustUpdateMenu=1;
-		}
-		if(Check_Key_Pressed(SlowDownKey)==0 && SlowDownKeyIsPressed==1)
-			SlowDownKeyIsPressed=0;
-	}
-
-	if (QuickLoadKey!=0)
-	{
-		if(Check_Key_Pressed(QuickLoadKey)==1 && QuickLoadKeyIsPressed==0 && Check_Key_Pressed(QuickSaveKey)==0)
-		{
-			Str_Tmp[0] = 0;
-			Get_State_File_Name(Str_Tmp);
-			Load_State(Str_Tmp);
-			QuickLoadKeyIsPressed=1;
-		}
-		if(Check_Key_Pressed(QuickLoadKey)==0 && QuickLoadKeyIsPressed==1)
-			QuickLoadKeyIsPressed=0;
-	}
-	if (QuickSaveKey!=0) 
-	{
-		if(Check_Key_Pressed(QuickSaveKey)==1 && QuickSaveKeyIsPressed==0 && Check_Key_Pressed(QuickLoadKey)==0)
-		{
-			Str_Tmp[0] = 0;
-			Get_State_File_Name(Str_Tmp);
-			Save_State(Str_Tmp);
-			QuickSaveKeyIsPressed=1;
-		}
-		if(Check_Key_Pressed(QuickSaveKey)==0 && QuickSaveKeyIsPressed==1)
-			QuickSaveKeyIsPressed=0;
-	}
-
 	// N - checks for enabling/disabling the autofire and autohold toggles
-	if(AutoFireKey || AutoHoldKey || AutoClearKey)
+	if(AutoFireKeyDown || AutoHoldKeyDown || AutoClearKeyDown)
 	{
 		#define TRANSFER_PRESSED(x) {const int now = !Check_Key_Pressed(Keys_Def[0].##x); Controller_1_##x##_Just = Controller_1_##x##_Last && !now; Controller_1_##x##_Last = now;} {const int now = !Check_Key_Pressed(Keys_Def[1].##x); Controller_2_##x##_Just = Controller_2_##x##_Last && !now; Controller_2_##x##_Last = now;}
 		TRANSFER_PRESSED(Up);
@@ -1466,10 +2275,7 @@ void Check_Misc_Key()
 		TRANSFER_PRESSED(Y);
 		TRANSFER_PRESSED(Z);
 
-		const bool autoFireHeld = AutoFireKey && Check_Key_Pressed(AutoFireKey)==1;
-		const bool autoHoldHeld = AutoHoldKey && Check_Key_Pressed(AutoHoldKey)==1;
-		const bool autoClearHeld = AutoClearKey && Check_Key_Pressed(AutoClearKey)==1;
-		if(autoFireHeld || autoHoldHeld)
+		if(AutoFireKeyDown || AutoHoldKeyDown)
 		{
 			extern long unsigned int FrameCount;
 			autoAlternator = (FrameCount % 2) == 0;
@@ -1478,12 +2284,12 @@ void Check_Misc_Key()
 			#define CHECK_TOGGLE_AUTO_I(x)\
 			if(x##_Just)\
 			{\
-				if(autoHoldHeld)\
+				if(AutoHoldKeyDown)\
 				{\
 					x##_Autohold = !x##_Autohold;\
 					x##_Autofire = x##_Autofire2 = false;\
 				}\
-				if(autoFireHeld)\
+				if(AutoFireKeyDown)\
 				{\
 					const bool autoFired = x##_Autofire || x##_Autofire2;\
 					x##_Autohold = x##_Autofire = x##_Autofire2 = false;\
@@ -1507,7 +2313,7 @@ void Check_Misc_Key()
 			CHECK_TOGGLE_AUTO(Y);
 			CHECK_TOGGLE_AUTO(Z);
 		}
-		if(autoClearHeld)
+		if(AutoClearKeyDown)
 		{
 			#define CLEAR_AUTO(x) CLEAR_AUTO_I(Controller_1_##x); CLEAR_AUTO_I(Controller_2_##x); 
 			#define CLEAR_AUTO_I(x) x##_Autofire = 0; x##_Autofire2 = 0; x##_Autohold = 0;

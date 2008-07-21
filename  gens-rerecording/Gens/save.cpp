@@ -2307,26 +2307,9 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Input", "P2D.Y", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Keys_Def[7].Z);
 	WritePrivateProfileString("Input", "P2D.Z", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", QuickLoadKey);
-	WritePrivateProfileString("Input", "QuickLoadKey", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", QuickSaveKey);
-	WritePrivateProfileString("Input", "QuickSaveKey", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", QuickPauseKey);
-	WritePrivateProfileString("Input", "PauseKey", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", SlowDownKey);
-	WritePrivateProfileString("Input", "ToggleSlowKey", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", SkipKey);
-	WritePrivateProfileString("Input", "SkipFrameKey", Str_Tmp, Conf_File);
+
 	wsprintf(Str_Tmp, "%d", LeftRightEnabled);//Modif
 	WritePrivateProfileString("Input", "LeftRightEnabled", Str_Tmp, Conf_File);//Modif
-	wsprintf(Str_Tmp, "%d", NumLoadEnabled);//Modif N.
-	WritePrivateProfileString("Input", "NumLoadEnabled", Str_Tmp, Conf_File);//Modif N.
-	wsprintf(Str_Tmp, "%d", AutoFireKey);//Modif N.
-	WritePrivateProfileString("Input", "AutoFireKey", Str_Tmp, Conf_File);//Modif N.
-	wsprintf(Str_Tmp, "%d", AutoHoldKey);//Modif N.
-	WritePrivateProfileString("Input", "AutoHoldKey", Str_Tmp, Conf_File);//Modif N.
-	wsprintf(Str_Tmp, "%d", AutoClearKey);//Modif N.
-	WritePrivateProfileString("Input", "AutoClearKey", Str_Tmp, Conf_File);//Modif N.
 	wsprintf(Str_Tmp, "%d", StateSelectCfg );//Modif U.
 	WritePrivateProfileString("Input", "StateSelectType", Str_Tmp, Conf_File);//Modif N.
 
@@ -2334,6 +2317,8 @@ int Save_Config(char *File_Name)
 	sprintf(Str_Tmp,"%d",SpliceFrame);
 	WritePrivateProfileString("Splice","SpliceFrame",Str_Tmp,Conf_File);
 	WritePrivateProfileString("Splice","TempFile",TempName,Conf_File);
+
+	SaveAccelerators(Conf_File);
 
 	return 1;
 }
@@ -2666,21 +2651,21 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Keys_Def[7].X = GetPrivateProfileInt("Input", "P2D.X", 0, Conf_File);
 	Keys_Def[7].Y = GetPrivateProfileInt("Input", "P2D.Y", 0, Conf_File);
 	Keys_Def[7].Z = GetPrivateProfileInt("Input", "P2D.Z", 0, Conf_File);
-	QuickLoadKey = GetPrivateProfileInt("Input", "QuickLoadKey", 0, Conf_File);
-	QuickSaveKey = GetPrivateProfileInt("Input", "QuickSaveKey", 0, Conf_File);
-	AutoFireKey = GetPrivateProfileInt("Input", "AutoFireKey", 0, Conf_File); //Modif N
-	AutoHoldKey = GetPrivateProfileInt("Input", "AutoHoldKey", 0, Conf_File); //Modif N
-	AutoClearKey = GetPrivateProfileInt("Input", "AutoClearKey", 0, Conf_File); //Modif N
-	QuickPauseKey = GetPrivateProfileInt("Input", "PauseKey", 0, Conf_File);
-	SlowDownKey = GetPrivateProfileInt("Input", "ToggleSlowKey", 0, Conf_File);
-	SkipKey = GetPrivateProfileInt("Input", "SkipFrameKey", 0, Conf_File);
+
 	LeftRightEnabled = GetPrivateProfileInt("Input", "LeftRightEnabled", 0, Conf_File);
-	NumLoadEnabled = GetPrivateProfileInt("Input", "NumLoadEnabled", 1, Conf_File); //Modif N
-	StateSelectCfg = GetPrivateProfileInt("Input", "StateSelectType", 0, Conf_File); //Modif N
+	StateSelectCfg = GetPrivateProfileInt("Input", "StateSelectType", 5, Conf_File); //Modif N
 
 	GetPrivateProfileString("Splice","SpliceMovie","",SpliceMovie,1024,Conf_File);
 	SpliceFrame = GetPrivateProfileInt("Splice","SpliceFrame",0,Conf_File);
 	GetPrivateProfileString("Splice","TempFile","",Str_Tmp,1024,Conf_File);
+
+	LoadAccelerators(Conf_File);
+
+
+	// done loading
+	// do some post-processing:
+
+
 	if (SpliceFrame)
 	{
 		TempName = (char *)malloc(strlen(Str_Tmp)+2);
@@ -2728,6 +2713,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	if (Full_Screen) Build_Main_Menu();
 	else SetMenu(HWnd, Build_Main_Menu());		// Update new menu
+
+	extern HACCEL hAccelTable;
+	BuildAccelerators(hAccelTable);
 
 	return 1;
 }

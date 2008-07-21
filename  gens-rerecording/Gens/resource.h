@@ -200,8 +200,12 @@
 #define ID_APPLY                        1124
 #define IDC_RADIO_PLAY_START            1125
 #define IDC_BUTTON2                     1126
+#define IDC_DISABLEKEY                  1126
 #define IDC_BUTTON_STATE_BROWSE         1127
+#define IDC_USEDEFAULTKEY               1127
 #define IDC_RADIO_PLAY_STATE            1128
+#define IDC_USEDEFAULTKEY2              1128
+#define IDC_REVERTKEY                   1128
 #define IDC_OK_PLAY                     1129
 #define IDC_CANCEL_PLAY                 1130
 #define IDC_CHECK_READ_ONLY             1131
@@ -220,6 +224,7 @@
 #define IDC_OK_RECORD                   1144
 #define IDC_CANCEL_RECORD               1145
 #define IDC_BUTTON1                     1146
+#define IDC_REASSIGNKEY                 1146
 #define IDC_STATIC_WARNING_EXIST        1147
 #define IDC_EDIT_NOTE                   1148
 #define IDC_STATIC_CON1_CURSET          1149
@@ -246,12 +251,7 @@
 #define IDC_CHECK_LEFTRIGHT             1170
 #define IDC_CHECK_BACKUP                1171
 #define IDC_CHECK_DEF_READ_ONLY         1172
-#define IDC_CHECK_NUMLOAD               1173
 #define IDC_FRAMECOUNTERFRAMES          1174
-#define IDC_BUTTON_REDEFINE_AUTOFIRE_KEY 1175
-#define IDC_BUTTON_REDEFINE_AUTOHOLD_KEY 1176
-#define IDC_BUTTON_REDEFINE_AUTOCLEAR_KEY 1177
-#define IDC_BUTTON_REMOVE_AUTO_KEY      1178
 #define IDC_CHECK_AUTO_CLOSE            1179
 #define IDC_TEXT_RES_X                  1180
 #define IDC_TEXT_RES_Y                  1181
@@ -267,6 +267,7 @@
 #define AFX_IDC_PICTURE                 1202
 #define AFX_IDC_BROWSE                  1203
 #define AFX_IDC_CLEAR                   1204
+#define IDC_HOTKEYLIST                  1209
 #define AFX_IDC_TAB_CONTROL             0x3020
 #define ID_APPLY_NOW                    0x3021
 #define ID_WIZBACK                      0x3023
@@ -324,16 +325,16 @@
 #define ID_FILES_PREVIOUSSTATE          40010
 #define ID_FILES_NEXTSTATE              40011
 #define ID_FILES_QUIT                   40012
-#define ID_FILES_STATE_0                40020
-#define ID_FILES_STATE_1                40021
-#define ID_FILES_STATE_2                40022
-#define ID_FILES_STATE_3                40023
-#define ID_FILES_STATE_4                40024
-#define ID_FILES_STATE_5                40025
-#define ID_FILES_STATE_6                40026
-#define ID_FILES_STATE_7                40027
-#define ID_FILES_STATE_8                40028
-#define ID_FILES_STATE_9                40029
+#define ID_FILES_LOADSTATE_1            40020
+#define ID_FILES_LOADSTATE_2            40021
+#define ID_FILES_LOADSTATE_3            40022
+#define ID_FILES_LOADSTATE_4            40023
+#define ID_FILES_LOADSTATE_5            40024
+#define ID_FILES_LOADSTATE_6            40025
+#define ID_FILES_LOADSTATE_7            40026
+#define ID_FILES_LOADSTATE_8            40027
+#define ID_FILES_LOADSTATE_9            40028
+#define ID_FILES_LOADSTATE_0            40029
 #define ID_FILES_OPENRECENTROM0         40030
 #define ID_FILES_OPENRECENTROM1         40031
 #define ID_FILES_OPENRECENTROM2         40032
@@ -480,13 +481,6 @@
 #define ID_HELP_KEYS                    40238
 #define ID_HELP_LANG                    40250
 #define ID_EMULATION_PAUSED             40300
-#define IDC_BUTTON_QUICKLOAD_KEY        40400
-#define IDC_BUTTON_QUICKSAVE_KEY        40401
-#define IDC_BUTTON_REMOVE_QUICK_KEY     40402
-#define IDC_BUTTON_REMOVE_PAUSE_KEY     40403
-#define IDC_BUTTON_REDEFINE_PAUSE_KEY   40404
-#define IDC_BUTTON_REDEFINE_SLOW_KEY    40405
-#define IDC_BUTTON_REMOVE_SLOW_KEY      40406
 #define IDC_BUTTON_REDEFINE_UP_KEY      40407
 #define IDC_BUTTON_REDEFINE_DOWN_KEY    40408
 #define IDC_BUTTON_REDEFINE_LEFT_KEY    40409
@@ -517,33 +511,31 @@
 #define ID_GRAPHICS_SYNC_AVI_MOVIE      40515
 #define ID_GRAPHICS_AVI_SOUND           40516
 #define ID_GRAPHICS_NEVER_SKIP_FRAME    40517
-#define IDC_BUTTON_REDEFINE_SKIP_KEY    40518
-#define IDC_BUTTON_REMOVE_SKIP_KEY      40519
 #define ID_SLOW_SPEED_PLUS              40520
 #define ID_SLOW_SPEED_MINUS             40521
 #define ID_RAM_SEARCH                   40522
 #define ID_RAM_WATCH                    40523
 #define ID_VOLUME_CONTROL               40524
-#define ID_FILES_SFTSTATE_0             40620
-#define ID_FILES_SFTSTATE_1             40621
-#define ID_FILES_SFTSTATE_2             40622
-#define ID_FILES_SFTSTATE_3             40623
-#define ID_FILES_SFTSTATE_4             40624
-#define ID_FILES_SFTSTATE_5             40625
-#define ID_FILES_SFTSTATE_6             40626
-#define ID_FILES_SFTSTATE_7             40627
-#define ID_FILES_SFTSTATE_8             40628
-#define ID_FILES_SFTSTATE_9             40629
-#define ID_FILES_CTRLSTATE_0            40630
-#define ID_FILES_CTRLSTATE_1            40631
-#define ID_FILES_CTRLSTATE_2            40632
-#define ID_FILES_CTRLSTATE_3            40633
-#define ID_FILES_CTRLSTATE_4            40634
-#define ID_FILES_CTRLSTATE_5            40635
-#define ID_FILES_CTRLSTATE_6            40636
-#define ID_FILES_CTRLSTATE_7            40637
-#define ID_FILES_CTRLSTATE_8            40638
-#define ID_FILES_CTRLSTATE_9            40639
+#define ID_FILES_SETSTATE_1             40620
+#define ID_FILES_SETSTATE_2             40621
+#define ID_FILES_SETSTATE_3             40622
+#define ID_FILES_SETSTATE_4             40623
+#define ID_FILES_SETSTATE_5             40624
+#define ID_FILES_SETSTATE_6             40625
+#define ID_FILES_SETSTATE_7             40626
+#define ID_FILES_SETSTATE_8             40627
+#define ID_FILES_SETSTATE_9             40628
+#define ID_FILES_SETSTATE_0             40629
+#define ID_FILES_SAVESTATE_1            40630
+#define ID_FILES_SAVESTATE_2            40631
+#define ID_FILES_SAVESTATE_3            40632
+#define ID_FILES_SAVESTATE_4            40633
+#define ID_FILES_SAVESTATE_5            40634
+#define ID_FILES_SAVESTATE_6            40635
+#define ID_FILES_SAVESTATE_7            40636
+#define ID_FILES_SAVESTATE_8            40637
+#define ID_FILES_SAVESTATE_9            40638
+#define ID_FILES_SAVESTATE_0            40639
 #define ID_TOGGLE_MOVIE_READONLY        40640
 #define IDC_EDIT_COMPAREVALUE           41090
 #define IDC_EDIT_COMPAREADDRESS         41091
@@ -986,7 +978,6 @@
 #define AFX_IDP_E_CANTSAVEFILETOTEMP    0xFEC5
 #define AFX_IDP_E_SEARCHTEXTNOTFOUND    0xFEC6
 #define AFX_IDP_E_REPLACEMENTSTOOLONG   0xFEC7
-#define IDC_STATIC                      -1
 
 // Next default values for new objects
 // 
@@ -994,7 +985,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         40641
-#define _APS_NEXT_CONTROL_VALUE         1205
+#define _APS_NEXT_CONTROL_VALUE         1210
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
