@@ -1062,19 +1062,22 @@ void Update_Input()
 	{
 		InputButton& button = s_inputButtons[i];
 
-		int pressed = button.diKey ? Check_Key_Pressed(button.diKey) : 0;
+		BOOL pressed = button.diKey ? Check_Key_Pressed(button.diKey) : FALSE;
 
 		if(button.virtKey || button.modifiers)
 		{
 			bool pressed2 = button.virtKey ? !!(GetAsyncKeyState(button.virtKey) & 0x8000) : true;
 
-			pressed2 &= !(button.modifiers & MOD_CONTROL) == !(GetKeyState(VK_CONTROL) & 0x8000);
-			pressed2 &= !(button.modifiers & MOD_SHIFT) == !(GetKeyState(VK_SHIFT) & 0x8000);
-			pressed2 &= !(button.modifiers & MOD_ALT) == !(GetKeyState(VK_MENU) & 0x8000);
-			pressed2 &= !(button.modifiers & MOD_WIN) == !((GetKeyState(VK_LWIN)|GetKeyState(VK_RWIN)) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_CONTROL) == !(GetAsyncKeyState(VK_CONTROL) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_SHIFT) == !(GetAsyncKeyState(VK_SHIFT) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_ALT) == !(GetAsyncKeyState(VK_MENU) & 0x8000);
+			pressed2 &= !(button.modifiers & MOD_WIN) == !((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000);
 
-			if(pressed2)
-				pressed = 1;
+			if(!button.diKey)
+				pressed = TRUE;
+
+			if(!pressed2)
+				pressed = FALSE;
 		}
 
 		if(button.alias)
