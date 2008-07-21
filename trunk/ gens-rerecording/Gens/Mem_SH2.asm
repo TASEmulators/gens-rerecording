@@ -961,8 +961,8 @@ section .text align=64
 		and edx, 0xFFFF
 		mov eax, [_32X_Palette_32B + eax * 4]
 		mov edx, [_32X_Palette_32B + edx * 4]
-		mov [_32X_VDP_CRam_Ajusted + ecx + 0], eax
-		mov [_32X_VDP_CRam_Ajusted + ecx + 4], edx
+		mov [_32X_VDP_CRam_Ajusted32 + ecx + 0], eax
+		mov [_32X_VDP_CRam_Ajusted32 + ecx + 4], edx
 		
 		ret
 
