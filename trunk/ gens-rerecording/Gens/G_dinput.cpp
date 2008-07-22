@@ -669,31 +669,31 @@ static const char* GetDirectInputKeyName(int key)
 		if (key > 0x100)
 		{
 			static char joy[64];
-			sprintf(joy,"Joypad %d ",((key >> 8) & 0xF) + 1);
+			sprintf(joy,"Pad%d",((key >> 8) & 0xF) + 1);
 			char Key[32];
 			if (key & 0x80)
 			{
 				switch (key & 0xF)
 				{
 					case 1:
-						sprintf(Key,"Povhat %d Up",((key >> 4) & 0x3) + 1);
+						sprintf(Key,"Povhat%dUp",((key >> 4) & 0x3) + 1);
 						break;
 					case 2:
-						sprintf(Key,"Povhat %d Right",((key >> 4) & 0x3) + 1);
+						sprintf(Key,"Povhat%dRight",((key >> 4) & 0x3) + 1);
 						break;
 					case 3:
-						sprintf(Key,"Povhat %d Down",((key >> 4) & 0x3) + 1);
+						sprintf(Key,"Povhat%dDown",((key >> 4) & 0x3) + 1);
 						break;
 					case 4:
-						sprintf(Key,"Povhat %d Left",((key >> 4) & 0x3) + 1);
+						sprintf(Key,"Povhat%dLeft",((key >> 4) & 0x3) + 1);
 						break;
 					default:
-						sprintf(Key,"Povhat %d unknown 0x%X",((key >> 4) & 0x3) + 1, key & 0xF);
+						sprintf(Key,"Povhat%dunknown 0x%X",((key >> 4) & 0x3) + 1, key & 0xF);
 						break;
 				}
 			}
 			else if (key & 0x70)
-				sprintf(Key,"Button %d",(key & 0xFF) - 0xF);
+				sprintf(Key,"Button%d",(key & 0xFF) - 0xF);
 			else 
 			{
 				switch (key & 0xF)
@@ -702,13 +702,13 @@ static const char* GetDirectInputKeyName(int key)
 						sprintf(Key,"Up");
 						break;
 					case 2:
-						sprintf(Key,"Right");
-						break;
-					case 3:
 						sprintf(Key,"Down");
 						break;
-					case 4:
+					case 3:
 						sprintf(Key,"Left");
+						break;
+					case 4:
+						sprintf(Key,"Right");
 						break;
 					default:
 						sprintf(Key,"undefined 0x%X", key & 0xF);
