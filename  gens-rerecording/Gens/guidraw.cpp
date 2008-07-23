@@ -1,8 +1,39 @@
+//A series of functions to be used for drawing things on the MD Screen
+//TODO: triangles, circles, ellipses.
+
+//PutText places text, centered, on point x,y but within the bounds of point xl,yl (low) and point xh,yh (high)
+
+//All following functions take:
+//color32: an RGB color code in the form of rrrrrrrrggggggggbbbbbbbb
+//color16: an RGB color code in the form of rrrrrggggggbbbbb (xrrrrrgggggbbbbb if low bit of mode_555 is set)
+//wrap: an integer from 0 to 8 which specifies how far off the screen (in multiples of the screensize) an object 
+//		(or portion thereof) can be and still be drawn -- this is accomplished by halving the opacity, and drawing a 
+//		corresponding distance from the opposing edge, each when coordinates are found to be outside the display surface
+//		wrap defaults to 1 if not specified
+//Opac: an integer from 0 to 255 which specifies the opacity of the object to be drawn: 255 means full opacity, and 0 
+//		means it can barely be seen.
+//		Opac defaults to 255 if not specified
+
+//Pixel sets a pixel x,y
+//DrawLine draws a line from point x1,y1 to point x2,y2, with no anti-aliasing
+
+//All following functions additionally take:
+//fill: an integer from 0 to 1 which specifies whether or not the object should be filled
+//		fill defaults to 0 if unspecified.
+//fillOpac: an integer from 0 to 255 which specifies opacity of the fill, using the same convention as "Opac" above
+//		fillOpac defaults to 127 if unspecified.
+
+//DrawBoxPP draws a rectangle defined by point x1,y1 (upper-left corner) and point x2,y2 (lower right corner)
+//DrawBoxMWH draws a rectangle defined by point x,y (midpoint) width-radius w, and height-radius h
+//DrawBoxCWH draws a rectangle defined by point x,y (upper-left corner), width w, and height h
+//DrawEccoOct draws an octogon defined by point x,y (midpoint), and radius r, according to an algorithm used in Ecco 2
+
 #include <windows.h>
 #include "guidraw.h"
 #include "drawutil.h"
 #include "math.h"
 #include "misc.h"
+
 void PutText (char *string, short x, short y, short xl, short yl, short xh, short yh, int outstyle, int style)
 {
 	xl = max(xl,0);
@@ -119,12 +150,16 @@ void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, un
 	}
 	if (fill)
 	{
+		if ((x2 - x1) > 0) x1++, x2--;
+		if ((y2 - y1) > 0) y1++, y2--;
 		while (((x2 - x1) > 0) && ((y2 - y1) > 0))
 		{
+			DrawBoxPP(x1,y1,x2,y2,color32,color16,wrap,fillOpac);
 			if ((x2 - x1) > 0) x1++, x2--;
 			if ((y2 - y1) > 0) y1++, y2--;
-			DrawBoxPP(x1,y1,x2,y2,color32,color16,wrap,fillOpac);
 		}
+		if (!(x1 - x2) || !(y1 - y2))
+			DrawLine(x1,y1,x2,y2,color32,color16,wrap,fillOpac);
 	}
 }
 void DrawBoxCWH (short x, short y, short w, short h, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac, char fill, unsigned char fillOpac)
