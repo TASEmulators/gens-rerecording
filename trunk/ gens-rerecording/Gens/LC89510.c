@@ -306,7 +306,7 @@ unsigned short Read_CDC_Host_MAIN(void)
 
 void CDC_Update_Header(void)
 {
-	if (CDC.CTRL.B.B1 & 0x01)		// Sub-Hearder wanted ?
+	if (CDC.CTRL.B.B1 & 0x01)		// Sub-Header wanted ?
 	{
 		CDC.HEAD.B.B0 = 0;
 		CDC.HEAD.B.B1 = 0;
