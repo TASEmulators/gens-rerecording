@@ -619,9 +619,11 @@ int Play_CDD_c3(void)
 	played_tracks_linear[SCD.Cur_Track - SCD.TOC.First_Track] = 1;
 
 	new_lba = MSF_to_LBA(&MSF);
-	delay = new_lba - SCD.Cur_LBA;
+	delay = 0;		//upth mod - for consistency given varying track lengths
+  /*delay = new_lba - SCD.Cur_LBA;
+		
 	if (delay < 0) delay = -delay;
-	delay >>= 12;
+	delay >>= 12;*/
 
 	SCD.Cur_LBA = new_lba;
 	CDC_Update_Header();

@@ -889,7 +889,7 @@ char *M68KDisasm(unsigned short (*NW)(), unsigned int (*NL)())
 
 			if ((OPC & 0xC0) == 0xC0)
 				//ADDA.z  a,Ad
-				sprintf(Dbg_Str, "ADDA%-4s%s,A%.1d%c", Make_Dbg_Size_Str_2((OPC >> 8) & 1), Make_Dbg_EA_Str((OPC >> 8) & 1 + 1, (OPC & 0x38) >> 3, OPC & 0x7), (OPC >> 9) & 0x7, 0);
+				sprintf(Dbg_Str, "ADDA%-4s%s,A%.1d%c", Make_Dbg_Size_Str_2((OPC >> 8) & 1), Make_Dbg_EA_Str(((OPC >> 8) & 1) + 1, (OPC & 0x38) >> 3, OPC & 0x7), (OPC >> 9) & 0x7, 0);
 			else
 			{
 				if (OPC & 0x100)
@@ -1729,7 +1729,7 @@ char *M68KDisasm2(unsigned short (*NW)(), unsigned int (*NL)(), unsigned int hoo
 
 			if ((OPC & 0xC0) == 0xC0)
 				//ADDA.z  a,Ad
-				sprintf(Dbg_Str, "ADDA%-4s%s,A%.1d%c", Make_Dbg_Size_Str_2((OPC >> 8) & 1), Make_Dbg_EA_Str((OPC >> 8) & 1 + 1, (OPC & 0x38) >> 3, OPC & 0x7), (OPC >> 9) & 0x7, 0);
+				sprintf(Dbg_Str, "ADDA%-4s%s,A%.1d%c", Make_Dbg_Size_Str_2((OPC >> 8) & 1), Make_Dbg_EA_Str(((OPC >> 8) & 1) + 1, (OPC & 0x38) >> 3, OPC & 0x7), (OPC >> 9) & 0x7, 0);
 			else
 			{
 				if (OPC & 0x100)
