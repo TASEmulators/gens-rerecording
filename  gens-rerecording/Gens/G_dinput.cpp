@@ -66,6 +66,9 @@ MAKE_AUTO_KEY_VAR(Controller_2_Z);
 
 
 
+#define MOD_NONE 0
+#define VK_NONE 0
+#define ID_NONE 0
 
 
 
@@ -87,11 +90,23 @@ struct InputButton
 	bool ShouldUseAccelerator() {
 		return eventID && (virtKey > 0x07) && !(modifiers & MOD_WIN);
 	}
-};
 
-#define MOD_NONE 0
-#define VK_NONE 0
-#define ID_NONE 0
+	void CopyConfigurablePartsTo(InputButton& button) {
+		button.modifiers = modifiers;
+		button.virtKey = virtKey;
+		button.diKey = diKey;
+	}
+	void SetAsDIK(int dik, int mods = 0) {
+		modifiers = mods;
+		virtKey = VK_NONE;
+		diKey = dik;
+	}
+	void SetAsVirt(int virt, int mods = 0) {
+		modifiers = mods;
+		virtKey = virt;
+		diKey = 0;
+	}
+};
 
 static InputButton s_inputButtons [] =
 {
@@ -154,8 +169,10 @@ static InputButton s_inputButtons [] =
 
 	{MOD_NONE,              VK_F7,     ID_FILES_NEXTSTATE,       0, NULL, "Set Next State", "SetNextKey"},
 	{MOD_NONE,              VK_F6,     ID_FILES_PREVIOUSSTATE,   0, NULL, "Set Previous State", "SetPrevKey"},
-	{MOD_NONE,              VK_F8,     ID_FILES_LOADSTATE,       0, NULL, "Load Current Savestate", "QuickLoadKey"},
-	{MOD_NONE,              VK_F5,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate", "QuickSaveKey"},
+	{MOD_NONE,              VK_F8,     ID_FILES_LOADSTATE,       0, NULL, "Load Current Savestate", "SaveCurrentKey"},
+	{MOD_NONE,            VK_NONE,     ID_FILES_LOADSTATE,       0, NULL, "Load Current Savestate (key2)", "QuickLoadKey"},
+	{MOD_NONE,              VK_F5,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate", "LoadCurrentKey"},
+	{MOD_NONE,            VK_NONE,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate (key2)", "QuickSaveKey"},
 	{MOD_SHIFT,             VK_F8,     ID_FILES_LOADSTATEAS,     0, NULL, "Load State From...", "LoadFromKey"},
 	{MOD_SHIFT,             VK_F5,     ID_FILES_SAVESTATEAS,     0, NULL, "Save State As...", "SaveAsKey"},
 
@@ -179,12 +196,21 @@ static InputButton s_inputButtons [] =
 	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Take Screenshot", "ScreenshotKey"},
 	{MOD_NONE,              VK_F1,     ID_HELP_HELP,             0, NULL, "Get Help", "HelpKey"},
 
+	{MOD_NONE,              VK_NONE,   ID_GRAPHICS_SPRITEALWAYS, 0, NULL, "Sprites On Top On/Off", "SpritesOnTopKey"},
+	{MOD_NONE,              VK_NONE,   ID_CHANGE_PALLOCK,        0, NULL, "Lock/Unlock Palette", "LockPaletteKey"},
+
 	{MOD_CONTROL|MOD_SHIFT,   'P',     ID_SOUND_PLAYGYM,         0, NULL, "Play GYM", "GYMKey"},
 	{MOD_NONE,              VK_NONE,   ID_SOUND_STARTWAVDUMP,    0, NULL, "Dump WAV", "WAVKey"},
 
-	{MOD_SHIFT,             VK_F10,    ID_SOUND_DACIMPROV,       0, NULL, "Improved DAC On/Off", "ImpDACKey"},
-	{MOD_SHIFT,             VK_F11,    ID_SOUND_PSGIMPROV,       0, NULL, "Improved PSG On/Off", "ImpPSGKey"},
-	{MOD_SHIFT,             VK_F12,    ID_SOUND_YMIMPROV,        0, NULL, "Improved YM On/Off", "ImpYMKey"},
+	{MOD_NONE,             VK_NONE,    ID_SOUND_DACIMPROV,       0, NULL, "Improved DAC On/Off", "ImpDACKey"},
+	{MOD_NONE,             VK_NONE,    ID_SOUND_PSGIMPROV,       0, NULL, "Improved PSG On/Off", "ImpPSGKey"},
+	{MOD_NONE,             VK_NONE,    ID_SOUND_YMIMPROV,        0, NULL, "Improved YM On/Off", "ImpYMKey"},
+	{MOD_NONE,             VK_NONE,    ID_SOUND_SOFTEN,          0, NULL, "Sound Soften Filter On/Off", "SoundSoftenKey"},
+
+	{MOD_NONE,              VK_NONE,   ID_OPTIONS_JOYPADSETTING, 0, NULL, "Configure Input", "ConfigInputKey"},
+	{MOD_NONE,              VK_NONE,   ID_OPTIONS_GENERAL,       0, NULL, "Configure General", "ConfigGeneralKey"},
+	{MOD_NONE,              VK_NONE,   ID_OPTIONS_CHANGEDIR,     0, NULL, "Configure Directories", "ConfigDirKey"},
+	{MOD_NONE,              VK_NONE,   ID_OPTIONS_CHANGEFILES,   0, NULL, "Configure BIOS/Misc. Files", "ConfigFilesKey"},
 
 	{MOD_CONTROL|MOD_SHIFT, '0',       ID_MOVIE_CHANGETRACK_ALL, 0, NULL, "Enable All Tracks", "AllTracksKey"},
 	{MOD_CONTROL|MOD_SHIFT, '1',       ID_MOVIE_CHANGETRACK_1,   0, NULL, "Toggle Player Track 1", "Track1Key"},
@@ -197,6 +223,7 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,   ID_RAM_WATCH,             0, NULL, "Ram Watch", "RamWatchKey"},
 	{MOD_NONE,              VK_NONE,   ID_PLAY_MOVIE,            0, NULL, "Play Movie", "PlayMovieKey"},
 	{MOD_NONE,              VK_NONE,   ID_RECORD_MOVIE,          0, NULL, "Record Movie", "RecordMovieKey"},
+	{MOD_NONE,              VK_NONE,   ID_RESUME_RECORD,         0, NULL, "Resume Record Movie", "Resume RecordMovieKey"},
 	{MOD_NONE,              VK_NONE,   ID_STOP_MOVIE,            0, NULL, "Stop Movie", "StopMovieKey"},
 	{MOD_CONTROL,           'T',       ID_TOGGLE_MOVIE_READONLY, 0, NULL, "Toggle Movie Read-Only", "ToggleReadOnlyKey"},
 	{MOD_CONTROL,           'R',       ID_LAG_RESET,             0, NULL, "Reset Lag Counter", "LagResetKey"},
@@ -268,7 +295,7 @@ void BuildAccelerators(HACCEL& hAccelTable)
 
 	s_reverseEventLookup.clear();
 	for(int i=0; i<numInputButtons; i++)
-		if(s_inputButtons[i].eventID)
+		if(s_inputButtons[i].eventID && (s_inputButtons[i].diKey || s_inputButtons[i].virtKey || s_inputButtons[i].modifiers || !s_reverseEventLookup[s_inputButtons[i].eventID]))
 			s_reverseEventLookup[s_inputButtons[i].eventID] = i+1;
 
 	if(!accels.empty())
@@ -325,9 +352,7 @@ void LoadAccelerators(char *File_Name)
 			int read = sscanf(Str_Tmp, "%d, %d, %d", &temp.diKey, &temp.modifiers, &temp.virtKey);
 			if(read == 3)
 			{
-				button.modifiers = temp.modifiers;
-				button.virtKey = temp.virtKey;
-				button.diKey = temp.diKey;
+				temp.CopyConfigurablePartsTo(button);
 			}
 			else if(read == 1)
 			{
@@ -710,6 +735,25 @@ static const char* GetDirectInputKeyName(int key)
 					case 4:
 						sprintf(Key,"Right");
 						break;
+					case 5:
+						sprintf(Key,"RLeft");
+						break;
+					case 6:
+						sprintf(Key,"RRight");
+						break;
+					case 7:
+						sprintf(Key,"RUp");
+						break;
+					case 8:
+						sprintf(Key,"RDown");
+						break;
+					case 9:
+						sprintf(Key,"ZRight");
+						break;
+					case 0xA:
+						sprintf(Key,"ZLeft");
+						break;
+
 					default:
 						sprintf(Key,"undefined 0x%X", key & 0xF);
 				}
@@ -783,7 +827,7 @@ void PopulateHotkeyListbox(HWND listbox)
 	}
 }
 
-void Get_Key_2(InputButton& button);
+void Get_Key_2(InputButton& button, bool allowVirtual);
 static void SetKey (char* message, InputButton& button, HWND hset)
 {
 	if(!lpDI && !Init_Input(ghInstance, hset))
@@ -792,7 +836,7 @@ static void SetKey (char* message, InputButton& button, HWND hset)
 	for (int i = 0; i < 256; i++)
 		Keys[i] &= ~0x80;
 
-	Get_Key_2(button);
+	Get_Key_2(button, true);
 
 	MSG m;
 	while (PeekMessage(&m, hset, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
@@ -858,14 +902,10 @@ void ModifyHotkeyFromListbox(HWND listbox, WORD command, HWND statusText, HWND p
 				}
 				break;
 			case IDC_REVERTKEY:
-				button.modifiers = s_initialInputButtons[i].modifiers;
-				button.virtKey = s_initialInputButtons[i].virtKey;
-				button.diKey = s_initialInputButtons[i].diKey;
+				s_initialInputButtons[i].CopyConfigurablePartsTo(button);
 				break;
 			case IDC_USEDEFAULTKEY:
-				button.modifiers = s_defaultInputButtons[i].modifiers;
-				button.virtKey = s_defaultInputButtons[i].virtKey;
-				button.diKey = s_defaultInputButtons[i].diKey;
+				s_defaultInputButtons[i].CopyConfigurablePartsTo(button);
 				break;
 			case IDC_DISABLEKEY:
 				button.modifiers = MOD_NONE;
@@ -1149,7 +1189,8 @@ int Check_Key_Pressed(unsigned int key)
 
 	if (key < 0x100)
 	{
-		if KEYDOWN(key) return(1);
+		if KEYDOWN(key)
+			return(1);
 	}
 	else
 	{
@@ -1164,35 +1205,77 @@ int Check_Key_Pressed(unsigned int key)
 				switch(key & 0xF)
 				{
 					case 1:
-						if ((value >= 29250) || (value <=  6750)) return(1); break;
+						if ((value >= 29250) || (value <=  6750))
+							return(1);
+						break;
 					case 2:
-						if ((value >=  2250) && (value <= 15750)) return(1); break;
+						if ((value >=  2250) && (value <= 15750))
+							return(1);
+						break;
 					case 3:
-						if ((value >= 11250) && (value <= 24750)) return(1); break;
+						if ((value >= 11250) && (value <= 24750))
+							return(1);
+						break;
 					case 4:
-						if ((value >= 20250) && (value <= 33750)) return(1); break;
+						if ((value >= 20250) && (value <= 33750))
+							return(1);
+						break;
 				}
 
 			}
 			else if (key & 0x70)		// Test Button Joys
 			{
-				if (Joy_State[Num_Joy].rgbButtons[(key & 0xFF) - 0x10]) return(1);
+				if (Joy_State[Num_Joy].rgbButtons[(key & 0xFF) - 0x10])
+					return(1);
 			}
 			else
 			{
 				switch(key & 0xF)
 				{
 					case 1:
-						if (Joy_State[Num_Joy].lY < -500) return(1); break;
+						if (Joy_State[Num_Joy].lY < -500)
+							return(1);
+						break;
 
 					case 2:
-						if (Joy_State[Num_Joy].lY > +500) return(1); break;
+						if (Joy_State[Num_Joy].lY > +500)
+							return(1);
+						break;
 
 					case 3:
-						if (Joy_State[Num_Joy].lX < -500) return(1); break;
+						if (Joy_State[Num_Joy].lX < -500)
+							return(1);
+						break;
 
 					case 4:
-						if (Joy_State[Num_Joy].lX > +500) return(1); break;
+						if (Joy_State[Num_Joy].lX > +500)
+							return(1);
+						break;
+
+					case 5:
+						if (Joy_State[Num_Joy].lRx < 0x3FFF)
+							return(1);
+						break;
+					case 6:
+						if (Joy_State[Num_Joy].lRx > 0xBFFF)
+							return(1);
+						break;
+					case 7:
+						if (Joy_State[Num_Joy].lRy < 0x3FFF)
+							return(1);
+						break;
+					case 8:
+						if (Joy_State[Num_Joy].lRy > 0xBFFF)
+							return(1);
+						break;
+					case 9:
+						if (Joy_State[Num_Joy].lZ < 0x3FFF)
+							return(1);
+						break;
+					case 0xA:
+						if (Joy_State[Num_Joy].lZ > 0xBFFF)
+							return(1);
+						break;
 				}
 			}
 		}
@@ -1201,132 +1284,163 @@ int Check_Key_Pressed(unsigned int key)
 	return 0;
 }
 
-unsigned int Get_Key_Joy(void)
+
+void Get_Key_2(InputButton& button, bool allowVirtual)
 {
-	int i, j;
-	for(i = 0; i < Nb_Joys; i++)
+	int i, j, joyIndex;
+
+	bool prevReady = false;
+
+	int prevMod;
+	BOOL prevDiKeys[256];
+	BOOL prevVirtKeys[256];
+	BOOL prevJoyKeys[256];
+
+	int curMod;
+	BOOL curDiKeys[256];
+	BOOL curVirtKeys[256];
+	BOOL curJoyKeys[256];
+
+	while(1)
 	{
-		if (Joy_ID[i])
+		// compute the current state of all buttons
 		{
-			if (Joy_State[i].lY < -500)
-				return(0x1000 + (0x100 * i) + 0x1);
+			Update_Input();
 
-			if (Joy_State[i].lY > +500)
-				return(0x1000 + (0x100 * i) + 0x2);
+			// current state of modifier keys
+			curMod = 0;
+			if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+				curMod |= MOD_CONTROL;
+			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
+				curMod |= MOD_SHIFT;
+			if(GetAsyncKeyState(VK_MENU) & 0x8000)
+				curMod |= MOD_ALT;
+			if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
+				curMod |= MOD_WIN;
 
-			if (Joy_State[i].lX < -500)
-				return(0x1000 + (0x100 * i) + 0x3);
+			// current state of virtual windows keys
+			for(i = 0; i < 256; i++)
+				curVirtKeys[i] = (GetAsyncKeyState(i) & 0x8000);
 
-			if (Joy_State[i].lX > +500)
-				return(0x1000 + (0x100 * i) + 0x4);
+			// current state of direct input keys
+			for(i = 0; i < 256; i++)
+				curDiKeys[i] = KEYDOWN(i);
 
-			for (j = 0; j < 4; j++)
-				if (Joy_State[i].rgdwPOV[j] == 0)
-					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x1);
-
-			for (j = 0; j < 4; j++)
-				if (Joy_State[i].rgdwPOV[j] == 9000)
-					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x2);
-
-			for (j = 0; j < 4; j++)
-				if (Joy_State[i].rgdwPOV[j] == 18000)
-					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x3);
-
-			for (j = 0; j < 4; j++)
-				if (Joy_State[i].rgdwPOV[j] == 27000)
-					return(0x1080 + (0x100 * i) + (0x10 * j) + 0x4);
-
-			for (j = 0; j < 32; j++)
-				if (Joy_State[i].rgbButtons[j])
-					return(0x1010 + (0x100 * i) + j);
+			// current state of recognized buttons on joypad
+			joyIndex = 0;
+			for(i = 0; i < Nb_Joys; i++)
+			{
+				if (Joy_ID[i])
+				{
+					curJoyKeys[joyIndex++] = (Joy_State[i].lY < -500);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lY > +500);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lX < -500);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lX > +500);
+					for (j = 0; j < 4; j++) {
+						curJoyKeys[joyIndex++] = (Joy_State[i].rgdwPOV[j] == 0);
+						curJoyKeys[joyIndex++] = (Joy_State[i].rgdwPOV[j] == 9000);
+						curJoyKeys[joyIndex++] = (Joy_State[i].rgdwPOV[j] == 18000);
+						curJoyKeys[joyIndex++] = (Joy_State[i].rgdwPOV[j] == 27000);
+					}
+					for (j = 0; j < 32; j++)
+						curJoyKeys[joyIndex++] = (Joy_State[i].rgbButtons[j]);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lRx < 0x3FFF);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lRx > 0xBFFF);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lRy < 0x3FFF);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lRy > 0xBFFF);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lZ < 0x3FFF);
+					curJoyKeys[joyIndex++] = (Joy_State[i].lZ > 0xBFFF);
+				}
+			}
 		}
-	}
 
-	return 0;
+		// compare buttons against the previous state
+		// to determine what is now pressed that wasn't already pressed before
+		if(prevReady)
+		{
+			// check for new virtual key presses
+			for(i = 1; i < 255; i++)
+			{
+				if(curVirtKeys[i] && !prevVirtKeys[i] && allowVirtual)
+				{
+					if(i == VK_CONTROL || i == VK_SHIFT || i == VK_MENU || i == VK_LWIN || i == VK_RWIN || i == VK_LSHIFT || i == VK_RSHIFT || i == VK_LCONTROL || i == VK_RCONTROL || i == VK_LMENU || i == VK_RMENU)
+						continue;
+					button.SetAsVirt(i, curMod);
+					return;
+				}
+			}
+
+			// check for new direct input key presses
+			for(i = 1; i < 255; i++)
+			{
+				if(curDiKeys[i] && !prevDiKeys[i])
+				{
+					if(allowVirtual && (i == DIK_LWIN || i == DIK_RWIN || i == DIK_LSHIFT || i == DIK_RSHIFT || i == DIK_LCONTROL || i == DIK_RCONTROL || i == DIK_LMENU || i == DIK_RMENU))
+						continue;
+					button.SetAsDIK(i, curMod);
+					return;
+				}
+			}
+
+			// check for modifier key releases
+			// this allows a modifier key to be used as a hotkey on its own, as some people like to do
+			if(!curMod && prevMod && allowVirtual)
+			{
+				button.SetAsVirt(VK_NONE, prevMod);
+				return;
+			}
+
+			// check for new recognized joypad button presses
+			for(int index = 0; index < joyIndex; index++)
+			{
+				if(curJoyKeys[index] && !prevJoyKeys[index])
+				{
+					int joyIndex2 = 0;
+					for(i = 0; i < Nb_Joys; i++)
+					{
+						if (Joy_ID[i])
+						{
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x1, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x2, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x3, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x4, curMod); return; }
+							for (j = 0; j < 4; j++) {
+								if(index == joyIndex2++) { button.SetAsDIK(0x1080 + (0x100 * i) + (0x10 * j) + 0x1, curMod); return; }
+								if(index == joyIndex2++) { button.SetAsDIK(0x1080 + (0x100 * i) + (0x10 * j) + 0x2, curMod); return; }
+								if(index == joyIndex2++) { button.SetAsDIK(0x1080 + (0x100 * i) + (0x10 * j) + 0x3, curMod); return; }
+								if(index == joyIndex2++) { button.SetAsDIK(0x1080 + (0x100 * i) + (0x10 * j) + 0x4, curMod); return; }
+							}
+							for (j = 0; j < 32; j++)
+								if(index == joyIndex2++) { button.SetAsDIK(0x1010 + (0x100 * i) + j, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x5, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x6, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x7, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x8, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0x9, curMod); return; }
+							if(index == joyIndex2++) { button.SetAsDIK(0x1000 + (0x100 * i) + 0xA, curMod); return; }
+						}
+					}
+				}
+			}
+		}
+
+		// update previous state
+		memcpy(prevVirtKeys, curVirtKeys, sizeof(prevVirtKeys));
+		memcpy(prevDiKeys, curDiKeys, sizeof(curDiKeys));
+		memcpy(prevJoyKeys, curJoyKeys, sizeof(curJoyKeys));
+		prevMod = curMod;
+		prevReady = true;
+	}
 }
 
 unsigned int Get_Key(void)
 {
-	int i;
-
-	while(1)
-	{
-		Update_Input();
-
-		for(i = 1; i < 256; i++)
-			if KEYDOWN(i) return i;
-
-		unsigned int joy = Get_Key_Joy();
-		if(joy) return joy;
-	}
+	InputButton tempButton;
+	tempButton.diKey = 0;
+	Get_Key_2(tempButton, false);
+	return tempButton.diKey;
 }
 
-void Get_Key_2(InputButton& button)
-{
-	int i;
-
-	int prevMod = 0;
-
-	while(1)
-	{
-		Update_Input();
-
-		int curMod = 0;
-		if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
-			curMod |= MOD_CONTROL;
-		if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-			curMod |= MOD_SHIFT;
-		if(GetAsyncKeyState(VK_MENU) & 0x8000)
-			curMod |= MOD_ALT;
-		if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
-			curMod |= MOD_WIN;
-
-		for(i = 1; i < 256; i++)
-		{
-			if(GetAsyncKeyState(i) & 0x8000)
-			{
-				if(i == VK_CONTROL || i == VK_SHIFT || i == VK_MENU || i == VK_LWIN || i == VK_RWIN || i == VK_LSHIFT || i == VK_RSHIFT || i == VK_LCONTROL || i == VK_RCONTROL || i == VK_LMENU || i == VK_RMENU)
-					continue;
-				button.diKey = 0;
-				button.modifiers = curMod;
-				button.virtKey = i;
-				return;
-			}
-		}
-
-		for(i = 1; i < 256; i++)
-		{
-			if KEYDOWN(i)
-			{
-				if(i == DIK_LWIN || i == DIK_RWIN || i == DIK_LSHIFT || i == DIK_RSHIFT || i == DIK_LCONTROL || i == DIK_RCONTROL || i == DIK_LMENU || i == DIK_RMENU)
-					continue;
-				button.diKey = i;
-				button.modifiers = curMod;
-				button.virtKey = VK_NONE;
-				return;
-			}
-		}
-
-		unsigned int joy = Get_Key_Joy();
-		if(joy)
-		{
-			button.diKey = joy;
-			button.modifiers = curMod;
-			button.virtKey = VK_NONE;
-			return;
-		}
-
-		if(!curMod && prevMod)
-		{
-			button.diKey = 0;
-			button.modifiers = prevMod;
-			button.virtKey = VK_NONE;
-			return;
-		}
-
-		prevMod = curMod;
-	}
-}
 
 #ifdef ECCOBOXHACK
 #include "EccoBoxHack.h"
