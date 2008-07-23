@@ -4012,7 +4012,7 @@ int Build_Language_String(void)
 HMENU Build_Main_Menu(void)
 {
 	unsigned int Flags;
-	int i, Rend;
+	int i, j, Rend;
 
 	HMENU MainMenu;
 	HMENU Files;
@@ -4023,7 +4023,7 @@ HMENU Build_Main_Menu(void)
 	HMENU Options;
 	HMENU Help;
 
-	//HMENU FilesChangeState;
+	HMENU FilesChangeState;
 	HMENU FilesSaveState;
 	HMENU FilesLoadState;
 	HMENU FilesHistory;
@@ -4069,7 +4069,7 @@ HMENU Build_Main_Menu(void)
 	Options = CreatePopupMenu();
 	TAS_Tools = CreatePopupMenu(); //Upth-Add - Initialize my new menus
 	Help = CreatePopupMenu();
-	//FilesChangeState = CreatePopupMenu();
+	FilesChangeState = CreatePopupMenu();
 	FilesSaveState = CreatePopupMenu();
 	FilesLoadState = CreatePopupMenu();
 	FilesHistory = CreatePopupMenu();
@@ -4129,11 +4129,7 @@ HMENU Build_Main_Menu(void)
 	
 	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesSaveState, "Save State", "", "Save State");
 	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesLoadState, "Load State", "", "Load State");
-	MENU_L(Files, i++, Flags, ID_FILES_SAVESTATEAS, "Save State as", "\tShift+F5", "&Save State as...");
-	MENU_L(Files, i++, Flags, ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State...");
-	//MENU_L(Files, i++, Flags, ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
-	//MENU_L(Files, i++, Flags, ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
-	//MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesChangeState, "Change State", "\tF6-F7", "C&hange State");
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesChangeState, "Change State", "", "C&hange State");
 
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
 
@@ -4149,20 +4145,31 @@ HMENU Build_Main_Menu(void)
 
 	// Menu FilesChangeState
 	
-	//for(i = 0; i < 10; i++)
-	//{
-	//	wsprintf(Str_Tmp ,"Set &%d", (i+1)%10);
-	//	MENU_L(FilesChangeState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SETSTATE_1 + i, Str_Tmp, "", Str_Tmp);
-	//}
-	for(i = 0; i < 10; i++)
+	MENU_L(FilesChangeState, i++, Flags, ID_FILES_PREVIOUSSTATE, "Previous State", "", "Previous State");
+	MENU_L(FilesChangeState, i++, Flags, ID_FILES_NEXTSTATE, "Next State", "", "Next State");
+	InsertMenu(FilesChangeState, i++, MF_SEPARATOR, NULL, NULL);
+	for(j = 0; j < 10; j++)
 	{
-		wsprintf(Str_Tmp ,"Save &%d", (i+1)%10);
-		MENU_L(FilesSaveState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SAVESTATE_1 + i, Str_Tmp, "", Str_Tmp);
+		wsprintf(Str_Tmp ,"Set &%d", (j+1)%10);
+		MENU_L(FilesChangeState, i++, Flags | (Current_State == ((j+1)%10) ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SETSTATE_1 + j, Str_Tmp, "", Str_Tmp);
 	}
-	for(i = 0; i < 10; i++)
+
+	MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
+	MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATEAS, "Save State as", "\tShift+F5", "&Save State as...");
+	InsertMenu(FilesSaveState, i++, MF_SEPARATOR, NULL, NULL);
+	for(j = 0; j < 10; j++)
 	{
-		wsprintf(Str_Tmp ,"Load &%d", (i+1)%10);
-		MENU_L(FilesLoadState, i, Flags | (Current_State == i ? MF_CHECKED : MF_UNCHECKED), ID_FILES_LOADSTATE_1 + i, Str_Tmp, "", Str_Tmp);
+		wsprintf(Str_Tmp ,"Save &%d", (j+1)%10);
+		MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATE_1 + j, Str_Tmp, "", Str_Tmp);
+	}
+
+	MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
+	MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State...");
+	InsertMenu(FilesLoadState, i++, MF_SEPARATOR, NULL, NULL);
+	for(j = 0; j < 10; j++)
+	{
+		wsprintf(Str_Tmp ,"Load &%d", (j+1)%10);
+		MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATE_1 + j, Str_Tmp, "", Str_Tmp);
 	}
 
 
@@ -4278,6 +4285,10 @@ HMENU Build_Main_Menu(void)
 		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
 		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
 	}
+
+	InsertMenu(GraphicsRender, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend > 0) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_PREVIOUS_RENDER, "Previous Render Mode", "", "Previous Render Mode");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend < 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
 
 	// Menu GraphicsLayers
      // Nitsuja Added this
@@ -4515,8 +4526,7 @@ HMENU Build_Main_Menu(void)
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Trace, "Tracer Tools", "", "&Tracer tools");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)CPUSlowDownSpeed, "Slow Down Speed", "", "S&low Down Speed");
-	MENU_L(TAS_Tools,i++,Flags | ((SlowDownMode==1) ? MF_CHECKED : MF_UNCHECKED),ID_SLOW_MODE,"Slow mode","","&Slow mode"); //Modif
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)CPUSlowDownSpeed, "Slow Mode", "", "S&low Mode");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
@@ -4549,6 +4559,10 @@ HMENU Build_Main_Menu(void)
 	//Upth-Modif - Slow Mode Selection -- now a submenu of TAS_Tools
 	// Menu CPUSlowDownSpeed
 	i = 0;
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SLOW_SPEED_PLUS,"Speed Up","","Speed &Up"); //Modif N.
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==0 || SlowDownSpeed < 31) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SLOW_SPEED_MINUS,"Slow Down","","Slow &Down"); //Modif N.
+	InsertMenu(CPUSlowDownSpeed, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_CHECKED : MF_UNCHECKED),ID_SLOW_MODE,"Slow Mode Enabled","","&Slow Mode Enabled"); //Modif
 	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 1) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_1, "50%", "", "50%");
 	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 2) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_2, "33%", "", "33%");
 	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 3) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_3, "25%", "", "25%");
@@ -4557,7 +4571,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 9) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_9, "10%", "", "10%");
 	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 15)? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_15, "6%", "", " 6%");
 	MENU_L(CPUSlowDownSpeed, i  , Flags | ((SlowDownSpeed == 31)? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_31, "3%", "", " 3%");
-	
+
 	// Menu Options
 
 	i = 0;
@@ -8058,8 +8072,8 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 			HWND listbox = GetDlgItem(hDlg, IDC_HOTKEYLIST);
 
-			int stops [1] = {25*4};
-			SendMessage(listbox, LB_SETTABSTOPS, 1, (LONG)(LPSTR)stops);
+			int stops [4] = {25*4, 25*4+4, 25*4+8, 25*4+16};
+			SendMessage(listbox, LB_SETTABSTOPS, 4, (LONG)(LPSTR)stops);
 
 			PopulateHotkeyListbox(listbox);
 
