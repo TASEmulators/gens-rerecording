@@ -2424,8 +2424,6 @@ int Check_Skip_Key()
 
 void Check_Misc_Key()
 {
-	Update_Input();
-
 	// N - checks for enabling/disabling the autofire and autohold toggles
 	if(AutoFireKeyDown || AutoHoldKeyDown || AutoClearKeyDown)
 	{

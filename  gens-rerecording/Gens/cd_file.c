@@ -507,6 +507,7 @@ void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
 	if (cueFile)
 	{
 		char line [1024], temp [1024], filename [1024];
+		char* ptr,* tempPtr;
 		filename[0] = 0;
 		for(;;)
 		{
@@ -519,8 +520,37 @@ void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
 			if(!strncmp(line, "REM", 3) || line[0] == '#' || !strncmp(line, "//", 2))
 				continue;
 
+			// parse filename from the current line string
 			temp[0] = 0;
-			if(1 == sscanf(line, " FILE %s", temp) && temp[0])
+			tempPtr = temp;
+			ptr = line;
+			while(*ptr && (*ptr == ' ' || *ptr == '\t')) ptr++;
+			if(!strncmp(ptr, "FILE", 4))
+			{
+				int inQuotes = 0;
+				char afterFile = ptr[4];
+				ptr += 4;
+				while(*ptr && (*ptr == ' ' || *ptr == '\t')) ptr++;
+				if(afterFile == ' ' || afterFile == '\t' || afterFile == '\"')
+				while(*ptr && *ptr != '\n' && *ptr != '\r')
+				{
+					if((*ptr == ' ' || *ptr == '\t') && !inQuotes)
+						break;
+
+					*tempPtr++ = *ptr;
+
+					if(*ptr == '\"')
+						if(inQuotes)
+							break;
+						else
+							inQuotes = 1;
+
+					ptr++;
+				}
+				*tempPtr = 0;
+			}
+
+			if(temp[0]) // if a filename was found
 			{
 				if(strstr(line, "BINARY") || strstr(line, "ISO"))
 				{
@@ -530,8 +560,8 @@ void Get_CUE_ISO_Filename(char *fnamebuf, int fnamebuf_size, char *cue_name)
 							*ptr = 0;
 					ptr=temp; if(!*ptr) ptr++;
 					strcpy(filename, ptr);
+					break;
 				}
-				break;
 			}
 		}
 
