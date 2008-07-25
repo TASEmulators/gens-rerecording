@@ -1897,6 +1897,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 {
 ///////////////////////////////////////////////////
 
+	SetErrorMode(SEM_FAILCRITICALERRORS); // Modif N. -- prevents "There is no disk in the drive." error spam if a file on a removed disk is in the recent ROMs list
+
 	fp1 = fopen( "hook_log.txt", "r" );
 	if( fp1 )
 	{
