@@ -2580,9 +2580,18 @@ dialogAgain: //Nitsuja added this
 						return 0;
 					if(SegaCD_Started && !SegaCD_Accurate)
 					{
+						DialogsOpen++;
 						int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
-						if(answer == IDCANCEL) return 0;
+						DialogsOpen--;
+						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 						if(answer == IDYES) SegaCD_Accurate = 1;
+					}
+					if(SegaCD_Started && SCD.TOC.Last_Track == 1)
+					{
+						DialogsOpen++;
+						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could prevent other people from being able to watch your movie with audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+						DialogsOpen--;
+						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 					}
 					if(MainMovie.StateRequired)
 					{
@@ -2697,9 +2706,18 @@ dialogAgain: //Nitsuja added this
 						return 0;
 					if(SegaCD_Started && !SegaCD_Accurate)
 					{
+						DialogsOpen++;
 						int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
-						if(answer == IDCANCEL) return 0;
+						DialogsOpen--;
+						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 						if(answer == IDYES) SegaCD_Accurate = 1;
+					}
+					if(SegaCD_Started && SCD.TOC.Last_Track == 1)
+					{
+						DialogsOpen++;
+						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+						DialogsOpen--;
+						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 					}
 					if(OpenMovieFile(&MainMovie)==0)
 					{
