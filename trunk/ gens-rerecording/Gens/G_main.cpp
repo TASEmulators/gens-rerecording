@@ -2576,6 +2576,12 @@ dialogAgain: //Nitsuja added this
 					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_RECORD_A_MOVIE), hWnd, (DLGPROC) RecordMovieProc);
 					if(RecordMovieCanceled)
 						return 0;
+					if(SegaCD_Started && !SegaCD_Accurate)
+					{
+						int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+						if(answer == IDCANCEL) return 0;
+						if(answer == IDYES) SegaCD_Accurate = 1;
+					}
 					if(MainMovie.StateRequired)
 					{
 						FrameCount=0;
@@ -2685,7 +2691,14 @@ dialogAgain: //Nitsuja added this
 					MINIMIZE
 					DialogsOpen++;
 					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), hWnd, (DLGPROC) PlayMovieProc);
-					if (PlayMovieCanceled) return 0;
+					if (PlayMovieCanceled)
+						return 0;
+					if(SegaCD_Started && !SegaCD_Accurate)
+					{
+						int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+						if(answer == IDCANCEL) return 0;
+						if(answer == IDYES) SegaCD_Accurate = 1;
+					}
 					if(OpenMovieFile(&MainMovie)==0)
 					{
 						MESSAGE_L("Error opening file", "Error opening file", 1500)
