@@ -2080,6 +2080,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 		}
 
+		Update_Input();
+
 #ifdef GENS_DEBUG
 		if (Debug)						// DEBUG
 		{
@@ -2190,9 +2192,15 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		}
 		else							// BLANK SCREEN (MAX IDLE)
 		{
-			Clear_Back_Screen(HWnd);
-			Flip(HWnd);
-			Sleep(200);
+			// Modif N. -- reduced sleep time without reducing clear frequency
+			// to make non-accelerator hotkeys more responsive when no game is running
+			static int clearCounter = 0;
+			if(++clearCounter % 10 == 0)
+			{
+				Clear_Back_Screen(HWnd);
+				Flip(HWnd);
+			}
+			Sleep(20);
 		}
 	}
 
