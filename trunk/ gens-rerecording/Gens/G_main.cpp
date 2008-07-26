@@ -2138,7 +2138,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				Build_Main_Menu();
 				MustUpdateMenu=0;
 			}
-			if ((Active) && (!Paused))	// EMULATION
+			if (!Paused)	// EMULATION
 			{
 				Update_Emulation(HWnd);
 
@@ -2151,9 +2151,9 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			else		// EMULATION PAUSED
 			{
-				if(/*SkipKey*/true)
-				{
-					if(Check_Skip_Key() != 0)
+//				if(/*SkipKey*/true)
+//				{
+					if((Active) && (Check_Skip_Key() != 0))
 					{
 						Update_Emulation_One(HWnd);
 						soundCleared = false;
@@ -2167,7 +2167,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 							soundCleared = true;
 						}
 					}
-				}
+//				}
 				Sleep(1);
 			}
 		}
@@ -2257,12 +2257,14 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					FS_Minimised = 1;
 				}
 
-				if (Auto_Pause && Active)
+				if (Active)
 				{
 					Active = 0;
-
-					if (!Paused) Pause_Screen();
-					Clear_Sound_Buffer();
+					if (Auto_Pause)
+					{
+						if (!Paused) Pause_Screen();
+						Clear_Sound_Buffer();
+					}
 				}
 			}
 			break;

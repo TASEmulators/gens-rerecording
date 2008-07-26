@@ -620,7 +620,7 @@ int Play_CDD_c3(void)
 
 	new_lba = MSF_to_LBA(&MSF);
 	delay = 0;		//upth mod - for consistency given varying track lengths
-  /*delay = new_lba - SCD.Cur_LBA;
+	/*delay = new_lba - SCD.Cur_LBA;
 		
 	if (delay < 0) delay = -delay;
 	delay >>= 12;*/
