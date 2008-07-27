@@ -1118,10 +1118,9 @@ void Update_CD_Audio(int **buf, int _length)
 		int i = 0;
 		for (; i <= _length; i++)
 		{
-			CD_Audio_Buffer_L[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] >>= 8;
-			CD_Audio_Buffer_R[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] >>= 8;
-			CD_Audio_Buffer_L[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] *= CDDAVol;
-			CD_Audio_Buffer_R[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] *= CDDAVol;
+			int readPos = (CD_Audio_Buffer_Read_Pos + i) & 0xFFF;
+			CD_Audio_Buffer_L[readPos] = (CD_Audio_Buffer_L[readPos] * CDDAVol) >> 8;
+			CD_Audio_Buffer_R[readPos] = (CD_Audio_Buffer_R[readPos] * CDDAVol) >> 8;
 		}
 		__asm
 		{
