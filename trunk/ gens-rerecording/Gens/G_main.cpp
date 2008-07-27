@@ -1782,6 +1782,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 	FrameCount=0;
 	LagCount = 0;
+	LagCountPersistent = 0;
 
 	RegisterClass(&WndClass);
 
@@ -2597,6 +2598,7 @@ dialogAgain: //Nitsuja added this
 					{
 						FrameCount=0;
 						LagCount = 0;
+						LagCountPersistent = 0;
 						strncpy(Str_Tmp,Rom_Name,507);
 						strcat(Str_Tmp,"[GMV]");
 						strcat(Str_Tmp,".gst");
@@ -2649,6 +2651,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					MainMovie.NbRerecords=0;
 					MainMovie.LastFrame=0;
 					if(MainMovie.StateRequired)
@@ -2727,6 +2730,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					if(MainMovie.UseState)
 					{
 						if(MainMovie.Status==MOVIE_PLAYING)
@@ -2838,6 +2842,7 @@ dialogAgain: //Nitsuja added this
 					if (GYM_Playing) Stop_Play_GYM();
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					int retval = Get_Rom(hWnd);
 					ReopenRamWindows();
 					return retval;
@@ -2865,6 +2870,7 @@ dialogAgain: //Nitsuja added this
 					if (GYM_Playing) Stop_Play_GYM();
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					int retval = Pre_Load_Rom(HWnd, Recent_Rom[LOWORD(wParam) - ID_FILES_OPENRECENTROM0]);
 					ReopenRamWindows();
 					return retval;
@@ -2890,6 +2896,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					ReopenRamWindows();
 					return SegaCD_Started;
 
@@ -2899,6 +2906,7 @@ dialogAgain: //Nitsuja added this
 					if (SegaCD_Started) Change_CD();
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_FILES_NETPLAY:
@@ -2920,6 +2928,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 		
 				case ID_FILES_GAMEGENIE:
@@ -3259,6 +3268,7 @@ dialogAgain: //Nitsuja added this
 #endif
 				case ID_LAG_RESET:
 					LagCount = 0;
+					// note: the whole point of LagCountPersistent is that it doesn't get reset here
 					return 0;
 
 				case ID_CPU_RESET:
@@ -3283,6 +3293,7 @@ dialogAgain: //Nitsuja added this
 
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 
 					if (Genesis_Started)
 						MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
@@ -3310,6 +3321,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_CPU_RESET_MSH2:
@@ -3328,6 +3340,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_CPU_RESET_SSH2:
@@ -3346,6 +3359,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_CPU_RESET_SUB68K:
@@ -3364,6 +3378,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_CPU_RESETZ80:
@@ -3381,6 +3396,7 @@ dialogAgain: //Nitsuja added this
 					}
 					FrameCount=0;
 					LagCount = 0;
+					LagCountPersistent = 0;
 					return 0;
 
 				case ID_CPU_ACCURATE_SYNCHRO:

@@ -1724,6 +1724,16 @@ static void UpdateInput()
 	//}
 }
 
+void UpdateLagCount()
+{
+	if (Lag_Frame)
+	{
+		LagCount++;
+		LagCountPersistent++;
+	}
+}
+
+
 int Update_Emulation(HWND hWnd)
 {
 	static int Over_Time = 0;
@@ -1775,7 +1785,8 @@ int Update_Emulation(HWND hWnd)
 		{
 			Lag_Frame = 1;
 			Update_Frame_Fast_Hook();
-			Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+			Update_RAM_Cheats();
+			UpdateLagCount();
 		
 		}
 		else
@@ -1783,7 +1794,8 @@ int Update_Emulation(HWND hWnd)
 			Frame_Number = 0;
 			Lag_Frame = 1;
 			Update_Frame_Hook();
-			Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+			Update_RAM_Cheats();
+			UpdateLagCount();
 			DUMPAVICLEAN
 			Flip(hWnd);
 		}
@@ -1820,14 +1832,16 @@ int Update_Emulation(HWND hWnd)
 						{
 							Lag_Frame = 1;
 							Update_Frame_Fast_Hook();
-							Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+							Update_RAM_Cheats();
+							UpdateLagCount();
 						
 						}
 						else
 						{
 							Lag_Frame = 1;
 							Update_Frame_Hook();
-							Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+							Update_RAM_Cheats();
+							UpdateLagCount();
 							DUMPAVICLEAN
 							Flip(hWnd);
 						}
@@ -1848,14 +1862,16 @@ int Update_Emulation(HWND hWnd)
 					{
 						Lag_Frame = 1;
 						Update_Frame_Fast_Hook();
-						Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+						Update_RAM_Cheats();
+						UpdateLagCount();
 					
 					}
 					else
 					{
 						Lag_Frame = 1;
 						Update_Frame_Hook();
-						Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+						Update_RAM_Cheats();
+						UpdateLagCount();
 						DUMPAVICLEAN
 						Flip(hWnd);
 					}
@@ -1905,14 +1921,16 @@ int Update_Emulation(HWND hWnd)
 				{
 					Lag_Frame = 1;
 					Update_Frame_Fast_Hook();
-					Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+					Update_RAM_Cheats();
+					UpdateLagCount();
 				
 				}
 				else
 				{
 					Lag_Frame = 1;
 					Update_Frame_Hook();
-					Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+					Update_RAM_Cheats();
+					UpdateLagCount();
 					DUMPAVICLEAN
 					Flip(hWnd);
 				}
@@ -1928,7 +1946,8 @@ int Update_Emulation(HWND hWnd)
 				FrameCount++; //Modif
 				Lag_Frame = 1;
 				Update_Frame_Hook();
-				Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+				Update_RAM_Cheats();
+				UpdateLagCount();
 				DUMPAVICLEAN
 				Flip(hWnd);
 			}
@@ -1961,7 +1980,8 @@ int Update_Emulation_One(HWND hWnd)
 	FrameCount++; //Modif
 	Lag_Frame = 1;
 	Update_Frame_Hook();
-	Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+	Update_RAM_Cheats();
+	UpdateLagCount();
 	DUMPAVICLEAN
 	Flip(hWnd);
 
@@ -2006,7 +2026,8 @@ int Update_Emulation_Netplay(HWND hWnd, int player, int num_player)
 		FrameCount++;
 		Lag_Frame = 1;
 		Update_Frame_Fast_Hook();
-		Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+		Update_RAM_Cheats();
+		UpdateLagCount();
 	
 	}
 
@@ -2031,7 +2052,8 @@ int Update_Emulation_Netplay(HWND hWnd, int player, int num_player)
 		FrameCount++;
 		Lag_Frame = 1;
 		Update_Frame_Hook();
-		Update_RAM_Cheats(); if (Lag_Frame) LagCount++;
+		Update_RAM_Cheats();
+		UpdateLagCount();
 	
 		Flip(hWnd);
 	}

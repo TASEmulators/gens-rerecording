@@ -1901,7 +1901,8 @@ void Update_Controllers()
 	// autofire / autohold
 	{
 		extern long unsigned int FrameCount;
-		autoAlternator = (FrameCount % 2) == 0;
+		extern long unsigned int LagCountPersistent;
+		autoAlternator = ((FrameCount - LagCountPersistent) % 2) == 0;
 
 		#define APPLY_AUTOS(x) APPLY_AUTOS_I(Controller_1_##x); APPLY_AUTOS_I(Controller_2_##x); 
 		#define APPLY_AUTOS_I(x)\
@@ -2444,7 +2445,8 @@ void Check_Misc_Key()
 		if(AutoFireKeyDown || AutoHoldKeyDown)
 		{
 			extern long unsigned int FrameCount;
-			autoAlternator = (FrameCount % 2) == 0;
+			extern long unsigned int LagCountPersistent;
+			autoAlternator = ((FrameCount - LagCountPersistent) % 2) == 0;
 
 			#define CHECK_TOGGLE_AUTO(x) CHECK_TOGGLE_AUTO_I(Controller_1_##x); CHECK_TOGGLE_AUTO_I(Controller_2_##x); 
 			#define CHECK_TOGGLE_AUTO_I(x)\

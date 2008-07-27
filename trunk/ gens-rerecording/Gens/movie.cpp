@@ -8,6 +8,7 @@
 #include "mem_M68K.h"
 long unsigned int FrameCount=0;
 long unsigned int LagCount=0;
+long unsigned int LagCountPersistent = 0; // same as LagCount but ignores manual resets
 long unsigned int Track1_FrameCount = 0;
 long unsigned int Track2_FrameCount = 0;
 long unsigned int Track3_FrameCount = 0;

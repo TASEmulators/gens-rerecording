@@ -625,6 +625,7 @@ others
 
 */
 unsigned char Version;
+#define LATEST_SAVESTATE_VERSION 8
 int Import_Genesis(unsigned char *Data)
 {
 	unsigned char Reg_1[0x200], *src;
@@ -950,13 +951,27 @@ int Import_Genesis(unsigned char *Data)
 
 		ImportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
 
-	#ifdef _DEBUG
-		int desiredoffset = GENESIS_STATE_LENGTH;
-		assert(offset == desiredoffset);
-	#endif
+		if (Version >= 8)
+		{
+			ImportDataAuto(&LagCountPersistent, Data, offset, 4);
+			ImportDataAuto(&Lag_Frame, Data, offset, 1);
+		}
 	}
 
 	main68k_SetContext(&Context_68K);
+
+#ifdef _DEBUG
+	if(Version == LATEST_SAVESTATE_VERSION)
+	{
+		int desiredoffset = GENESIS_STATE_LENGTH;
+		assert(offset == desiredoffset);
+	}
+	else
+#endif
+	if(Version == 7)
+		len += GENESIS_V7_STATE_LENGTH - GENESIS_STATE_LENGTH;
+	else if(Version == 6)
+		len += GENESIS_V6_STATE_LENGTH - GENESIS_STATE_LENGTH;
 	return len;
 }
 
@@ -979,7 +994,7 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x03] = 0x40;
 	Data[0x04] = 0xE0;
 
-	Data[0x50] = 7;      // Version
+	Data[0x50] = LATEST_SAVESTATE_VERSION;      // Version
 	Data[0x51] = 0;      // Gens
 
 	PSG_Save_State();
@@ -1165,6 +1180,12 @@ void Export_Genesis(unsigned char *Data)
 		ExportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
 
 		ExportDataAuto(&Context_68K.cycles_needed, Data, offset, 44);
+
+		// version 8 additions:
+		{
+			ExportDataAuto(&LagCountPersistent, Data, offset, 4);
+			ExportDataAuto(&Lag_Frame, Data, offset, 1);
+		}
 	}
 
 #ifdef _DEBUG
