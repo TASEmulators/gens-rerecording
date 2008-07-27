@@ -976,9 +976,9 @@ int CDD_Def(void)
 
 extern int disableSound; // Gens.cpp
 
-void Write_CD_Audio(short *Buf, int rate, int channel, int length)
+void Write_CD_Audio(short *Buf, int rate, int channel, int _length)
 {
-	unsigned int length_src, length_dst;
+	unsigned int _length_src, _length_dst;
 	unsigned int pos_src, pas_src;
 
 	if(disableSound)
@@ -995,10 +995,10 @@ void Write_CD_Audio(short *Buf, int rate, int channel, int length)
 		CD_Audio_Buffer_Write_Pos = (CD_Audio_Buffer_Read_Pos + 2000) & 0xFFF;
 	}
 
-	length_src = rate / 75;				// 75th of a second
-	length_dst = Sound_Rate / 75;		// 75th of a second
+	_length_src = rate / 75;				// 75th of a second
+	_length_dst = Sound_Rate / 75;		// 75th of a second
 
-	pas_src = (length_src << 16) / length_dst;
+	pas_src = (_length_src << 16) / _length_dst;
 	pos_src = 0;
 
 #ifdef DEBUG_CD
@@ -1012,7 +1012,7 @@ void Write_CD_Audio(short *Buf, int rate, int channel, int length)
 			mov edi, CD_Audio_Buffer_Write_Pos
 			mov ebx, Buf
 			xor esi, esi
-			mov ecx, length_dst
+			mov ecx, _length_dst
 			xor eax, eax
 			mov edx, pas_src
 			dec ecx
@@ -1044,7 +1044,7 @@ loop_stereo:
 			mov edi, CD_Audio_Buffer_Write_Pos
 			mov ebx, Buf
 			xor esi, esi
-			mov ecx, length_dst
+			mov ecx, _length_dst
 			xor eax, eax
 			mov edx, pas_src
 			dec ecx
@@ -1075,7 +1075,7 @@ loop_mono:
 }
 
 
-void Update_CD_Audio(int **buf, int length)
+void Update_CD_Audio(int **buf, int _length)
 {
 	int *Buf_L, *Buf_R;
 	int diff;
@@ -1115,18 +1115,50 @@ void Update_CD_Audio(int **buf, int length)
 
 	if (CDDA_Enable)
 	{
-		int i;
-	    for (length--, i = 0; length > 0; length--, i++)
+		int i = 0;
+		for (; i <= _length; i++)
 		{
-			Buf_L[i] += (CD_Audio_Buffer_L[CD_Audio_Buffer_Read_Pos] * CDDAVol) >> 8;
-			Buf_R[i] += (CD_Audio_Buffer_R[CD_Audio_Buffer_Read_Pos] * CDDAVol) >> 8;
-			CD_Audio_Buffer_Read_Pos++;
-			CD_Audio_Buffer_Read_Pos &= 0xFFF;
+			CD_Audio_Buffer_L[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] >>= 8;
+			CD_Audio_Buffer_R[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] >>= 8;
+			CD_Audio_Buffer_L[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] *= CDDAVol;
+			CD_Audio_Buffer_R[(CD_Audio_Buffer_Read_Pos + i) & 0xFFF] *= CDDAVol;
+		}
+		__asm
+		{
+			mov ecx, _length
+			mov esi, CD_Audio_Buffer_Read_Pos
+			mov edi, Buf_L
+			dec ecx
+
+loop_L:
+			mov eax, CD_Audio_Buffer_L[esi * 4]
+			add [edi], eax
+			inc esi
+			add edi, 4
+			and esi, 0xFFF
+			dec ecx
+			jns short loop_L
+
+			mov ecx, _length
+			mov esi, CD_Audio_Buffer_Read_Pos
+			mov edi, Buf_R
+			dec ecx
+
+loop_R:
+			mov eax, CD_Audio_Buffer_R[esi * 4]
+			add [edi], eax
+			inc esi
+			add edi, 4
+			and esi, 0xFFF
+			dec ecx
+			jns short loop_R
+
+			mov CD_Audio_Buffer_Read_Pos, esi
 		}
 	}
 	else
 	{
-		CD_Audio_Buffer_Read_Pos += length;
+		CD_Audio_Buffer_Read_Pos += _length;
 		CD_Audio_Buffer_Read_Pos &= 0xFFF;
 	}
 

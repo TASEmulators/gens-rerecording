@@ -201,10 +201,26 @@ void FASTCALL PWM_Update_Timer(unsigned int cycle)
 
 void ApplyPWMVol()
 {
-	PWM_Out_L_Tmp *= PWMVol;
-	PWM_Out_R_Tmp *= PWMVol;
-	PWM_Out_L_Tmp >>= 8;
-	PWM_Out_R_Tmp >>= 8;
+	if (PWM_Out_L_Tmp > 0x100)
+	{
+		PWM_Out_L_Tmp >>= 8;
+		PWM_Out_L_Tmp *= PWMVol;
+	}
+	else 
+	{
+		PWM_Out_L_Tmp *= PWMVol;
+		PWM_Out_L_Tmp >>= 8;
+	}
+	if (PWM_Out_R_Tmp > 0x100)
+	{
+		PWM_Out_R_Tmp >>= 8;
+		PWM_Out_R_Tmp *= PWMVol;
+	}
+	else 
+	{
+		PWM_Out_R_Tmp *= PWMVol;
+		PWM_Out_R_Tmp >>= 8;
+	}
 	//PWM_Out_L_Tmp += (PWM_Out_L_Tmp >> 1);
 	//PWM_Out_R_Tmp += (PWM_Out_R_Tmp >> 1);
 }

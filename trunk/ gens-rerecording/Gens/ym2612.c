@@ -1051,16 +1051,16 @@ DO_LIMIT
 
 
 #define DO_OUTPUT						\
-buf[0][i] += (int)(((CH->OUTd & CH->LEFT) * YM2612Vol) >> 8);		\
-buf[1][i] += (int)(((CH->OUTd & CH->RIGHT) * YM2612Vol) >> 8);
+buf[0][i] += (int)(((CH->OUTd & CH->LEFT) >> 8) * YM2612Vol);		\
+buf[1][i] += (int)(((CH->OUTd & CH->RIGHT) >> 8) * YM2612Vol);
 
 
 #define DO_OUTPUT_INT0							\
 if ((int_cnt += YM2612.Inter_Step) & 0x04000)	\
 {												\
 	int_cnt &= 0x3FFF;							\
-	buf[0][i] += (int)(((CH->OUTd & CH->LEFT) * YM2612Vol) >> 8);		\
-	buf[1][i] += (int)(((CH->OUTd & CH->RIGHT) * YM2612Vol) >> 8);		\
+	buf[0][i] += (int)(((CH->OUTd & CH->LEFT) >> 8) * YM2612Vol);		\
+	buf[1][i] += (int)(((CH->OUTd & CH->RIGHT) >> 8) * YM2612Vol);		\
 }												\
 else i--;
 
@@ -1070,8 +1070,8 @@ CH->Old_OUTd = (CH->OUTd + CH->Old_OUTd) >> 1;	\
 if ((int_cnt += YM2612.Inter_Step) & 0x04000)	\
 {												\
 	int_cnt &= 0x3FFF;							\
-	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) * YM2612Vol) >> 8);		\
-	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) * YM2612Vol) >> 8);		\
+	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) >> 8) * YM2612Vol);		\
+	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) >> 8) * YM2612Vol);		\
 }												\
 else i--;
 
@@ -1081,8 +1081,8 @@ if ((int_cnt += YM2612.Inter_Step) & 0x04000)		\
 {													\
 	int_cnt &= 0x3FFF;								\
 	CH->Old_OUTd = (CH->OUTd + CH->Old_OUTd) >> 1;	\
-	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) * YM2612Vol) >> 8);			\
-	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) * YM2612Vol) >> 8);			\
+	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) >> 8) * YM2612Vol);			\
+	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) >> 8) * YM2612Vol);			\
 }													\
 else i--;											\
 CH->Old_OUTd = CH->OUTd;
@@ -1093,8 +1093,8 @@ if ((int_cnt += YM2612.Inter_Step) & 0x04000)	\
 {												\
 	int_cnt &= 0x3FFF;							\
 	CH->Old_OUTd = (((int_cnt ^ 0x3FFF) * CH->OUTd) + (int_cnt * CH->Old_OUTd)) >> 14;	\
-	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) * YM2612Vol) >> 8);		\
-	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) * YM2612Vol) >> 8);		\
+	buf[0][i] += (int)(((CH->Old_OUTd & CH->LEFT) >> 8) * YM2612Vol);		\
+	buf[1][i] += (int)(((CH->Old_OUTd & CH->RIGHT) >> 8) * YM2612Vol);		\
 }												\
 else i--;										\
 CH->Old_OUTd = CH->OUTd;
@@ -2485,8 +2485,8 @@ void YM2612_DacAndTimers_Update(int **buffer, int length)
 
 		for(i = 0; i < length; i++)
 		{
-			bufL[i] += (int)(((YM2612.DACdata & YM2612.CHANNEL[5].LEFT) * DACVol) >> 8);
-			bufR[i] += (int)(((YM2612.DACdata & YM2612.CHANNEL[5].RIGHT) * DACVol) >> 8);
+			bufL[i] += (int)(((YM2612.DACdata & YM2612.CHANNEL[5].LEFT) >> 8) * DACVol);
+			bufR[i] += (int)(((YM2612.DACdata & YM2612.CHANNEL[5].RIGHT) >> 8) * DACVol);
 		}
 	}
 
