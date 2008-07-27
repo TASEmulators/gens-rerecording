@@ -318,8 +318,8 @@ void Dump_Sound_Stereo(short *Dest, int length)
 		else if (out_R > 0x7FFF) *dest++ = 0x7FFF;
 		else *dest++ = (short) out_R;
 	}
-	out_R = (int)(((out_R * MastVol) >> 8) / 255.0);
-	out_L = (int)(((out_L * MastVol) >> 8) / 255.0);
+	out_R = (int)(((out_R >> 8) * MastVol) / 255.0);
+	out_L = (int)(((out_L >> 8) * MastVol) / 255.0);
 }
 
 
@@ -396,10 +396,10 @@ int Write_Sound_Buffer(void *Dump_Buf)
 		if (rval == DSERR_BUFFERLOST || !lpvPtr1) return 0;
 		for(int i = 0; i < Seg_Length; i++) 
 		{
-			Seg_R[i] *= MastVol;
 			Seg_R[i] >>= 8;
-			Seg_L[i] *= MastVol;
+			Seg_R[i] *= MastVol;
 			Seg_L[i] >>= 8;
+			Seg_L[i] *= MastVol;
 		}
 		if (Sound_Stereo)
 		{

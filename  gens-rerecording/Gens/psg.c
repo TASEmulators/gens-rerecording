@@ -193,8 +193,8 @@ void PSG_Update_SIN(int **buffer, int length)
 			{
 				out = sin_t[(cur_cnt = (cur_cnt + cur_step) & 0x1FFFF) >> 8];
 
-				buffer[0][i] += (((int)(out) * PSGVol) >> 8);
-				buffer[1][i] += (((int)(out) * PSGVol) >> 8);
+				buffer[0][i] += (((int)(out) >> 8) * PSGVol);
+				buffer[1][i] += (((int)(out) >> 8) * PSGVol);
 			}
 
 			PSG.Counter[j] = cur_cnt;
@@ -216,8 +216,8 @@ void PSG_Update_SIN(int **buffer, int length)
 
 			if (PSG.Noise & 1)
 			{
-				buffer[0][i] += (((int)(cur_vol) * PSGVol) >> 8);
-				buffer[1][i] += (((int)(cur_vol) * PSGVol) >> 8);
+				buffer[0][i] += (((int)(cur_vol) >> 8) * PSGVol);
+				buffer[1][i] += (((int)(cur_vol) >> 8) * PSGVol);
 
 				if (cur_cnt & 0x10000)
 				{
@@ -255,8 +255,8 @@ void PSG_Update(int **buffer, int length)
 				{
 					if ((cur_cnt += cur_step) & 0x10000)
 					{
-						buffer[0][i] += (((int)(cur_vol) * PSGVol) >> 8);
-						buffer[1][i] += (((int)(cur_vol) * PSGVol) >> 8);
+						buffer[0][i] += (((int)(cur_vol) >> 8) * PSGVol);
+						buffer[1][i] += (((int)(cur_vol) >> 8) * PSGVol);
 					}
 				}
 
@@ -266,8 +266,8 @@ void PSG_Update(int **buffer, int length)
 			{
 				for(i = 0; i < length; i++)
 				{
-					buffer[0][i] += (((int)(cur_vol) * PSGVol) >> 8);
-					buffer[1][i] += (((int)(cur_vol) * PSGVol) >> 8);
+					buffer[0][i] += (((int)(cur_vol) >> 8) * PSGVol);
+					buffer[1][i] += (((int)(cur_vol) >> 8) * PSGVol);
 				}
 			}
 		}
@@ -290,8 +290,8 @@ void PSG_Update(int **buffer, int length)
 
 			if (PSG.Noise & 1)
 			{
-				buffer[0][i] += (((int)(cur_vol) * PSGVol) >> 8);
-				buffer[1][i] += (((int)(cur_vol) * PSGVol) >> 8);
+				buffer[0][i] += (((int)(cur_vol) >> 8) * PSGVol);
+				buffer[1][i] += (((int)(cur_vol) >> 8) * PSGVol);
 
 				if (cur_cnt & 0x10000)
 				{
