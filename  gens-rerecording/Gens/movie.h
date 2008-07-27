@@ -3,7 +3,7 @@
 
 #include "stdio.h"
 extern long unsigned int FrameCount;
-extern long unsigned int LagCount;
+extern long unsigned int LagCount, LagCountPersistent;
 extern long unsigned int Track1_FrameCount;
 extern long unsigned int Track2_FrameCount;
 extern long unsigned int Track3_FrameCount;
