@@ -824,6 +824,10 @@ int Change_SegaCD_Synchro(void)
 
 int Change_SegaCD_SRAM_Size(int num)
 {
+	if(num == ((BRAM_Ex_State & 0x100) ? BRAM_Ex_Size : -1))
+		return 1;
+
+	Save_BRAM();
 	if (num == -1)
 	{
 		BRAM_Ex_State &= 1;
@@ -839,6 +843,7 @@ int Change_SegaCD_SRAM_Size(int num)
 		sprintf(bsize, "SegaCD SRAM cart plugged (%d Kb)", 8 << num);
 		MESSAGE_L(bsize, bsize, 1500)
 	}
+	Load_BRAM();
 
 	Build_Main_Menu();
 	return 1;

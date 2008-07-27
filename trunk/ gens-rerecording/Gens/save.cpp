@@ -2854,16 +2854,18 @@ int Save_SRAM(void)
 }
 
 
-void S_Format_BRAM(unsigned char *buf)
+void S_Format_BRAM(unsigned char *buf, int maxBlocks)
 {
 	memset(buf, 0x5F, 11);
 
 	buf[0x0F] = 0x40;
 
-	buf[0x11] = 0x7D;
-	buf[0x13] = 0x7D;
-	buf[0x15] = 0x7D;
-	buf[0x17] = 0x7D;
+	int blocksFree = maxBlocks - 3;
+	for(int i=0x10; i<0x18; i+=2)
+	{
+		buf[i] = (blocksFree & 0xFF00) >> 8;
+		buf[i+1] = blocksFree & 0xFF;
+	}
 
 	sprintf((char *) &buf[0x20], "SEGA CD ROM");
 	sprintf((char *) &buf[0x30], "RAM CARTRIDGE");
@@ -2882,14 +2884,19 @@ void S_Format_BRAM(unsigned char *buf)
 
 void Format_Backup_Ram(void)
 {
-   memset(Ram_Backup, 0, 0x2000); // Modif N. -- changed the numbers here to hex to make it easier to see what's going on
+	memset(Ram_Backup, 0, 0x2000); // Modif N. -- changed the numbers here to hex to make it easier to see what's going on
 
-   S_Format_BRAM(&Ram_Backup[0x2000-0x40]);
+	S_Format_BRAM(&Ram_Backup[0x2000-0x40], 0x2000 >> 6);
 
-   memset(Ram_Backup_Ex, 0, 0x10000);
+	memset(Ram_Backup_Ex, 0, sizeof(Ram_Backup_Ex));
 
-   S_Format_BRAM(&Ram_Backup_Ex[0x10000-0x40]); // Modif N. -- added this to get closer to the actual formatting, so that fewer games will require you to format the RAM from the BIOS before playing them
+	if(BRAM_Ex_State & 0x100)
+		S_Format_BRAM(&Ram_Backup_Ex[(0x2000 << BRAM_Ex_Size) - 0x40], (0x2000 << BRAM_Ex_Size) >> 6); // Modif N. -- added this to get closer to the actual formatting, so that fewer games will require you to format the RAM from the BIOS before playing them
 }
+
+//void Resize_Backup_Ram_Footer(int BRAM_Ex_Size_Old, int BRAM_Ex_Size_New)
+//{
+//}
 
 int Load_BRAM(void)
 {
@@ -2912,7 +2919,8 @@ int Load_BRAM(void)
 	if (BRAM_File == INVALID_HANDLE_VALUE) return 0;
 
 	bResult = ReadFile(BRAM_File, Ram_Backup, 8 * 1024, &Bytes_Read, NULL);
-	bResult = ReadFile(BRAM_File, Ram_Backup_Ex, (8 << BRAM_Ex_Size) * 1024, &Bytes_Read, NULL);
+	if(BRAM_Ex_State & 0x100)
+		bResult = ReadFile(BRAM_File, Ram_Backup_Ex, (8 << BRAM_Ex_Size) * 1024, &Bytes_Read, NULL);
 
 	CloseHandle(BRAM_File);
 
@@ -2943,7 +2951,8 @@ int Save_BRAM(void)
 	if (BRAM_File == INVALID_HANDLE_VALUE) return 0;
 	
 	bResult = WriteFile(BRAM_File, Ram_Backup, 8 * 1024, &Bytes_Write, NULL);
-	bResult = WriteFile(BRAM_File, Ram_Backup_Ex, (8 << BRAM_Ex_Size) * 1024, &Bytes_Write, NULL);
+	if(BRAM_Ex_State & 0x100)
+		bResult = WriteFile(BRAM_File, Ram_Backup_Ex, (8 << BRAM_Ex_Size) * 1024, &Bytes_Write, NULL);
 	
 	CloseHandle(BRAM_File);
 
