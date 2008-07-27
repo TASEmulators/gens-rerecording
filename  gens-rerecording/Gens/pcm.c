@@ -369,14 +369,14 @@ int Update_PCM(int **buf, int Length)
 					if (Ram_PCM[Addr] & 0x80)
 					{
 						CH->Data = Ram_PCM[Addr] & 0x7F;
-						bufL[j] -= (int)(((CH->Data * CH->MUL_L) >> 8) * PCMVol);
-						bufR[j] -= (int)(((CH->Data * CH->MUL_R) >> 8) * PCMVol);
+						bufL[j] -= (int)(((CH->Data * CH->MUL_L) * PCMVol) >> 8);
+						bufR[j] -= (int)(((CH->Data * CH->MUL_R) * PCMVol) >> 8);
 					}
 					else
 					{
 						CH->Data = Ram_PCM[Addr];
-						bufL[j] += (int)(((CH->Data * CH->MUL_L) >> 8) * PCMVol);
-						bufR[j] += (int)(((CH->Data * CH->MUL_R) >> 8) * PCMVol);
+						bufL[j] += (int)(((CH->Data * CH->MUL_L) * PCMVol) >> 8);
+						bufR[j] += (int)(((CH->Data * CH->MUL_R) * PCMVol) >> 8);
 					}
 
 					// update address register
