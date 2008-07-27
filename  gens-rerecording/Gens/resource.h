@@ -49,7 +49,9 @@
 #define IDB_LOGO_BIG                    143
 #define IDD_COLOR                       144
 #define IDD_PLAY_MOVIE                  147
+#define RAMWATCH_MENU                   147
 #define IDD_RECORD_A_MOVIE              148
+#define IDR_ACCELERATOR1                148
 #define AFX_IDC_PRINT_DOCNAME           201
 #define AFX_IDC_PRINT_PRINTERNAME       202
 #define AFX_IDC_PRINT_PORTNAME          203
@@ -537,6 +539,44 @@
 #define ID_FILES_SAVESTATE_9            40638
 #define ID_FILES_SAVESTATE_0            40639
 #define ID_TOGGLE_MOVIE_READONLY        40640
+#define ID_FILES_NEWCTRL                40641
+#define ID_FILES_OPEN                   40642
+#define ID_FILES_SAVECTRL               40643
+#define ID_FILES_SAVEAS                 40644
+#define ID_FILES_RECENT                 40645
+#define ID_FILES_CLOSECTRL              40646
+#define ID_OPTIONS_LOADONSTARTUP        40647
+#define ID_OPTIONS_LOADLASTFILEONSTARTUP 40648
+#define RAMMENU_FILE_NEW                40649
+#define RAMMENU_FILE_OPEN               40650
+#define RAMMENU_FILE_SAVE               40651
+#define RAMMENU_FILE_SAVEAS             40652
+#define RAMMENU_FILE_RECENT             40653
+#define RAMMENU_FILE_CLOSE              40654
+#define RAMMENU_OPTIONS_LOADONSTARTUP   40655
+#define RAMMENU_OPTIONS_LOADLFILESTARTUP 40656
+#define ACCEL_CTRL_O                    40657
+#define ACCEL_CTRL_W                    40659
+#define ACCEL_CTRL_N                    40660
+#define ACCEL_CTRL_S                    40661
+#define ACCEL_CTRL_SHIFT_S              40662
+#define ID_WATCHES_MOVEUP               40664
+#define ID_WATCHES_MOVEDOWN             40665
+#define ID_WATCHES_EDITWATCH            40666
+#define ID_WATCHES_REMOVEWATCH          40667
+#define ID_WATCHES_NEWWATCH             40668
+#define ID_WATCHES_DUPLICATEWATCH       40669
+#define RAMMENU_WATCHES_NEWWATCH        40670
+#define RAMWATCH_WATCHES_EDITWATCH      40671
+#define RAMWATCH_WATCHES_REMOVEWATCH    40672
+#define RAMWATCH_WATCHES_DUPLICATEWATCH 40673
+#define RAMWATCH_WATCHES_MOVEUP         40674
+#define RAMWATCH_WATCHES_MOVEDOWN       40675
+#define RAMMENU_WATCHES_REMOVEWATCH     40676
+#define RAMMENU_WATCHES_EDITWATCH       40677
+#define RAMMENU_WATCHES_DUPLICATEWATCH  40678
+#define RAMMENU_WATCHES_MOVEUP          40679
+#define RAMMENU_WATCHES_MOVEDOWN        40680
 #define IDC_EDIT_COMPAREVALUE           41090
 #define IDC_EDIT_COMPAREADDRESS         41091
 #define IDC_EDIT_COMPARECHANGES         41092
@@ -983,8 +1023,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        147
-#define _APS_NEXT_COMMAND_VALUE         40641
+#define _APS_NEXT_RESOURCE_VALUE        149
+#define _APS_NEXT_COMMAND_VALUE         40681
 #define _APS_NEXT_CONTROL_VALUE         1210
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

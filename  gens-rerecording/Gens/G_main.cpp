@@ -2138,7 +2138,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				Build_Main_Menu();
 				MustUpdateMenu=0;
 			}
-			if (!Paused)	// EMULATION
+			if ((Active) && (!Paused))	// EMULATION
 			{
 				Update_Emulation(HWnd);
 
@@ -2151,9 +2151,9 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			else		// EMULATION PAUSED
 			{
-//				if(/*SkipKey*/true)
-//				{
-					if((Active) && (Check_Skip_Key() != 0))
+				if(/*SkipKey*/true)
+				{
+					if(Check_Skip_Key() != 0)
 					{
 						Update_Emulation_One(HWnd);
 						soundCleared = false;
@@ -2167,7 +2167,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 							soundCleared = true;
 						}
 					}
-//				}
+				}
 				Sleep(1);
 			}
 		}
@@ -2257,14 +2257,12 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					FS_Minimised = 1;
 				}
 
-				if (Active)
+				if (Auto_Pause && Active)
 				{
 					Active = 0;
-					if (Auto_Pause)
-					{
-						if (!Paused) Pause_Screen();
-						Clear_Sound_Buffer();
-					}
+
+					if (!Paused) Pause_Screen();
+					Clear_Sound_Buffer();
 				}
 			}
 			break;
@@ -6429,6 +6427,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
+			static HMENU ramwatchmenu=GetMenu(hDlg);
 			// push it away from the main window if we can
 			const int width = (r.right-r.left); 
 			const int width2 = (r2.right-r2.left); 
@@ -6537,28 +6536,43 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
 			{
-				case IDC_C_SAVE:
+				case ACCEL_CTRL_S:
+				case RAMMENU_FILE_SAVE:
+					//QuickSaveWatches();
+					break;
+
+				case ACCEL_CTRL_SHIFT_S:
+				case RAMMENU_FILE_SAVEAS:	
+				//case IDC_C_SAVE:
 					return Save_Watches();
-				case IDC_C_LOAD:
+				case ACCEL_CTRL_O:
+				case RAMMENU_FILE_OPEN:
+				//case IDC_C_LOAD:
 					return Load_Watches();
-				case IDC_C_RESET:
+				case ACCEL_CTRL_N:
+				case RAMMENU_FILE_NEW:
+				//case IDC_C_RESET:
 					ResetWatches();
 					return true;
+				case RAMMENU_WATCHES_REMOVEWATCH:
 				case IDC_C_SEARCH:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					RemoveWatch(watchIndex);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);					
 					return true;
+				case RAMMENU_WATCHES_EDITWATCH:
 				case IDC_C_WATCH_EDIT:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) watchIndex);
 					return true;
+				case RAMMENU_WATCHES_NEWWATCH:
 				case IDC_C_WATCH:
 					rswatches[WatchCount].Address = rswatches[WatchCount].Index = rswatches[WatchCount].WrongEndian = 0;
 					rswatches[WatchCount].Size = 'b';
 					rswatches[WatchCount].Type = 's';
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
 					return true;
+				case RAMMENU_WATCHES_DUPLICATEWATCH:
 				case IDC_C_WATCH2:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					rswatches[WatchCount].Address = rswatches[watchIndex].Address;
@@ -6568,6 +6582,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					rswatches[WatchCount].Type = rswatches[watchIndex].Type;
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
 					return true;
+				case RAMMENU_WATCHES_MOVEUP:
 				case IDC_C_WATCH_UP:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
@@ -6583,6 +6598,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 					return true;
 				}
+				case RAMMENU_WATCHES_MOVEDOWN:
 				case IDC_C_WATCH_DOWN:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
@@ -6604,7 +6620,9 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 //					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITCHEAT), hDlg, (DLGPROC) EditCheatProc,(LPARAM) searchIndex);
 				}
 				case IDOK:
-				case IDCANCEL:
+				case ACCEL_CTRL_W:
+				case RAMMENU_FILE_CLOSE:
+				//case IDCANCEL:
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
