@@ -92,8 +92,8 @@ section .text align=64
 		and edx, 0xFFFF
 		sub eax, 0x4000
 		sub edx, 0x4000
-		lea eax,[eax+eax*2]
-		lea edx,[edx+edx*2]
+		lea eax,[eax*2]		;any more than this causes crazy 
+		lea edx,[edx*2]		;amounts of clipping, for some reason
 		mov [PWM_Out_L_Tmp],eax
 		mov [PWM_Out_R_Tmp],edx
 		pushad
