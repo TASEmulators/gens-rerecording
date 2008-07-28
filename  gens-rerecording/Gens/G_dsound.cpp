@@ -262,13 +262,13 @@ void Write_Sound_Stereo(short *Dest, int length)
 		{
 			out_L = lowpass(Seg_L,i,Seg_Length);
 
-			if (out_L < -0x7FFF) *dest++ = -0x7FFF;
+			if (out_L < -0x8000) *dest++ = -0x8000;
 			else if (out_L > 0x7FFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) out_L;
 							
 			out_R = lowpass(Seg_R,i,Seg_Length);
 
-			if (out_R < -0x7FFF) *dest++ = -0x7FFF;
+			if (out_R < -0x8000) *dest++ = -0x8000;
 			else if (out_R > 0x7FFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) out_R;
 		}
@@ -284,14 +284,14 @@ void Write_Sound_Stereo(short *Dest, int length)
 			out_L = Seg_L[i];
 			Seg_L[i] = 0;
 
-			if (out_L < -0x7FFF) *dest++ = -0x7FFF;
+			if (out_L < -0x8000) *dest++ = -0x8000;
 			else if (out_L > 0x7FFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) out_L;
 							
 			out_R = Seg_R[i];
 			Seg_R[i] = 0;
 
-			if (out_R < -0x7FFF) *dest++ = -0x7FFF;
+			if (out_R < -0x8000) *dest++ = -0x8000;
 			else if (out_R > 0x7FFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) out_R;
 		}
@@ -308,13 +308,13 @@ void Dump_Sound_Stereo(short *Dest, int length)
 	{
 		out_L = Seg_L[i];
 
-		if (out_L < -0x7FFF) *dest++ = -0x7FFF;
+		if (out_L < -0x8000) *dest++ = -0x8000;
 		else if (out_L > 0x7FFF) *dest++ = 0x7FFF;
 		else *dest++ = (short) out_L;
 						
 		out_R = Seg_R[i];
 
-		if (out_R < -0x7FFF) *dest++ = -0x7FFF;
+		if (out_R < -0x8000) *dest++ = -0x8000;
 		else if (out_R > 0x7FFF) *dest++ = 0x7FFF;
 		else *dest++ = (short) out_R;
 	}
@@ -333,7 +333,7 @@ void Write_Sound_Mono(short *Dest, int length)
 		for(i = 0; i < Seg_Length; i++)
 		{
 			out = lowpass(Seg_L,i,Seg_Length) + lowpass(Seg_R,i,Seg_Length);
-			if (out < -0xFFFF) *dest++ = -0x7FFF;
+			if (out < -0x10000) *dest++ = -0x8000;
 			else if (out > 0xFFFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) (out >> 1);
 		}
@@ -347,7 +347,7 @@ void Write_Sound_Mono(short *Dest, int length)
 			out = Seg_L[i] + Seg_R[i];
 			Seg_L[i] = Seg_R[i] = 0;
 
-			if (out < -0xFFFF) *dest++ = -0x7FFF;
+			if (out < -0x10000) *dest++ = -0x8000;
 			else if (out > 0xFFFF) *dest++ = 0x7FFF;
 			else *dest++ = (short) (out >> 1);
 		}
@@ -364,7 +364,7 @@ void Dump_Sound_Mono(short *Dest, int length)
 	{
 		out = Seg_L[i] + Seg_R[i];
 
-		if (out < -0xFFFF) *dest++ = -0x7FFF;
+		if (out < -0x10000) *dest++ = -0x8000;
 		else if (out > 0xFFFF) *dest++ = 0x7FFF;
 		else *dest++ = (short) (out >> 1);
 	}
