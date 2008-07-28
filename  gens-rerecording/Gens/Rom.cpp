@@ -378,7 +378,7 @@ int Get_Rom(HWND hWnd)
 	ofn.nFilterIndex = File_Type_Index;
 	ofn.lpstrInitialDir = Rom_Dir;
 	ofn.lpstrDefExt = "smd";
-	ofn.Flags = OFN_FILEMUSTEXIST;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
 	if (GetOpenFileName(&ofn) == NULL) return 0;
 
