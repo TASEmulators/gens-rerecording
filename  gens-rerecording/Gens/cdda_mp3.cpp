@@ -505,7 +505,7 @@ void Preload_Used_MP3s(void)
 {
 	int track;
 	for(track = 0; track < 100; track++)
-		if(preloaded_tracks[track])
+		if(preloaded_tracks[track] > 1)
 			Preload_MP3(&Tracks[track].F_decoded, track);
 
 	ENTER_CRIT_SECT

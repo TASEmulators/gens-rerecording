@@ -223,6 +223,7 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,   ID_RAM_WATCH,             0, NULL, "Ram Watch", "RamWatchKey"},
 	{MOD_NONE,              VK_NONE,   ID_PLAY_MOVIE,            0, NULL, "Play Movie", "PlayMovieKey"},
 	{MOD_NONE,              VK_NONE,   ID_RECORD_MOVIE,          0, NULL, "Record Movie", "RecordMovieKey"},
+	{MOD_NONE,              VK_NONE,   ID_PLAY_FROM_START,       0, NULL, "Watch Movie From Beginning", "WatchFromBeginningKey"},
 	{MOD_NONE,              VK_NONE,   ID_RESUME_RECORD,         0, NULL, "Resume Record Movie", "Resume RecordMovieKey"},
 	{MOD_NONE,              VK_NONE,   ID_STOP_MOVIE,            0, NULL, "Stop Movie", "StopMovieKey"},
 	{MOD_CONTROL,           'T',       ID_TOGGLE_MOVIE_READONLY, 0, NULL, "Toggle Movie Read-Only", "ToggleReadOnlyKey"},
