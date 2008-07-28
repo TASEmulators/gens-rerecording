@@ -195,6 +195,7 @@ char rs_o='=';
 char rs_t='s';
 int rs_param=0, rs_val=0;
 bool PaintsEnabled = true;
+extern "C" int g_dontResetAudioCache;
 
 typeMovie SubMovie;
 unsigned long SpliceFrame = 0;
@@ -2234,11 +2235,94 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	return 0;
 }
 
+void BeginMoviePlayback()
+{
+	if(OpenMovieFile(&MainMovie)==0)
+	{
+		MESSAGE_L("Error opening file", "Error opening file", 1500)
+		MainMovie.Status=0;
+		return;
+	}
+	FrameCount=0;
+	LagCount = 0;
+	LagCountPersistent = 0;
+	if(MainMovie.UseState)
+	{
+		if(MainMovie.Status==MOVIE_PLAYING)
+		{
+			int t=MainMovie.ReadOnly;
+			MainMovie.ReadOnly = 1;
+			Load_State(MainMovie.StateName);
+			MainMovie.ReadOnly = t;
+		}
+		else
+		{
+			Load_State(MainMovie.StateName);
+		}
+		if(MainMovie.Status==MOVIE_RECORDING)
+		{
+			Str_Tmp[0] = 0;
+			Get_State_File_Name(Str_Tmp);
+			Save_State(Str_Tmp);
+		}
+	}
+	else
+	{
+		// Modif N. reload currently-loaded ROM (more thorough than a Reset, apparently necessary) and clear out SRAM and BRAM
+		int wasPaused = Paused;
+		if (Genesis_Started)
+		{
+			Pre_Load_Rom(HWnd,Recent_Rom[0]);
+			MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+            if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
+		}
+		else if (_32X_Started)
+		{
+			Pre_Load_Rom(HWnd, Recent_Rom[0]);
+			MESSAGE_L("32X reseted", "32X reset", 1500)
+            if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
+		}
+		else if (SegaCD_Started)
+		{
+			g_dontResetAudioCache = 1;
+			if(CD_Load_System == CDROM_)
+			{
+				MessageBox(GetActiveWindow(), "Warning: You are running from a mounted CD. To prevent desyncs, it is recommended you run the game from a CUE or ISO file instead.", "Playback Warning", MB_OK | MB_ICONWARNING);
+				Reset_SegaCD();
+			}
+			else
+				Pre_Load_Rom(HWnd, Recent_Rom[0]);
+			g_dontResetAudioCache = 0;
+			MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+            if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
+			if(MainMovie.ClearSRAM) Format_Backup_Ram();
+		}
+		Paused = wasPaused; 
+	}
+	if(MainMovie.Status==MOVIE_PLAYING && MainMovie.UseState!=0)
+	{
+		if(CPU_Mode)
+			sprintf(Str_Tmp, "Playing from savestate. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/50/60,(MainMovie.LastFrame%3000)/60.0);
+		else
+			sprintf(Str_Tmp, "Playing from savestate. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/60/60,(MainMovie.LastFrame%3600)/60.0);
+	}
+	else if(MainMovie.Status==MOVIE_PLAYING && MainMovie.UseState==0)
+	{
+		if(CPU_Mode)
+			sprintf(Str_Tmp, "Playing from reset. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/50/60,(MainMovie.LastFrame%3000)/60.0);
+		else
+			sprintf(Str_Tmp, "Playing from reset. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/60/60,(MainMovie.LastFrame%3600)/60.0);
+	}
+	else
+		wsprintf(Str_Tmp, "Resuming recording from savestate. Frame %d.",FrameCount);
+	Put_Info(Str_Tmp, 4500);
+	Build_Main_Menu();
+}
+
 
 long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	RECT r;
-	int t;
 
 	switch(message)
 	{
@@ -2529,6 +2613,14 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 						SetForegroundWindow(VolControlHWnd);
 					break;
+				case ID_PLAY_FROM_START:
+					if(Game && MainMovie.File)
+					{
+						FlushMovieFile(&MainMovie); // important if we were recording
+						MainMovie.Status = MOVIE_PLAYING;
+						BeginMoviePlayback();
+					}
+					return 0;
 				case ID_RESUME_RECORD:
 					if(!(Game))
 						return 0;
@@ -2679,6 +2771,7 @@ dialogAgain: //Nitsuja added this
 						}
 						else if (SegaCD_Started)
 						{
+							g_dontResetAudioCache = 1;
 							if(CD_Load_System == CDROM_)
 							{
 								MessageBox(GetActiveWindow(), "Warning: You are running from a mounted CD. To prevent desyncs, it is recommended you run the game from a CUE or ISO file instead.", "Recording Warning", MB_OK | MB_ICONWARNING);
@@ -2686,6 +2779,7 @@ dialogAgain: //Nitsuja added this
 							}
 							else
 								Pre_Load_Rom(HWnd, Recent_Rom[0]);
+							g_dontResetAudioCache = 0;
 							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
 			                memset(SRAM, 0, sizeof(SRAM));
 							Format_Backup_Ram();
@@ -2704,7 +2798,7 @@ dialogAgain: //Nitsuja added this
 							return 0;
 
 					// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
-					if(!MainMovie.ReadOnly && MainMovie.File)
+					if(MainMovie.Status == MOVIE_RECORDING && MainMovie.File)
 						WriteMovieHeader(&MainMovie);
 
 					MINIMIZE
@@ -2727,81 +2821,9 @@ dialogAgain: //Nitsuja added this
 						DialogsOpen--;
 						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 					}
-					if(OpenMovieFile(&MainMovie)==0)
-					{
-						MESSAGE_L("Error opening file", "Error opening file", 1500)
-						MainMovie.Status=0;
-						return 0;
-					}
-					FrameCount=0;
-					LagCount = 0;
-					LagCountPersistent = 0;
-					if(MainMovie.UseState)
-					{
-						if(MainMovie.Status==MOVIE_PLAYING)
-						{
-							t=MainMovie.ReadOnly;
-							MainMovie.ReadOnly = 1;
-							Load_State(MainMovie.StateName);
-							MainMovie.ReadOnly = t;
-						}
-						else
-						{
-							Load_State(MainMovie.StateName);
-						}
-						if(MainMovie.Status==MOVIE_RECORDING)
-						{
-							Str_Tmp[0] = 0;
-							Get_State_File_Name(Str_Tmp);
-							Save_State(Str_Tmp);
-						}
-					}
-					else
-					{
-						// Modif N. reload currently-loaded ROM (more thorough than a Reset, apparently necessary) and clear out SRAM and BRAM
-						int wasPaused = Paused;
-						if (Genesis_Started)
-						{
-							Pre_Load_Rom(HWnd,Recent_Rom[0]);
-							MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
-			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
-						}
-						else if (_32X_Started)
-						{
-							Pre_Load_Rom(HWnd, Recent_Rom[0]);
-							MESSAGE_L("32X reseted", "32X reset", 1500)
-			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
-						}
-						else if (SegaCD_Started)
-						{
-							if(CD_Load_System == CDROM_)
-								Reset_SegaCD();
-							else
-								Pre_Load_Rom(HWnd, Recent_Rom[0]);
-							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
-			                if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
-							if(MainMovie.ClearSRAM) Format_Backup_Ram();
-						}
-						Paused = wasPaused; 
-					}
-					if(MainMovie.Status==MOVIE_PLAYING && MainMovie.UseState!=0)
-					{
-						if(CPU_Mode)
-							sprintf(Str_Tmp, "Playing from savestate. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/50/60,(MainMovie.LastFrame%3000)/60.0);
-						else
-							sprintf(Str_Tmp, "Playing from savestate. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/60/60,(MainMovie.LastFrame%3600)/60.0);
-					}
-					else if(MainMovie.Status==MOVIE_PLAYING && MainMovie.UseState==0)
-					{
-						if(CPU_Mode)
-							sprintf(Str_Tmp, "Playing from reset. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/50/60,(MainMovie.LastFrame%3000)/60.0);
-						else
-							sprintf(Str_Tmp, "Playing from reset. %d frames. %d rerecords. %d min %2.2f s",MainMovie.LastFrame,MainMovie.NbRerecords,MainMovie.LastFrame/60/60,(MainMovie.LastFrame%3600)/60.0);
-					}
-					else
-						wsprintf(Str_Tmp, "Resuming recording from savestate. Frame %d.",FrameCount);
-					Put_Info(Str_Tmp, 4500);
-					Build_Main_Menu();
+
+					BeginMoviePlayback();
+
 					return 0;
 				
 				case ID_SPLICE:
@@ -4594,9 +4616,10 @@ HMENU Build_Main_Menu(void)
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
 	//Upth-Add - Menu Tools_Movies
 	i = 0;
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie or Resume record from savestate"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),ID_RECORD_MOVIE,"Record New Movie","","Record &New Movie"); //Modif
-	MENU_L(Tools_Movies,i++,Flags ,ID_RESUME_RECORD,"Resume record from now","","&Resume record from now"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_RESUME_RECORD,"Resume Record from Now","","&Resume Record from Now"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
 	MENU_L(Tools_Movies,i++,Flags | ((SpliceFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SPLICE,"Input Splice","\tShift-S","&Input Splice"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((SeekFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),IDC_SEEK_FRAME,"Seek to Frame","","Seek to &Frame"); //Modif
 	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif

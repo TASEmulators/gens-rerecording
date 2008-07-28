@@ -21,6 +21,7 @@ char track = 1 | 2 | 4;
 extern int AVIRecording;
 typeMovie MainMovie;
 extern "C" char preloaded_tracks [100], played_tracks_linear [101]; // Modif N. -- added
+extern "C" int Clear_Sound_Buffer(void);
 
 //Modif
 void MoviePlayingStuff()
@@ -107,9 +108,15 @@ void MoviePlayingStuff()
 		}
 		else if ((MainMovie.Recorded || !MainMovie.ReadOnly) && !AVIRecording) //Upth-Add - Otherwise, though
 		{
+			Clear_Sound_Buffer(); //eliminate stutter
+
 			int result = IDYES;
 			if (MainMovie.ReadOnly)
+			{
+				DialogsOpen++;
 				result = MessageBox(NULL,"Movie end reached. Resume recording?","Notice",MB_YESNO);
+				DialogsOpen--;
+			}
 			if (result == IDYES)
 			{
 				Paused = 1; //Upth-Add - We should pause
@@ -625,14 +632,15 @@ void WriteMovieHeader(typeMovie *aMovie)
 		fwrite(aMovie->Note,40,1,aMovie->File);
 	}
 }
-int CloseMovieFile(typeMovie *aMovie)
+
+int FlushMovieFile(typeMovie *aMovie)
 {
 	unsigned int MovieFileLastFrame=0;
-	char * movieData;
+	char * movieData = NULL;
 	
 	if(aMovie->File==NULL)
 		return 0;
-	if(aMovie->ReadOnly==0)
+	if(aMovie->ReadOnly==0 || aMovie->Status==MOVIE_RECORDING)
 	{
 		WriteMovieHeader(aMovie);
 		fseek(aMovie->File,0,SEEK_END);
@@ -647,15 +655,25 @@ int CloseMovieFile(typeMovie *aMovie)
 
 	fclose(aMovie->File);
 	aMovie->File=NULL;
-	
-	if((MovieFileLastFrame>aMovie->LastFrame) && (aMovie->ReadOnly == 0))
+
+	// if necessary, truncate the frame data to match the length of the movie
+	if((MovieFileLastFrame>aMovie->LastFrame) && (aMovie->ReadOnly == 0 || aMovie->Status==MOVIE_RECORDING))
 	{
 		aMovie->File=fopen(aMovie->FileName,"wb");
 		fseek(aMovie->File,0,SEEK_SET);
 		fwrite(movieData,aMovie->LastFrame*3+64,1,aMovie->File);
 		fclose(aMovie->File);
-		delete[] movieData;
 	}
+
+	delete[] movieData;
+	return 1;
+}
+
+int CloseMovieFile(typeMovie *aMovie)
+{
+	if(!FlushMovieFile(aMovie))
+		return 0;
+
 	char status = aMovie->Status;
 	InitMovie(aMovie);
 	aMovie->StateFrame = status;

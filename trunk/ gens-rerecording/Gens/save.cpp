@@ -235,10 +235,13 @@ int Load_State(char *Name)
 	if(MainMovie.Status==MOVIE_RECORDING)
 	{
 		MainMovie.NbRerecords++;
-		if (MainMovie.TriplePlayerHack)
-			FrameCount=max(max(max(Track1_FrameCount,Track2_FrameCount),Track3_FrameCount),FrameCount);
-		else
-			FrameCount=max(max(Track1_FrameCount,Track2_FrameCount),FrameCount);
+		if(!MainMovie.ReadOnly)
+		{
+			if (MainMovie.TriplePlayerHack)
+				FrameCount=max(max(max(Track1_FrameCount,Track2_FrameCount),Track3_FrameCount),FrameCount);
+			else
+				FrameCount=max(max(Track1_FrameCount,Track2_FrameCount),FrameCount);
+		}
 		MainMovie.LastFrame=FrameCount;
 		fseek(MainMovie.File,0,SEEK_SET);
 		char *tempbuf = new char[64 + (FrameCount * 3)];
@@ -267,6 +270,20 @@ int Load_State(char *Name)
 //		fread(&y,4,1,f);
 //		fread(&yg,4,1,f);
 		int switched = 0; //Modif N - switched is for displaying "switched to playback" message
+
+		// Modif N. -- I don't know why MainMovie.LastFrame gets calculated like it does above,
+		// but it makes the movie length invalid whenever I load a savestate while recording and in non-readonly mode,
+		// causing the movie to run past the end of where it should if I then switch to playback.
+		// so I try to correct it here
+		if(!MainMovie.ReadOnly)
+		{
+			int maxtrack = TRACK1 | TRACK2;
+			if (MainMovie.TriplePlayerHack) maxtrack |= TRACK3;
+			if((track & maxtrack) == maxtrack) // only do this if all tracks are on
+				if ((MainMovie.File) && FrameCount != MainMovie.LastFrame)
+					MainMovie.LastFrame = FrameCount;
+		}
+
 		if ((MainMovie.File) && !(FrameCount < MainMovie.LastFrame))
 		{
 			MainMovie.Status = MOVIE_FINISHED;

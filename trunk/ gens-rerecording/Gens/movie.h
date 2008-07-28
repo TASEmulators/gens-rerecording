@@ -59,6 +59,7 @@ void GetMovieInfo(char *FileName,typeMovie *aMovie);
 void GetStateInfo(char * FileName,typeMovie *aMovie);
 void WriteMovieHeader(typeMovie *aMovie);
 int CloseMovieFile(typeMovie *aMovie);
+int FlushMovieFile(typeMovie *aMovie); // same as CloseMovieFile but doesn't clear the info in the movie struct
 int OpenMovieFile(typeMovie *aMovie);
 int BackupMovieFile(typeMovie *aMovie);
 
