@@ -2526,12 +2526,12 @@ int Load_Config(char *File_Name, void *Game_Active)
 	DAC_Improv = GetPrivateProfileInt("Sound", "DAC Improvement", 1, Conf_File); // Modif N
 	PSG_Improv = GetPrivateProfileInt("Sound", "PSG Improvement", 1, Conf_File); // Modif N
 	MastVol = (GetPrivateProfileInt("Sound", "Master Volume", 128, Conf_File) & 0x1FF);
-	YM2612Vol = (GetPrivateProfileInt("Sound", "YM2612 Volume", 255, Conf_File) & 0x1FF);
-	DACVol = (GetPrivateProfileInt("Sound", "DAC Volume", 255, Conf_File) & 0x1FF);
-	PSGVol = (GetPrivateProfileInt("Sound", "PSG Volume", 255, Conf_File) & 0x1FF);
-	PCMVol = (GetPrivateProfileInt("Sound", "PCM Volume", 255, Conf_File) & 0x1FF);
-	CDDAVol = (GetPrivateProfileInt("Sound", "CDDA Volume", 255, Conf_File) & 0x1FF);
-	PWMVol = (GetPrivateProfileInt("Sound", "PWM Volume", 255, Conf_File) & 0x1FF);
+	YM2612Vol = (GetPrivateProfileInt("Sound", "YM2612 Volume", 256, Conf_File) & 0x1FF);
+	DACVol = (GetPrivateProfileInt("Sound", "DAC Volume", 256, Conf_File) & 0x1FF);
+	PSGVol = (GetPrivateProfileInt("Sound", "PSG Volume", 256, Conf_File) & 0x1FF);
+	PCMVol = (GetPrivateProfileInt("Sound", "PCM Volume", 256, Conf_File) & 0x1FF);
+	CDDAVol = (GetPrivateProfileInt("Sound", "CDDA Volume", 256, Conf_File) & 0x1FF);
+	PWMVol = (GetPrivateProfileInt("Sound", "PWM Volume", 256, Conf_File) & 0x1FF);
 
 
 	Country = GetPrivateProfileInt("CPU", "Country", -1, Conf_File);

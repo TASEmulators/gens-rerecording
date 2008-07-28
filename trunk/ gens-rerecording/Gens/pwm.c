@@ -201,6 +201,22 @@ void FASTCALL PWM_Update_Timer(unsigned int cycle)
 
 void ApplyPWMVol()
 {
+	// this gets the volume levels right relative to other channels like YM2612
+	// it's kind of a weird way to do this, but it works well somehow
+
+	if(PWM_Out_L_Tmp >= 0)
+		PWM_Out_L_Tmp += PWM_Out_L_Tmp >> 1;
+	else
+		PWM_Out_L_Tmp += PWM_Out_L_Tmp << 1;
+
+	if(PWM_Out_R_Tmp >= 0)
+		PWM_Out_R_Tmp += PWM_Out_R_Tmp >> 1;
+	else
+		PWM_Out_R_Tmp += PWM_Out_R_Tmp << 1;
+
+	// now apply the user volume setting also
+
 	PWM_Out_L_Tmp = (PWM_Out_L_Tmp * PWMVol) >> 8;
 	PWM_Out_R_Tmp = (PWM_Out_R_Tmp * PWMVol) >> 8;
 }
+
