@@ -736,7 +736,7 @@ int Start_Play_GYM(void)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrInitialDir = Dump_GYM_Dir;
 	ofn.lpstrDefExt = "gym";
-	ofn.Flags = OFN_FILEMUSTEXIST;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
 	if (GetOpenFileName(&ofn))
 	{
