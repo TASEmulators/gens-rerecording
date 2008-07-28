@@ -4182,11 +4182,11 @@ HMENU Build_Main_Menu(void)
 	Flags = MF_BYPOSITION | MF_POPUP | MF_STRING;
 
 	MENU_L(MainMenu, 0, Flags, (UINT)Files, "File", "", "&File");
-	MENU_L(MainMenu, 1, Flags, (UINT)Graphics, "Graphic", "", "&Graphic");
+	MENU_L(MainMenu, 1, Flags, (UINT)Graphics, "Graphics", "", "&Graphics");
 	MENU_L(MainMenu, 2, Flags, (UINT)CPU, "CPU", "", "&CPU");
 	MENU_L(MainMenu, 3, Flags, (UINT)Sound, "Sound", "", "&Sound");
 	MENU_L(MainMenu, 4, Flags, (UINT)TAS_Tools, "Tools", "", "&Tools"); //Upth-Add - Put the new menu in between sound and options // Nitsuja: changed TAS Tools to Tools to prevent extra-wide menu in normal render mode, and because spaces in menu titles can be confusing
-	MENU_L(MainMenu, 5, Flags, (UINT)Options, "Option", "", "&Option"); //Upth-Modif - this now goes in one later
+	MENU_L(MainMenu, 5, Flags, (UINT)Options, "Options", "", "&Options"); //Upth-Modif - this now goes in one later
 	MENU_L(MainMenu, 6, Flags, (UINT)Help, "Help", "", "&Help"); //Upth-Modif - this now goes in one later
 
 	// Menu Files 
