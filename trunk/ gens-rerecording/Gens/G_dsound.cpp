@@ -25,7 +25,8 @@ MMIOINFO MMIOInfoOut;
 
 void End_Sound(void);
 
-int Seg_L[882], Seg_R[882];
+int Seg_L[882] = {0}, Seg_R[882] = {0};
+int Last_Seg_L[882] = {0}, Last_Seg_R[882] = {0};
 int Seg_Length, SBuffer_Length;
 int Sound_Rate = 44100, Sound_Segs = 8; //Sound defaults to 44100, instead of 22050, nitsuja did this, I agree
 int Bytes_Per_Unit;
@@ -38,6 +39,8 @@ int WAV_Dumping = 0;
 int GYM_Playing = 0;
 int WP, RP;
 unsigned short MastVol = 128;
+extern unsigned long FrameCount;
+unsigned long FrameCountAtLastAudioOutput = -1;
 
 unsigned int Sound_Interpol[882];
 unsigned int Sound_Extrapol[312][2];
@@ -394,11 +397,32 @@ int Write_Sound_Buffer(void *Dump_Buf)
 		}
 
 		if (rval == DSERR_BUFFERLOST || !lpvPtr1) return 0;
-		for(int i = 0; i < Seg_Length; i++) 
+
+		if(SlowDownMode && FrameCount == FrameCountAtLastAudioOutput)
 		{
-			Seg_R[i] = (Seg_R[i] * MastVol) >> 8;
-			Seg_L[i] = (Seg_L[i] * MastVol) >> 8;
+			for(int i = 0; i < Seg_Length; i++)
+				Seg_L[i] = Last_Seg_L[i];
+			for(int i = 0; i < Seg_Length; i++)
+				Seg_R[i] = Last_Seg_R[i];
 		}
+		else
+		{
+			for(int i = 0; i < Seg_Length; i++)
+				Seg_L[i] = (Seg_L[i] * MastVol) >> 8;
+			for(int i = 0; i < Seg_Length; i++)
+				Seg_R[i] = (Seg_R[i] * MastVol) >> 8;
+
+			if(SlowDownMode)
+			{
+				for(int i = 0; i < Seg_Length; i++)
+					Last_Seg_L[i] = Seg_L[i];
+				for(int i = 0; i < Seg_Length; i++)
+					Last_Seg_R[i] = Seg_R[i];
+			}
+
+			FrameCountAtLastAudioOutput = FrameCount;
+		}
+
 		if (Sound_Stereo)
 		{
 			if (Have_MMX && !Sound_Soften) Write_Sound_Stereo_MMX(Seg_L, Seg_R, (short *) lpvPtr1, Seg_Length); //Nitsuja changed this

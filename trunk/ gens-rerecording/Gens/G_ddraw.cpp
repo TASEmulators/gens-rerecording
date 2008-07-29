@@ -1763,7 +1763,7 @@ int Update_Emulation(HWND hWnd)
 	{
 		if (AVIRecording && CleanAvi && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 			Temp_Frame_Skip = 0;
-		if (Sound_Enable && Frame_Number+1 >= Temp_Frame_Skip) //Upth-Add - disabled sound //Modif N - disabling sound completely during fast-forward is bad unless the user specifically selected that option somewhere. Changed to only disable it about 7/8 of the time, which should be good enough speedwise considering how ridiculously fast fast-forward is even with sound fully on.
+		if (Sound_Enable)
 		{
 			WP = (WP + 1) & (Sound_Segs - 1);
 
