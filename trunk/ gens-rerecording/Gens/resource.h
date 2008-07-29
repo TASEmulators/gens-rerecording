@@ -228,6 +228,7 @@
 #define IDC_LAGCOUNTER                  1186
 #define IDC_LAGCOUNTERFRAMES            1187
 #define IDC_COMBO_NUMLOAD               1188
+#define IDC_CHECK_BGINPUT				1189
 #define IDC_CHECK_CLEAR_SRAM            1200
 #define IDC_HOTKEYLIST                  1209
 #define ID_PLAY_FROM_START              1210

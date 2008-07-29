@@ -1977,6 +1977,8 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "Frame Advance Delay Factor", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Sleep_Time); //Modif N. - CPU hogging now a real setting
 	WritePrivateProfileString("General", "Allow Idle", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", (BackgroundInput?1:0)); //Upth-Add - Allow hotkeys and joypad to function while gens window is inactive
+	WritePrivateProfileString("General", "Allow Background Input", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Full_Screen & 1);
 	WritePrivateProfileString("Graphics", "Full Screen", Str_Tmp, Conf_File);
@@ -2451,6 +2453,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Intro_Style = GetPrivateProfileInt("General", "Intro Style", 0, Conf_File); //Modif N. - default to not using the "crazy" intro effect, which used to guzzle more CPU than the actual emulation
 	Effect_Color = Intro_Style ? GetPrivateProfileInt("General", "Free Mode Color", 7, Conf_File) : 0; //Modif N. - no intro style = no intro style color
 	Sleep_Time = GetPrivateProfileInt("General", "Allow Idle", 5, Conf_File); //Modif N. - CPU hogging now off by default
+	BackgroundInput = GetPrivateProfileInt("General", "Allow Background Input", 0, Conf_File) != 0; //Upth-add - Allow input of hotkeys and joypad buttons while window is inactive
 	Gens_Priority = GetPrivateProfileInt("General", "Priority", 1, Conf_File);
 	Def_Read_Only = (bool) (GetPrivateProfileInt("General", "Movie Default Read Only", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
 	AutoCloseMovie = (bool) (GetPrivateProfileInt("General", "Movie Auto Close", 1, Conf_File) > 0); //Upth-Add - Load the flag from config

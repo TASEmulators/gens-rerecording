@@ -24,6 +24,7 @@ unsigned char Keys[256];
 unsigned char Kaillera_Keys[16];
 int Cur_Player; //Upth-Add - For the new key-redefinition dialogs
 unsigned int DelayFactor = 5;
+bool BackgroundInput = false;
 
 
 struct K_Def Keys_Def[8] = {
@@ -1016,7 +1017,7 @@ BOOL CALLBACK InitJoystick(LPCDIDEVICEINSTANCE lpDIIJoy, LPVOID pvRef)
 		return(DIENUM_CONTINUE);
 	}
 
-	rval = Joy_ID[Nb_Joys]->SetCooperativeLevel((HWND)pvRef, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+	rval = Joy_ID[Nb_Joys]->SetCooperativeLevel((HWND)pvRef, DISCL_NONEXCLUSIVE | (BackgroundInput?DISCL_BACKGROUND:DISCL_FOREGROUND));
 
 	if (rval != DI_OK)
 	{ 
@@ -1089,7 +1090,7 @@ int Init_Input(HINSTANCE hInst, HWND hWnd)
 	if (rval != DI_OK) return 0;
 
 //	rval = lpDIDMouse->SetCooperativeLevel(hWnd, DISCL_EXCLUSIVE | DISCL_FOREGROUND);
-	rval = lpDIDKeyboard->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+	rval = lpDIDKeyboard->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | (BackgroundInput?DISCL_BACKGROUND:DISCL_FOREGROUND));
 	if (rval != DI_OK) return 0;
 
 //	rval = lpDIDMouse->SetDataFormat(&c_dfDIMouse);
@@ -1178,7 +1179,7 @@ void Update_Input()
 		BOOL oldPressed = button.heldNow;
 		button.heldNow = pressed;
 
-		if(pressed && !oldPressed && button.eventID && !button.ShouldUseAccelerator())
+		if(pressed && !oldPressed && button.eventID && ((BackgroundInput && !(GetActiveWindow()==HWnd)) || !button.ShouldUseAccelerator()))
 			SendMessage(HWnd, WM_COMMAND, button.eventID, 0);
 	}
 }
@@ -2381,14 +2382,15 @@ void Update_Controllers_Net(int num_player)
 
 /*int Check_Pause_Key()
 {
+	static bool PauseKeyHeld = 0;
 	Update_Input();
-	if(Check_Key_Pressed(QuickPauseKey)==1 && QuickPauseKeyIsPressed==0) //Modif N - allow frame advance key to also pause
+	if(PauseKeyDown && !PauseKeyHeld)
 	{
-		QuickPauseKeyIsPressed=1;
+		PauseKeyHeld=1;
 		return 1;
 	}
-	if(Check_Key_Pressed(QuickPauseKey)==0 && QuickPauseKeyIsPressed==1) //Modif N - allow frame advance key to also pause
-		QuickPauseKeyIsPressed=0;
+	if(PauseKeyHeld && !PauseKeyDown)
+		PauseKeyHeld=0;
 	return 0;
 }*/
 
