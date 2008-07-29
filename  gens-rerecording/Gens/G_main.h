@@ -57,6 +57,7 @@ extern int SlowDownMode; //Modif
 extern BOOL AutoFireKeyDown;	//Modif N.
 extern BOOL AutoHoldKeyDown;	//Modif N.
 extern BOOL AutoClearKeyDown;	//Modif N.
+extern BOOL PauseKeyDown; //Modif
 extern BOOL FrameAdvanceKeyDown; //Modif
 extern BOOL FastForwardKeyDown; // Modif N.
 

@@ -2129,7 +2129,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}*/
 
 			Check_Misc_Key();
-			if((Active) && !Paused /*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
+			if((Active || BackgroundInput) && !Paused /*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
 			{
 				if (Check_Skip_Key() && !Paused)
 				{
@@ -2145,7 +2145,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				Build_Main_Menu();
 				MustUpdateMenu=0;
 			}
-			if ((Active) && (!Paused))	// EMULATION
+			if (!Paused)	// EMULATION
 			{
 				Update_Emulation(HWnd);
 
@@ -2158,21 +2158,18 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			else		// EMULATION PAUSED
 			{
-				if(/*SkipKey*/true)
+				if((Active || BackgroundInput) && Check_Skip_Key() != 0)
 				{
-					if(Check_Skip_Key() != 0)
+					Update_Emulation_One(HWnd);
+					soundCleared = false;
+					tgtime = timeGetTime();
+				}
+				else
+				{
+					if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
 					{
-						Update_Emulation_One(HWnd);
-						soundCleared = false;
-						tgtime = timeGetTime();
-					}
-					else
-					{
-						if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
-						{
-							Clear_Sound_Buffer();
-							soundCleared = true;
-						}
+						Clear_Sound_Buffer();
+						soundCleared = true;
 					}
 				}
 				Sleep(1);
@@ -8163,6 +8160,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			SendDlgItemMessage(hDlg, IDC_COMBO_PADP2C, CB_SETCURSEL, (WPARAM) (Controller_2C_Type & 1), (LPARAM) 0);
 			SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_SETCURSEL, (WPARAM) (Controller_2D_Type & 1), (LPARAM) 0);
             SendDlgItemMessage(hDlg, IDC_CHECK_LEFTRIGHT, BM_SETCHECK, (WPARAM) (LeftRightEnabled)?BST_CHECKED:BST_UNCHECKED, 0); //Modif
+			SendDlgItemMessage(hDlg, IDC_CHECK_BGINPUT, BM_SETCHECK, (WPARAM) (BackgroundInput)?BST_CHECKED:BST_UNCHECKED, 0); //Modif
 			/*if (NumLoadEnabled)*/ EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),TRUE);
 			//else EnableWindow(GetDlgItem(hDlg,IDC_COMBO_NUMLOAD),FALSE);
             //SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_SETCHECK, (WPARAM) (NumLoadEnabled)?BST_CHECKED:BST_UNCHECKED, 0); //Modif N.
@@ -8216,6 +8214,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 					Controller_2C_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2C, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
 					Controller_2D_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PADP2D, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
                     LeftRightEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_LEFTRIGHT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif
+                    BackgroundInput = (SendDlgItemMessage(hDlg, IDC_CHECK_BGINPUT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif
                     //NumLoadEnabled = (SendDlgItemMessage(hDlg, IDC_CHECK_NUMLOAD, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;//Modif N.
 					//StateSelectCfg = (unsigned char)SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0);
 					Make_IO_Table();
