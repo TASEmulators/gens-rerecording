@@ -54,6 +54,7 @@ int FPS_Style = EMU_MODE | BLANC;
 int Message_Style = EMU_MODE | BLANC | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
+extern "C" int disableSound, disableSound2;
 
 long int MovieSize;//Modif
 int SlowFrame=0; //Modif
@@ -137,12 +138,43 @@ int (*Update_Frame_Fast)();
 #include "EccoBoxHack.h"
 #include "HacksCommon.h"
 #endif
+
+int Update_Frame_Adjusted()
+{
+	if(VideoLatencyCompensation <= 0)
+	{
+		// normal update
+		return Update_Frame();
+	}
+	else
+	{
+		// update, and render the result that's some number of frames in the (emulated) future
+		// typically the video takes 2 frames to catch up with where the game really is,
+		// so setting VideoLatencyCompensation to 2 can make the input more responsive
+		//
+		// in a way this should actually make the emulation more accurate, because
+		// the delay from your computer hardware stacks with the delay from the emulated hardware,
+		// so eliminating some of that delay should make it feel closer to the real system
+
+		disableSound2 = true;
+		int retval = Update_Frame_Fast();
+		Save_State_To_Buffer(State_Buffer);
+		for(int i = 0; i < VideoLatencyCompensation-1; i++)
+			Update_Frame_Fast();
+		disableSound2 = false;
+		Update_Frame();
+		Load_State_From_Buffer(State_Buffer);
+		return retval;
+	}
+}
+
 int Update_Frame_Hook()
 {
 	#ifdef SONICCAMHACK
 	return SonicCamHack();
 	#else
-		int retval = Update_Frame();
+		int retval = Update_Frame_Adjusted();
+
 		#ifdef RKABOXHACK
 			RKADrawBoxes();
 			CamX = CheatRead<short>(0xFFB158);

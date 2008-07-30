@@ -154,13 +154,8 @@ int WinNT_Flag = 0;
 int Gens_Priority;
 int SS_Actived;
 int DialogsOpen = 0; //Modif
-int SlowDownMode=0; //Modif
-
-// disabled because their functionality is duplicated by accelerator keys that are now configurable
-//unsigned int QuickSaveKeyDown=0;	//Modif
-//unsigned int QuickLoadKeyDown=0;	//Modif
-//unsigned int QuickPauseKeyDown=0;	//Modif
-//unsigned int SlowDownKeyDown=0;	//Modif
+int SlowDownMode = 0; //Modif
+int VideoLatencyCompensation = 0; // I really want this to default to 2 since it makes everything play better, but I can't assume everyone has a fast enough computer to handle the extra processing it requires
 
 BOOL AutoFireKeyDown=0;	//Modif N.
 BOOL AutoHoldKeyDown=0;	//Modif N.
@@ -168,11 +163,7 @@ BOOL AutoClearKeyDown=0;	//Modif N.
 BOOL FrameAdvanceKeyDown=0; //Modif
 BOOL FastForwardKeyDown=0; //Modif
 
-//int QuickSaveKeyIsPressed=0;	//Modif
-//int QuickLoadKeyIsPressed=0;	//Modif
-//int QuickPauseKeyIsPressed=0;	//Modif
 int SlowDownSpeed=1;	//Modif
-//int SlowDownKeyIsPressed=1;	//Modif
 int RecordMovieCanceled=1;//Modif
 int PlayMovieCanceled=1; //Modif
 int Disable_Blue_Screen=0; //Modif
@@ -412,6 +403,21 @@ int Set_Frame_Skip(HWND hWnd, int Num)
 		MESSAGE_L("Seek Cancelled","Seek Cancelled",1500);
 	}
 	SeekFrame = 0;
+	Build_Main_Menu();
+	return(1);
+}
+
+int Set_Latency_Compensation(int Num)
+{
+	if(Num == VideoLatencyCompensation)
+		return 1;
+
+	VideoLatencyCompensation = Num;
+
+	char msg [256];
+	sprintf(msg, "Set to adjust for %d frame%s of video lag", VideoLatencyCompensation, VideoLatencyCompensation==1?"":"s");
+	MESSAGE_L(msg, msg, 1500)
+
 	Build_Main_Menu();
 	return(1);
 }
@@ -3131,6 +3137,15 @@ dialogAgain: //Nitsuja added this
 					Set_Frame_Skip(hWnd, LOWORD(wParam) - ID_GRAPHICS_FRAMESKIP_0);
 					return 0;
 
+				case ID_LATENCY_COMPENSATION_0:
+				case ID_LATENCY_COMPENSATION_1:
+				case ID_LATENCY_COMPENSATION_2:
+				case ID_LATENCY_COMPENSATION_3:
+				case ID_LATENCY_COMPENSATION_4:
+				case ID_LATENCY_COMPENSATION_5:
+					Set_Latency_Compensation(LOWORD(wParam) - ID_LATENCY_COMPENSATION_0);
+					return 0;
+
 				case ID_GRAPHICS_FRAMESKIP_DECREASE:
 					if (Frame_Skip <= -1)
 						Set_Frame_Skip(hWnd, 8);
@@ -4114,6 +4129,7 @@ HMENU Build_Main_Menu(void)
 	HMENU GraphicsLayersB;
 	HMENU GraphicsLayersS;
 	HMENU GraphicsFrameSkip;
+	HMENU GraphicsLatencyCompensation;
 #ifdef GENS_DEBUG
 	HMENU CPUDebug;
 #endif
@@ -4160,6 +4176,7 @@ HMENU Build_Main_Menu(void)
 	GraphicsLayersB = CreatePopupMenu();
 	GraphicsLayersS = CreatePopupMenu();
 	GraphicsFrameSkip = CreatePopupMenu();
+	GraphicsLatencyCompensation = CreatePopupMenu();
 #ifdef GENS_DEBUG
 	CPUDebug = CreatePopupMenu();
 #endif
@@ -4331,6 +4348,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Graphics, i++, Flags | (Sprite_Over ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEOVER, "Sprite Limit", "", "&Sprite Limit");
 
 	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsLatencyCompensation, "Latency Compensation", "", "L&atency Compensation");
 	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsFrameSkip, "Frame Skip", "", "&Frame Skip");
 	MENU_L(Graphics, i++, Flags | (Never_Skip_Frame ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_NEVER_SKIP_FRAME, "Never skip frame with auto frameskip", "", "&Never skip frame with auto frameskip");
 	
@@ -4397,6 +4415,18 @@ HMENU Build_Main_Menu(void)
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (SpriteOn ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_TOGGLES, "Enable", "", "&Enable");
 
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Sprite_Always_Top ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEALWAYS, "Sprites Always On Top", "", "Sprites Always On &Top");
+
+
+	// Menu GraphicsLatencyCompensation
+	i = 0;
+	Flags = MF_BYPOSITION | MF_STRING;
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_0, "0 (cheapest)", "", "&0 (cheapest)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 1) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_1, "1", "", "&1");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 2) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_2, "2 (recommended)", "", "&2 (recommended)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 3) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_3, "3", "", "&3");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 4) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_4, "4", "", "&4");
+	//MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 5) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_5, "5", "", "&5");
+
 
 	// Menu GraphicsFrameSkip
 

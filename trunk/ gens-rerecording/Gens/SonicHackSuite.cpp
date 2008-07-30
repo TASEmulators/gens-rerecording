@@ -1375,9 +1375,29 @@ int SonicCamHack()
 	  ((origy < 0) && ((y >= (short)(LEVELHEIGHT + origy)) || (y <= origy + 224)))) || //so we don't trigger camhack when going upward through level-wraps
 	  (CheatRead<unsigned char>(INLEVELFLAG) == 0)))
 	{
-		CamX = CheatRead<signed short>(CAMOFFSET1);
-		CamY = CheatRead<signed short>(CAMOFFSET1+4);
-		int retval = Update_Frame(); // no need for cam hack now
+		// no need for cam hack now, do a regular update (still with hitbox and solidity display stuff on top)
+
+		int retval;
+		if(VideoLatencyCompensation <= 0)
+		{
+			CamX = CheatRead<signed short>(CAMOFFSET1);
+			CamY = CheatRead<signed short>(CAMOFFSET1+4);
+			retval = Update_Frame();
+		}
+		else
+		{
+			disableSound2 = true;
+			retval = Update_Frame_Fast();
+			Save_State_To_Buffer(State_Buffer);
+			for(int i = 0; i < VideoLatencyCompensation-1; i++)
+				Update_Frame_Fast();
+			disableSound2 = false;
+			CamX = CheatRead<signed short>(CAMOFFSET1);
+			CamY = CheatRead<signed short>(CAMOFFSET1+4);
+			Update_Frame();
+			Load_State_From_Buffer(State_Buffer);
+		}
+
 		offscreen = false;
 		DrawBoxes();
 		DisplaySolid();
@@ -1413,15 +1433,24 @@ int SonicCamHack()
 	if(numframes > maxFrames)
 		numframes = maxFrames;
 
+	int firstFreezeFrame = VideoLatencyCompensation-1;
+	if(firstFreezeFrame < 0)
+		firstFreezeFrame = 0;
+	if(numframes+1 < firstFreezeFrame)
+		numframes = firstFreezeFrame-1;
+
 	disableSound = true;
 	unsigned char posbuf[SSTLEN];
-	memcpy(posbuf,&(Ram_68k[POSOFFSET]),SSTLEN);
 	int time = CheatRead<signed int>(0xFFFE22);
 #ifdef SCD
 		time = CheatRead<signed int>(0xFF1514);
 #endif
 	for(int i = 0 ; i <= numframes ; i++)
 	{
+
+		if(i == firstFreezeFrame)
+			memcpy(posbuf,&(Ram_68k[POSOFFSET]),SSTLEN);
+
 		#ifdef SK
 			CheatWrite<unsigned char>(0xFFEE0B, 1); // Freezes world.*/
 		#endif
@@ -1444,7 +1473,8 @@ int SonicCamHack()
 			CheatWrite<unsigned long>(CAMOFFSET4+4, origx);
 		#endif
 			
-		memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
+		if(i >= firstFreezeFrame)
+			memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
 
 
 		//Update_Frame_Fast();
