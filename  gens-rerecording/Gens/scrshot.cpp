@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "g_dsound.h"
 int AVIRecording=0;
-int AVISound=0;
+int AVISound=1;
 int AVIWaitMovie=0;
 AVIWrite *AVIRecorder=NULL;
 int AVIFrame=0;

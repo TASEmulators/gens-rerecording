@@ -729,11 +729,11 @@ RAMWATCH_MENU MENU
 BEGIN
     POPUP "File"
     BEGIN
-        MENUITEM "&New           Ctrl+N",       RAMMENU_FILE_NEW
+        MENUITEM "&New list      Ctrl+N",       RAMMENU_FILE_NEW
         MENUITEM "&Open...      Ctrl+O",        RAMMENU_FILE_OPEN
         MENUITEM "&Save          Ctrl+S",       RAMMENU_FILE_SAVE
         MENUITEM "&Save As... Ctrl+Shift+S",    RAMMENU_FILE_SAVEAS
-        MENUITEM "&Recent",                     RAMMENU_FILE_RECENT
+//        MENUITEM "&Recent",                     RAMMENU_FILE_RECENT
         MENUITEM SEPARATOR
         MENUITEM "&Close          Ctrl+W",      RAMMENU_FILE_CLOSE
     END
@@ -747,11 +747,11 @@ BEGIN
         MENUITEM "Move Up",                     RAMMENU_WATCHES_MOVEUP
         MENUITEM "Move Down",                   RAMMENU_WATCHES_MOVEDOWN
     END
-    POPUP "Options"
-    BEGIN
-        MENUITEM "Load on Startup",             RAMMENU_OPTIONS_LOADONSTARTUP
-        MENUITEM "Load last file on startup",   RAMMENU_OPTIONS_LOADLFILESTARTUP
-    END
+//    POPUP "Options"
+//    BEGIN
+    //    MENUITEM "Load on Startup",             RAMMENU_OPTIONS_LOADONSTARTUP
+    //    MENUITEM "Load last file on startup",   RAMMENU_OPTIONS_LOADLFILESTARTUP
+//    END
 END
 
 
