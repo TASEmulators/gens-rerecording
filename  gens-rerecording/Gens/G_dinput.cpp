@@ -194,6 +194,13 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,            VK_OEM_PLUS, ID_SLOW_SPEED_PLUS,       0, NULL, "Increase Speed", "SpeedUpKey"},
 	{MOD_NONE,            VK_NONE,     ID_SLOW_MODE,             0, NULL, "Toggle Slow Mode", "ToggleSlowKey"},
 
+	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_0, 0, NULL, "Latency Compensation 0", "LatencyComp0"},
+	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_1, 0, NULL, "Latency Compensation 1", "LatencyComp1"},
+	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_2, 0, NULL, "Latency Compensation 2", "LatencyComp2"},
+	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_3, 0, NULL, "Latency Compensation 3", "LatencyComp3"},
+	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_4, 0, NULL, "Latency Compensation 4", "LatencyComp4"},
+	//{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_5, 0, NULL, "Latency Compensation 5", "LatencyComp5"},
+
 	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Take Screenshot", "ScreenshotKey"},
 	{MOD_NONE,              VK_F1,     ID_HELP_HELP,             0, NULL, "Get Help", "HelpKey"},
 

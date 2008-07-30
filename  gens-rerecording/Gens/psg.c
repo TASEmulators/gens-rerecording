@@ -80,6 +80,9 @@ extern unsigned int Sound_Extrapol[312][2];
 extern int Seg_L[882], Seg_R[882];
 extern int VDP_Current_Line;
 extern int GYM_Dumping;
+extern int disableSound2, Seg_Junk[882];
+static int* LeftAudioBuffer()  {	return disableSound2 ? Seg_Junk : Seg_L;	}
+static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
 
 int Update_GYM_Dump(char v0, char v1, char v2);
 
@@ -455,8 +458,8 @@ void PSG_Special_Update(void)
 		if (PSG_Improv) PSG_Update_SIN(PSG_Buf, PSG_Len);
 		else PSG_Update(PSG_Buf, PSG_Len);
 
-		PSG_Buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line + 1][0];
-		PSG_Buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line + 1][0];
+		PSG_Buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line + 1][0];
+		PSG_Buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line + 1][0];
 		PSG_Len = 0;
 	}
 }

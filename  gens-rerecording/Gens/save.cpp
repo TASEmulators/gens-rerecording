@@ -1999,6 +1999,8 @@ int Save_Config(char *File_Name)
 
 	wsprintf(Str_Tmp, "%d", Never_Skip_Frame); //Modif N. -- added never skip frame to preferences
 	WritePrivateProfileString("Graphics", "Never Skip Frame", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", VideoLatencyCompensation);
+	WritePrivateProfileString("Graphics", "Video Latency Compensation", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Stretch & 1);
 	WritePrivateProfileString("Graphics", "Stretch", Str_Tmp, Conf_File);
@@ -2486,6 +2488,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Render_W = GetPrivateProfileInt("Graphics", "Render Windowed", 0, Conf_File);
 	Render_FS = GetPrivateProfileInt("Graphics", "Render Fullscreen", 1, Conf_File);
 	Never_Skip_Frame = (bool) (GetPrivateProfileInt("Graphics", "Never Skip Frame", 0, Conf_File) > 0); //Modif N. -- added never skip frame to preferences
+	VideoLatencyCompensation = GetPrivateProfileInt("Graphics", "Video Latency Compensation", 0, Conf_File);
 	if (Res_X < 320) Res_X = 320; //Upth-Add - Make sure our resolution
 	if (Res_Y < 240) Res_Y = 240; //Upth-Add - is at least 320x240
 

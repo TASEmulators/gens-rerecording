@@ -239,6 +239,9 @@ extern int VDP_Current_Line;
 extern int GYM_Dumping;
 extern int YM2612_Enable;
 extern int DAC_Enable;
+extern int disableSound2, Seg_Junk[882];
+static int* LeftAudioBuffer()  {	return disableSound2 ? Seg_Junk : Seg_L;	}
+static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
 
 int Update_GYM_Dump(char v0, char v1, char v2);
 
@@ -2530,8 +2533,8 @@ void YM2612_Special_Update(void)
 	{
 		YM2612_Update(YM_Buf, YM_Len);
 
-		YM_Buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line + 1][0];
-		YM_Buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line + 1][0];
+		YM_Buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line + 1][0];
+		YM_Buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line + 1][0];
 		YM_Len = 0;
 	}
 }

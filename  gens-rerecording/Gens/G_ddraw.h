@@ -50,6 +50,7 @@ void Restore_Primary(void);
 int Take_Shot();
 int Take_Shot(int WriteToAVI, HWND hWnd);
 void End_DDraw(void);
+int Update_Frame_Adjusted();
 
 
 //void MP3_update_test();

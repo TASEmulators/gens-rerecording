@@ -1114,7 +1114,14 @@ void Reset_Genesis()
 extern "C"
 {
 	int disableSound = false;
+	int disableSound2 = false; // slower but more reversible way of disabling sound generation
+	int Seg_Junk[882];
 }
+
+inline static int* LeftAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_L;	}
+inline static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
+
+
 
 #ifdef SONICCAMHACK
 
@@ -1128,8 +1135,11 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_M68K = Cycles_Z80 = 0;
@@ -1150,8 +1160,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1183,8 +1193,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1220,8 +1230,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1245,7 +1255,9 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	{
 		PSG_Special_Update();
 		YM2612_Special_Update();
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -1317,8 +1329,11 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_M68K = Cycles_Z80 = 0;
@@ -1339,8 +1354,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1369,8 +1384,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1405,8 +1420,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
 			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1430,7 +1445,9 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	{
 		PSG_Special_Update();
 		YM2612_Special_Update();
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -1704,8 +1721,11 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	CPL_PWM = CPL_M68K * 3;
@@ -1739,8 +1759,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1808,8 +1828,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1898,8 +1918,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -1962,7 +1982,9 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	{
 		PSG_Special_Update();
 		YM2612_Special_Update();
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -1980,8 +2002,11 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	CPL_PWM = CPL_M68K * 3;
@@ -2014,8 +2039,8 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2086,8 +2111,8 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 	}
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2176,8 +2201,8 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2240,7 +2265,9 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 	{
 		PSG_Special_Update();
 		YM2612_Special_Update();
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -2517,8 +2544,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 
 	CPL_S68K = 795;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
@@ -2540,8 +2570,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2575,8 +2605,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 	
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2618,8 +2648,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2644,15 +2674,17 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 		Update_SegaCD_Timer();
 	}
 
-	buf[0] = Seg_L;
-	buf[1] = Seg_R;
-
 	if(!disableSound)
 	{
+		buf[0] = LeftAudioBuffer();
+		buf[1] = RightAudioBuffer();
+
 		PSG_Special_Update();
 		YM2612_Special_Update();
 		Update_CD_Audio(buf, Seg_Length);
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -2672,8 +2704,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 
 	CPL_S68K = 795;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
@@ -2695,8 +2730,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2769,8 +2804,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 	
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2850,8 +2885,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -2915,15 +2950,17 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 		Update_SegaCD_Timer();
 	}
 
-	buf[0] = Seg_L;
-	buf[1] = Seg_R;
-
 	if(!disableSound)
 	{
+		buf[0] = LeftAudioBuffer();
+		buf[1] = RightAudioBuffer();
+
 		PSG_Special_Update();
 		YM2612_Special_Update();
 		Update_CD_Audio(buf, Seg_Length);
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -2943,8 +2980,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 
 	CPL_S68K = 795;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
@@ -2966,8 +3006,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3005,8 +3045,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3048,8 +3088,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3074,15 +3114,17 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 		Update_SegaCD_Timer();
 	}
 
-	buf[0] = Seg_L;
-	buf[1] = Seg_R;
-
 	if(!disableSound)
 	{
+		buf[0] = LeftAudioBuffer();
+		buf[1] = RightAudioBuffer();
+
 		PSG_Special_Update();
 		YM2612_Special_Update();
 		Update_CD_Audio(buf, Seg_Length);
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
@@ -3147,8 +3189,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 
 	CPL_S68K = 795;
 
-	YM_Buf[0] = PSG_Buf[0] = Seg_L;
-	YM_Buf[1] = PSG_Buf[1] = Seg_R;
+	if(!disableSound)
+	{
+		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
+		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
+	}
 	YM_Len = PSG_Len = 0;
 
 	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
@@ -3170,8 +3215,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3248,8 +3293,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 
 	if(!disableSound)
 	{
-		buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3329,8 +3374,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 	{
 		if(!disableSound)
 		{
-			buf[0] = Seg_L + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = Seg_R + Sound_Extrapol[VDP_Current_Line][0];
+			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
+			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
 			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
 			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
@@ -3394,15 +3439,17 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 		Update_SegaCD_Timer();
 	}
 
-	buf[0] = Seg_L;
-	buf[1] = Seg_R;
-
 	if(!disableSound)
 	{
+		buf[0] = LeftAudioBuffer();
+		buf[1] = RightAudioBuffer();
+
 		PSG_Special_Update();
 		YM2612_Special_Update();
 		Update_CD_Audio(buf, Seg_Length);
-
+	}
+	if(!disableSound && !disableSound2)
+	{
 		if (WAV_Dumping) Update_WAV_Dump();
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
