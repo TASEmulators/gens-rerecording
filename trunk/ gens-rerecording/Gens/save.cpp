@@ -1975,10 +1975,10 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "Slow Down Speed", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", DelayFactor); //Upth-Add - Make frame advance speed configurable
 	WritePrivateProfileString("General", "Frame Advance Delay Factor", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", AVISound); //Upth-Add - Make frame advance speed configurable
+	WritePrivateProfileString("General", "AVI Sound", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Sleep_Time); //Modif N. - CPU hogging now a real setting
 	WritePrivateProfileString("General", "Allow Idle", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", (BackgroundInput?1:0)); //Upth-Add - Allow hotkeys and joypad to function while gens window is inactive
-	WritePrivateProfileString("General", "Allow Background Input", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Full_Screen & 1);
 	WritePrivateProfileString("Graphics", "Full Screen", Str_Tmp, Conf_File);
@@ -2350,6 +2350,8 @@ int Save_Config(char *File_Name)
 
 	wsprintf(Str_Tmp, "%d", LeftRightEnabled);//Modif
 	WritePrivateProfileString("Input", "LeftRightEnabled", Str_Tmp, Conf_File);//Modif
+	wsprintf(Str_Tmp, "%d", (BackgroundInput?1:0)); //Upth-Add - Allow hotkeys and joypad to function while gens window is inactive
+	WritePrivateProfileString("Input", "Allow Background Input", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", StateSelectCfg );//Modif U.
 	WritePrivateProfileString("Input", "StateSelectType", Str_Tmp, Conf_File);//Modif N.
 
@@ -2453,13 +2455,13 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Intro_Style = GetPrivateProfileInt("General", "Intro Style", 0, Conf_File); //Modif N. - default to not using the "crazy" intro effect, which used to guzzle more CPU than the actual emulation
 	Effect_Color = Intro_Style ? GetPrivateProfileInt("General", "Free Mode Color", 7, Conf_File) : 0; //Modif N. - no intro style = no intro style color
 	Sleep_Time = GetPrivateProfileInt("General", "Allow Idle", 5, Conf_File); //Modif N. - CPU hogging now off by default
-	BackgroundInput = GetPrivateProfileInt("General", "Allow Background Input", 0, Conf_File) != 0; //Upth-add - Allow input of hotkeys and joypad buttons while window is inactive
 	Gens_Priority = GetPrivateProfileInt("General", "Priority", 1, Conf_File);
 	Def_Read_Only = (bool) (GetPrivateProfileInt("General", "Movie Default Read Only", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
 	AutoCloseMovie = (bool) (GetPrivateProfileInt("General", "Movie Auto Close", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
 	UseMovieStates = (bool) (GetPrivateProfileInt("General", "Movie Based State Names", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
 	SlowDownSpeed = GetPrivateProfileInt("General", "Slow Down Speed", 1, Conf_File); //Upth-Add - Load the slowdown speed from config
 	DelayFactor = GetPrivateProfileInt("General", "Frame Advance Delay Factor", 5, Conf_File); //Upth-Add - Frame advance speed configurable
+	AVISound = GetPrivateProfileInt("General", "AVI Sound", 1, Conf_File); //Upth-Add - Frame advance speed configurable
 
 	if (GetPrivateProfileInt("Graphics", "Force 555", 0, Conf_File)) Mode_555 = 3;
 	else if (GetPrivateProfileInt("Graphics", "Force 565", 0, Conf_File)) Mode_555 = 2;
@@ -2694,6 +2696,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Keys_Def[7].Z = GetPrivateProfileInt("Input", "P2D.Z", 0, Conf_File);
 
 	LeftRightEnabled = GetPrivateProfileInt("Input", "LeftRightEnabled", 0, Conf_File);
+	BackgroundInput = GetPrivateProfileInt("Input", "Allow Background Input", 0, Conf_File) != 0; //Upth-add - Allow input of hotkeys and joypad buttons while window is inactive
 	StateSelectCfg = GetPrivateProfileInt("Input", "StateSelectType", 5, Conf_File); //Modif N
 
 	GetPrivateProfileString("Splice","SpliceMovie","",SpliceMovie,1024,Conf_File);
