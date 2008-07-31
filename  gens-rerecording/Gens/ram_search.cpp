@@ -20,6 +20,7 @@ bool noMisalign = true;
 bool littleEndian = false;
 bool preserveChanges = true;
 int tempCount;
+char Watch_Dir[1024]="";
 /*
 template <typename T>
 T GetRamValue(unsigned int i)

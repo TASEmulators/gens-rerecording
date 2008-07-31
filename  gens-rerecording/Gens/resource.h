@@ -238,6 +238,9 @@
 #define ID_LATENCY_COMPENSATION_3       1214
 #define ID_LATENCY_COMPENSATION_4       1215
 #define ID_LATENCY_COMPENSATION_5       1216
+#define ID_CHANGE_WATCH                 1217
+#define IDC_STATIC_WATCH                1218
+#define IDC_EDIT_WATCH                  1219
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002

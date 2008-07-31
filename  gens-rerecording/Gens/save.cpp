@@ -33,6 +33,7 @@
 #include "misc.h"
 #include "cd_sys.h"
 #include "movie.h"
+#include "ram_search.h"
 #include <direct.h>
 #ifdef _DEBUG
 #include <assert.h>
@@ -1923,6 +1924,7 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "Patch path", Patch_Dir, Conf_File);
 	WritePrivateProfileString("General", "IPS Patch path", IPS_Dir, Conf_File);
 	WritePrivateProfileString("General", "Movie path", Movie_Dir, Conf_File);
+	WritePrivateProfileString("General", "Watch path", Watch_Dir, Conf_File);
 	
 	WritePrivateProfileString("General", "Genesis Bios", Genesis_Bios, Conf_File);
 
@@ -2421,6 +2423,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("General", "Patch path", Rom_Dir, &Patch_Dir[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "IPS Patch path", Rom_Dir, &IPS_Dir[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "Movie path", Rom_Dir, &Movie_Dir[0], 1024, Conf_File);
+	GetPrivateProfileString("General", "Watch path", Rom_Dir, &Watch_Dir[0], 1024, Conf_File);
 
 	GetPrivateProfileString("General", "Genesis Bios", Rom_Dir, &Genesis_Bios[0], 1024, Conf_File);
 

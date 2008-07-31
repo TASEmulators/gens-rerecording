@@ -248,7 +248,7 @@ bool Load_Watches()
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
 	const char DELIM = '\t';
-	if(Change_File_L(Str_Tmp, Gens_Path, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
+	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
 	{
 		FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
@@ -5052,6 +5052,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			SetDlgItemText(hDlg, IDC_EDIT_PATCH, Patch_Dir);
 			SetDlgItemText(hDlg, IDC_EDIT_IPS, IPS_Dir);
 			SetDlgItemText(hDlg, IDC_EDIT_MOVIE, Movie_Dir);
+			SetDlgItemText(hDlg, IDC_EDIT_WATCH, Watch_Dir);
 
 			return true;
 			break;
@@ -5108,8 +5109,13 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					break;
 				case ID_CHANGE_MOVIE:
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Movie Patch directory", "Gens Movie files\0*.gmv\0\0", "gmv"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Movie directory", "Gens Movie files\0*.gmv\0\0", "gmv"))
 						SetDlgItemText(hDlg, IDC_EDIT_MOVIE, Str_Tmp);
+					break;
+				case ID_CHANGE_WATCH:
+					GetDlgItemText(hDlg, IDC_EDIT_WATCH, Str_Tmp2, 1024);
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Ram Watch directory", "Gens WATCH files\0*.wch\0\0", "wch"))
+						SetDlgItemText(hDlg, IDC_EDIT_WATCH, Str_Tmp);
 					break;
 				case ID_OK:
 					GetDlgItemText(hDlg, IDC_EDIT_SAVE, State_Dir, 1024);
@@ -5121,6 +5127,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					GetDlgItemText(hDlg, IDC_EDIT_PATCH, Patch_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_IPS, IPS_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Movie_Dir, 1024);
+					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Watch_Dir, 1024);
 				case ID_CANCEL:
 					DialogsOpen--;
 					EndDialog(hDlg, true);

@@ -32,7 +32,7 @@ void EccoDraw3D()
 			short radius = 31;
 			if (type == 0xD4AB8) radius = 7, height = 0x20;
 			width = radius;
-			DrawEccoOct(X,Y,radius,0x00FF00,0x07E0,0,-1,1);
+			DrawEccoOct(X,Y,radius,0x00FF00,0x07E0,0,-1);
 			display = 1;
 		}
 		else 
@@ -43,16 +43,16 @@ void EccoDraw3D()
 		if (display & 1)
 		{
 			Y = 224 - (Zpos - ScreenZ);
-			DrawBoxMWH(X,Y,width,height,0x0000FF,0x001F,0,-1,1);
-			DrawBoxMWH(X,Y,width+1,height+1,0,0,0,-1,1);
-			DrawBoxMWH(X,Y,width-1,height-1,0,0,0,-1,1);
+			DrawBoxMWH(X,Y,width,height,0x0000FF,0x001F,0,-1);
+			DrawBoxMWH(X,Y,width+1,height+1,0,0,0,-1);
+			DrawBoxMWH(X,Y,width-1,height-1,0,0,0,-1);
 		}
 		if (display & 2)
 		{
 			Y = 113 - (Ypos - ScreenY);
-			DrawBoxMWH(X,Y,width,height,0x00FF00,0x07E0,0,-1,1);
-			DrawBoxMWH(X,Y,width+1,height+1,0x00FF00,0x07E0,0,-1,1);
-			DrawBoxMWH(X,Y,width-1,height-1,0x00FF00,0x07E0,0,-1,1);
+			DrawBoxMWH(X,Y,width,height,0x00FF00,0x07E0,0,-1);
+			DrawBoxMWH(X,Y,width+1,height+1,0x00FF00,0x07E0,0,-1);
+			DrawBoxMWH(X,Y,width-1,height-1,0x00FF00,0x07E0,0,-1);
 		}
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
@@ -102,8 +102,8 @@ void EccoDrawBoxes()
 			Ymid = (Ypos + Ypos2) >> 1;
 			if (CheatRead <unsigned char>(CardBoard + 0x71))
 			{
-				DrawEccoOct(Xpos,Ypos,40,0xFFC000,0xFE00,0,-1,1);
-				DrawEccoOct(Xpos2,Ypos2,40,0xFFC000,0xFE00,0,-1,1);
+				DrawEccoOct(Xpos,Ypos,40,0xFFC000,0xFE00,0,-1);
+				DrawEccoOct(Xpos2,Ypos2,40,0xFFC000,0xFE00,0,-1);
 			}
 		}
 		else 
@@ -127,7 +127,7 @@ void EccoDrawBoxes()
 		{
 			Xpos = CheatRead<unsigned short>(CardBoard + 0x1C) - CamX;
 			Ypos = CheatRead<unsigned short>(CardBoard + 0x20) - CamY;
-			DrawEccoOct(Xpos,Ypos,20,0xFFC000,0xFE00,0,-1,1);
+			DrawEccoOct(Xpos,Ypos,20,0xFFC000,0xFE00,0,-1);
 		}
 	}
 	//aqua tubes
@@ -253,7 +253,7 @@ void EccoDrawBoxes()
 				}
 				break;
 			default:
-				DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x7F00FF,0x381F,0,-1,1);
+				DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x7F00FF,0x381F,0,-1);
 				break;
 		}
 //		if (!displayed)
@@ -362,7 +362,7 @@ void EccoDrawBoxes()
 				}
 				break;
 		}
-		if (!displayed) DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,0,-1,1);
+		if (!displayed) DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,0,-1);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//inanimate objects
@@ -377,7 +377,7 @@ void EccoDrawBoxes()
 			Ypos2= CheatRead<unsigned short>(CardBoard + 0x38);
 			Xpos -= CamX, Xpos2 -= CamX;
 			Ypos -= CamY, Ypos2 -= CamY;
-			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x0000FF,0x001F,1,-1,1);
+			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x0000FF,0x001F,1,-1);
 		}
 		Xpos += Xpos2;
 		Ypos += Ypos2;
@@ -406,7 +406,7 @@ void EccoDrawBoxes()
 				Xpos = CheatRead<unsigned short>(Adelikat + 0x24);
 				Ypos = CheatRead<unsigned short>(Adelikat + 0x28);
 				Xpos -= CamX,Ypos -= CamY;
-				DrawEccoOct(Xpos,Ypos,CheatRead<unsigned short>(Adelikat + 0x44),0x00FF00,0x07E0,1,-1,1);
+				DrawEccoOct(Xpos,Ypos,CheatRead<unsigned short>(Adelikat + 0x44),0x00FF00,0x07E0,1,-1);
 				Adelikat = CheatRead<unsigned int>(Adelikat + 4);
 			}
 			Xpos = CheatRead<unsigned short>(CardBoard + 0x24);
@@ -421,7 +421,7 @@ void EccoDrawBoxes()
 				Xpos = CheatRead<unsigned short>(Adelikat + 0x1C);
 				Ypos = CheatRead<unsigned short>(Adelikat + 0x20);
 				Xpos -= CamX,Ypos -= CamY;
-				DrawEccoOct(Xpos,Ypos,(CheatRead<unsigned short>(Adelikat + 0x2C) >> 1) + 16,0x00FF00,0x07E0,1,-1,1);
+				DrawEccoOct(Xpos,Ypos,(CheatRead<unsigned short>(Adelikat + 0x2C) >> 1) + 16,0x00FF00,0x07E0,1,-1);
 				Adelikat = CheatRead<unsigned int>(Adelikat + 4);
 			}
 			Xpos = CheatRead<unsigned short>(CardBoard + 0x24);
@@ -433,7 +433,7 @@ void EccoDrawBoxes()
 			Xpos = CheatRead<unsigned short>(CardBoard + 0x24);
 			Ypos = CheatRead<unsigned short>(CardBoard + 0x28);
 			Xpos -= CamX,Ypos -= CamY;
-			DrawEccoOct(Xpos,Ypos,CheatRead<unsigned short>(CardBoard + 0x44),0x00FF00,0x07E0,1,-1,1);
+			DrawEccoOct(Xpos,Ypos,CheatRead<unsigned short>(CardBoard + 0x44),0x00FF00,0x07E0,1,-1);
 		}
 		else
 		{
@@ -446,8 +446,8 @@ void EccoDrawBoxes()
 			Xpos -= CamX, Xpos2 -= CamX;
 			Ypos -= CamY, Ypos2 -= CamY;
 			Xmid -= CamX, Ymid -= CamY;
-			if (type == 0xA6C4A) DrawEccoOct(Xmid,Ymid,70,0x00FF00,0x07E0,1,-1,1);
-			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FF00,0x07E0,1,-1,1);
+			if (type == 0xA6C4A) DrawEccoOct(Xmid,Ymid,70,0x00FF00,0x07E0,1,-1);
+			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FF00,0x07E0,1,-1);
 			Xpos += Xpos2;
 			Ypos += Ypos2;
 			Xpos >>= 1;
@@ -470,13 +470,13 @@ void EccoDrawBoxes()
 		{
 			Xmid = CheatRead<unsigned short>(CardBoard + 0x1C) - CamX;
 			Ymid = CheatRead<unsigned short>(CardBoard + 0x20) - CamY;
-			DrawEccoOct(Xmid,Ymid,0x20,0x00FFFF,0x07FF,0,-1,1);
+			DrawEccoOct(Xmid,Ymid,0x20,0x00FFFF,0x07FF,0,-1);
 		}
 		else if (type == 0xDEF94)
 		{
 			Xmid = CheatRead<unsigned short>(CardBoard + 0x24) - CamX;
 			Ymid = CheatRead<unsigned short>(CardBoard + 0x28) - CamY;
-			DrawEccoOct(Xmid,Ymid,0x18,0x00FFFF,0x07FF,1,-1,1);
+			DrawEccoOct(Xmid,Ymid,0x18,0x00FFFF,0x07FF,1,-1);
 		}
 		else 
 		{
@@ -489,7 +489,7 @@ void EccoDrawBoxes()
 			Xpos -= CamX, Xpos2 -= CamX;
 			Ypos -= CamY, Ypos2 -= CamY;
 			Xmid -= CamX, Ymid -= CamY;
-			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FFFF,0x07FF,0,-1,1);
+			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FFFF,0x07FF,0,-1);
 		}
 		sprintf(Str_Tmp,"%08X",type);
 		PutText(Str_Tmp,Xmid,Ymid-4,1,1,0,0,BLANC,BLEU);
@@ -515,17 +515,17 @@ void EccoDrawBoxes()
 	short X4 = (Xmid + (unsigned short) Xpos2) >> 1;
 	short Y3 = (Ymid + (unsigned short) Ypos) >> 1;
 	short Y4 = (Ymid + (unsigned short) Ypos2) >> 1;
-	DrawBoxMWH(Xmid,Ymid,1,1,0xFF00FF,0xF81F,1,-1,1);
-	DrawBoxMWH(X,Y,1,1,0xFF00FF,0xF81F,1,-1,1);
-	DrawBoxMWH(X2,Y2,1,1,0xFF00FF,0xF81F,1,-1,1);
-	DrawBoxMWH(X3,Y3,1,1,0xFF00FF,0xF81F,1,-1,1);
-	DrawBoxMWH(X4,Y4,1,1,0xFF00FF,0xF81F,1,-1,1);
+	DrawBoxMWH(Xmid,Ymid,1,1,0xFF00FF,0xF81F,1,-1);
+	DrawBoxMWH(X,Y,1,1,0xFF00FF,0xF81F,1,-1);
+	DrawBoxMWH(X2,Y2,1,1,0xFF00FF,0xF81F,1,-1);
+	DrawBoxMWH(X3,Y3,1,1,0xFF00FF,0xF81F,1,-1);
+	DrawBoxMWH(X4,Y4,1,1,0xFF00FF,0xF81F,1,-1);
 	Pixel(Xmid,Ymid,0x00FF00,0x07E0,1);
 	Pixel(X,Y,0x00FF00,0x07E0,1);
 	Pixel(X2,Y2,0x00FF00,0x07E0,1);
 	Pixel(X3,Y3,0x00FF00,0x07E0,1);
 	Pixel(X4,Y4,0x00FF00,0x07E0,1);
-	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FF00,0x07E0,1,-1,1);
+	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FF00,0x07E0,1,-1);
 	//Ecco head
 	Xpos = CheatRead<unsigned short>(0xFFA8F8);
 	Xpos2 = CheatRead<unsigned short>(0xFFA900);
@@ -533,7 +533,7 @@ void EccoDrawBoxes()
 	Ypos2 = CheatRead<unsigned short>(0xFFA904);
 	Xpos -= CamX, Xpos2 -= CamX;
 	Ypos -= CamY, Ypos2 -= CamY;
-	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,1,-1,1);
+	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,-1);
 	//Ecco tail
 	Xpos = CheatRead<unsigned short>(0xFFA978);
 	Xpos2 = CheatRead<unsigned short>(0xFFA980);
@@ -541,7 +541,7 @@ void EccoDrawBoxes()
 	Ypos2 = CheatRead<unsigned short>(0xFFA984);
 	Xpos -= CamX, Xpos2 -= CamX;
 	Ypos -= CamY, Ypos2 -= CamY;
-	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,1,-1,1);
+	DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,-1,-1,-1);
 	// sonar
 	if (CheatRead<unsigned char>(0xFFAB77))
 	{
@@ -553,8 +553,8 @@ void EccoDrawBoxes()
 		Height2 = CheatRead<unsigned short>(0xFFAA00);
 		color32 = (CheatRead<unsigned char>(0xFFAA0C) ? 0xFF007F : 0x0000FF);
 		color16 = (CheatRead<unsigned char>(0xFFAA0C) ? 0xF80F : 0x001F);
-		DrawBoxMWH(Xmid,Ymid,Width2,Height2,color32,color16,1,-1,1);
-		DrawBoxMWH(Xmid,Ymid,1,1,0x00FF00,0x07E0,1,-1,1);
+		DrawBoxMWH(Xmid,Ymid,Width2,Height2,color32,color16,1,-1);
+		DrawBoxMWH(Xmid,Ymid,1,1,0x00FF00,0x07E0,1,-1);
 		Pixel(Xmid,Ymid,color32,color16,1);
 	}
 	//Pulsar
@@ -572,8 +572,8 @@ void EccoDrawBoxes()
 				Xmid = CheatRead<unsigned short>(CardBoard);
 				Ymid = CheatRead<unsigned short>(CardBoard + 4);
 				Xmid -= CamX, Ymid -= CamY;
-				DrawBoxMWH(Xmid,Ymid,0x30,0x30,0xFF0000,0xF800,1,-1,1);
-				DrawBoxMWH(Xmid,Ymid,1,1,0x0000FF,0x001F,1,-1,1);
+				DrawBoxMWH(Xmid,Ymid,0x30,0x30,0xFF0000,0xF800,1,-1);
+				DrawBoxMWH(Xmid,Ymid,1,1,0x0000FF,0x001F,1,-1);
 				Pixel(Xmid,Ymid,0xFF0000,0xF800,1);
 			}
 			CardBoard += 0x14;
