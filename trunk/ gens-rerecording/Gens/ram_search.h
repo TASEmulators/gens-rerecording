@@ -70,6 +70,7 @@ extern AddressWatcher rswatches[256]; //contains an array index to rsaddrs, and 
 extern int ResultCount; // number of valid items in rsresults
 extern int WatchCount; // number of valid items in rswatches
 extern char rs_type_size;
+extern char Watch_Dir[1024];
 
 //how many ram values can appear onscreen at one time    
 //#define RAM_VALS_SHOW 15
