@@ -656,6 +656,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ramwatch.cpp"
+				>
+			</File>
+			<File
 				RelativePath="Rom.cpp"
 				>
 				<FileConfiguration
@@ -1519,6 +1523,10 @@
 			</File>
 			<File
 				RelativePath=".\ram_search.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ramwatch.h"
 				>
 			</File>
 			<File
