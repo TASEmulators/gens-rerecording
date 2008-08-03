@@ -100,6 +100,6 @@ void Update_RAM_Search();
 void Update_RAM_Cheats();
 int SaveFlags();
 void LoadFlags(int flags);
-
+void init_list_box(HWND Box, char Strs[][11], int numColumns, int *columnWidths);
 
 #endif
