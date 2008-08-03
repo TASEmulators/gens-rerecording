@@ -258,7 +258,8 @@ void ReopenRamWindows() //Reopen them when a new Rom is loaded
 			DialogsOpen++;
 		}
 	}
-	if (RamWatchClosed)
+	if (RamWatchClosed || AutoRWLoad)
+
 	{
 		RamWatchClosed = false;
 		if(!RamWatchHWnd)

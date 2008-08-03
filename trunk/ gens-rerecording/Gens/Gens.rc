@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
-
+#include "afxres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -81,7 +80,7 @@ BEGIN
     CTEXT           "",IDC_STATIC_TEXT0,219,256,164,12,SS_CENTERIMAGE
     PUSHBUTTON      "&Help",ID_HELP_HELP,222,276,50,14
     CONTROL         "Allow L+R/U+D",IDC_CHECK_LEFTRIGHT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,258,64,11
-	CONTROL         "Allow Background Input",IDC_CHECK_BGINPUT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,258,88,11
+    CONTROL         "Allow Background Input",IDC_CHECK_BGINPUT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,258,88,11
     GROUPBOX        "Hotkeys",IDC_STATIC,199,7,195,265
     PUSHBUTTON      "Reassign...",IDC_REASSIGNKEY,203,234,49,16
     PUSHBUTTON      "Disable",IDC_DISABLEKEY,346,234,43,16
@@ -736,7 +735,8 @@ BEGIN
         MENUITEM "&Open...      Ctrl+O",        RAMMENU_FILE_OPEN
         MENUITEM "&Save          Ctrl+S",       RAMMENU_FILE_SAVE
         MENUITEM "&Save As... Ctrl+Shift+S",    RAMMENU_FILE_SAVEAS
-//        MENUITEM "&Recent",                     RAMMENU_FILE_RECENT
+        MENUITEM SEPARATOR
+        MENUITEM "Auto-load",                   RAMMENU_FILE_AUTOLOAD
         MENUITEM SEPARATOR
         MENUITEM "&Close          Ctrl+W",      RAMMENU_FILE_CLOSE
     END
@@ -750,11 +750,6 @@ BEGIN
         MENUITEM "Move Up",                     RAMMENU_WATCHES_MOVEUP
         MENUITEM "Move Down",                   RAMMENU_WATCHES_MOVEDOWN
     END
-//    POPUP "Options"
-//    BEGIN
-    //    MENUITEM "Load on Startup",             RAMMENU_OPTIONS_LOADONSTARTUP
-    //    MENUITEM "Load last file on startup",   RAMMENU_OPTIONS_LOADLFILESTARTUP
-//    END
 END
 
 
@@ -782,8 +777,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
-
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

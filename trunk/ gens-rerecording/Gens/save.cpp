@@ -34,6 +34,7 @@
 #include "cd_sys.h"
 #include "movie.h"
 #include "ram_search.h"
+#include "ramwatch.h"
 #include <direct.h>
 #ifdef _DEBUG
 #include <assert.h>
@@ -2364,6 +2365,9 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Splice","SpliceFrame",Str_Tmp,Conf_File);
 	WritePrivateProfileString("Splice","TempFile",TempName,Conf_File);
 
+	wsprintf(Str_Tmp, "%d", AutoRWLoad);
+	WritePrivateProfileString("General", "AutoLoadWatches", Str_Tmp, Conf_File);
+
 	SaveAccelerators(Conf_File);
 
 	return 1;
@@ -2708,6 +2712,8 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("Splice","SpliceMovie","",SpliceMovie,1024,Conf_File);
 	SpliceFrame = GetPrivateProfileInt("Splice","SpliceFrame",0,Conf_File);
 	GetPrivateProfileString("Splice","TempFile","",Str_Tmp,1024,Conf_File);
+	
+	AutoRWLoad = GetPrivateProfileInt("General", "AutoLoadWatches", false, Conf_File);
 
 	LoadAccelerators(Conf_File);
 
