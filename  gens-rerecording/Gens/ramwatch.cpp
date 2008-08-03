@@ -13,6 +13,152 @@
 #include <windows.h>
 #include <commctrl.h>
 
+static HMENU ramwatchmenu;
+static HMENU rwrecentmenu;
+char *rw_recent_files[] = { 0 ,0 ,0 ,0 ,0 };
+const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
+const unsigned int RW_MAX_NUMBER_OF_RECENT_FILES = sizeof(rw_recent_files)/sizeof(*rw_recent_files);
+bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
+bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
+
+void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int baseid)
+{
+	MENUITEMINFO moo;
+	int x;
+
+	moo.cbSize = sizeof(moo);
+	moo.fMask = MIIM_SUBMENU | MIIM_STATE;
+
+	GetMenuItemInfo(GetSubMenu(ramwatchmenu, 0), mitem, FALSE, &moo);
+	moo.hSubMenu = menu;
+	moo.fState = strs[0] ? MFS_ENABLED : MFS_GRAYED;
+
+	SetMenuItemInfo(GetSubMenu(ramwatchmenu, 0), mitem, FALSE, &moo);
+
+	// Remove all recent files submenus
+	for(x = 0; x < RW_MAX_NUMBER_OF_RECENT_FILES; x++)
+	{
+		RemoveMenu(menu, baseid + x, MF_BYCOMMAND);
+	}
+
+	// Recreate the menus
+	for(x = RW_MAX_NUMBER_OF_RECENT_FILES - 1; x >= 0; x--)
+	{  
+		char tmp[128 + 5];
+
+		// Skip empty strings
+		if(!strs[x])
+		{
+			continue;
+		}
+
+		moo.cbSize = sizeof(moo);
+		moo.fMask = MIIM_DATA | MIIM_ID | MIIM_TYPE;
+
+		// Fill in the menu text.
+		if(strlen(strs[x]) < 128)
+		{
+			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, strs[x]);
+		}
+		else
+		{
+			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, strs[x] + strlen( strs[x] ) - 127);
+		}
+
+		// Insert the menu item
+		moo.cch = strlen(tmp);
+		moo.fType = 0;
+		moo.wID = baseid + x;
+		moo.dwTypeData = tmp;
+		InsertMenuItem(menu, 0, 1, &moo);
+	}
+}
+
+void UpdateRWRecentArray(const char* addString, char** bufferArray, unsigned int arrayLen, HMENU menu, unsigned int menuItem, unsigned int baseId)
+{
+	// Try to find out if the filename is already in the recent files list.
+	for(unsigned int x = 0; x < arrayLen; x++)
+	{
+		if(bufferArray[x])
+		{
+			if(!strcmp(bufferArray[x], addString))    // Item is already in list.
+			{
+				// If the filename is in the file list don't add it again.
+				// Move it up in the list instead.
+
+				int y;
+				char *tmp;
+
+				// Save pointer.
+				tmp = bufferArray[x];
+				
+				for(y = x; y; y--)
+				{
+					// Move items down.
+					bufferArray[y] = bufferArray[y - 1];
+				}
+
+				// Put item on top.
+				bufferArray[0] = tmp;
+
+				// Update the recent files menu
+				UpdateRW_RMenu(menu, bufferArray, menuItem, baseId);
+
+				return;
+			}
+		}
+	}
+
+	// The filename wasn't found in the list. That means we need to add it.
+
+	// If there's no space left in the recent files list, get rid of the last
+	// item in the list.
+	if(bufferArray[arrayLen - 1])
+	{
+		free(bufferArray[arrayLen - 1]);
+	}
+
+	// Move the other items down.
+	for(unsigned int x = arrayLen - 1; x; x--)
+	{
+		bufferArray[x] = bufferArray[x - 1];
+	}
+
+	// Add the new item.
+	bufferArray[0] = (char*)malloc(strlen(addString) + 1); //mbg merge 7/17/06 added cast
+	strcpy(bufferArray[0], addString);
+
+	// Update the recent files menu
+	UpdateRW_RMenu(menu, bufferArray, menuItem, baseId);
+}
+
+/**
+* Add a filename to the recent files list.
+*
+* @param filename Name of the file to add.
+**/
+void RWAddRecentFile(const char *filename)
+{
+	UpdateRWRecentArray(filename, rw_recent_files, RW_MAX_NUMBER_OF_RECENT_FILES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+}
+
+void OpenRWRecentFile(int memwRFileNumber)
+{
+	int rnum=memwRFileNumber;
+		if (rnum > RW_MAX_NUMBER_OF_RECENT_FILES) return; //just in case
+		
+	char* x = rw_recent_files[rnum];
+	if (x == NULL) return; //If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
+	//char watchfcontents[2048];
+	
+	if (rnum != 0) //Change order of recent files if not most recent
+		RWAddRecentFile(x);
+	//loadwatches here
+
+	
+RWfileChanged = false;
+}
+
 bool Save_Watches()
 {
 	strncpy(Str_Tmp,Rom_Name,512);
@@ -305,7 +451,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			static HMENU ramwatchmenu=GetMenu(hDlg);
+			ramwatchmenu=GetMenu(hDlg);
 			// push it away from the main window if we can
 			const int width = (r.right-r.left); 
 			const int width2 = (r2.right-r2.left); 
@@ -335,6 +481,10 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			return true;
 			break;
 		}
+		case WM_INITMENU:
+		CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
+		break;
+
 		case WM_NOTIFY:
 		{
 			LPNMHDR lP = (LPNMHDR) lParam;
@@ -491,6 +641,12 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					ListView_SetItemState(GetDlgItem(hDlg,IDC_WATCHLIST),watchIndex+1,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 					return true;
+				}
+				case RAMMENU_FILE_AUTOLOAD:
+				{
+					AutoRWLoad ^= 1;
+					CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
+					break;
 				}
 				case IDC_C_ADDCHEAT:
 				{

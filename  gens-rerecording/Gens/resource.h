@@ -228,7 +228,7 @@
 #define IDC_LAGCOUNTER                  1186
 #define IDC_LAGCOUNTERFRAMES            1187
 #define IDC_COMBO_NUMLOAD               1188
-#define IDC_CHECK_BGINPUT				1189
+#define IDC_CHECK_BGINPUT               1189
 #define IDC_CHECK_CLEAR_SRAM            1200
 #define IDC_HOTKEYLIST                  1209
 #define ID_PLAY_FROM_START              1210
@@ -239,7 +239,9 @@
 #define ID_LATENCY_COMPENSATION_4       1215
 #define ID_LATENCY_COMPENSATION_5       1216
 #define ID_CHANGE_WATCH                 1217
+#define ID_FILE_AUTO                    1217
 #define IDC_STATIC_WATCH                1218
+#define RAMMENU_FILE_AUTOLOAD           1218
 #define IDC_EDIT_WATCH                  1219
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
@@ -485,8 +487,6 @@
 #define RAMMENU_FILE_SAVEAS             40652
 #define RAMMENU_FILE_RECENT             40653
 #define RAMMENU_FILE_CLOSE              40654
-#define RAMMENU_OPTIONS_LOADONSTARTUP   40655
-#define RAMMENU_OPTIONS_LOADLFILESTARTUP 40656
 #define ACCEL_CTRL_O                    40657
 #define ACCEL_CTRL_W                    40659
 #define ACCEL_CTRL_N                    40660
@@ -670,7 +670,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        149
-#define _APS_NEXT_COMMAND_VALUE         1217
+#define _APS_NEXT_COMMAND_VALUE         1219
 #define _APS_NEXT_CONTROL_VALUE         1217
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
