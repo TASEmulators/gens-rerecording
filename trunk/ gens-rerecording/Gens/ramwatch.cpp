@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <windows.h>
 #include <commctrl.h>
+#include <string>
 
 static HMENU ramwatchmenu;
 static HMENU rwrecentmenu;
@@ -20,6 +21,26 @@ const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
 const unsigned int RW_MAX_NUMBER_OF_RECENT_FILES = sizeof(rw_recent_files)/sizeof(*rw_recent_files);
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
 bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
+char currentWatch[1024];
+
+void QuickSaveWatches();
+
+bool AskSave()
+{
+	//This function simply asks to save changes if the watch file contents have changed
+	//returns true if the user decided to save changes, and false if they did not (this is currently not used, but could be valuable information in future feature enhancements
+	if (RWfileChanged)
+	{
+		if(MessageBox(RamWatchHWnd, "Save Changes?", "Memory Watch Settings", MB_YESNO)==IDYES)
+			{
+				QuickSaveWatches();
+				return true;
+			}
+	}
+	
+	return false;
+}
+
 
 void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int baseid)
 {
@@ -144,6 +165,7 @@ void RWAddRecentFile(const char *filename)
 
 void OpenRWRecentFile(int memwRFileNumber)
 {
+	AskSave();
 	int rnum=memwRFileNumber;
 		if (rnum > RW_MAX_NUMBER_OF_RECENT_FILES) return; //just in case
 		
@@ -153,6 +175,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 	
 	if (rnum != 0) //Change order of recent files if not most recent
 		RWAddRecentFile(x);
+	//currentWatch = x;	
 	//loadwatches here
 
 	
@@ -177,19 +200,51 @@ bool Save_Watches()
 			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
 			fputs(Str_Tmp,WatchFile);
 		}
+		strcpy(currentWatch,Str_Tmp);
 		fclose(WatchFile);
+		RWfileChanged=false;
+		//TODO: Add to recent list function call here
 		return true;
 	}
 	return false;
 }
 
+void QuickSaveWatches()
+{
+if (RWfileChanged==false) return; //If file has not changed, no need to save changes
+if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save as and then return
+	{
+		Save_Watches();
+		return;
+	}
+		
+		strcpy(Str_Tmp,currentWatch);
+		FILE *WatchFile = fopen(Str_Tmp,"r+b");
+		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
+		fputc(SegaCD_Started?'1':(_32X_Started?'2':'0'),WatchFile);
+		fputc('\n',WatchFile);
+		sprintf(Str_Tmp,"%d\n",WatchCount);
+		fputs(Str_Tmp,WatchFile);
+		const char DELIM = '\t';
+		for (int i = 0; i < WatchCount; i++)
+		{
+			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
+			fputs(Str_Tmp,WatchFile);
+		}
+		fclose(WatchFile);
+		RWfileChanged=false;
+		return;
+}
+
 bool Load_Watches()
 {
+	AskSave();
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
 	const char DELIM = '\t';
 	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
 	{
+		strcpy(currentWatch,Str_Tmp);
 		FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
@@ -236,9 +291,12 @@ bool Load_Watches()
 				InsertWatch(Temp,Comment);
 			}
 		}
+		
 		fclose(WatchFile);
 		if (RamWatchHWnd)
 			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+		RWfileChanged=false;
+		//TODO:  Add to recent menu
 		return true;
 	}
 	return false;
@@ -246,6 +304,7 @@ bool Load_Watches()
 
 void ResetWatches()
 {
+	AskSave();
 	for (;WatchCount>=0;WatchCount--)
 	{
 		rsaddrs[rswatches[WatchCount].Index].flags &= ~RS_FLAG_WATCHED;
@@ -255,6 +314,8 @@ void ResetWatches()
 	WatchCount++;
 	if (RamWatchHWnd)
 		ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+	RWfileChanged = false;
+	currentWatch[0] = NULL;
 }
 
 void RemoveWatch(int watchIndex)
@@ -397,6 +458,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							strcat(Str_Tmp," Type must be specified.");
 						MessageBox(NULL,Str_Tmp,"ERROR",MB_OK);
 					}
+					RWfileChanged=true;
 					return true;
 					break;
 				}
@@ -566,7 +628,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			{
 				case ACCEL_CTRL_S:
 				case RAMMENU_FILE_SAVE:
-					//QuickSaveWatches();
+					QuickSaveWatches();
 					break;
 
 				case ACCEL_CTRL_SHIFT_S:
@@ -586,7 +648,8 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				case IDC_C_SEARCH:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					RemoveWatch(watchIndex);
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);					
+					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);	
+					RWfileChanged=true;
 					return true;
 				case RAMMENU_WATCHES_EDITWATCH:
 				case IDC_C_WATCH_EDIT:
@@ -624,6 +687,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					ListView_SetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST),watchIndex-1);
 					ListView_SetItemState(GetDlgItem(hDlg,IDC_WATCHLIST),watchIndex-1,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
+					RWfileChanged=true;
 					return true;
 				}
 				case RAMMENU_WATCHES_MOVEDOWN:
@@ -640,6 +704,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					ListView_SetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST),watchIndex+1);
 					ListView_SetItemState(GetDlgItem(hDlg,IDC_WATCHLIST),watchIndex+1,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
+					RWfileChanged=true;
 					return true;
 				}
 				case RAMMENU_FILE_AUTOLOAD:
@@ -657,6 +722,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				case ACCEL_CTRL_W:
 				case RAMMENU_FILE_CLOSE:
 				//case IDCANCEL:
+					AskSave();
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
