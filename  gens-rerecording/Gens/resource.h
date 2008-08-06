@@ -243,6 +243,7 @@
 #define IDC_STATIC_WATCH                1218
 #define RAMMENU_FILE_AUTOLOAD           1218
 #define IDC_EDIT_WATCH                  1219
+#define ID_FILE_RECENT                  1219
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -670,7 +671,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        149
-#define _APS_NEXT_COMMAND_VALUE         1219
+#define _APS_NEXT_COMMAND_VALUE         1220
 #define _APS_NEXT_CONTROL_VALUE         1217
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -175,82 +175,16 @@ void OpenRWRecentFile(int memwRFileNumber)
 	
 	if (rnum != 0) //Change order of recent files if not most recent
 		RWAddRecentFile(x);
-	//currentWatch = x;	
+	strcpy(currentWatch,x);
+	strcpy(Str_Tmp,currentWatch);
 	//loadwatches here
-
-	
-RWfileChanged = false;
-}
-
-bool Save_Watches()
-{
-	strncpy(Str_Tmp,Rom_Name,512);
-	strcat(Str_Tmp,".wch");
-	if(Change_File_S(Str_Tmp, Gens_Path, "Save Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
-	{
-		FILE *WatchFile = fopen(Str_Tmp,"r+b");
-		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
-		fputc(SegaCD_Started?'1':(_32X_Started?'2':'0'),WatchFile);
-		fputc('\n',WatchFile);
-		sprintf(Str_Tmp,"%d\n",WatchCount);
-		fputs(Str_Tmp,WatchFile);
-		const char DELIM = '\t';
-		for (int i = 0; i < WatchCount; i++)
-		{
-			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
-			fputs(Str_Tmp,WatchFile);
-		}
-		strcpy(currentWatch,Str_Tmp);
-		fclose(WatchFile);
-		RWfileChanged=false;
-		//TODO: Add to recent list function call here
-		return true;
-	}
-	return false;
-}
-
-void QuickSaveWatches()
-{
-if (RWfileChanged==false) return; //If file has not changed, no need to save changes
-if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save as and then return
-	{
-		Save_Watches();
-		return;
-	}
-		
-		strcpy(Str_Tmp,currentWatch);
-		FILE *WatchFile = fopen(Str_Tmp,"r+b");
-		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
-		fputc(SegaCD_Started?'1':(_32X_Started?'2':'0'),WatchFile);
-		fputc('\n',WatchFile);
-		sprintf(Str_Tmp,"%d\n",WatchCount);
-		fputs(Str_Tmp,WatchFile);
-		const char DELIM = '\t';
-		for (int i = 0; i < WatchCount; i++)
-		{
-			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
-			fputs(Str_Tmp,WatchFile);
-		}
-		fclose(WatchFile);
-		RWfileChanged=false;
-		return;
-}
-
-bool Load_Watches()
-{
-	AskSave();
-	strncpy(Str_Tmp,Rom_Name,512);
-	strcat(Str_Tmp,".wch");
-	const char DELIM = '\t';
-	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
-	{
-		strcpy(currentWatch,Str_Tmp);
-		FILE *WatchFile = fopen(Str_Tmp,"rb");
+	FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
 			MessageBox(NULL,"Error opening file.","ERROR",MB_OK);
-			return false;
+			return;
 		}
+		const char DELIM = '\t';
 		AddressWatcher Temp;
 		char mode;
 		fgets(Str_Tmp,1024,WatchFile);
@@ -296,7 +230,127 @@ bool Load_Watches()
 		if (RamWatchHWnd)
 			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
 		RWfileChanged=false;
-		//TODO:  Add to recent menu
+		return;
+}
+
+bool Save_Watches()
+{
+	strncpy(Str_Tmp,Rom_Name,512);
+	strcat(Str_Tmp,".wch");
+	if(Change_File_S(Str_Tmp, Gens_Path, "Save Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
+	{
+		FILE *WatchFile = fopen(Str_Tmp,"r+b");
+		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
+		fputc(SegaCD_Started?'1':(_32X_Started?'2':'0'),WatchFile);
+		fputc('\n',WatchFile);
+		strcpy(currentWatch,Str_Tmp);
+		RWAddRecentFile(currentWatch);
+		sprintf(Str_Tmp,"%d\n",WatchCount);
+		fputs(Str_Tmp,WatchFile);
+		const char DELIM = '\t';
+		for (int i = 0; i < WatchCount; i++)
+		{
+			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
+			fputs(Str_Tmp,WatchFile);
+		}
+		
+		fclose(WatchFile);
+		RWfileChanged=false;
+		//TODO: Add to recent list function call here
+		return true;
+	}
+	return false;
+}
+
+void QuickSaveWatches()
+{
+if (RWfileChanged==false) return; //If file has not changed, no need to save changes
+if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save as and then return
+	{
+		Save_Watches();
+		return;
+	}
+		
+		strcpy(Str_Tmp,currentWatch);
+		FILE *WatchFile = fopen(Str_Tmp,"r+b");
+		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
+		fputc(SegaCD_Started?'1':(_32X_Started?'2':'0'),WatchFile);
+		fputc('\n',WatchFile);
+		sprintf(Str_Tmp,"%d\n",WatchCount);
+		fputs(Str_Tmp,WatchFile);
+		const char DELIM = '\t';
+		for (int i = 0; i < WatchCount; i++)
+		{
+			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Index,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rsaddrs[rswatches[i].Index].comment);
+			fputs(Str_Tmp,WatchFile);
+		}
+		fclose(WatchFile);
+		RWfileChanged=false;
+		return;
+}
+
+bool Load_Watches()
+{
+	AskSave();
+	strncpy(Str_Tmp,Rom_Name,512);
+	strcat(Str_Tmp,".wch");
+	const char DELIM = '\t';
+	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
+	{
+		
+		FILE *WatchFile = fopen(Str_Tmp,"rb");
+		if (!WatchFile)
+		{
+			MessageBox(NULL,"Error opening file.","ERROR",MB_OK);
+			return false;
+		}
+		strcpy(currentWatch,Str_Tmp);
+		RWAddRecentFile(currentWatch);
+		AddressWatcher Temp;
+		char mode;
+		fgets(Str_Tmp,1024,WatchFile);
+		sscanf(Str_Tmp,"%c%*s",&mode);
+		if ((mode == '1' && !(SegaCD_Started)) || (mode == '2' && !(_32X_Started)))
+		{
+			char Device[8];
+			strcpy(Device,(mode > '1')?"32X":"SegaCD");
+			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
+			MessageBox(NULL,Str_Tmp,"Device Mismatch",MB_OK);
+		}
+		int WatchAdd;
+		fgets(Str_Tmp,1024,WatchFile);
+		sscanf(Str_Tmp,"%d%*s",&WatchAdd);
+		WatchAdd+=WatchCount;
+		for (int i = WatchCount; i < WatchAdd; i++)
+		{
+			while (i < 0)
+				i++;
+			do {
+				fgets(Str_Tmp,1024,WatchFile);
+			} while (Str_Tmp[0] == '\n');
+			sscanf(Str_Tmp,"%05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Index),&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
+			Temp.WrongEndian = 0;
+			if (SegaCD_Started && (mode != '1'))
+				Temp.Index += SEGACD_RAM_SIZE;
+			if ((mode == '1') && !SegaCD_Started)
+				Temp.Index -= SEGACD_RAM_SIZE;
+			if ((unsigned int)Temp.Index > (unsigned int)CUR_RAM_MAX)
+			{
+				i--;
+				WatchAdd--;
+			}
+			else
+			{
+				char *Comment = strrchr(Str_Tmp,DELIM) + 1;
+				*strrchr(Comment,'\n') = '\0';
+				InsertWatch(Temp,Comment);
+			}
+		}
+		
+		fclose(WatchFile);
+		if (RamWatchHWnd)
+			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+		RWfileChanged=false;
 		return true;
 	}
 	return false;
@@ -514,6 +568,8 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			dy2 = (r2.bottom - r2.top) / 2;
 
 			ramwatchmenu=GetMenu(hDlg);
+			rwrecentmenu=CreateMenu();
+			UpdateRW_RMenu(rwrecentmenu, rw_recent_files, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
 			// push it away from the main window if we can
 			const int width = (r.right-r.left); 
 			const int width2 = (r2.right-r2.left); 
@@ -540,6 +596,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 			if (!noMisalign) SendDlgItemMessage(hDlg, IDC_MISALIGN, BM_SETCHECK, BST_CHECKED, 0);
 			if (littleEndian) SendDlgItemMessage(hDlg, IDC_ENDIAN, BM_SETCHECK, BST_CHECKED, 0);
+			if(AutoRWLoad) OpenRWRecentFile(0);
 			return true;
 			break;
 		}
@@ -732,6 +789,9 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					RamWatchHWnd = NULL;
 					EndDialog(hDlg, true);
 					return true;
+				default:
+					if (LOWORD(wParam) >= RW_MENU_FIRST_RECENT_FILE && LOWORD(wParam) < RW_MENU_FIRST_RECENT_FILE+RW_MAX_NUMBER_OF_RECENT_FILES)
+					OpenRWRecentFile(LOWORD(wParam) - RW_MENU_FIRST_RECENT_FILE);
 			}
 			break;
 
