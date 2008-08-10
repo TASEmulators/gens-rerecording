@@ -607,7 +607,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 			if (!noMisalign) SendDlgItemMessage(hDlg, IDC_MISALIGN, BM_SETCHECK, BST_CHECKED, 0);
 			if (littleEndian) SendDlgItemMessage(hDlg, IDC_ENDIAN, BM_SETCHECK, BST_CHECKED, 0);
-			if(AutoRWLoad) OpenRWRecentFile(0);
 			return true;
 			break;
 		}
