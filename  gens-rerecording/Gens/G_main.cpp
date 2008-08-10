@@ -2767,16 +2767,19 @@ dialogAgain: //Nitsuja added this
 
 				case ID_FILES_OPENROM:
 				{
-					if(MainMovie.File!=NULL)
-						CloseMovieFile(&MainMovie);
-					if ((Check_If_Kaillera_Running())) return 0;
 					MINIMIZE
-					if (GYM_Playing) Stop_Play_GYM();
-					FrameCount=0;
-					LagCount = 0;
-					LagCountPersistent = 0;
 					int retval = Get_Rom(hWnd);
-					ReopenRamWindows();
+					if(retval != 0)
+					{
+						if(MainMovie.File!=NULL)
+							CloseMovieFile(&MainMovie);
+						//if ((Check_If_Kaillera_Running())) return 0;
+						if (GYM_Playing) Stop_Play_GYM();
+						FrameCount=0;
+						LagCount = 0;
+						LagCountPersistent = 0;
+						ReopenRamWindows();
+					}
 					return retval;
 				}
 				case ID_FILES_OPENRECENTROM0:
