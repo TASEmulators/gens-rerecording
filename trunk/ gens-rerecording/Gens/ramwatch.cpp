@@ -16,7 +16,7 @@
 
 static HMENU ramwatchmenu;
 static HMENU rwrecentmenu;
-char *rw_recent_files[] = { 0 ,0 ,0 ,0 ,0 };
+char rw_recent_files[5][1024];
 const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
 const unsigned int RW_MAX_NUMBER_OF_RECENT_FILES = sizeof(rw_recent_files)/sizeof(*rw_recent_files);
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
@@ -42,7 +42,7 @@ bool AskSave()
 }
 
 
-void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int baseid)
+void UpdateRW_RMenu(HMENU menu, unsigned int mitem, unsigned int baseid)
 {
 	MENUITEMINFO moo;
 	int x;
@@ -52,7 +52,7 @@ void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int ba
 
 	GetMenuItemInfo(GetSubMenu(ramwatchmenu, 0), mitem, FALSE, &moo);
 	moo.hSubMenu = menu;
-	moo.fState = strs[0] ? MFS_ENABLED : MFS_GRAYED;
+	moo.fState = strlen(rw_recent_files[0]) ? MFS_ENABLED : MFS_GRAYED;
 
 	SetMenuItemInfo(GetSubMenu(ramwatchmenu, 0), mitem, FALSE, &moo);
 
@@ -68,7 +68,7 @@ void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int ba
 		char tmp[128 + 5];
 
 		// Skip empty strings
-		if(!strs[x])
+		if(!strlen(rw_recent_files[x]))
 		{
 			continue;
 		}
@@ -77,13 +77,13 @@ void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int ba
 		moo.fMask = MIIM_DATA | MIIM_ID | MIIM_TYPE;
 
 		// Fill in the menu text.
-		if(strlen(strs[x]) < 128)
+		if(strlen(rw_recent_files[x]) < 128)
 		{
-			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, strs[x]);
+			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, rw_recent_files[x]);
 		}
 		else
 		{
-			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, strs[x] + strlen( strs[x] ) - 127);
+			sprintf(tmp, "&%d. %s", ( x + 1 ) % 10, rw_recent_files[x] + strlen( rw_recent_files[x] ) - 127);
 		}
 
 		// Insert the menu item
@@ -95,35 +95,35 @@ void UpdateRW_RMenu(HMENU menu, char **strs, unsigned int mitem, unsigned int ba
 	}
 }
 
-void UpdateRWRecentArray(const char* addString, char** bufferArray, unsigned int arrayLen, HMENU menu, unsigned int menuItem, unsigned int baseId)
+void UpdateRWRecentArray(const char* addString, unsigned int arrayLen, HMENU menu, unsigned int menuItem, unsigned int baseId)
 {
 	// Try to find out if the filename is already in the recent files list.
 	for(unsigned int x = 0; x < arrayLen; x++)
 	{
-		if(bufferArray[x])
+		if(strlen(rw_recent_files[x]))
 		{
-			if(!strcmp(bufferArray[x], addString))    // Item is already in list.
+			if(!strcmp(rw_recent_files[x], addString))    // Item is already in list.
 			{
 				// If the filename is in the file list don't add it again.
 				// Move it up in the list instead.
 
 				int y;
-				char *tmp;
+				char tmp[1024];
 
 				// Save pointer.
-				tmp = bufferArray[x];
+				strcpy(tmp,rw_recent_files[x]);
 				
 				for(y = x; y; y--)
 				{
 					// Move items down.
-					bufferArray[y] = bufferArray[y - 1];
+					strcpy(rw_recent_files[y],rw_recent_files[y - 1]);
 				}
 
 				// Put item on top.
-				bufferArray[0] = tmp;
+				strcpy(rw_recent_files[0],tmp);
 
 				// Update the recent files menu
-				UpdateRW_RMenu(menu, bufferArray, menuItem, baseId);
+				UpdateRW_RMenu(menu, menuItem, baseId);
 
 				return;
 			}
@@ -134,23 +134,23 @@ void UpdateRWRecentArray(const char* addString, char** bufferArray, unsigned int
 
 	// If there's no space left in the recent files list, get rid of the last
 	// item in the list.
-	if(bufferArray[arrayLen - 1])
+	if(rw_recent_files[arrayLen - 1])
 	{
-		free(bufferArray[arrayLen - 1]);
+		free(rw_recent_files[arrayLen - 1]);
 	}
 
 	// Move the other items down.
 	for(unsigned int x = arrayLen - 1; x; x--)
 	{
-		bufferArray[x] = bufferArray[x - 1];
+		strcpy(rw_recent_files[x],rw_recent_files[x - 1]);
 	}
 
 	// Add the new item.
-	bufferArray[0] = (char*)malloc(strlen(addString) + 1); //mbg merge 7/17/06 added cast
-	strcpy(bufferArray[0], addString);
+	//strcpy(rw_recent_files[0],addString) + 1); //mbg merge 7/17/06 added cast
+	strcpy(rw_recent_files[0], addString);
 
 	// Update the recent files menu
-	UpdateRW_RMenu(menu, bufferArray, menuItem, baseId);
+	UpdateRW_RMenu(menu, menuItem, baseId);
 }
 
 /**
@@ -160,7 +160,7 @@ void UpdateRWRecentArray(const char* addString, char** bufferArray, unsigned int
 **/
 void RWAddRecentFile(const char *filename)
 {
-	UpdateRWRecentArray(filename, rw_recent_files, RW_MAX_NUMBER_OF_RECENT_FILES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+	UpdateRWRecentArray(filename, RW_MAX_NUMBER_OF_RECENT_FILES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
 }
 
 void OpenRWRecentFile(int memwRFileNumber)
@@ -569,7 +569,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 			ramwatchmenu=GetMenu(hDlg);
 			rwrecentmenu=CreateMenu();
-			UpdateRW_RMenu(rwrecentmenu, rw_recent_files, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+			UpdateRW_RMenu(rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
 			// push it away from the main window if we can
 			const int width = (r.right-r.left); 
 			const int width2 = (r2.right-r2.left); 
