@@ -115,6 +115,7 @@ HACCEL hAccelTable = NULL;
 WNDCLASS WndClass;
 HWND HWnd;
 HMENU Gens_Menu;
+int Gens_Menu_Width = 0; // in pixels
 HWND RamSearchHWnd = NULL; // modeless dialog
 HWND RamWatchHWnd = NULL; // modeless dialog
 HWND RamCheatHWnd = NULL; // modeless dialog
@@ -679,6 +680,7 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 			// MoveWindow / ResizeWindow code
 			SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
 			SetRect(&r, 0, 0, 320 * ((*Rend == 0)?1:2), 240 * ((*Rend == 0)?1:2));
+			if(r.right < Gens_Menu_Width) r.right = Gens_Menu_Width; // don't let the menu go multi-line, since it would squash the game view because AdjustWindowRectEx doesn't take it into account
 			AdjustWindowRectEx(&r, GetWindowLong(hWnd, GWL_STYLE), 1, GetWindowLong(hWnd, GWL_EXSTYLE));
 			SetWindowPos(hWnd, NULL, Window_Pos.x, Window_Pos.y, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE);
 		}
@@ -1726,13 +1728,11 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 	GetCurrentDirectory(1024, Gens_Path);
 	GetCurrentDirectory(1024, Language_Path);
-	GetCurrentDirectory(1024, Str_Tmp);
 	strcpy(Manual_Path, "");
 	strcpy(CGOffline_Path, "");
 
 	strcat(Gens_Path, "\\");
 	strcat(Language_Path, "\\language.dat");
-	strcat(Str_Tmp, "\\gens.cfg");
 
 	MSH2_Init();
 	SSH2_Init();
@@ -1744,7 +1744,12 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	PSG_Init(CLOCK_NTSC / 15, Sound_Rate);
 	PWM_Init();
 
+	Build_Main_Menu(); // needs to be before config is loaded so Gens_Menu_Width is valid when the render mode gets set
+
+	strcpy(Str_Tmp, Gens_Path);
+	strcat(Str_Tmp, "\\gens.cfg");
 	Load_Config(Str_Tmp, NULL);
+
 	ShowWindow(HWnd, nCmdShow);
 
 	if (!Init_Input(hInst, HWnd))
@@ -4708,6 +4713,41 @@ HMENU Build_Main_Menu(void)
 
 	if (Full_Screen) SetMenu(HWnd, NULL);
 	else SetMenu(HWnd, Gens_Menu);
+
+
+	// measure the desired width of the menu in pixels,
+	// such that the menu will only be 1 line tall if the surrounding window is at least this wide
+	// (you would think this would be a simple thing to do, but no...)
+	NONCLIENTMETRICS ncm; 
+	ncm.cbSize = sizeof(NONCLIENTMETRICS); 
+	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0); 
+	HDC hdc = GetDC(HWnd);
+	HFONT menuFont = CreateFontIndirect( &ncm.lfMenuFont ); 
+	HFONT oldFont = (HFONT)SelectObject(hdc, (HGDIOBJ)menuFont);
+	SIZE size;
+	GetTextExtentPoint32(hdc, "_", 1, &size); // undocumented necessity for measuring menu spacing?
+	int extraSpace = size.cx;
+	Gens_Menu_Width = extraSpace;
+	int numItems = GetMenuItemCount(Gens_Menu);
+	for(int i = 0; i < numItems; i++)
+	{
+		char str[256];
+		GetMenuString(Gens_Menu, i, str, sizeof(str), MF_BYPOSITION);
+
+		for(int i = 0 ; i < (int)strlen(str) ; i++) // the & symbol is an escape sequence for underline, so remove & (and convert && to &) before measuring
+		{
+			if(str[i] == str[i+1])
+				i++;
+			if(str[i] == '&')
+				strcpy(str+i, str+i+1), i--;
+		}
+
+		if(GetTextExtentPoint32(hdc, str, strlen(str), &size))
+			Gens_Menu_Width += size.cx + (2*extraSpace);
+	}
+	SelectObject(hdc, (HGDIOBJ)oldFont);
+	DeleteObject((HGDIOBJ)menuFont);
+
 
 	return(Gens_Menu);
 }
