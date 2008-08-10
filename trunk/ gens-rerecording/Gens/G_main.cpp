@@ -260,11 +260,11 @@ void ReopenRamWindows() //Reopen them when a new Rom is loaded
 		}
 	}
 	if (RamWatchClosed || AutoRWLoad)
-
 	{
 		RamWatchClosed = false;
 		if(!RamWatchHWnd)
 		{
+			if (AutoRWLoad) OpenRWRecentFile(0);
 			RamWatchHWnd = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_RAMWATCH), HWnd, (DLGPROC) RamWatchProc);
 			DialogsOpen++;
 		}
