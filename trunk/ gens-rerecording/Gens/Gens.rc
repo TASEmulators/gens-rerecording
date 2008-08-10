@@ -732,9 +732,10 @@ BEGIN
     POPUP "File"
     BEGIN
         MENUITEM "&New list      Ctrl+N",       RAMMENU_FILE_NEW
-        MENUITEM "&Open...      Ctrl+O",        RAMMENU_FILE_OPEN
+        MENUITEM "&Open...     Ctrl+O",         RAMMENU_FILE_OPEN
         MENUITEM "&Save          Ctrl+S",       RAMMENU_FILE_SAVE
         MENUITEM "&Save As... Ctrl+Shift+S",    RAMMENU_FILE_SAVEAS
+        MENUITEM "&Append file...",             RAMMENU_FILE_APPEND
         MENUITEM "Recent",                      RAMMENU_FILE_RECENT
         MENUITEM SEPARATOR
         MENUITEM "Auto-load",                   RAMMENU_FILE_AUTOLOAD
