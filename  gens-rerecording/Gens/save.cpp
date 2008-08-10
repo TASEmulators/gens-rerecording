@@ -2366,7 +2366,7 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Splice","TempFile",TempName,Conf_File);
 
 	wsprintf(Str_Tmp, "%d", AutoRWLoad);
-	WritePrivateProfileString("General", "AutoLoadWatches", Str_Tmp, Conf_File);
+	WritePrivateProfileString("Watches", "AutoLoadWatches", Str_Tmp, Conf_File);
 	
 
 	WritePrivateProfileString("Watches", "Recent Watch 1", rw_recent_files[0], Conf_File);	
@@ -2720,7 +2720,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	SpliceFrame = GetPrivateProfileInt("Splice","SpliceFrame",0,Conf_File);
 	GetPrivateProfileString("Splice","TempFile","",Str_Tmp,1024,Conf_File);
 	
-	AutoRWLoad = GetPrivateProfileInt("General", "AutoLoadWatches", false, Conf_File);
+	AutoRWLoad = GetPrivateProfileInt("Watches", "AutoLoadWatches", false, Conf_File);
 
 	GetPrivateProfileString("Watches", "Recent Watch 1", "", &rw_recent_files[0][0], 1024, Conf_File);
 	GetPrivateProfileString("Watches", "Recent Watch 2", "", &rw_recent_files[1][0], 1024, Conf_File);
