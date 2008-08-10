@@ -25,6 +25,7 @@ char currentWatch[1024];
 
 void QuickSaveWatches();
 
+
 bool AskSave()
 {
 	//This function simply asks to save changes if the watch file contents have changed
@@ -170,7 +171,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 		if (rnum > RW_MAX_NUMBER_OF_RECENT_FILES) return; //just in case
 		
 	char* x = rw_recent_files[rnum];
-	if (x == NULL) return; //If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
+	if (strlen(x)==0) return; //If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
 	//char watchfcontents[2048];
 	
 	if (rnum != 0) //Change order of recent files if not most recent
@@ -289,6 +290,8 @@ if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save
 		return;
 }
 
+
+
 bool Load_Watches()
 {
 	AskSave();
@@ -380,6 +383,14 @@ void RemoveWatch(int watchIndex)
 		rswatches[i] = rswatches[i+1];
 	rsaddrs[rswatches[WatchCount].Index].flags &= ~RS_FLAG_WATCHED;
 	WatchCount--;
+}
+
+bool Open_Watches()
+{
+//Closes existing watch and loads a new one.
+ResetWatches();
+if (Load_Watches()) return true;
+else return false;
 }
 
 LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //Gets info for a RAM Watch, and then inserts it into the Watch List
@@ -694,6 +705,8 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					return Save_Watches();
 				case ACCEL_CTRL_O:
 				case RAMMENU_FILE_OPEN:
+					return Open_Watches();
+				case RAMMENU_FILE_APPEND:
 				//case IDC_C_LOAD:
 					return Load_Watches();
 				case ACCEL_CTRL_N:
