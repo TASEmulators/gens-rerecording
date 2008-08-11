@@ -250,7 +250,6 @@ int Init_Fail(HWND hwnd, char *err)
 {
 	End_DDraw();
 	MessageBox(hwnd, err, "Oups ...", MB_OK);
-	DestroyWindow(hwnd);
 
 	return 0;
 }

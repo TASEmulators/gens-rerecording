@@ -623,6 +623,10 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 {
 	Setting_Render = TRUE;
 
+	int numAttempts = 0;
+tryAgain:
+	numAttempts++;
+
 	int Old_Rend, *Rend;
 	BlitFunc* Blit;
 	
@@ -690,6 +694,15 @@ int Set_Render(HWND hWnd, int Full, int Num, int Force)
 	
 		Build_Main_Menu();
 		const int retval = Init_DDraw(HWnd);
+		if(retval == 0 && numAttempts < 2)
+		{
+			// failed to initialize, try one more time with the simplest settings before giving up
+			// this way Gens can recover if the video card doesn't allow fullscreen or incorrectly supports hardware video acceleration
+			Num = 0;
+			Full = 0;
+			Force = 1;
+			goto tryAgain;
+		}
 		Setting_Render = FALSE;
 		return retval;
 	}
