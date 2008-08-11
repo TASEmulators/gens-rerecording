@@ -54,8 +54,29 @@ extern "C" int fatal_mp3_error; // cdda_mp3.c
 extern "C" char played_tracks_linear [101]; // cd_sys.c
 extern "C" char Track_Played; // cd_file.c
 extern "C" int FILE_Play_CD_LBA(int async);
+extern int FS_Minimised;
 
-int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
+#ifdef _WIN32
+	#define MINIMIZE								\
+	{if (Sound_Initialised) Clear_Sound_Buffer();	\
+	if (Full_Screen)								\
+	{												\
+		Set_Render(HWnd, 0, -1, true);				\
+		FS_Minimised = 1;							\
+	}}
+
+	#define WARNINGBOX(message, title) \
+	do{	MINIMIZE \
+		DialogsOpen++; \
+		MessageBox(HWnd, message, title, MB_OK | MB_ICONWARNING); \
+		DialogsOpen--; }while(0)
+#else
+	#define WARNINGBOX(message, title) \
+		fprintf(stderr, "%s: %s\n", title, message)
+#endif
+
+
+int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd)
 {
 	OPENFILENAME ofn;
 
@@ -70,7 +91,7 @@ int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 	memset(&ofn, 0, sizeof(OPENFILENAME));
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = HWnd;
+	ofn.hwndOwner = hwnd;
 	ofn.hInstance = ghInstance;
 	ofn.lpstrFile = Dest;
 	ofn.nMaxFile = 2047;
@@ -87,7 +108,7 @@ int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 }
 
 
-int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
+int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd)
 {
 	OPENFILENAME ofn;
 
@@ -102,7 +123,7 @@ int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 	memset(&ofn, 0, sizeof(OPENFILENAME));
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = HWnd;
+	ofn.hwndOwner = hwnd;
 	ofn.hInstance = ghInstance;
 	ofn.lpstrFile = Dest;
 	ofn.nMaxFile = 2047;
@@ -119,7 +140,7 @@ int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 }
 
 
-int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
+int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd)
 {
 	OPENFILENAME ofn;
 	int i;
@@ -131,7 +152,7 @@ int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 	memset(&ofn, 0, sizeof(OPENFILENAME));
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = HWnd;
+	ofn.hwndOwner = hwnd;
 	ofn.hInstance = ghInstance;
 	ofn.lpstrFile = Dest;
 	ofn.nMaxFile = 2047;
@@ -157,11 +178,11 @@ int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext)
 
 void Get_State_File_Name(char *name)
 {
-	char Ext[5] = ".gsX";
+	char Ext[6] = ".gsX";
 
 	SetCurrentDirectory(Gens_Path);
 
-	Ext[3] = '0' + Current_State;
+	itoa(Current_State, Ext+3, 10);
 	strcpy(name, State_Dir);
 	_mkdir(name); // added to avoid a crash
 	strcat(name, Rom_Name);
@@ -222,6 +243,9 @@ int Load_State_From_Buffer(unsigned char *buf)
 //		VRam_Flag = 1;
 	return (int) buf;
 }
+
+static const char* standardInconsistencyMessage = "Warning: The state you are loading is inconsistent with the current movie.\nYou should either load a different savestate, or turn off movie read-only mode and load this savestate again.";
+
 int Load_State(char *Name)
 {
 	FILE *f;
@@ -234,7 +258,8 @@ int Load_State(char *Name)
 	else if (SegaCD_Started) len += SEGACD_LENGTH_EX;
 	else if (_32X_Started) len += G32X_LENGTH_EX;
 	else return 0;
-	if(MainMovie.Status==MOVIE_RECORDING)
+
+	if(MainMovie.ReadOnly==0 && MainMovie.File)
 	{
 		MainMovie.NbRerecords++;
 		if(!MainMovie.ReadOnly)
@@ -288,6 +313,12 @@ int Load_State(char *Name)
 
 		if ((MainMovie.File) && !(FrameCount < MainMovie.LastFrame))
 		{
+			if(MainMovie.ReadOnly == 1 && MainMovie.Status != MOVIE_FINISHED)
+			{
+				char inconsistencyMessage[1024];
+				sprintf(inconsistencyMessage, "%s\n\nReason: State is after the end of the current movie. (State is on frame %d, Movie ends on frame %d)", standardInconsistencyMessage, FrameCount, MainMovie.LastFrame);
+				WARNINGBOX(inconsistencyMessage, "Movie End Warning");
+			}
 			MainMovie.Status = MOVIE_FINISHED;
 			switched = 2;
 		}
@@ -313,17 +344,18 @@ int Load_State(char *Name)
 				strncpy(MainMovie.FileName,Str_Tmp,512);
 			}
 			MainMovie.Status=MOVIE_RECORDING;
+			switched = 3;
+		}
+
+		if (!(switched)) 
+			sprintf(Str_Tmp, "STATE %d LOADED", Current_State);
+		else if(switched == 1)
+			sprintf(Str_Tmp, "STATE %d LOADED : SWITCHED TO PLAYBACK", Current_State);
+		else if(switched == 2)
+			sprintf(Str_Tmp, "STATE %d LOADED : MOVIE FINISHED", Current_State);
+		else if(switched == 3)
 			sprintf(Str_Tmp, "STATE %d LOADED : RECORDING RESUMED", Current_State);
-		}
-		else
-		{
-			if (!(switched)) 
-				sprintf(Str_Tmp, "STATE %d LOADED", Current_State);
-			else if(switched == 1) //Modif N - "switched to playback" message
-				sprintf(Str_Tmp, "STATE %d LOADED : SWITCHED TO PLAYBACK", Current_State);
-			else if(switched == 2) //Modif N - "switched to playback" message
-				(Str_Tmp, "STATE %d LOADED : MOVIE FINISHED", Current_State);
-		}
+
 		Put_Info(Str_Tmp, 2000);
 	}
 
@@ -361,7 +393,6 @@ int Load_State(char *Name)
 	//Modif N - consistency checking (loading)
 	if((MainMovie.Status == MOVIE_PLAYING) && MainMovie.File)
 	{
-		bool inconsistent = false;
 		unsigned long int temp = MainMovie.LastFrame;
 		Track1_FrameCount = Track2_FrameCount = temp;
 		if (MainMovie.TriplePlayerHack)
@@ -376,22 +407,32 @@ int Load_State(char *Name)
 			char* bla = new char [FrameCount*3]; // savestate movie input data
 			char* bla2 = new char [FrameCount*3]; // playing movie input data
 			if((FrameCount*3 != fread(bla, 1, FrameCount*3, f)) 
-			|| (FrameCount*3 != fread(bla2, 1, FrameCount*3, MainMovie.File)) 
- 			|| memcmp(bla,bla2,FrameCount*3))
-				inconsistent = true;
+			|| (FrameCount*3 != fread(bla2, 1, FrameCount*3, MainMovie.File)))
+			{
+				char inconsistencyMessage[1024];
+				sprintf(inconsistencyMessage, "%s\n\nReason: Unable to compare %d frames.", standardInconsistencyMessage, FrameCount);
+				WARNINGBOX(inconsistencyMessage, "Desync Warning");
+			}
+ 			else if(memcmp(bla,bla2,FrameCount*3))
+			{
+				int firstMismatch = -3;
+				for(int i=0; i<(int)FrameCount*3; i++)
+				{
+					if(bla[i] != bla2[i])
+					{
+						firstMismatch = i;
+						break;
+					}
+				}
+
+				char inconsistencyMessage[1024];
+				sprintf(inconsistencyMessage, "%s\n\nReason: Different input starting on frame %d.", standardInconsistencyMessage, firstMismatch/3);
+				WARNINGBOX(inconsistencyMessage, "Desync Warning");
+			}
 			delete[] bla;
 			delete[] bla2;
 
 			fseek(MainMovie.File,pos,SEEK_SET);
-		}
-		if(inconsistent)
-		{
-			if (MessageBox(NULL, "The state you have loaded is inconsistent with this movie.\n Resume play anyway?", "Desync Warning", MB_YESNO | MB_ICONWARNING) != IDYES) 
-			{
-				MainMovie.Status = MOVIE_FINISHED;
-				sprintf(Str_Tmp, "STATE %d LOADED : MOVIE FINISHED", Current_State);
-				Put_Info(Str_Tmp, 2000);
-			}
 		}
 	}
 	fclose(f);
@@ -1000,10 +1041,8 @@ void Export_Genesis(unsigned char *Data)
 	unsigned char Reg_1[0x200], *src;
 	int i;
 
-#ifdef _WIN32
 	if(DMAT_Length)
-	  //MessageBox(NULL, "Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning", MB_OK | MB_ICONWARNING);
-#endif
+	  //WARNINGBOX("Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning");
 
 	//   while (DMAT_Length) Update_DMA();      // Be sure to finish DMA before save //Modif N.: commented out because it may cause saving to change the current state
 
@@ -2720,7 +2759,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	SpliceFrame = GetPrivateProfileInt("Splice","SpliceFrame",0,Conf_File);
 	GetPrivateProfileString("Splice","TempFile","",Str_Tmp,1024,Conf_File);
 	
-	AutoRWLoad = GetPrivateProfileInt("Watches", "AutoLoadWatches", false, Conf_File);
+	AutoRWLoad = GetPrivateProfileInt("Watches", "AutoLoadWatches", false, Conf_File) != 0;
 
 	GetPrivateProfileString("Watches", "Recent Watch 1", "", &rw_recent_files[0][0], 1024, Conf_File);
 	GetPrivateProfileString("Watches", "Recent Watch 2", "", &rw_recent_files[1][0], 1024, Conf_File);
@@ -2735,26 +2774,29 @@ int Load_Config(char *File_Name, void *Game_Active)
 	// do some post-processing:
 
 
+#ifdef _WIN32
 	if (SpliceFrame)
 	{
+		MINIMIZE
+		DialogsOpen++;
 		TempName = (char *)malloc(strlen(Str_Tmp)+2);
 		strcpy(TempName,Str_Tmp);
 		sprintf(Str_Tmp,"Incomplete splice session detected for %s.\n\
 						 Do you wish to continue this session?\n\
 						 (Warning: If you do not restore the session, it will be permanently discarded.)",SpliceMovie);
-		int response = MessageBox(NULL,Str_Tmp,"NOTICE",MB_YESNO | MB_ICONQUESTION);
+		int response = MessageBox(HWnd,Str_Tmp,"NOTICE",MB_YESNO | MB_ICONQUESTION);
 		while ((response != IDYES) && (response != IDNO))
-			response = MessageBox(NULL,Str_Tmp,"NOTICE",MB_YESNO | MB_ICONQUESTION);
+			response = MessageBox(HWnd,Str_Tmp,"NOTICE",MB_YESNO | MB_ICONQUESTION);
 		if (response == IDNO)
 		{
-			if (MessageBox(NULL,"Restore gmv from backup?","PROMPT",MB_YESNO | MB_ICONQUESTION) == IDYES)
+			if (MessageBox(HWnd,"Restore gmv from backup?","PROMPT",MB_YESNO | MB_ICONQUESTION) == IDYES)
 			{
 				strcpy(Str_Tmp,SpliceMovie);
 				Str_Tmp[strlen(Str_Tmp)-3] = 0;
 				strcat(Str_Tmp,"spl.gmv");
 				MainMovie.File = fopen(Str_Tmp,"rb");
 				if (!MainMovie.File)
-					MessageBox(NULL,"Error opening movie backup.","ERROR",MB_OK | MB_ICONWARNING);
+					WARNINGBOX("Error opening movie backup.","ERROR");
 				else 
 				{
 					strcpy(MainMovie.FileName,SpliceMovie);
@@ -2775,7 +2817,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 			sprintf(Str_Tmp,"%s splice session restored",SpliceMovie);
 			Put_Info(Str_Tmp,2000);
 		}
+		DialogsOpen--;
 	}
+#endif
 
 	Make_IO_Table();
 	DestroyMenu(Gens_Menu);

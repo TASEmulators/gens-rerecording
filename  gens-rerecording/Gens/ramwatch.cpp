@@ -238,7 +238,7 @@ bool Save_Watches()
 {
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
-	if(Change_File_S(Str_Tmp, Gens_Path, "Save Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
+	if(Change_File_S(Str_Tmp, Gens_Path, "Save Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch", RamWatchHWnd))
 	{
 		FILE *WatchFile = fopen(Str_Tmp,"r+b");
 		if (!WatchFile) WatchFile = fopen(Str_Tmp,"w+b");
@@ -298,7 +298,7 @@ bool Load_Watches()
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
 	const char DELIM = '\t';
-	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch"))
+	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch", RamWatchHWnd))
 	{
 		
 		FILE *WatchFile = fopen(Str_Tmp,"rb");

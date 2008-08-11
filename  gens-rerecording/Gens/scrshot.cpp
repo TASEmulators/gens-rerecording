@@ -254,7 +254,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 		{
 			strcpy(AVIFileName,Rom_Name);
 			strcat(AVIFileName,".avi");
-			if (Change_File_S(AVIFileName, Movie_Dir, "Save AVI", "AVI\0*.avi*\0All Files\0*.*\0\0", "avi")==0)
+			if (Change_File_S(AVIFileName, Movie_Dir, "Save AVI", "AVI\0*.avi*\0All Files\0*.*\0\0", "avi", hWnd)==0)
 			{
 				Close_AVI();
 				AVIRecording=0;

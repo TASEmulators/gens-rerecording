@@ -28,9 +28,9 @@ extern unsigned short FrameBuffer[336 * 240];
 extern unsigned int FrameBuffer32[336 * 240];
 extern unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
 
-int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext);
-int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext);
-int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext);
+int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd);
+int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd);
+int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND hwnd);
 FILE *Get_State_File();
 void Get_State_File_Name(char *name);
 int Load_State_From_Buffer(unsigned char *buf);
