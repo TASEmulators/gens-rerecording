@@ -4726,8 +4726,8 @@ HMENU Build_Main_Menu(void)
 	HFONT menuFont = CreateFontIndirect( &ncm.lfMenuFont ); 
 	HFONT oldFont = (HFONT)SelectObject(hdc, (HGDIOBJ)menuFont);
 	SIZE size;
-	GetTextExtentPoint32(hdc, "_", 1, &size); // undocumented necessity for measuring menu spacing?
-	int extraSpace = size.cx;
+	GetTextExtentPoint32(hdc, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
+	int extraSpace = (size.cx/26+1)/2;
 	Gens_Menu_Width = extraSpace;
 	int numItems = GetMenuItemCount(Gens_Menu);
 	for(int i = 0; i < numItems; i++)
