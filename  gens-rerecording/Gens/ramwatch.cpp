@@ -32,7 +32,7 @@ bool AskSave()
 	//returns true if the user decided to save changes, and false if they did not (this is currently not used, but could be valuable information in future feature enhancements
 	if (RWfileChanged)
 	{
-		if(MessageBox(RamWatchHWnd, "Save Changes?", "Memory Watch Settings", MB_YESNO)==IDYES)
+		if(MessageBox(RamWatchHWnd, "Save Changes?", "Ram Watch Settings", MB_YESNO)==IDYES)
 			{
 				QuickSaveWatches();
 				return true;
@@ -791,7 +791,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				case ACCEL_CTRL_W:
 				case RAMMENU_FILE_CLOSE:
 				//case IDCANCEL:
-					AskSave();
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
