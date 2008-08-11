@@ -4311,7 +4311,7 @@ HMENU Build_Main_Menu(void)
 
 	InsertMenu(GraphicsRender, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend > 0) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_PREVIOUS_RENDER, "Previous Render Mode", "", "Previous Render Mode");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend < 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend != 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
 
 	// Menu GraphicsLayers
      // Nitsuja Added this
