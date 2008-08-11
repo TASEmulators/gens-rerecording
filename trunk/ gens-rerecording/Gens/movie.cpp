@@ -114,7 +114,7 @@ void MoviePlayingStuff()
 			if (MainMovie.ReadOnly)
 			{
 				DialogsOpen++;
-				result = MessageBox(NULL,"Movie end reached. Resume recording?","Notice",MB_YESNO);
+				result = MessageBox(HWnd,"Movie end reached. Resume recording?","Notice",MB_YESNO|MB_DEFBUTTON2|MB_ICONQUESTION);
 				DialogsOpen--;
 			}
 			if (result == IDYES)
@@ -122,7 +122,7 @@ void MoviePlayingStuff()
 				Paused = 1; //Upth-Add - We should pause
 				Pause_Screen();
 				sprintf(Str_Tmp, "Movie end reached; Paused; Recording will resume."); //Upth-Add - Announce that the movie has paused and will switch to recording
-				if (MainMovie.ReadOnly) MainMovie.ReadOnly = 0, strcat(Str_Tmp," Read-only mode disabled.");
+				MainMovie.Status = MOVIE_RECORDING;
 				Put_Info(Str_Tmp, 2000);
 				tempflag = true; //Upth-Add - And set the flag which brings us back into recording mode
 			}

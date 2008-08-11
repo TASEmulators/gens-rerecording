@@ -1933,7 +1933,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		}
 		else if (src == 1)
 		{
-			MessageBox(NULL, "Error during connection", NULL, MB_OK);
+			MessageBox(HWnd, "Error during connection", NULL, MB_OK);
 		}
 		else if (src == 2)
 		{
@@ -2610,7 +2610,7 @@ dialogAgain: //Nitsuja added this
 						strncpy(Str_Tmp,Rom_Name,507);
 						strcat(Str_Tmp,"[GMV]");
 						strcat(Str_Tmp,".gst");
-						Change_File_S(Str_Tmp, Movie_Dir, "Save state", "State Files\0*.gs?\0All Files\0*.*\0\0", "");
+						Change_File_S(Str_Tmp, Movie_Dir, "Save state", "State Files\0*.gs?\0All Files\0*.*\0\0", "", hWnd);
 						if(Save_State(Str_Tmp)==0)
 							return 0;
 					}
@@ -2825,7 +2825,7 @@ dialogAgain: //Nitsuja added this
 						extern int failed_to_load_wnaspi_dll;
 						if(failed_to_load_wnaspi_dll)
 							if(!Full_Screen)
-								MessageBox(NULL, "You need WNASPI32.DLL to run from a CD drive.", "Error", MB_OK);
+								MessageBox(HWnd, "You need WNASPI32.DLL to run from a CD drive.", "Error", MB_OK);
 							else
 								MESSAGE_L("You need WNASPI32.DLL to run from a CD drive.", "You need WNASPI32.DLL to run from a CD drive.", 1500)
 						return 1;
@@ -2891,7 +2891,7 @@ dialogAgain: //Nitsuja added this
 					if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					DialogsOpen++;
-					Change_File_L(Str_Tmp, State_Dir, "Load state", "State Files\0*.gs?\0All Files\0*.*\0\0", "");
+					Change_File_L(Str_Tmp, State_Dir, "Load state", "State Files\0*.gs?\0All Files\0*.*\0\0", "", hWnd);
 					DialogsOpen--;
 					Load_State(Str_Tmp);
 					return 0;
@@ -2906,7 +2906,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SAVESTATEAS:
 					if (Check_If_Kaillera_Running()) return 0;
 					DialogsOpen++;
-					Change_File_S(Str_Tmp, State_Dir, "Save state", "State Files\0*.gs?\0All Files\0*.*\0\0", "");
+					Change_File_S(Str_Tmp, State_Dir, "Save state", "State Files\0*.gs?\0All Files\0*.*\0\0", "", hWnd);
 					DialogsOpen--;
 					Save_State(Str_Tmp);
 					return 0;
@@ -4923,7 +4923,7 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 					return true;
 					break;
@@ -5008,59 +5008,59 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			{
 				case ID_CHANGE_SAVE:
 					GetDlgItemText(hDlg, IDC_EDIT_SAVE, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Save state directory", "Save state files\0*.gs?\0\0", "gs0"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Save state directory", "Save state files\0*.gs?\0\0", "gs0", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_SAVE, Str_Tmp);
 					break;
 
 				case ID_CHANGE_SRAM:
 					GetDlgItemText(hDlg, IDC_EDIT_SRAM, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "SRAM backup directory", "SRAM backup files\0*.srm\0\0", "srm"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "SRAM backup directory", "SRAM backup files\0*.srm\0\0", "srm", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_SRAM, Str_Tmp);
 					break;
 
 				case ID_CHANGE_BRAM:
 					GetDlgItemText(hDlg, IDC_EDIT_BRAM, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "BRAM backup directory", "BRAM backup files\0*.brm\0\0", "brm"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "BRAM backup directory", "BRAM backup files\0*.brm\0\0", "brm", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_BRAM, Str_Tmp);
 					break;
 
 				case ID_CHANGE_WAV:
 					GetDlgItemText(hDlg, IDC_EDIT_WAV, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Sound WAV dump directory", "Sound WAV dump files\0*.wav\0\0", "wav"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Sound WAV dump directory", "Sound WAV dump files\0*.wav\0\0", "wav", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_WAV, Str_Tmp);
 					break;
 
 				case ID_CHANGE_GYM:
 					GetDlgItemText(hDlg, IDC_EDIT_GYM, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "GYM dump directory", "GYM dump files\0*.gym\0\0", "gym"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "GYM dump directory", "GYM dump files\0*.gym\0\0", "gym", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_GYM, Str_Tmp);
 					break;
 
 				case ID_CHANGE_SHOT:
 					GetDlgItemText(hDlg, IDC_EDIT_SHOT, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Screen-shot directory", "Screen-shot files\0*.bmp\0\0", "bmp"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Screen-shot directory", "Screen-shot files\0*.bmp\0\0", "bmp", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_SHOT, Str_Tmp);
 					break;
 
 				case ID_CHANGE_PATCH:
 					GetDlgItemText(hDlg, IDC_EDIT_PATCH, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "PAT Patch directory", "PAT Patch files\0*.pat\0\0", "pat"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "PAT Patch directory", "PAT Patch files\0*.pat\0\0", "pat", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_PATCH, Str_Tmp);
 					break;
 
 				case ID_CHANGE_IPS:
 					GetDlgItemText(hDlg, IDC_EDIT_IPS, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "IPS Patch directory", "IPS Patch files\0*.ips\0\0", "ips"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "IPS Patch directory", "IPS Patch files\0*.ips\0\0", "ips", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_IPS, Str_Tmp);
 					break;
 				case ID_CHANGE_MOVIE:
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Movie directory", "Gens Movie files\0*.gmv\0\0", "gmv"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Movie directory", "Gens Movie files\0*.gmv\0\0", "gmv", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_MOVIE, Str_Tmp);
 					break;
 				case ID_CHANGE_WATCH:
 					GetDlgItemText(hDlg, IDC_EDIT_WATCH, Str_Tmp2, 1024);
-					if (Change_Dir(Str_Tmp, Str_Tmp2, "Ram Watch directory", "Gens WATCH files\0*.wch\0\0", "wch"))
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Ram Watch directory", "Gens WATCH files\0*.wch\0\0", "wch", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_WATCH, Str_Tmp);
 					break;
 				case ID_OK:
@@ -5089,7 +5089,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 					return true;
 					break;
@@ -5178,7 +5178,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "genesis.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5187,7 +5187,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_G_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X M68000 bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X M68000 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5196,7 +5196,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XMBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_M_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Master SH2 bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Master SH2 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XMBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5205,7 +5205,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XSBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_S_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Slave SH2 bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Slave SH2 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XSBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5214,7 +5214,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_USBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "us_scd1_9210.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "USA CD bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "USA CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_USBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5223,7 +5223,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_EUBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "eu_mcd1_9210.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "EUROPEAN CD bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "EUROPEAN CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_EUBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5232,7 +5232,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_JABIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "jp_mcd1_9112.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "JAPAN CD bios file", "bios files\0*.bin\0\0", "bin"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "JAPAN CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_JABIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5240,7 +5240,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				case ID_CHANGE_CGOFFLINE:
 					GetDlgItemText(hDlg, IDC_EDIT_CGOFFLINE, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "GCOffline.chm"); 
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis Collective - CGOffline file", "html help files\0*.chm\0\0", "chm"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis Collective - CGOffline file", "html help files\0*.chm\0\0", "chm", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_CGOFFLINE, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5248,7 +5248,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				case ID_CHANGE_MANUAL:
 					GetDlgItemText(hDlg, IDC_EDIT_MANUAL, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "Manual.exe"); 
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "Gens Manual", "executable files\0*.exe\0\0", "exe"))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "Gens Manual", "executable files\0*.exe\0\0", "exe", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_MANUAL, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5282,7 +5282,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 					return true;
 					break;
@@ -5552,8 +5552,9 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					break;
 				case IDC_BUTTON_BROWSE_MOVIE:
 					strcpy(Str_Tmp,"");
+					SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
 					DialogsOpen++;
-					if(Change_File_L(Str_Tmp, Movie_Dir, "Load Movie", "GENs Movie\0*.gmv*\0All Files\0*.*\0\0", "gmv"))
+					if(Change_File_L(Str_Tmp, Movie_Dir, "Load Movie", "GENs Movie\0*.gmv*\0All Files\0*.*\0\0", "gmv", hDlg))
 					{
 							SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 					}
@@ -5562,10 +5563,11 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					break;
 				case IDC_BUTTON_STATE_BROWSE:
 					strcpy(Str_Tmp,"");
+					SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_STATE,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
 					DialogsOpen++;
-					if(Change_File_L(Str_Tmp, Movie_Dir, "Load state", "State Files\0*.gs*\0All Files\0*.*\0\0", "gs0"))
+					if(Change_File_L(Str_Tmp, Movie_Dir, "Load state", "State Files\0*.gs*\0All Files\0*.*\0\0", "gs0", hDlg))
 					{
-							SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_STATE,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+						SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_STATE,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 					}
 					DialogsOpen--;
 					return true;
@@ -5683,7 +5685,7 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	FILE *TempSplice = fopen(TempName,"r+b");
 	if (!TempSplice)
 	{
-		MessageBox(NULL,"Error opening temporary file","ERROR",MB_OK | MB_ICONWARNING);
+		MessageBox(HWnd,"Error opening temporary file","ERROR",MB_OK | MB_ICONWARNING);
 		return;
 	}
 	fseek(TempSplice,0,SEEK_END);
@@ -5757,7 +5759,7 @@ LRESULT CALLBACK PromptSpliceFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 					FILE *TempSplice = fopen(TempName,"w+b");
 					if (TempSplice == NULL)
 					{
-						MessageBox(NULL,"Error creating temporary file!","Operation canceled",MB_OK | MB_ICONWARNING);
+						MessageBox(HWnd,"Error creating temporary file!","Operation canceled",MB_OK | MB_ICONWARNING);
 						DialogsOpen--;
 						EndDialog(hDlg, true);
 						return false;
@@ -6059,7 +6061,7 @@ LRESULT CALLBACK RecordMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				case IDC_BUTTON_BROWSE_MOVIE:
 					strncpy(Str_Tmp,Rom_Name,512);
 					//strcat(Str_Tmp,".gmv");
-					if(Change_File_S(Str_Tmp, Movie_Dir, "Save Movie", "GENs Movie\0*.gmv\0All Files\0*.*\0\0", "gmv"))
+					if(Change_File_S(Str_Tmp, Movie_Dir, "Save Movie", "GENs Movie\0*.gmv\0All Files\0*.*\0\0", "gmv", hDlg))
 					{
 							SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 					}
@@ -6198,7 +6200,7 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 			reset_address_info();
 			prune(rs_c,rs_o,rs_t,rs_val,rs_param);
 			if(ResultCount && rs_c != 'a')
-				MessageBox(NULL,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+				MessageBox(HWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
 		}
 		if (RamSearchHWnd) ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
 		if (SetPaused) Paused = 0;
@@ -7110,7 +7112,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						reset_address_info();
 						prune(rs_c,rs_o,rs_t,rs_val,rs_param);
 						if(ResultCount && rs_c != 'a')
-							MessageBox(NULL,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+							MessageBox(HWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
 					}
 
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
@@ -7118,7 +7120,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					return true;
 
 invalid_field:
-					MessageBox(NULL,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
+					MessageBox(HWnd,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
 					return true;
 				}
 				case IDC_C_WATCH:
@@ -7455,7 +7457,7 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 */					return true;
 			}
@@ -7650,7 +7652,7 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 					return true;
 					break;
@@ -7859,7 +7861,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 					}
 					else
 					{
-						MessageBox(NULL, "You need to configure the Manual Path to have help", "info", MB_OK);
+						MessageBox(HWnd, "You need to configure the Manual Path to have help", "info", MB_OK);
 					}
 					return true;
 					break;

@@ -875,7 +875,8 @@ int Close_Tray_CDD_cC(void)
 		// Modif N. -- made the action cancellable
 		//if(!IsMovieActive()) // TODO: enable this check since we don't support recording of disc switches
 		{
-			if(Change_File_L(new_iso, Rom_Dir, "Load SegaCD image file", "SegaCD image file\0*.bin;*.cue;*.iso;*.raw\0All files\0*.*\0\0", ""))
+			extern HWND HWnd;
+			if(Change_File_L(new_iso, Rom_Dir, "Load SegaCD image file", "SegaCD image file\0*.bin;*.cue;*.iso;*.raw\0All files\0*.*\0\0", "", HWnd))
 			{
 				Reload_SegaCD(new_iso);
 
