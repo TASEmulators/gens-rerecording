@@ -1299,6 +1299,8 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 	int i, j, joyIndex;
 
 	bool prevReady = false;
+	int curAlt,curCtrl,curSft,curWin = curSft = curCtrl = curAlt = 0;
+	int prevAlt,prevCtrl,prevSft,prevWin = prevSft = prevCtrl = prevAlt = 0;
 
 	int prevMod;
 	BOOL prevDiKeys[256];
@@ -1318,14 +1320,18 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 
 			// current state of modifier keys
 			curMod = 0;
+			prevCtrl = curCtrl;
+			prevSft = curSft;
+			prevAlt = curAlt;
+			prevWin = curWin;
 			if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
-				curMod |= MOD_CONTROL;
+				curMod |= MOD_CONTROL, curCtrl =(KEYDOWN(DIK_LCONTROL) ? 1 : 2);	//"GetKeyState" and "GetAsyncKeyState" go screwy on these modifier keys.
 			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-				curMod |= MOD_SHIFT;
+				curMod |= MOD_SHIFT, curSft =(KEYDOWN(DIK_LSHIFT & 0x8000) ? 1 : 2);
 			if(GetAsyncKeyState(VK_MENU) & 0x8000)
-				curMod |= MOD_ALT;
+				curMod |= MOD_ALT, curAlt =(KEYDOWN(DIK_LMENU & 0x8000) ? 1 : 2);
 			if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
-				curMod |= MOD_WIN;
+				curMod |= MOD_WIN, curWin =(KEYDOWN(DIK_LWIN & 0x8000) ? 1 : 2);
 
 			// current state of virtual windows keys
 			for(i = 0; i < 256; i++)
@@ -1393,9 +1399,24 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 
 			// check for modifier key releases
 			// this allows a modifier key to be used as a hotkey on its own, as some people like to do
-			if(!curMod && prevMod && allowVirtual)
+			// Upth-mod: fixed to bind only the specific key that was pressed, instead of either of the two.
+			if(!curMod && prevMod)
 			{
-				button.SetAsVirt(VK_NONE, prevMod);
+				switch (prevMod)
+				{
+					case MOD_ALT:
+						button.SetAsDIK((prevAlt == 2)? DIK_RMENU : DIK_LMENU, curMod);	//for some reason, it won't read these if set as VirtKeys.
+						break;
+					case MOD_CONTROL:
+						button.SetAsDIK((prevCtrl == 2)? DIK_RCONTROL : DIK_LCONTROL, curMod);
+						break;
+					case MOD_SHIFT:
+						button.SetAsDIK((prevSft == 2)? DIK_RSHIFT : DIK_LSHIFT, curMod);
+						break;
+					case MOD_WIN:
+						button.SetAsDIK((prevWin == 2)? DIK_RWIN : DIK_LWIN, curMod);
+						break;
+				}
 				return;
 			}
 

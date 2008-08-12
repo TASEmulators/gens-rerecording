@@ -2273,11 +2273,10 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (Auto_Pause && Active)
 				{
-					Active = 0;
-
 					if (!Paused) Pause_Screen();
 					Clear_Sound_Buffer();
 				}
+				Active = 0;
 			}
 			break;
 
