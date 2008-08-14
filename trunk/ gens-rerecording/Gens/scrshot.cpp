@@ -212,8 +212,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 		}
 	}
 
-    //if(AVIRecorder == NULL) {
-	else 
+    if(AVIRecorder == NULL) 
 	{
 		AVIFrame = 0;
 		AVIRecorder = new AVIWrite();
