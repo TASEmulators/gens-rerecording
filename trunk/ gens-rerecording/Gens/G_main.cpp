@@ -5085,7 +5085,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					GetDlgItemText(hDlg, IDC_EDIT_PATCH, Patch_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_IPS, IPS_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Movie_Dir, 1024);
-					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Watch_Dir, 1024);
+					GetDlgItemText(hDlg, IDC_EDIT_WATCH, Watch_Dir, 1024);
 				case ID_CANCEL:
 					DialogsOpen--;
 					EndDialog(hDlg, true);
