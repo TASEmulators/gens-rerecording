@@ -240,6 +240,8 @@
 #define ID_LATENCY_COMPENSATION_5       1216
 #define ID_CHANGE_WATCH                 1217
 #define ID_FILE_AUTO                    1217
+#define IDC_CHECK1                      1217
+#define INPUT_FRAMEADVSKIPLAG           1217
 #define IDC_STATIC_WATCH                1218
 #define RAMMENU_FILE_AUTOLOAD           1218
 #define IDC_EDIT_WATCH                  1219
@@ -674,7 +676,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        149
 #define _APS_NEXT_COMMAND_VALUE         1222
-#define _APS_NEXT_CONTROL_VALUE         1217
+#define _APS_NEXT_CONTROL_VALUE         1218
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

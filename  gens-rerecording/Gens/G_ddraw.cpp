@@ -1761,7 +1761,9 @@ void UpdateLagCount()
 	{
 		LagCount++;
 		LagCountPersistent++;
+		if (frameadvSkipLag) justlagged = true;
 	}
+	else justlagged = false;
 }
 
 
