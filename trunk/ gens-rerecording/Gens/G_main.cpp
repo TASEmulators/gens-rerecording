@@ -1650,7 +1650,8 @@ void CC_End_Callback(char mess[256])
 	Build_Main_Menu();
 }
 #endif
-
+bool justlagged = false;
+bool frameadvSkipLag = false;
 
 BOOL Init(HINSTANCE hInst, int nCmdShow)
 {
@@ -2056,9 +2057,9 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}*/
 
 			Check_Misc_Key();
-			if((Active || BackgroundInput) && !Paused /*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
+			if(((Active || BackgroundInput) && !Paused) || justlagged/*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
 			{
-				if (Check_Skip_Key() && !Paused)
+				if ((Check_Skip_Key() && !Paused) || (justlagged && Paused))
 				{
 					Paused = 1;
 					Clear_Sound_Buffer();
@@ -2085,7 +2086,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			else		// EMULATION PAUSED
 			{
-				if((Active || BackgroundInput) && Check_Skip_Key() != 0)
+				if((Active || BackgroundInput) && Check_Skip_Key() != 0) //add lagged flag here, if true it conintues to emulate like it frame advanced.  It be turned true when lagcounter increases, will be turned false when lagcounter is tested and fails to decrease
 				{
 					Update_Emulation_One(HWnd);
 					soundCleared = false;
@@ -7760,6 +7761,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			//if (StateSelectCfg > 5)
 			//	StateSelectCfg = 0;
 			//SendDlgItemMessage(hDlg, IDC_COMBO_NUMLOAD, CB_SETCURSEL, (WPARAM) (StateSelectCfg), (LPARAM) 0);
+			SendDlgItemMessage(hDlg, INPUT_FRAMEADVSKIPLAG, BM_SETCHECK, (WPARAM) (frameadvSkipLag)?BST_CHECKED:BST_UNCHECKED, 0);
 
 			EnableWindow(GetDlgItem(hDlg, IDC_REASSIGNKEY), FALSE);
 			EnableWindow(GetDlgItem(hDlg, IDC_REVERTKEY), FALSE);
@@ -7863,7 +7865,9 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				case IDC_DISABLEKEY:
 					ModifyHotkeyFromListbox(GetDlgItem(hDlg, IDC_HOTKEYLIST), wParam, Tex0, hDlg);
 					break;
-
+				case INPUT_FRAMEADVSKIPLAG:
+					frameadvSkipLag ^= 1;
+					break;
 				case ID_HELP_HELP:
 					if (Detect_Format(Manual_Path) != -1)		// can be used to detect if file exist
 					{

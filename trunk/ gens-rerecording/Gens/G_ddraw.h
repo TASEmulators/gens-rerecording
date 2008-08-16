@@ -25,6 +25,8 @@ extern int FPS_Style;
 extern int Message_Style;
 extern int Kaillera_Error;
 extern unsigned char CleanAvi;
+extern bool frameadvSkipLag;
+extern bool justlagged;
 
 extern void (*Blit_FS)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);

@@ -2396,6 +2396,8 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Input", "LeftRightEnabled", Str_Tmp, Conf_File);//Modif
 	wsprintf(Str_Tmp, "%d", (BackgroundInput?1:0)); //Upth-Add - Allow hotkeys and joypad to function while gens window is inactive
 	WritePrivateProfileString("Input", "Allow Background Input", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", (frameadvSkipLag?1:0));
+	WritePrivateProfileString("Input", "Frame Adv. - Skip Lag", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", StateSelectCfg );//Modif U.
 	WritePrivateProfileString("Input", "StateSelectType", Str_Tmp, Conf_File);//Modif N.
 
@@ -2753,6 +2755,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	LeftRightEnabled = GetPrivateProfileInt("Input", "LeftRightEnabled", 0, Conf_File);
 	BackgroundInput = GetPrivateProfileInt("Input", "Allow Background Input", 0, Conf_File) != 0; //Upth-add - Allow input of hotkeys and joypad buttons while window is inactive
+	frameadvSkipLag = GetPrivateProfileInt("Input", "Frame Adv. - Skip Lag", 0, Conf_File);
 	StateSelectCfg = GetPrivateProfileInt("Input", "StateSelectType", 5, Conf_File); //Modif N
 
 	GetPrivateProfileString("Splice","SpliceMovie","",SpliceMovie,1024,Conf_File);

@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
-
+#include "afxres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -88,6 +87,8 @@ BEGIN
     PUSHBUTTON      "Use Default",IDC_USEDEFAULTKEY,297,234,47,16
     LISTBOX         IDC_HOTKEYLIST,204,18,185,211,LBS_USETABSTOPS | LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
     PUSHBUTTON      "Revert",IDC_REVERTKEY,254,234,42,16
+    CONTROL         "Frame Adv. skip lag frames",INPUT_FRAMEADVSKIPLAG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,277,101,10
 END
 
 IDD_RAMSEARCH DIALOGEX 0, 0, 287, 298
@@ -780,8 +781,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
-
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 
