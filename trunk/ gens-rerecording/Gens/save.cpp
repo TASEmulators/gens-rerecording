@@ -189,11 +189,12 @@ void Get_State_File_Name(char *name)
 	if (UseMovieStates && MainMovie.Status)
 	{
 		strcat(name," - ");
-		char* slash = 
-			((strrchr(MainMovie.FileName, '/') > strrchr(MainMovie.FileName, '\\')) ? 
-			strrchr(MainMovie.FileName, '/') : 
-			strrchr(MainMovie.FileName, '\\'));
-		slash++;
+		char* slash = strrchr(MainMovie.FileName, '/');
+		slash = max(slash, strrchr(MainMovie.FileName, '\\'));
+		if(slash)
+			slash++;
+		else
+			slash = MainMovie.FileName;
 		strcat(name,slash);
 		name[strlen(name)-4] = '\0';
 	}
