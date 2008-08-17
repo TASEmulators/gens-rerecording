@@ -2755,7 +2755,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	LeftRightEnabled = GetPrivateProfileInt("Input", "LeftRightEnabled", 0, Conf_File);
 	BackgroundInput = GetPrivateProfileInt("Input", "Allow Background Input", 0, Conf_File) != 0; //Upth-add - Allow input of hotkeys and joypad buttons while window is inactive
-	frameadvSkipLag = GetPrivateProfileInt("Input", "Frame Adv. - Skip Lag", 0, Conf_File);
+	frameadvSkipLag = GetPrivateProfileInt("Input", "Frame Adv. - Skip Lag", 0, Conf_File) != 0;
 	StateSelectCfg = GetPrivateProfileInt("Input", "StateSelectType", 5, Conf_File); //Modif N
 
 	GetPrivateProfileString("Splice","SpliceMovie","",SpliceMovie,1024,Conf_File);

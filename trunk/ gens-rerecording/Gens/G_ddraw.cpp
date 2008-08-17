@@ -141,7 +141,7 @@ int (*Update_Frame_Fast)();
 
 int Update_Frame_Adjusted()
 {
-	if(VideoLatencyCompensation <= 0)
+	if(!IsVideoLatencyCompensationOn())
 	{
 		// normal update
 		return Update_Frame();
@@ -728,7 +728,7 @@ void DrawInformationOnTheScreen()
 		const unsigned char GVo = 0xC;
 		const unsigned char XPo = 0x0;
 		const unsigned char YPo = 0x4;
-		#elif (defined S1) || (defined SCD) //Sonic 1
+		#elif (defined S1) || (defined GAME_SCD) //Sonic 1
 		bool Knuckles = Game ? !(strncmp("KNUCKLES",Game->Rom_Name,strlen("KNUCKLES"))) : 0; //Checks the Rom title to see if it's "KNUCKLES THE ECHIDNA IN - SONIC THE HEDGEHOG"
 		const unsigned int P1OFFSET = 0xD008;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 		const unsigned int SinTableOffset = ((Knuckles) ? 0x2980: 0x29F2); // sonic 1: 29F2 S1K: 2980 ... sonic 2: 33CE ... sonic 3: 1D64 //Where in the ROM is the sine table?

@@ -16,7 +16,7 @@
 
 #ifdef SONICCAMHACK
 unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
-extern "C" int Do_VDP_Only();
+//extern "C" int Do_VDP_Only();
 extern "C" int Do_Genesis_Frame_No_VDP();
 extern "C" unsigned char Lag_Frame;
 
@@ -216,7 +216,7 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 		const unsigned int LEVELHEIGHT = 2047;
 		const unsigned char XSCROLLRATE = 16;
 		const unsigned char YSCROLLRATE = 16;
-	#elif defined SCD
+	#elif defined GAME_SCD
 		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 		const unsigned char XPo = 0x8;
 		const unsigned char YPo = 0xC;
@@ -258,7 +258,7 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 		const unsigned char XSCROLLRATE = 16;
 		const unsigned char YSCROLLRATE = 16;
 	#endif
-#ifdef SCD
+#ifdef GAME_SCD
 		unsigned int SizeTableX = 0x2070C6;
 		unsigned int SizeTableY = 0x2070C7;
 		unsigned int SizeTableBlah = 0;
@@ -304,6 +304,9 @@ unsigned short GetBlockSK(int X,int Y)
 //Num lock enables display of 16x16 tile angles and collision indices
 void DisplaySolid()
 {
+		if (GetKeyState(VK_SCROLL))
+			return;
+
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
 		unsigned short BLOCKSIZE,TILEMASK;
 		unsigned char BLOCKSHIFT,SOLIDSHIFT,DRAWSHIFT;
@@ -321,7 +324,7 @@ void DisplaySolid()
 		DRAWSHIFT = 0xB;		//((Tile >> DRAWSHIFT) & 3) gives the draw flags
 		TILEMASK = 0x7FF;		//(Tile & TILEMASK) gives the tile number, which is also an index into the angle array.
 		S3 = 0;
-	#elif defined SCD
+	#elif defined GAME_SCD
 		static unsigned int NITSUJA = 0x2011E8;	//Palmtree Panic 1 Present has a pointer to the 16x16 Angle array at this location
 		static unsigned int STEALTH = 0;		//What our Angle array pointer was when the pointers were last updated
 		ANGARR = CheatRead<unsigned int>(NITSUJA);
@@ -363,7 +366,7 @@ void DisplaySolid()
 		TILEMASK = 0x3FF;
 		S3 = !(* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3);
 	#endif
-	#ifdef SCD
+	#ifdef GAME_SCD
 	if (CheatRead<unsigned int>(NITSUJA) != STEALTH) //if our collision pointer changed, search for a new one
 	{
 		int addr = 0x200000;	//Word RAM starts at 0x200000
@@ -417,7 +420,7 @@ void DisplaySolid()
 				#else
 					Block = CheatRead<unsigned char>(BLOCKSTART + BlockNum);	//S1, S2, and SCD just have a long list of metatiles with a fixed row length.
 				#endif
-				#if defined S1 || defined SCD
+				#if defined S1 || defined GAME_SCD
 					if (Block)	//S1 and SCD have hardcoded metatile numbers. 0 is empty
 					{
 						if (Block & 0x80) //high bit set means the block is special, usually a loop
@@ -451,7 +454,7 @@ void DisplaySolid()
 									#if defined S1
 										TileNum = ((TempX >> 4) & 0xF) + (TempY & 0xF0);
 										Tile = CheatRead<short>(0xFF0000 | (((unsigned short)Block << BLOCKSHIFT) + (TileNum << 1)));//Sonic 1 stores metatiles definitions at the beginning of M68K RAM
-									#elif defined SCD
+									#elif defined GAME_SCD
 										TileNum = ((TempX >> 4) & 0xF) + (TempY & 0xF0);
 										Tile = CheatRead<short>(0x210000 | (((unsigned short)Block << BLOCKSHIFT) + (TileNum << 1)));//Sonic CD has metatile definitions uncompressed in Word RAM
 									#else
@@ -615,7 +618,7 @@ void DisplaySolid()
 									Tile &= TILEMASK;						//get tile number
 									if (!Tile) {TempX +=0x10; continue;}	//tile 0 is never solid
 									if (!SolidType) {TempX +=0x10; continue;} //we don't need to check collision defs if tile isn't solid
-									#if !(defined S1 || defined SCD)
+									#if !(defined S1 || defined GAME_SCD)
 										ColMapPt = (SOLIDSHIFT & 2); //Sonic games with two paths also have two collision map pointers.
 										#ifdef SK
 											ColMapPt <<= 1;
@@ -751,7 +754,7 @@ void DisplaySolid()
 							}
 						}
 						TempY += 0x10;
-				#if defined S1 || defined SCD
+				#if defined S1 || defined GAME_SCD
 					}
 				#endif
 				}
@@ -1099,7 +1102,7 @@ void DrawBoxes()
 			Touchable = (CheatRead<unsigned char>(CardBoard + To)?true:false);
 			if (Touchable)
 			{
-			#ifdef SCD
+			#ifdef GAME_SCD
 				if (CheatRead<unsigned int>(SizeTableX) != SizeTableBlah)
 				{
 					int addr = 0x200000;	//Word RAM starts at 0x200000
@@ -1212,7 +1215,7 @@ void DrawBoxes()
 #endif
 	//				Ypos -= 0x8;
 			}
-	#if !(defined S1 || defined SCD)
+	#if !(defined S1 || defined GAME_SCD)
 			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)
 			{
 				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
@@ -1378,7 +1381,7 @@ int SonicCamHack()
 		// no need for cam hack now, do a regular update (still with hitbox and solidity display stuff on top)
 
 		int retval;
-		if(VideoLatencyCompensation <= 0)
+		if(!IsVideoLatencyCompensationOn())
 		{
 			CamX = CheatRead<signed short>(CAMOFFSET1);
 			CamY = CheatRead<signed short>(CAMOFFSET1+4);
@@ -1434,7 +1437,7 @@ int SonicCamHack()
 		numframes = maxFrames;
 
 	int firstFreezeFrame = VideoLatencyCompensation-1;
-	if(firstFreezeFrame < 0)
+	if(firstFreezeFrame < 0 || !IsVideoLatencyCompensationOn())
 		firstFreezeFrame = 0;
 	if(numframes+1 < firstFreezeFrame)
 		numframes = firstFreezeFrame-1;
@@ -1442,7 +1445,7 @@ int SonicCamHack()
 	disableSound = true;
 	unsigned char posbuf[SSTLEN];
 	int time = CheatRead<signed int>(0xFFFE22);
-#ifdef SCD
+#ifdef GAME_SCD
 		time = CheatRead<signed int>(0xFF1514);
 #endif
 	for(int i = 0 ; i <= numframes ; i++)
@@ -1460,7 +1463,7 @@ int SonicCamHack()
 			CheatWrite<signed short>(CAMOFFSET2, origx);
 			CheatWrite<signed short>(CAMOFFSET2+4, origy);
 		#endif
-		#ifdef SCD
+		#ifdef GAME_SCD
 			CheatWrite<signed short>(CAMOFFSET3, origx);
 			CheatWrite<signed short>(CAMOFFSET3+4, origy);
 			CheatWrite<signed int>(0xFF1514,time);
@@ -1490,7 +1493,7 @@ int SonicCamHack()
 			CamY = CheatRead<signed short>(CAMOFFSET1+4);
 		}
 
-#ifdef SCD
+#ifdef GAME_SCD
 		// this seems to work better than checking Lag_Frame in this case
 		if(numframes < maxFrames && time == CheatRead<signed int>(0xFF1514) && (CheatRead<signed short>(0xFF1510) & 0x100))
 			numframes++; // lagged a frame
