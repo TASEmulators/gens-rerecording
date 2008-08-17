@@ -72,7 +72,7 @@ void EccoDrawBoxes()
 	{
 		int off = i * 224;
 		if (j - off == 224) i++, off+=224;
-		color32 = j >> 3;
+		color32 = j >> 2;
 		color16 = ((color32 << 8) & 0xF800) | ((color32 << 3) & 0x7E0) | (color32 >> 3);
 		color32 = (color32 << 16) | (color32 << 8) | color32;
 		DrawLine(0,j - off,8,j - off,color32,color16,0);
@@ -435,6 +435,13 @@ void EccoDrawBoxes()
 			Xpos -= CamX,Ypos -= CamY;
 			DrawEccoOct(Xpos,Ypos,CheatRead<unsigned short>(CardBoard + 0x44),0x00FF00,0x07E0,1,-1);
 		}
+		else if (type == 0xDCEE0)
+		{
+			Xpos = CheatRead<unsigned short>(CardBoard + 0x24);
+			Ypos = CheatRead<unsigned short>(CardBoard + 0x28);
+			Xpos -= CamX,Ypos -= CamY;
+			DrawEccoOct(Xpos,Ypos,0x5C,0x00FF00,0x07E0,1,-1);
+		}
 		else
 		{
 			Xpos = CheatRead<unsigned short>(CardBoard + 0x2C);
@@ -623,6 +630,7 @@ void EccoAutofire ()
 			break;
 		case 0x20:
 		case 0x28:
+		case 0xAC:
 			if(nowCap && ((FrameCount - LagCount) > temp))
 			{
 				if(Controller_1_C && (((FrameCount - LagCount) - temp) % 12))

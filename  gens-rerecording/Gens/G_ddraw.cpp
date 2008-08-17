@@ -187,6 +187,7 @@ int Update_Frame_Hook()
 			{
 				case 0x20:
 				case 0x28:
+				case 0xAC:
 					EccoDrawBoxes();
 					xpos = CheatRead<int>(0xFFA8F0);
 					ypos = CheatRead<int>(0xFFA8F4);

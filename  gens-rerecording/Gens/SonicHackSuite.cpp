@@ -304,8 +304,8 @@ unsigned short GetBlockSK(int X,int Y)
 //Num lock enables display of 16x16 tile angles and collision indices
 void DisplaySolid()
 {
-		if (GetKeyState(VK_SCROLL))
-			return;
+//		if (GetKeyState(VK_SCROLL))
+//			return;
 
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
 		unsigned short BLOCKSIZE,TILEMASK;
