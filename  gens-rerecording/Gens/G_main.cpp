@@ -157,7 +157,7 @@ int Gens_Priority;
 int SS_Actived;
 int DialogsOpen = 0; //Modif
 int SlowDownMode = 0; //Modif
-int VideoLatencyCompensation = 0; // I really want this to default to 2 since it makes everything play better, but I can't assume everyone has a fast enough computer to handle the extra processing it requires
+int VideoLatencyCompensation = 0;
 
 BOOL AutoFireKeyDown=0;	//Modif N.
 BOOL AutoHoldKeyDown=0;	//Modif N.
@@ -324,6 +324,15 @@ int Set_Latency_Compensation(int Num)
 	Build_Main_Menu();
 	return(1);
 }
+
+int IsVideoLatencyCompensationOn()
+{
+	if(MainMovie.Status == MOVIE_PLAYING && !MainMovie.Recorded)
+		return 0; // the option is for input responsiveness, it's useless when watching a movie
+
+	return VideoLatencyCompensation > 0;
+}
+
 
 
 int Set_Current_State(HWND hWnd, int Num)
