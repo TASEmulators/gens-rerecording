@@ -55,6 +55,7 @@ extern "C" char played_tracks_linear [101]; // cd_sys.c
 extern "C" char Track_Played; // cd_file.c
 extern "C" int FILE_Play_CD_LBA(int async);
 extern int FS_Minimised;
+extern bool skipLagNow, frameadvSkipLag_Rewind_State_Buffer_Valid;
 
 #ifdef _WIN32
 	#define MINIMIZE								\
@@ -242,6 +243,7 @@ int Load_State_From_Buffer(unsigned char *buf)
 //		Flag_Clr_Scr = 1;
 //		CRam_Flag = 1;
 //		VRam_Flag = 1;
+
 	return (int) buf;
 }
 
@@ -259,6 +261,13 @@ int Load_State(char *Name)
 	else if (SegaCD_Started) len += SEGACD_LENGTH_EX;
 	else if (_32X_Started) len += G32X_LENGTH_EX;
 	else return 0;
+
+	frameadvSkipLag_Rewind_State_Buffer_Valid = false;
+	if(skipLagNow)
+	{
+		skipLagNow = false;
+		Paused = 1;
+	}
 
 	if(MainMovie.ReadOnly==0 && MainMovie.File)
 	{

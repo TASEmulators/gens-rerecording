@@ -1762,9 +1762,7 @@ void UpdateLagCount()
 	{
 		LagCount++;
 		LagCountPersistent++;
-		if (frameadvSkipLag) justlagged = true;
 	}
-	else justlagged = false;
 }
 
 
@@ -1992,8 +1990,7 @@ int Update_Emulation(HWND hWnd)
 	return 1;
 }
 
-
-int Update_Emulation_One(HWND hWnd)
+void Update_Emulation_One_Before(HWND hWnd)
 {
 	if (Sound_Enable)
 	{
@@ -2013,12 +2010,41 @@ int Update_Emulation_One(HWND hWnd)
 	}
 	FrameCount++; //Modif
 	Lag_Frame = 1;
-	Update_Frame_Hook();
+}
+
+void Update_Emulation_One_After(HWND hWnd)
+{
 	Update_RAM_Cheats();
 	UpdateLagCount();
 	DUMPAVICLEAN
 	Flip(hWnd);
+}
 
+void Update_Emulation_After_Fast(HWND hWnd)
+{
+	Update_RAM_Cheats();
+	UpdateLagCount();
+
+	int Temp_Frame_Skip = Frame_Skip;
+	if(FastForwardKeyDown && (GetActiveWindow()==hWnd || BackgroundInput))
+		Temp_Frame_Skip = 8;
+	if (AVIRecording && CleanAvi && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
+		Temp_Frame_Skip = 0;
+	if (Frame_Number > 8) Frame_Number = 8;
+	if (Frame_Number++ < Temp_Frame_Skip)
+		return;
+	Frame_Number = 0;
+
+	DUMPAVICLEAN
+	Flip(hWnd);
+}
+
+
+int Update_Emulation_One(HWND hWnd)
+{
+	Update_Emulation_One_Before(hWnd);
+	Update_Frame_Hook();
+	Update_Emulation_One_After(hWnd);
 	return 1;
 }
 
