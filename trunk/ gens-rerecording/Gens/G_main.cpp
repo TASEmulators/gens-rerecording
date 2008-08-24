@@ -182,6 +182,7 @@ int FrameCounterPosition=16*336+32; //Modif
 int MustUpdateMenu=0; // Modif
 bool RamSearchClosed = false;
 bool RamWatchClosed = false;
+
 unsigned char StateSelectCfg = 0;
 char rs_c='s';
 char rs_o='=';
@@ -196,6 +197,19 @@ unsigned long SeekFrame = 0;
 char *TempName;
 char SpliceMovie[1024];
 long x = 0, y = 0, xg = 0, yg = 0;
+
+bool frameadvSkipLag = false;
+bool skipLagNow = false;
+bool lastFrameAdvancePaused = false;
+unsigned char frameadvSkipLag_Rewind_State_Buffer[2][MAX_STATE_FILE_LENGTH];
+long long frameadvSkipLag_Rewind_Input_Buffer[2];
+int frameadvSkipLag_Rewind_State_Buffer_Index = 0;
+bool frameadvSkipLag_Rewind_State_Buffer_Valid = false;
+extern "C" int Do_VDP_Only();
+extern void Update_Emulation_One_Before(HWND hWnd);
+extern void Update_Emulation_After_Fast(HWND hWnd);
+extern "C" int disableSound, disableSound2;
+
 
 POINT Window_Pos;
 
@@ -331,6 +345,23 @@ int IsVideoLatencyCompensationOn()
 		return 0; // the option is for input responsiveness, it's useless when watching a movie
 
 	return VideoLatencyCompensation > 0;
+}
+
+int GetCurrentInputCondensed()
+{
+	int a = Controller_1_Up|(Controller_1_Down<<1)|(Controller_1_Left<<2)|(Controller_1_Right<<3)|(Controller_1_A<<4)|(Controller_1_B<<5)|(Controller_1_C<<6)|(Controller_1_Start<<7);
+	int b, c;
+	if(MainMovie.TriplePlayerHack)
+	{
+		b = Controller_1B_Up|(Controller_1B_Down<<1)|(Controller_1B_Left<<2)|(Controller_1B_Right<<3)|(Controller_1B_A<<4)|(Controller_1B_B<<5)|(Controller_1B_C<<6)|(Controller_1B_Start<<7);
+		c = Controller_1C_Up|(Controller_1C_Down<<1)|(Controller_1C_Left<<2)|(Controller_1C_Right<<3)|(Controller_1C_A<<4)|(Controller_1C_B<<5)|(Controller_1C_C<<6)|(Controller_1C_Start<<7);	
+	}
+	else
+	{
+		b = Controller_2_Up|(Controller_2_Down<<1)|(Controller_2_Left<<2)|(Controller_2_Right<<3)|(Controller_2_A<<4)|(Controller_2_B<<5)|(Controller_2_C<<6)|(Controller_2_Start<<7);
+		c = Controller_1_X|(Controller_1_Y<<1)|(Controller_1_Z<<2)|(Controller_1_Mode<<3)|(Controller_2_X<<4)|(Controller_2_Y<<5)|(Controller_2_Z<<6)|(Controller_2_Mode<<7);
+	}
+	return a | (b << 8) | (c << 16) | (0xFF << 24);
 }
 
 
@@ -1659,8 +1690,6 @@ void CC_End_Callback(char mess[256])
 	Build_Main_Menu();
 }
 #endif
-bool justlagged = false;
-bool frameadvSkipLag = false;
 
 BOOL Init(HINSTANCE hInst, int nCmdShow)
 {
@@ -2007,23 +2036,20 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	{
 		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
-			if (!GetMessage(&msg, NULL, 0, 0)) Gens_Running = 0;
-			{
-				if (!RamSearchHWnd || !IsDialogMessage(RamSearchHWnd, &msg))
-				{
-					if (!RamWatchHWnd || !IsDialogMessage(RamWatchHWnd, &msg))
-					{
-						if (!VolControlHWnd || !IsDialogMessage(VolControlHWnd, &msg))
-						{
-							if (!TranslateAccelerator (HWnd, hAccelTable, &msg))
-							{
-								TranslateMessage(&msg); 
-								DispatchMessage(&msg);
-							}
-						}
-					}
-				}
-			}
+			if (!GetMessage(&msg, NULL, 0, 0))
+				Gens_Running = 0;
+
+			if (RamSearchHWnd && IsDialogMessage(RamSearchHWnd, &msg))
+				continue;
+			if (RamWatchHWnd && IsDialogMessage(RamWatchHWnd, &msg))
+				continue;
+			if (VolControlHWnd && IsDialogMessage(VolControlHWnd, &msg))
+				continue;
+			if (TranslateAccelerator (HWnd, hAccelTable, &msg))
+				continue;
+
+			TranslateMessage(&msg); 
+			DispatchMessage(&msg);
 		}
 
 		Update_Input();
@@ -2041,76 +2067,145 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			static DWORD tgtime = timeGetTime(); //Modif N - give frame advance sound:
 			static bool soundCleared = false;
 
-			/*if((Active) && QuickPauseKey!=0)
-			{
-				if(Check_Pause_Key())
-				{
-					if (Debug)
-					{
-						Change_Debug(HWnd, 0);
-						Paused = 0;
-						Build_Main_Menu();
-					}
-					else if (Paused)
-					{
-						Paused = 0;
-					}
-					else
-					{
-						Paused = 1;
-						Pause_Screen();
-						Clear_Sound_Buffer();
-						Flip(HWnd);
-					}
-				}
-			}*/
-
 			Check_Misc_Key();
-			if(((Active || BackgroundInput) && !Paused) || justlagged/*&& SkipKey!=0*/) // so that the frame advance key can pause even if pause on a gamekey isn't set
-			{
-				if ((Check_Skip_Key() && !Paused) || (justlagged && Paused))
-				{
-					Paused = 1;
-					Clear_Sound_Buffer();
-					Update_Emulation_One(HWnd);
-					soundCleared = false;
-					tgtime = timeGetTime();
-				}
-			}
+			Update_Input();
+
 			if (MustUpdateMenu)
 			{
 				Build_Main_Menu();
 				MustUpdateMenu=0;
 			}
-			if (!Paused)	// EMULATION
-			{
-				Update_Emulation(HWnd);
 
-				//Modif N - don't hog 100% of CPU power:
-				static int count = 0;
-				count++;
-				if(!(FastForwardKeyDown && GetActiveWindow()==HWnd)) //Modif N - part of a quick hack to make Tab the fast-forward key
-					if(Frame_Skip == -1 || ((count % (Frame_Skip+2)) == 0))
-						Sleep(1); //Modif N
-			}
-			else		// EMULATION PAUSED
+			int frameAdvanceKeyJustReleased = (Active || BackgroundInput) ? Check_Skip_Key_Released() : 0;
+			static int frameAdvanceKeyWasJustPressed = 0;
+
+			if(!(frameadvSkipLag && skipLagNow && !Paused))
 			{
-				if((Active || BackgroundInput) && Check_Skip_Key() != 0) //add lagged flag here, if true it conintues to emulate like it frame advanced.  It be turned true when lagcounter increases, will be turned false when lagcounter is tested and fails to decrease
+				skipLagNow = false;
+
+				if(frameadvSkipLag && (frameAdvanceKeyJustReleased || frameAdvanceKeyWasJustPressed) && !lastFrameAdvancePaused && frameadvSkipLag_Rewind_State_Buffer_Valid)
 				{
-					Update_Emulation_One(HWnd);
-					soundCleared = false;
-					tgtime = timeGetTime();
+					// activate lag skip checking
+					skipLagNow = true;
+					Paused = 0; // so the pause button can re-pause while skipping lag frames
+				}
+				else if((Active || BackgroundInput) && Check_Skip_Key())
+				{
+					// handle frame advance key
+					if(Paused)
+					{
+						if(frameadvSkipLag)
+						{
+							frameadvSkipLag_Rewind_Input_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index%2] = GetLastInputCondensed();
+							Save_State_To_Buffer(frameadvSkipLag_Rewind_State_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index++%2]);
+							frameadvSkipLag_Rewind_State_Buffer_Valid = true;
+						}
+
+						Update_Emulation_One(HWnd);
+						soundCleared = false;
+						tgtime = timeGetTime();
+						lastFrameAdvancePaused = false;
+					}
+					else
+					{
+						// if the game isn't paused yet then the first press of the frame advance key only pauses the game
+						Paused = 1;
+						Clear_Sound_Buffer();
+						soundCleared = true;
+						lastFrameAdvancePaused = true;
+					}
+				}
+				else // normal emulation
+				{
+					if (!Paused)	// EMULATION
+					{
+						Update_Emulation(HWnd);
+					}
+					else		// EMULATION PAUSED
+					{
+						if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
+						{
+							Clear_Sound_Buffer();
+							soundCleared = true;
+						}
+					}
+
+					//Modif N - don't hog 100% of CPU power:
+					// (this is in addition to a sleep of Sleep_Time elsewhere, because sometimes that code is not running)
+					if(Sleep_Time)
+					{
+						if (Paused)
+						{
+							Sleep(1);
+						}
+						else
+						{
+							static int count = 0;
+							count++;
+							if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
+								if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
+									Sleep(1);
+						}
+					}
+				}
+			}
+			else //if(frameadvSkipLag && skipLagNow && !Paused)
+			{
+				if(FrameCount == 0)
+				{
+					// this case is to interrupt the auto-frame skipping if the game or movie is reset or reloaded
+					Paused = 1;
+					skipLagNow = false;
+					frameadvSkipLag_Rewind_State_Buffer_Valid = false;
 				}
 				else
 				{
-					if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
+					// perform lag skip checking
+
+					frameadvSkipLag_Rewind_Input_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index%2] = GetLastInputCondensed();
+					SetNextInputCondensed(frameadvSkipLag_Rewind_Input_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index%2]); // to reduce user confusion, this line prevents the input display from changing more than once per frame advance by applying the initially accepted input to all following auto-skipped lag frames
+					Save_State_To_Buffer(frameadvSkipLag_Rewind_State_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index++%2]);
+					frameadvSkipLag_Rewind_State_Buffer_Valid = true;
+
+					// update the graphics in case they're changing during non-input frames
+					int Temp_Frame_Skip = Frame_Skip;
+					if(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput))
+						Temp_Frame_Skip = 8;
+					if(Lag_Frame && Frame_Number+1 >= Temp_Frame_Skip)
+						Do_VDP_Only(); // better than nothing for showing skipped frames
+					if(!Lag_Frame)
+						disableSound2 = true;
+
+					Update_Emulation_One_Before(HWnd);
+					Update_Frame_Fast();
+					disableSound2 = false;
+					soundCleared = false;
+					tgtime = timeGetTime();
+					if(Lag_Frame)
 					{
-						Clear_Sound_Buffer();
-						soundCleared = true;
+						// keep going, because the frame ignored user input
+						Update_Emulation_After_Fast(HWnd);
+					}
+					else
+					{
+						// stop skipping, the next frame will accept user input
+	#if 0
+						// works most of the time but certain cases won't look right
+						Do_VDP_Only();
+	#else
+						// re-run the last frame to generate its graphics properly
+						Load_State_From_Buffer(frameadvSkipLag_Rewind_State_Buffer[frameadvSkipLag_Rewind_State_Buffer_Index%2]);
+						SetNextInputCondensed(frameadvSkipLag_Rewind_Input_Buffer[(frameadvSkipLag_Rewind_State_Buffer_Index+1)%2]); // being careful to re-run the last frame with the same input as before
+						Update_Emulation_One(HWnd);
+	#endif
+						Paused = 1;
+						skipLagNow = false;
+						frameadvSkipLag_Rewind_State_Buffer_Valid = false;
 					}
 				}
-				Sleep(1);
 			}
+			
+			frameAdvanceKeyWasJustPressed = (Active || BackgroundInput) ? Check_Skip_Key_Pressed() : 0;
 		}
 		else if (GYM_Playing)			// PLAY GYM
 		{
@@ -2135,7 +2230,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		}
 		else							// BLANK SCREEN (MAX IDLE)
 		{
-			// Modif N. -- reduced sleep time without reducing clear frequency
+			// Modif N. -- reduced sleep time without increasing clear frequency
 			// to make non-accelerator hotkeys more responsive when no game is running
 			static int clearCounter = 0;
 			if(++clearCounter % 10 == 0)
@@ -4698,22 +4793,25 @@ HMENU Build_Main_Menu(void)
 	// Menu Help
 
 	i = 0;
-	
-	while (language_name[i])
-	{
-		GetPrivateProfileString(language_name[i], "Menu Language", "Undefined language", Str_Tmp, 1024, Language_Path);
-		if (Language == i)
-			InsertMenu(Help, i, Flags | MF_CHECKED, ID_HELP_LANG + i, Str_Tmp);
-		else 
-			InsertMenu(Help, i, Flags | MF_UNCHECKED, ID_HELP_LANG + i, Str_Tmp);
 
-		i++;
-	}
-
+	MENU_L(Help, i++, Flags, ID_HELP_ABOUT, "About" ,"", "&About");
 	InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
+
+	j = 0;
+	while (language_name[j])
+	{
+		GetPrivateProfileString(language_name[j], "Menu Language", "Undefined language", Str_Tmp, 1024, Language_Path);
+		if (Language == j)
+			InsertMenu(Help, i++, Flags | MF_CHECKED, ID_HELP_LANG + j, Str_Tmp);
+		else 
+			InsertMenu(Help, i++, Flags | MF_UNCHECKED, ID_HELP_LANG + j, Str_Tmp);
+		j++;
+	}
 
 	if (Detect_Format(Manual_Path) != -1)		// can be used to detect if file exist
 	{
+		InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
+
 		MENU_L(Help, i++, Flags, ID_HELP_MENU_FILE, "File menu" ,"", "&File menu");
 		MENU_L(Help, i++, Flags, ID_HELP_MENU_GRAPHICS, "Graphics menu" ,"", "&Graphics menu");
 		MENU_L(Help, i++, Flags, ID_HELP_MENU_CPU, "CPU menu" ,"", "&CPU menu");
@@ -4726,11 +4824,7 @@ HMENU Build_Main_Menu(void)
 		MENU_L(Help, i++, Flags, ID_HELP_MEGACD, "Mega/Sega CD" ,"", "&Mega/Sega CD");
 		MENU_L(Help, i++, Flags, ID_HELP_FAQ, "FAQ" ,"", "&FAQ");
 		MENU_L(Help, i++, Flags, ID_HELP_KEYS, "Shortcuts" ,"", "&Defaults keys && Shortcuts");
-
-		InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
 	}
-
-	MENU_L(Help, i, Flags, ID_HELP_ABOUT, "About" ,"", "&About");
 
 	Gens_Menu = MainMenu;
 
@@ -7350,6 +7444,14 @@ LRESULT CALLBACK AboutProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			dy2 = (r2.bottom - r2.top) / 2;
 
 			SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+
+			SetDlgItemText(hDlg, IDC_EDIT1,
+				"Original version (c) 1999/2002 by Stéphane Dallongeville" "\r\n" "\r\n"
+				"More about this version at:" "\r\n"
+				"http://code.google.com/p/gens-rerecording/" "\r\n"
+				"http://tasvideos.org/forum/"
+			);
+
 			return true;
 			break;
 

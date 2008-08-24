@@ -1471,6 +1471,73 @@ unsigned int Get_Key(void)
 	return tempButton.diKey;
 }
 
+static long long GetCurrentInputCondensed()
+{
+	long long a = Controller_1_Up|(Controller_1_Down<<1)|(Controller_1_Left<<2)|(Controller_1_Right<<3)|(Controller_1_A<<4)|(Controller_1_B<<5)|(Controller_1_C<<6)|(Controller_1_Start<<7);
+	long long b = Controller_1B_Up|(Controller_1B_Down<<1)|(Controller_1B_Left<<2)|(Controller_1B_Right<<3)|(Controller_1B_A<<4)|(Controller_1B_B<<5)|(Controller_1B_C<<6)|(Controller_1B_Start<<7);
+	long long c = Controller_1C_Up|(Controller_1C_Down<<1)|(Controller_1C_Left<<2)|(Controller_1C_Right<<3)|(Controller_1C_A<<4)|(Controller_1C_B<<5)|(Controller_1C_C<<6)|(Controller_1C_Start<<7);	
+	long long d = Controller_2_Up|(Controller_2_Down<<1)|(Controller_2_Left<<2)|(Controller_2_Right<<3)|(Controller_2_A<<4)|(Controller_2_B<<5)|(Controller_2_C<<6)|(Controller_2_Start<<7);
+	long long e = Controller_1_X|(Controller_1_Y<<1)|(Controller_1_Z<<2)|(Controller_1_Mode<<3)|(Controller_2_X<<4)|(Controller_2_Y<<5)|(Controller_2_Z<<6)|(Controller_2_Mode<<7);
+	return a | (b << 8) | (c << 16) | (d << 24) | (e << 32) | (0xFFFFFF0000000000);
+}
+static void SetCurrentInputCondensed(long long input)
+{
+	Controller_1_Up = (input & (1LL<<0)) ? 1 : 0;
+	Controller_1_Down = (input & (1LL<<1)) ? 1 : 0;
+	Controller_1_Left = (input & (1LL<<2)) ? 1 : 0;
+	Controller_1_Right = (input & (1LL<<3)) ? 1 : 0;
+	Controller_1_A = (input & (1LL<<4)) ? 1 : 0;
+	Controller_1_B = (input & (1LL<<5)) ? 1 : 0;
+	Controller_1_C = (input & (1LL<<6)) ? 1 : 0;
+	Controller_1_Start = (input & (1LL<<7)) ? 1 : 0;
+	Controller_1B_Up = (input & (1LL<<(8+0))) ? 1 : 0;
+	Controller_1B_Down = (input & (1LL<<(8+1))) ? 1 : 0;
+	Controller_1B_Left = (input & (1LL<<(8+2))) ? 1 : 0;
+	Controller_1B_Right = (input & (1LL<<(8+3))) ? 1 : 0;
+	Controller_1B_A = (input & (1LL<<(8+4))) ? 1 : 0;
+	Controller_1B_B = (input & (1LL<<(8+5))) ? 1 : 0;
+	Controller_1B_C = (input & (1LL<<(8+6))) ? 1 : 0;
+	Controller_1B_Start = (input & (1LL<<(8+7))) ? 1 : 0;
+	Controller_1C_Up = (input & (1LL<<(16+0))) ? 1 : 0;
+	Controller_1C_Down = (input & (1LL<<(16+1))) ? 1 : 0;
+	Controller_1C_Left = (input & (1LL<<(16+2))) ? 1 : 0;
+	Controller_1C_Right = (input & (1LL<<(16+3))) ? 1 : 0;
+	Controller_1C_A = (input & (1LL<<(16+4))) ? 1 : 0;
+	Controller_1C_B = (input & (1LL<<(16+5))) ? 1 : 0;
+	Controller_1C_C = (input & (1LL<<(16+6))) ? 1 : 0;
+	Controller_1C_Start = (input & (1LL<<(16+7))) ? 1 : 0;
+	Controller_2_Up = (input & (1LL<<(24+0))) ? 1 : 0;
+	Controller_2_Down = (input & (1LL<<(24+1))) ? 1 : 0;
+	Controller_2_Left = (input & (1LL<<(24+2))) ? 1 : 0;
+	Controller_2_Right = (input & (1LL<<(24+3))) ? 1 : 0;
+	Controller_2_A = (input & (1LL<<(24+4))) ? 1 : 0;
+	Controller_2_B = (input & (1LL<<(24+5))) ? 1 : 0;
+	Controller_2_C = (input & (1LL<<(24+6))) ? 1 : 0;
+	Controller_2_Start = (input & (1LL<<(24+7))) ? 1 : 0;
+	Controller_1_X = (input & (1LL<<(32+0))) ? 1 : 0;
+	Controller_1_Y = (input & (1LL<<(32+1))) ? 1 : 0;
+	Controller_1_Z = (input & (1LL<<(32+2))) ? 1 : 0;
+	Controller_1_Mode = (input & (1LL<<(32+3))) ? 1 : 0;
+	Controller_2_X = (input & (1LL<<(32+4))) ? 1 : 0;
+	Controller_2_Y = (input & (1LL<<(32+5))) ? 1 : 0;
+	Controller_2_Z = (input & (1LL<<(32+6))) ? 1 : 0;
+	Controller_2_Mode = (input & (1LL<<(32+7))) ? 1 : 0;
+}
+
+static long long s_lastInputCondensed = ~0;
+static long long s_nextInputCondensed = ~0;
+static bool s_nextInputCondensedSet = false;
+
+long long GetLastInputCondensed()
+{
+	return s_lastInputCondensed;
+}
+void SetNextInputCondensed(long long input)
+{
+	s_nextInputCondensed = input;
+	s_nextInputCondensedSet = true;
+}
+
 
 #ifdef ECCOBOXHACK
 #include "EccoBoxHack.h"
@@ -1959,6 +2026,14 @@ void Update_Controllers()
 	#ifdef ECCOBOXHACK
 		EccoAutofire();
 	#endif
+
+
+	if(s_nextInputCondensedSet)
+	{
+		SetCurrentInputCondensed(s_nextInputCondensed);
+		s_nextInputCondensedSet = false;
+	}
+	s_lastInputCondensed = GetCurrentInputCondensed();
 }
 
 /*
@@ -2422,11 +2497,24 @@ void Update_Controllers_Net(int num_player)
 	return 0;
 }*/
 
+int Check_Skip_Key_Released()
+{
+	static int FrameAdvanceKeyWasDown = 0;
+	int rv = FrameAdvanceKeyWasDown && !FrameAdvanceKeyDown;
+	FrameAdvanceKeyWasDown = FrameAdvanceKeyDown;
+	return rv;
+}
+int Check_Skip_Key_Pressed()
+{
+	static int FrameAdvanceKeyWasDown = 0;
+	int rv = !FrameAdvanceKeyWasDown && FrameAdvanceKeyDown;
+	FrameAdvanceKeyWasDown = FrameAdvanceKeyDown;
+	return rv;
+}
+
 //Modif N - changed to make frame advance key continuous, after a delay:
 int Check_Skip_Key()
 {
-	Update_Input();
-
 	static time_t lastSkipTime = 0;
 	const int skipPressedNew = FrameAdvanceKeyDown;
 

@@ -37,5 +37,9 @@ void SaveAccelerators(char *File_Name);
 void LoadAccelerators(char *File_Name);
 void PopulateHotkeyListbox(HWND listbox);
 void ModifyHotkeyFromListbox(HWND listbox, WORD command, HWND statusText, HWND parentWindow);
+int Check_Skip_Key_Released(void);
+int Check_Skip_Key_Pressed(void);
+long long GetLastInputCondensed();
+void SetNextInputCondensed(long long input);
 
 #endif

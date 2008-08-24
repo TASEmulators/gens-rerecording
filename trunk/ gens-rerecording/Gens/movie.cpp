@@ -379,21 +379,21 @@ void MovieRecordingStuff()
 		if (Track3_FrameCount >= FrameCount) MoviePlayPlayer3();
 	}
 //	}
-	PadData[0]=Controller_1_Up+(Controller_1_Down<<1)+(Controller_1_Left<<2)+(Controller_1_Right<<3)
-		+(Controller_1_A<<4)+(Controller_1_B<<5)+(Controller_1_C<<6)+(Controller_1_Start<<7);
+	PadData[0]=Controller_1_Up|(Controller_1_Down<<1)|(Controller_1_Left<<2)|(Controller_1_Right<<3)
+		|(Controller_1_A<<4)|(Controller_1_B<<5)|(Controller_1_C<<6)|(Controller_1_Start<<7);
 	if(MainMovie.TriplePlayerHack)
 	{
-	PadData[1]=Controller_1B_Up+(Controller_1B_Down<<1)+(Controller_1B_Left<<2)+(Controller_1B_Right<<3)
-		+(Controller_1B_A<<4)+(Controller_1B_B<<5)+(Controller_1B_C<<6)+(Controller_1B_Start<<7);
-	PadData[2]=Controller_1C_Up+(Controller_1C_Down<<1)+(Controller_1C_Left<<2)+(Controller_1C_Right<<3)
-		+(Controller_1C_A<<4)+(Controller_1C_B<<5)+(Controller_1C_C<<6)+(Controller_1C_Start<<7);	
+	PadData[1]=Controller_1B_Up|(Controller_1B_Down<<1)|(Controller_1B_Left<<2)|(Controller_1B_Right<<3)
+		|(Controller_1B_A<<4)|(Controller_1B_B<<5)|(Controller_1B_C<<6)|(Controller_1B_Start<<7);
+	PadData[2]=Controller_1C_Up|(Controller_1C_Down<<1)|(Controller_1C_Left<<2)|(Controller_1C_Right<<3)
+		|(Controller_1C_A<<4)|(Controller_1C_B<<5)|(Controller_1C_C<<6)|(Controller_1C_Start<<7);	
 	}
 	else
 	{
-	PadData[1]=Controller_2_Up+(Controller_2_Down<<1)+(Controller_2_Left<<2)+(Controller_2_Right<<3)
-		+(Controller_2_A<<4)+(Controller_2_B<<5)+(Controller_2_C<<6)+(Controller_2_Start<<7);
-	PadData[2]=Controller_1_X+(Controller_1_Y<<1)+(Controller_1_Z<<2)+(Controller_1_Mode<<3)
-		+(Controller_2_X<<4)+(Controller_2_Y<<5)+(Controller_2_Z<<6)+(Controller_2_Mode<<7);
+	PadData[1]=Controller_2_Up|(Controller_2_Down<<1)|(Controller_2_Left<<2)|(Controller_2_Right<<3)
+		|(Controller_2_A<<4)|(Controller_2_B<<5)|(Controller_2_C<<6)|(Controller_2_Start<<7);
+	PadData[2]=Controller_1_X|(Controller_1_Y<<1)|(Controller_1_Z<<2)|(Controller_1_Mode<<3)
+		|(Controller_2_X<<4)|(Controller_2_Y<<5)|(Controller_2_Z<<6)|(Controller_2_Mode<<7);
 	}
 	fseek(MainMovie.File,64+FrameCount*3,SEEK_SET);
 	fwrite(PadData,3,1,MainMovie.File);
