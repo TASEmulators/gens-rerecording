@@ -177,6 +177,10 @@ static InputButton s_inputButtons [] =
 	{MOD_SHIFT,             VK_F8,     ID_FILES_LOADSTATEAS,     0, NULL, "Load State From...", "LoadFromKey"},
 	{MOD_SHIFT,             VK_F5,     ID_FILES_SAVESTATEAS,     0, NULL, "Save State As...", "SaveAsKey"},
 
+	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_NEXT,     0, NULL, "Frame Search", "FrameSearchNextKey"},
+	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_PREV,     0, NULL, "Frame Search Prev", "FrameSearchPrevKey"},
+	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_END,      0, NULL, "Frame Search Result", "FrameSearchEndKey"},
+
 	{MOD_NONE,              VK_F2,     ID_GRAPHICS_FRAMESKIP_AUTO,     0, NULL, "Set Auto Frameskip", "AutoFrameskipKey"},
 	{MOD_NONE,              VK_F3,     ID_GRAPHICS_FRAMESKIP_DECREASE, 0, NULL, "Decrease Frameskip", "PrevFrameskipKey"},
 	{MOD_NONE,              VK_F4,     ID_GRAPHICS_FRAMESKIP_INCREASE, 0, NULL, "Increase Frameskip", "NextFrameskipKey"},

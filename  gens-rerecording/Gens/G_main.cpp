@@ -202,7 +202,7 @@ bool frameadvSkipLag = false;
 bool skipLagNow = false;
 bool lastFrameAdvancePaused = false;
 unsigned char frameadvSkipLag_Rewind_State_Buffer[2][MAX_STATE_FILE_LENGTH];
-long long frameadvSkipLag_Rewind_Input_Buffer[2];
+long long frameadvSkipLag_Rewind_Input_Buffer[2] = {~0,~0};
 int frameadvSkipLag_Rewind_State_Buffer_Index = 0;
 bool frameadvSkipLag_Rewind_State_Buffer_Valid = false;
 extern "C" int Do_VDP_Only();
@@ -210,6 +210,16 @@ extern void Update_Emulation_One_Before(HWND hWnd);
 extern void Update_Emulation_After_Fast(HWND hWnd);
 extern "C" int disableSound, disableSound2;
 
+int frameSearchFrames = -1;
+bool frameSearchInitialized = false;
+long long frameSearchInitialInput = ~0;
+long long frameSearchFinalInput = ~0;
+unsigned char frameSearch_Start_State_Buffer[MAX_STATE_FILE_LENGTH];
+unsigned char frameSearch_End_State_Buffer[MAX_STATE_FILE_LENGTH];
+
+// used to manage sound clearing (mainly so frame advance can have sound without looping that sound annoyingly)
+DWORD tgtime = timeGetTime(); // time of last sound generation
+bool soundCleared = false;
 
 POINT Window_Pos;
 
@@ -1751,6 +1761,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	FrameCount=0;
 	LagCount = 0;
 	LagCountPersistent = 0;
+	frameSearchFrames = -1; frameSearchInitialized = false;
 
 	RegisterClass(&WndClass);
 
@@ -2064,9 +2075,6 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 #endif
 		if (Genesis_Started || _32X_Started || SegaCD_Started)
 		{
-			static DWORD tgtime = timeGetTime(); //Modif N - give frame advance sound:
-			static bool soundCleared = false;
-
 			Check_Misc_Key();
 			Update_Input();
 
@@ -2275,6 +2283,7 @@ void BeginMoviePlayback()
 	FrameCount=0;
 	LagCount = 0;
 	LagCountPersistent = 0;
+	frameSearchFrames = -1; frameSearchInitialized = false;
 	if(MainMovie.UseState)
 	{
 		if(MainMovie.Status==MOVIE_PLAYING)
@@ -2614,6 +2623,86 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						Put_Info("Can't toggle read-only; no movie is active.", 1000);
 					}
 					break;
+
+				// increase frameSearchFrames, then
+				// starting at initial frame (frameSearch_Start_State_Buffer)
+				// run game for (frameSearchFrames)
+				// with input = initial input (frameSearchInitialInput)
+				// then unpause and run game normally (with new input)
+				// TODO: add support for doing this during read-only mode meaning it switches to playback and the movie replaces frameSearchInitialInput for frameSearchFrames steps, then it switches to recording before unpausing
+				case ID_FRAME_SEARCH_NEXT:
+				{
+					if(!(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+						break;
+					frameSearchFrames++;
+					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, 1500);
+					if(frameSearchFrames == 0)
+					{	// setup initial frame
+						frameSearchInitialInput = GetLastInputCondensed();
+						Save_State_To_Buffer(frameSearch_Start_State_Buffer);
+					}
+					else
+						Load_State_From_Buffer(frameSearch_End_State_Buffer);
+					SetNextInputCondensed(frameSearchInitialInput);
+					Update_Emulation_One(HWnd);
+					Save_State_To_Buffer(frameSearch_End_State_Buffer);
+					Update_Emulation_One(HWnd);
+					soundCleared = false;
+					frameSearchFinalInput = GetLastInputCondensed();
+					frameSearchInitialized = true;
+					Paused = 0;
+				}	break;
+
+				// decrease frameSearchFrames, then
+				// starting at initial frame (frameSearch_Start_State_Buffer)
+				// run game for (frameSearchFrames)
+				// with input = initial input (frameSearchInitialInput)
+				// then unpause and run game normally (with new input)
+				// TODO: optimize this to be O(1) amortized when key is held down instead of current slow O(n) where n = frameSearchFrames
+				case ID_FRAME_SEARCH_PREV:
+				{
+					if(frameSearchFrames <= 0 || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+						break;
+					frameSearchFrames--;
+					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, 1500);
+					Load_State_From_Buffer(frameSearch_Start_State_Buffer);
+					if(MainMovie.File && MainMovie.Status == MOVIE_RECORDING)
+						MainMovie.NbRerecords++;
+					disableSound2 = true;
+					for(int i = 0; i < frameSearchFrames; i++)
+					{
+						SetNextInputCondensed(frameSearchInitialInput);
+						Update_Emulation_One_Before(HWnd);
+						Update_Frame_Fast();
+						Update_Emulation_After_Fast(HWnd);
+					}
+					disableSound2 = false;
+					Save_State_To_Buffer(frameSearch_End_State_Buffer);
+					Update_Emulation_One(HWnd);
+					soundCleared = false;
+					frameSearchFinalInput = GetLastInputCondensed();
+					Paused = 0;
+				}	break;
+
+				// starting at initial frame (frameSearch_Start_State_Buffer)
+				// run game for (frameSearchFrames)
+				// with input = initial input (frameSearchInitialInput)
+				// then run one frame with the last new input (frameSearchFinalInput)
+				// then pause and exit frame search mode
+				case ID_FRAME_SEARCH_END:
+					if(!frameSearchInitialized || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+						break;
+					MESSAGE_L("Frame search result", "Frame search result", 1500);
+					Load_State_From_Buffer(frameSearch_End_State_Buffer);
+					if(MainMovie.File && MainMovie.Status == MOVIE_RECORDING)
+						MainMovie.NbRerecords++;
+					SetNextInputCondensed(frameSearchFinalInput);
+					Update_Emulation_One(HWnd);
+					soundCleared = false;
+					Paused = 1;
+					frameSearchFrames = -1;
+					break;
+
 				case ID_RAM_SEARCH:
 					if(!RamSearchHWnd)
 					{
@@ -2724,6 +2813,7 @@ dialogAgain: //Nitsuja added this
 						FrameCount=0;
 						LagCount = 0;
 						LagCountPersistent = 0;
+						frameSearchFrames = -1; frameSearchInitialized = false;
 						strncpy(Str_Tmp,Rom_Name,507);
 						strcat(Str_Tmp,"[GMV]");
 						strcat(Str_Tmp,".gst");
@@ -2777,6 +2867,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					MainMovie.NbRerecords=0;
 					MainMovie.LastFrame=0;
 					if(MainMovie.StateRequired)
@@ -2901,6 +2992,7 @@ dialogAgain: //Nitsuja added this
 						FrameCount=0;
 						LagCount = 0;
 						LagCountPersistent = 0;
+						frameSearchFrames = -1; frameSearchInitialized = false;
 						ReopenRamWindows();
 					}
 					return retval;
@@ -2929,6 +3021,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					int retval = Pre_Load_Rom(HWnd, Recent_Rom[LOWORD(wParam) - ID_FILES_OPENRECENTROM0]);
 					ReopenRamWindows();
 					return retval;
@@ -2955,6 +3048,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					ReopenRamWindows();
 					return SegaCD_Started;
 
@@ -2965,6 +3059,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_FILES_NETPLAY:
@@ -2987,6 +3082,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 		
 				case ID_FILES_GAMEGENIE:
@@ -3361,6 +3457,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 
 					if (Genesis_Started)
 						MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
@@ -3389,6 +3486,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_CPU_RESET_MSH2:
@@ -3408,6 +3506,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_CPU_RESET_SSH2:
@@ -3427,6 +3526,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_CPU_RESET_SUB68K:
@@ -3446,6 +3546,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_CPU_RESETZ80:
@@ -3464,6 +3565,7 @@ dialogAgain: //Nitsuja added this
 					FrameCount=0;
 					LagCount = 0;
 					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					return 0;
 
 				case ID_CPU_ACCURATE_SYNCHRO:
