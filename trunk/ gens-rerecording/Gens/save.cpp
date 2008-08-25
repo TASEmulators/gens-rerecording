@@ -56,6 +56,7 @@ extern "C" char Track_Played; // cd_file.c
 extern "C" int FILE_Play_CD_LBA(int async);
 extern int FS_Minimised;
 extern bool skipLagNow, frameadvSkipLag_Rewind_State_Buffer_Valid;
+extern int frameSearchFrames;
 
 #ifdef _WIN32
 	#define MINIMIZE								\
@@ -268,6 +269,8 @@ int Load_State(char *Name)
 		skipLagNow = false;
 		Paused = 1;
 	}
+
+	frameSearchFrames = -1;
 
 	if(MainMovie.ReadOnly==0 && MainMovie.File)
 	{
