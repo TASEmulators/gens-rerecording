@@ -26,7 +26,7 @@ int Save_Shot(unsigned char *Screen, int mode, int X, int Y, int Pitch)
 	unsigned char *Src = NULL, *Dest = NULL;
 	int i, j, tmp, offs, num = -1;
 	unsigned long BW;
-	char Name[1024], ext[16];
+	char Name[1024], Message[1024], ext[16];
 
 	SetCurrentDirectory(Gens_Path);
 
@@ -174,8 +174,8 @@ int Save_Shot(unsigned char *Screen, int mode, int X, int Y, int Pitch)
 		Dest = NULL;
 	}
 
-	wsprintf(Name, "Screen shot %d saved", num);
-	Put_Info(Name, 1500);
+	wsprintf(Message, "Screen shot %d saved (%s)", num, Name);
+	Put_Info(Message, 1500);
 
 	return(1);
 }

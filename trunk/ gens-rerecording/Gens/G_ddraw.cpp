@@ -2205,134 +2205,15 @@ int Show_Genesis_Screen(HWND hWnd)
 
 int Take_Shot()
 {
-	HRESULT rval;
-	DDSURFACEDESC2 ddsd;
-	RECT RD;
-	POINT p;
+	int top = (IS_FULL_Y_RESOLUTION) ? 0 : 8;
+	int bottom = (IS_FULL_Y_RESOLUTION) ? 240 : 224+8;
+	int left = (IS_FULL_X_RESOLUTION) ? 0 : 32;
+	int right = (IS_FULL_X_RESOLUTION) ? 320 : 256+32;
 
-	if (Full_Screen)
-	{
-		if (Render_FS == 0)
-		{
-			if ((Stretch) || IS_FULL_Y_RESOLUTION)
-			{
-				RD.top = 0;
-				RD.bottom = 240;
-			}
-			else
-			{
-				RD.top = 8;
-				RD.bottom = 224 + 8;
-			}
-			if ((Stretch) || IS_FULL_X_RESOLUTION)
-			{
-				RD.left = 0;
-				RD.right = 320;
-			}
-			else
-			{
-				RD.left = 32;
-				RD.right = 256 + 32;
-			}
-		}
-		else if (Render_FS == 1)
-		{
-			if ((Stretch) || IS_FULL_Y_RESOLUTION)
-			{
-				RD.top = 0;
-				RD.bottom = 480;
-			}
-			else
-			{
-				RD.top = 16;
-				RD.bottom = 448 + 16;
-			}
-			if ((Stretch) || IS_FULL_X_RESOLUTION)
-			{
-				RD.left = 0;
-				RD.right = 640;
-			}
-			else
-			{
-				RD.left = 64;
-				RD.right = 512 + 64;
-			}
-		}
-		else
-		{
-			if IS_FULL_Y_RESOLUTION
-			{
-				RD.top = 0;
-				RD.bottom = 480;
-			}
-			else
-			{
-				RD.top = 16;
-				RD.bottom = 448 + 16;
-			}
-			if (IS_FULL_X_RESOLUTION)
-			{
-				RD.left = 0;
-				RD.right = 640;
-			}
-			else
-			{
-				RD.left = 64;
-				RD.right = 512 + 64;
-			}
-		}
-	}
+	if(Bits32)
+		return Save_Shot((unsigned char *) (MD_Screen32 + 8), 2, right - left, bottom - top, 336 * 4);
 	else
-	{
-		p.x = p.y = 0;
-		GetClientRect(HWnd, &RD);
-		ClientToScreen(HWnd, &p);
-
-		RD.top = p.y;
-		RD.left = p.x;
-		RD.bottom += p.y;
-		RD.right += p.x;
-
-		if (Render_W == 0)
-		{
-			if ((!Stretch) && !IS_FULL_Y_RESOLUTION)
-			{
-				RD.top += 8;
-				RD.bottom -= 8;
-			}
-			if ((!Stretch) && !IS_FULL_X_RESOLUTION)
-			{
-				RD.left += 32;
-				RD.right -= 32;
-			}
-
-		}
-		else
-		{
-			if ((!Stretch) && !IS_FULL_Y_RESOLUTION)
-			{
-				RD.top += 16;
-				RD.bottom -= 16;
-			}
-			if ((!Stretch) && !IS_FULL_X_RESOLUTION)
-			{
-				RD.left += 64;
-				RD.right -= 64;
-			}
-		}
-	}
-
-	memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
-	rval = lpDDS_Primary->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
-
-	if (SUCCEEDED(rval))
-	{
-		Save_Shot((unsigned char *) ddsd.lpSurface + (RD.top * ddsd.lPitch) + (RD.left * (ddsd.ddpfPixelFormat.dwRGBBitCount >> 3)), (Mode_555 & 1) | (Bits32 ? 2 : 0), (RD.right - RD.left), (RD.bottom - RD.top), ddsd.lPitch);
-		lpDDS_Primary->Unlock(NULL);
-		return 1;
-	}
-	else return 0;
+		return Save_Shot((unsigned char *) (MD_Screen + 8), Mode_555 & 1, right - left, bottom - top, 336 * 2);
 }
 
 
