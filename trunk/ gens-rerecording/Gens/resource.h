@@ -180,7 +180,7 @@
 #define IDC_STATIC_MOVIE_FRAME          1136
 #define IDC_STATIC_MOVIE_RERECORDS      1137
 #define IDC_STATIC_MOVIE_VERSION        1138
-#define IDC_STATIC_COMMENTS             1139
+#define IDC_STATIC_COMMENTS_EDIT        1139
 #define IDC_STATIC_MINUTES              1140
 #define IDC_STATIC_SECONDS              1141
 #define IDC_BUTTON_RESUME_RECORD        1142

@@ -7,7 +7,8 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "afxres.h"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -479,8 +480,8 @@ BEGIN
     CONTROL         "Play from savestate",IDC_RADIO_PLAY_STATE,"Button",BS_AUTORADIOBUTTON | WS_GROUP,33,121,102,12
     EDITTEXT        IDC_EDIT_MOVIE_STATE,55,135,226,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_BUTTON_STATE_BROWSE,289,135,25,14
-    LTEXT           "Number of frames:",IDC_STATIC,22,38,65,12
-    LTEXT           "0",IDC_STATIC_MOVIE_FRAME,88,38,41,12
+    LTEXT           "Number of frames:",IDC_STATIC,22,37,65,12
+    LTEXT           "0",IDC_STATIC_MOVIE_FRAME,88,37,41,12
     LTEXT           "Frame number :",IDC_STATIC,55,151,60,9
     LTEXT           "0",IDC_STATIC_STATE_FRAME,121,151,53,8
     GROUPBOX        "Movie controller settings:",IDC_STATIC,22,175,109,36
@@ -489,19 +490,18 @@ BEGIN
     LTEXT           "UNKNOWN",IDC_STATIC_CON2_SET,71,196,40,10
     LTEXT           "UNKNOWN",IDC_STATIC_CON1_SET,71,185,40,8
     LTEXT           "NOTE: The movie must be played with the same controller settings as recorded.",IDC_STATIC,21,213,293,10
-    LTEXT           "Number of rerecords:",IDC_STATIC,131,38,72,9
-    LTEXT           "0",IDC_STATIC_MOVIE_RERECORDS,201,38,32,10
-    LTEXT           "Author notes:",IDC_STATIC,22,62,102,10
-    LTEXT           "",IDC_STATIC_COMMENTS,42,74,244,9
+    LTEXT           "Number of rerecords:",IDC_STATIC,131,37,72,9
+    LTEXT           "0",IDC_STATIC_MOVIE_RERECORDS,201,37,32,10
+    LTEXT           "Notes:",IDC_STATIC,22,60,26,10
     LTEXT           "",IDC_STATIC_STATE_WARNING,55,162,224,10
     CONTROL         "Read only",IDC_CHECK_READ_ONLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,34,98,137,10
-    LTEXT           "Movie version :",IDC_STATIC,21,50,52,11
-    LTEXT           "",IDC_STATIC_MOVIE_VERSION,79,50,70,10
-    LTEXT           "Length:",IDC_STATIC,149,50,28,10
-    LTEXT           "0",IDC_STATIC_MINUTES,181,50,23,10,0,WS_EX_RIGHT
-    LTEXT           "min.",IDC_STATIC,207,50,14,11
-    LTEXT           "0",IDC_STATIC_SECONDS,225,50,31,12,0,WS_EX_RIGHT
-    LTEXT           "s",IDC_STATIC,262,50,8,10
+    LTEXT           "Movie version :",IDC_STATIC,22,48,52,11
+    LTEXT           "",IDC_STATIC_MOVIE_VERSION,75,48,70,10
+    LTEXT           "Length:",IDC_STATIC,149,48,28,10
+    LTEXT           "0",IDC_STATIC_MINUTES,181,48,23,10,0,WS_EX_RIGHT
+    LTEXT           "min.",IDC_STATIC,207,48,14,10
+    LTEXT           "0",IDC_STATIC_SECONDS,225,48,31,10,0,WS_EX_RIGHT
+    LTEXT           "s",IDC_STATIC,262,48,8,10
     PUSHBUTTON      "Resume record from savestate",IDC_BUTTON_RESUME_RECORD,35,236,107,14,WS_DISABLED
     GROUPBOX        "Current controller settings:",IDC_STATIC,136,175,104,36
     LTEXT           "Controller 1:",IDC_STATIC,139,185,42,9
@@ -512,10 +512,11 @@ BEGIN
     LTEXT           "Note : Read Only must be unchecked to resume recording",IDC_STATIC,194,97,104,19
     CONTROL         102,IDC_STATIC_WARNING_BITMAP,"Static",SS_BITMAP | NOT WS_VISIBLE,320,185,16,15
     LTEXT           "",IDC_STATIC_SAVESTATEREQ,193,119,111,9
-    LTEXT           "Frame per second:",IDC_STATIC,235,38,62,8
+    LTEXT           "Frame per second:",IDC_STATIC,235,37,62,8
     LTEXT           "",IDC_STATIC_VFRESH,302,38,27,12
     LTEXT           "",IDC_STATIC_3PLAYERS,21,225,304,10
     CONTROL         "Clear SRAM",IDC_CHECK_CLEAR_SRAM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,111,64,10
+    EDITTEXT        IDC_STATIC_COMMENTS_EDIT,45,59,278,28,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY
 END
 
 IDD_RECORD_A_MOVIE DIALOGEX 0, 0, 323, 174
@@ -786,7 +787,8 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
+
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

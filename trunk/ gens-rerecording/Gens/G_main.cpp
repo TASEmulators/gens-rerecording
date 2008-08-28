@@ -2804,7 +2804,7 @@ dialogAgain: //Nitsuja added this
 					if(SegaCD_Started && SCD.TOC.Last_Track == 1)
 					{
 						DialogsOpen++;
-						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could prevent other people from being able to watch your movie with audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could prevent other people from being able to watch your movie with audio.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
 						DialogsOpen--;
 						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 					}
@@ -2936,7 +2936,7 @@ dialogAgain: //Nitsuja added this
 					if(SegaCD_Started && SCD.TOC.Last_Track == 1)
 					{
 						DialogsOpen++;
-						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
 						DialogsOpen--;
 						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
 					}
@@ -5540,6 +5540,17 @@ int GetControlType(int i)
 			return -1;
 	}
 }
+
+static const char* PathWithoutPrefixDotOrSlash(const char* path)
+{
+	while(*path &&
+	  ((*path == '.' && (path[1] == '\\' || path[1] == '/')) ||
+	  *path == '\\' || *path == '/' || *path == ' '))
+		path++;
+	return path;
+}
+
+
 LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	RECT r;
@@ -5602,9 +5613,35 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					switch(HIWORD(wParam))
 					{
 					case EN_CHANGE:
-						SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
-						GetMovieInfo(Str_Tmp,&SubMovie);
-						if(SubMovie.Ok)
+					{	char filename [1024];
+						char header [16];
+						SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_GETTEXT,(WPARAM)512,(LPARAM)filename);
+
+						// make the filename absolute before loading
+						if(filename[0] && filename[1] != ':')
+						{
+							char tempFile [1024], curDir [1024];
+							strcpy(tempFile, filename);
+							const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
+							if(!*tempFilePtr || tempFilePtr[1] != ':')
+								strcpy(curDir, Gens_Path); // note: this should definitely not use Movie_Dir, since it only happens when Movie_Dir fails to provide an absolute path or has been temporarily overridden
+							else
+								curDir[0] = 0;
+ 							sprintf(filename, "%s%s", curDir, tempFilePtr);
+						}
+
+						int gmiRV = GetMovieInfo(filename,&SubMovie);
+
+						memcpy(header, SubMovie.Header, 16);
+						header[15] = 0;
+
+						if(!SubMovie.Ok)
+						{
+							bool wasClearSRAM = SubMovie.ClearSRAM;
+							memset(&SubMovie, 0, sizeof(typeMovie));
+							SubMovie.ClearSRAM = wasClearSRAM;
+						}
+
 						{
 							sprintf(Str_Tmp,"%d",SubMovie.LastFrame);
 							SendDlgItemMessage(hDlg,IDC_STATIC_MOVIE_FRAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
@@ -5622,7 +5659,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 								sprintf(Str_Tmp,"%2.4f",(SubMovie.LastFrame%3600)/60.0);
 							SendDlgItemMessage(hDlg,IDC_STATIC_SECONDS,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 							SendDlgItemMessage(hDlg,IDC_STATIC_MOVIE_VERSION,WM_SETTEXT,0,(LPARAM)SubMovie.Header);
-							SendDlgItemMessage(hDlg,IDC_STATIC_COMMENTS,WM_SETTEXT,0,(LPARAM)SubMovie.Note);
+							SendDlgItemMessage(hDlg,IDC_STATIC_COMMENTS_EDIT,WM_SETTEXT,0,(LPARAM)SubMovie.Note);
 							switch(SubMovie.PlayerConfig[0])
 							{
 							case 3:
@@ -5650,12 +5687,12 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							}
 							SendDlgItemMessage(hDlg,IDC_STATIC_CON2_SET,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 							Str_Tmp[0]=0;
-							if(((SubMovie.PlayerConfig[0]!=3) && (SubMovie.PlayerConfig[0]!=6)) || ((SubMovie.PlayerConfig[1]!=3) && (SubMovie.PlayerConfig[1]!=6))) //Upth-Modif - since we now load controller settings from the GM
+							if(SubMovie.Ok && (((SubMovie.PlayerConfig[0]!=3) && (SubMovie.PlayerConfig[0]!=6)) || ((SubMovie.PlayerConfig[1]!=3) && (SubMovie.PlayerConfig[1]!=6)))) //Upth-Modif - since we now load controller settings from the GM
 							{
 								strcpy(Str_Tmp,"Warning: Controller settings cannot be loaded from movie."); //Upth-Modif - if GMV has unknown controller settings
 								ShowWindow(GetDlgItem(hDlg,IDC_STATIC_WARNING_BITMAP),SW_SHOW);
 							}
-							else if((SubMovie.PlayerConfig[0]!=(((Controller_1_Type & 1) + 1 * 3))) || (SubMovie.PlayerConfig[1]!=(((Controller_2_Type & 1) + 1 * 3))) ) //Upth-Add - if controller settings differ
+							else if(SubMovie.Ok && ((SubMovie.PlayerConfig[0]!=(((Controller_1_Type & 1) + 1 * 3))) || (SubMovie.PlayerConfig[1]!=(((Controller_2_Type & 1) + 1 * 3)))) ) //Upth-Add - if controller settings differ
 							{
 								strcpy(Str_Tmp,"Controller settings will be loaded from movie.");
 							}
@@ -5674,21 +5711,58 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							else
 								strcpy(Str_Tmp,"");
 							SendDlgItemMessage(hDlg,IDC_STATIC_3PLAYERS,WM_SETTEXT,0,(LPARAM)Str_Tmp);
-							if(SubMovie.Vfreq)
+							if(!SubMovie.Ok)
+								strcpy(Str_Tmp,"0");
+							else if(SubMovie.Vfreq)
 								strcpy(Str_Tmp,"50");
 							else
 								strcpy(Str_Tmp,"60");
 							SendDlgItemMessage(hDlg,IDC_STATIC_VFRESH,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 						}
+
 						if(SubMovie.Ok!=0 && (SubMovie.UseState==0 || SubMovie.StateOk!=0) && (SubMovie.StateRequired==0 || SubMovie.StateOk!=0))
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),TRUE);
 						else
+						{
+							if(!SubMovie.Ok)
+							{
+								switch(gmiRV)
+								{
+								case -1:
+									sprintf(Str_Tmp, "ERROR: File \"%s\" not found.", filename);
+									break;
+								case -2:
+									sprintf(Str_Tmp, "ERROR: File \"%s\" is less than 64 bytes and thus cannot be a GMV.", filename);
+									break;
+								case -3:
+									{
+										for(int i = 0; i < 15; i++)
+											if(!header[i])
+												strcpy(header+i,header+i+1);
+										sprintf(Str_Tmp, "ERROR: File \"%s\" starts with \"%s\" instead of \"Gens Movie\" and thus cannot be a GMV.", filename, header);
+									}
+									break;
+								default:
+									sprintf(Str_Tmp, "ERROR: File \"%s\" not loaded (reason unknown).", filename);
+									break;
+								}
+							}
+							else
+							{
+								sprintf(Str_Tmp, "ERROR: Problem loading savestate.");
+							}
+							SendDlgItemMessage(hDlg,IDC_STATIC_COMMENTS_EDIT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),FALSE);
+						}
 
-						SubMovie.ReadOnly=(int) (Def_Read_Only) | SubMovie.ReadOnly; //Upth-Add - for the new "Default Read Only" toggle
-						SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)(SubMovie.ReadOnly ? BST_CHECKED : BST_UNCHECKED), 0); //Upth-Add - And we add a check or not depending on whether the movie is read only
+						if(SubMovie.Ok)
+						{
+							SubMovie.ReadOnly=(int) (Def_Read_Only) | SubMovie.ReadOnly; //Upth-Add - for the new "Default Read Only" toggle
+							SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)(SubMovie.ReadOnly ? BST_CHECKED : BST_UNCHECKED), 0); //Upth-Add - And we add a check or not depending on whether the movie is read only
 
-						SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)(SubMovie.ClearSRAM ? BST_CHECKED : BST_UNCHECKED), 0);
+							SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)(SubMovie.ClearSRAM ? BST_CHECKED : BST_UNCHECKED), 0);
+						}
 						
 						if(SubMovie.ReadOnly==0 && SubMovie.Ok!=0 && SubMovie.UseState!=0 && SubMovie.StateOk!=0)
 							EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_RESUME_RECORD ),TRUE);
@@ -5697,7 +5771,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						break;
 					}
 					return true;
-					break;
+				}	break;
 				case IDC_EDIT_MOVIE_STATE:
 					switch(HIWORD(wParam))
 					{
