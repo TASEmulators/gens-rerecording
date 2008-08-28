@@ -55,7 +55,7 @@ extern bool Def_Read_Only;  //Upth-Add - are externally accessible
 extern bool UseMovieStates; //Upth-Add - save.h doesn't like bools
 void InitMovie(typeMovie * aMovie);
 void CopyMovie(typeMovie *MovieSrc,typeMovie *MovieDest);
-void GetMovieInfo(char *FileName,typeMovie *aMovie);
+int GetMovieInfo(char *FileName,typeMovie *aMovie);
 void GetStateInfo(char * FileName,typeMovie *aMovie);
 void WriteMovieHeader(typeMovie *aMovie);
 int CloseMovieFile(typeMovie *aMovie);

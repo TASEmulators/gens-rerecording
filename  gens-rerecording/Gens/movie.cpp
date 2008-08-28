@@ -457,10 +457,9 @@ void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
 		ExtractPreloadedTracksFromNote(MovieSrc->Note);
 }
 
-void GetMovieInfo(char *FileName,typeMovie *aMovie)
+int GetMovieInfo(char *FileName,typeMovie *aMovie)
 {
 	FILE *test;
-	char Header[11];
 	unsigned char t;
 
 	//UpthAdd - Save Controller Settings
@@ -473,7 +472,7 @@ void GetMovieInfo(char *FileName,typeMovie *aMovie)
 	if(test==NULL)
 	{
 		aMovie->Ok=0;
-		return;
+		return -1;
 	}
 
 	fseek(test,0,SEEK_END);
@@ -481,19 +480,19 @@ void GetMovieInfo(char *FileName,typeMovie *aMovie)
 	{
 		aMovie->Ok=0;
 		fclose(test);
-		return;
+		return -2;
 	}
 
 	aMovie->LastFrame=(ftell(test)-64)/3;
 
 	fseek(test,0,SEEK_SET);
-	fread(Header,1,10,test);
-	Header[10]=0;
-	if(strcmp(Header,"Gens Movie"))
+	fread(aMovie->Header,1,10,test);
+	aMovie->Header[10]=0;
+	if(strcmp(aMovie->Header,"Gens Movie"))
 	{
 		aMovie->Ok=0;
 		fclose(test);
-		return;
+		return -3;
 	}
 
 	fseek(test,0,SEEK_SET);
@@ -544,6 +543,7 @@ void GetMovieInfo(char *FileName,typeMovie *aMovie)
 		aMovie->Vfreq=(CPU_Mode)?1:0;
 	}
 	fclose(test);
+	return 0;
 }
 
 void GetStateInfo(char * FileName,typeMovie *aMovie)
