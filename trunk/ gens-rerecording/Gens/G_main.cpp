@@ -5729,7 +5729,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 								switch(gmiRV)
 								{
 								case -1:
-									sprintf(Str_Tmp, "ERROR: File \"%s\" not found.", filename);
+									sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(errno));
 									break;
 								case -2:
 									sprintf(Str_Tmp, "ERROR: File \"%s\" is less than 64 bytes and thus cannot be a GMV.", filename);
