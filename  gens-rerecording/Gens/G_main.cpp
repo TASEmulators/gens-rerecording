@@ -43,6 +43,7 @@
 #include "ram_search.h"
 #include "movie.h"
 #include "ramwatch.h"
+#include <errno.h>
 
 extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
@@ -5729,7 +5730,13 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 								switch(gmiRV)
 								{
 								case -1:
-									sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(errno));
+									{
+										int err = errno;
+										if(err == EMFILE)
+											sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s (%d).", filename, strerror(err), _getmaxstdio());
+										else
+											sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(err));
+									}
 									break;
 								case -2:
 									sprintf(Str_Tmp, "ERROR: File \"%s\" is less than 64 bytes and thus cannot be a GMV.", filename);
