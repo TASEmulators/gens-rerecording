@@ -123,13 +123,13 @@ void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsi
 	if (!dy)
 	{
 		if (x1 > x2) x1 ^= x2, x2 ^= x1, x1 ^= x2;
-		for (short JXQ = x1; JXQ <= x2; JXQ++)
+		for (int JXQ = x1; JXQ <= x2; JXQ++)
 			Pixel(JXQ,y1,color32,color16,wrap, Opac);
 	}
 	else if (!dx)
 	{
 		if (y1 > y2) y1 ^= y2, y2 ^= y1, y1 ^= y2;
-		for (short JXQ = y1; JXQ <= y2; JXQ++)
+		for (int JXQ = y1; JXQ <= y2; JXQ++)
 			Pixel(x1,JXQ,color32,color16,wrap, Opac);
 	}
 	else DrawLineBress(x1,y1,x2,y2,dx,dy,color32,color16,wrap, Opac);
