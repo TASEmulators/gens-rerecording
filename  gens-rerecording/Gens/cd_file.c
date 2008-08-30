@@ -227,6 +227,8 @@ int Load_ISO(char *buf, char *iso_name)
 							{
 								File_Size = CreateFile(g_cuefile_TOC_filenames[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 								fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
+								CloseHandle(File_Size);
+
 								Tracks[i].F = tmp_file;
 
 								strncpy(Tracks[i].filename, g_cuefile_TOC_filenames[i], 512);
@@ -332,8 +334,8 @@ int Load_ISO(char *buf, char *iso_name)
 						float fs;
 
 						File_Size = CreateFile(tmp_name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
 						fs = (float) GetFileSize(File_Size, NULL);				// used to calculate length
+						CloseHandle(File_Size);
 
 						Tracks[num_track - SCD.TOC.First_Track].F = tmp_file; 
 						Tracks[num_track - SCD.TOC.First_Track].F_decoded = NULL;
