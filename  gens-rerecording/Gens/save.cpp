@@ -972,6 +972,10 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg)); // some important parts of this weren't saved above
 		PSG_Restore_State_Full();
 	
+		//PC and BasePC are 32-bit pointers to system memory space. Only the low 16-bits of PC are valid in the emulated system
+		//and BasePC is a pointer to the location (in system memory) of a particular variable
+		//Since what BasePC's value _should_ be can change for a given state between sessions/instances
+		//and will always be set correctly by the "z80_Set_PC" earlier, we should _not_ allow it to be overwritten here
 		int Z80_BasePC = M_Z80.BasePC;
 		int Z80_PC = M_Z80.PC.d;
 		ImportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
