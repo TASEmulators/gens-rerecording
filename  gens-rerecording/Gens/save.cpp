@@ -972,7 +972,11 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg)); // some important parts of this weren't saved above
 		PSG_Restore_State_Full();
 	
+		int Z80_BasePC = M_Z80.BasePC;
+		int Z80_PC = M_Z80.PC.d;
 		ImportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
+		M_Z80.PC.d = Z80_PC;
+		M_Z80.BasePC = Z80_BasePC;
 		ImportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
 		ImportDataAuto(&M_Z80.IntAckC, Data, offset, 4);
 
@@ -2845,7 +2849,6 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	extern HACCEL hAccelTable;
 	BuildAccelerators(hAccelTable);
-
 	return 1;
 }
 

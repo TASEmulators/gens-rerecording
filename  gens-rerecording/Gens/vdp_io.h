@@ -32,7 +32,7 @@ struct Reg_VDP_Type {
 };
 
 // XXX: these array sizes appear to be completely different from what they are declared as in the ASM files
-extern unsigned char VRam[64000];
+extern unsigned char VRam[65536];
 extern unsigned short CRam[256];
 extern unsigned char VSRam[256];
 extern unsigned char H_Counter_Table[512 * 2];
