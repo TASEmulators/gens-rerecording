@@ -236,7 +236,27 @@ unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
 		const unsigned int LEVELHEIGHT = 2047;
 		const unsigned char XSCROLLRATE = 16;
 		const unsigned char YSCROLLRATE = 16;
-	#elif defined S1
+	#elif defined S1MMCD
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFF1926;
+		const unsigned int CAMOFFSET3 = 0xFFFCA4;
+		const unsigned int INLEVELFLAG = 0xFFD001;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+#elif defined S1
 		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 		const unsigned char XPo = 0x8;
 		const unsigned char YPo = 0xC;
