@@ -90,6 +90,7 @@ typedef struct ym2612__ {
 	int Mode;			// Mode actuel des voie 3 et 6 (normal / spécial)
 	int DAC;			// DAC enabled flag
 	int DACdata;		// DAC data
+	int spacer;			// MSVC aligns doubles to 8 byte boundaries, but gcc and mingw only align to 4, so this spacer is needed for linux savestate compatibility
 	double Frequence;	// Fréquence de base, se calcul par rapport à l'horlage et au sample rate
 	unsigned int Inter_Cnt;			// Interpolation Counter
 	unsigned int Inter_Step;		// Interpolation Step

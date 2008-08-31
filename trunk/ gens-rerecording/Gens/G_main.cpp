@@ -2085,7 +2085,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				MustUpdateMenu=0;
 			}
 
-			int frameAdvanceKeyJustReleased = (Active || BackgroundInput) ? Check_Skip_Key_Released() : 0;
+			int frameAdvanceKeyJustReleased = ((GetActiveWindow() == HWnd) || BackgroundInput) ? Check_Skip_Key_Released() : 0;
 			static int frameAdvanceKeyWasJustPressed = 0;
 
 			if(!(frameadvSkipLag && skipLagNow && !Paused))
@@ -2126,7 +2126,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				}
 				else // normal emulation
 				{
-					if (!Paused)	// EMULATION
+					if ((Active) && (!Paused))	// EMULATION
 					{
 						Update_Emulation(HWnd);
 					}
@@ -2214,7 +2214,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				}
 			}
 			
-			frameAdvanceKeyWasJustPressed = (Active || BackgroundInput) ? Check_Skip_Key_Pressed() : 0;
+			frameAdvanceKeyWasJustPressed = ((GetActiveWindow() == HWnd) || BackgroundInput) ? Check_Skip_Key_Pressed() : 0;
 		}
 		else if (GYM_Playing)			// PLAY GYM
 		{
@@ -2388,10 +2388,11 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (Auto_Pause && Active)
 				{
+					Active = 0;
+
 					if (!Paused) Pause_Screen();
 					Clear_Sound_Buffer();
 				}
-				Active = 0;
 			}
 			break;
 

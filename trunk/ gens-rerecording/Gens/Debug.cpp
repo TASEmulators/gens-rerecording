@@ -598,7 +598,7 @@ void Refresh_Z80_State(void)
 	Print_Text(GString, String_Size(GString) - 1, 162, 178, BLANC);
 	sprintf(GString, "Status=%.2X ILine=%.2X IVect=%.2X\n", M_Z80.Status & 0xFF, M_Z80.IntLine, M_Z80.IntVect);
 	Print_Text(GString, String_Size(GString) - 1, 162, 186, BLANC);
-	sprintf(GString, "Bank68K=%.8X State=%.2X\n", M_Z80.Status & 0xFF, Bank_M68K, Z80_State);
+	sprintf(GString, "Bank68K=%.8X State=%.2X\n", Bank_M68K, Z80_State);
 	Print_Text(GString, String_Size(GString) - 1, 162, 194, BLANC);
 }
 
