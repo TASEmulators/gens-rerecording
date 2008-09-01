@@ -24,6 +24,7 @@ bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
 char currentWatch[1024];
 
 void QuickSaveWatches();
+void ResetWatches();
 
 
 bool AskSave()
@@ -167,6 +168,7 @@ void RWAddRecentFile(const char *filename)
 void OpenRWRecentFile(int memwRFileNumber)
 {
 	AskSave();
+	ResetWatches();
 	int rnum=memwRFileNumber;
 		if (rnum > RW_MAX_NUMBER_OF_RECENT_FILES) return; //just in case
 		
