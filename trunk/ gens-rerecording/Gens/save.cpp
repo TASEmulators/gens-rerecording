@@ -216,39 +216,47 @@ FILE *Get_State_File()
 
 int Load_State_From_Buffer(unsigned char *buf)
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started))) return 0;
+	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+		return 0;
 
-		if ((MainMovie.Status == MOVIE_PLAYING) || (MainMovie.Status == MOVIE_FINISHED))
-		{
-			fseek(MainMovie.File,0,SEEK_END);
-			MainMovie.LastFrame = ((ftell(MainMovie.File) - 64)/3);
-		}
-		//z80_Reset(&M_Z80); // note: this alters some of the game's state that is not restored by the following. Doesn't appear to cause desync, but...
-////		main68k_reset();
-////		YM2612ResetChip(0);
-		//Reset_VDP(); // Modif N - enabled, because the game locks up sometimes on loading a point with different sound samples (as often as about 1 out of every 20 tries in some games) in, for example, Ecco
+	if ((MainMovie.Status == MOVIE_PLAYING) || (MainMovie.Status == MOVIE_FINISHED))
+	{
+		fseek(MainMovie.File,0,SEEK_END);
+		MainMovie.LastFrame = ((ftell(MainMovie.File) - 64)/3);
+	}
 
-		buf += Import_Genesis(buf); //upthmodif - fixed for new, additive, length determination
-		if (SegaCD_Started)
-		{
-			Import_SegaCD(buf); // Uncommented - function now exists
-			buf += SEGACD_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
-			//z80_Reset(&M_Z80); //Unbarfs the Z80
-		}
-		if (_32X_Started)
-		{
-			Import_32X(buf);
-			buf += G32X_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
-		}
-
-//		Flag_Clr_Scr = 1;
-//		CRam_Flag = 1;
-//		VRam_Flag = 1;
+	buf += Import_Genesis(buf); //upthmodif - fixed for new, additive, length determination
+	if (SegaCD_Started)
+	{
+		Import_SegaCD(buf); // Uncommented - function now exists
+		buf += SEGACD_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
+	}
+	if (_32X_Started)
+	{
+		Import_32X(buf);
+		buf += G32X_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
+	}
 
 	return (int) buf;
 }
 
 static const char* standardInconsistencyMessage = "Warning: The state you are loading is inconsistent with the current movie.\nYou should either load a different savestate, or turn off movie read-only mode and load this savestate again.";
+
+void TruncateMovieToFrameCount()
+{
+	MainMovie.LastFrame=FrameCount;
+	fseek(MainMovie.File,0,SEEK_SET);
+	char *tempbuf = new char[64 + (FrameCount * 3)];
+	fread(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
+	fclose(MainMovie.File);
+	MainMovie.File = fopen(MainMovie.FileName,"wb");
+	fseek(MainMovie.File,0,SEEK_SET);
+	fwrite(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
+	WriteMovieHeader(&MainMovie);
+	fclose(MainMovie.File);
+	MainMovie.File = fopen(MainMovie.FileName,"r+b");
+	delete[] tempbuf;
+}
 
 int Load_State(char *Name)
 {
@@ -282,18 +290,9 @@ int Load_State(char *Name)
 			else
 				FrameCount=max(max(Track1_FrameCount,Track2_FrameCount),FrameCount);
 		}
-		MainMovie.LastFrame=FrameCount;
-		fseek(MainMovie.File,0,SEEK_SET);
-		char *tempbuf = new char[64 + (FrameCount * 3)];
-		fread(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
-		fclose(MainMovie.File);
-		MainMovie.File = fopen(MainMovie.FileName,"wb");
-		fseek(MainMovie.File,0,SEEK_SET);
-		fwrite(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
-		WriteMovieHeader(&MainMovie);
-		fclose(MainMovie.File);
-		MainMovie.File = fopen(MainMovie.FileName,"r+b");
-		delete[] tempbuf;
+
+		if(FrameCount != MainMovie.LastFrame)
+			TruncateMovieToFrameCount();
 	}
 
 	buf = State_Buffer;
@@ -321,7 +320,7 @@ int Load_State(char *Name)
 			if (MainMovie.TriplePlayerHack) maxtrack |= TRACK3;
 			if((track & maxtrack) == maxtrack) // only do this if all tracks are on
 				if ((MainMovie.File) && FrameCount != MainMovie.LastFrame)
-					MainMovie.LastFrame = FrameCount;
+					TruncateMovieToFrameCount();
 		}
 
 		if ((MainMovie.File) && !(FrameCount < MainMovie.LastFrame))
@@ -449,11 +448,6 @@ int Load_State(char *Name)
 		}
 	}
 	fclose(f);
-	if ((MainMovie.Status == MOVIE_PLAYING) || (MainMovie.Status == MOVIE_FINISHED))
-	{
-		fseek(MainMovie.File,-64,SEEK_END);
-		MainMovie.LastFrame = (ftell(MainMovie.File) / 3);
-	}
 	Update_RAM_Search();
 
 	return Show_Genesis_Screen(HWnd);
