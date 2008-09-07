@@ -22,6 +22,7 @@ const unsigned int RW_MAX_NUMBER_OF_RECENT_FILES = sizeof(rw_recent_files)/sizeo
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
 bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
 char currentWatch[1024];
+int ramw_x, ramw_y; //Used to store ramwatch dialog window positions
 
 void QuickSaveWatches();
 void ResetWatches();
@@ -461,7 +462,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			return true;
 			break;
-
+		
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
 			{
@@ -565,6 +566,14 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 	switch(uMsg)
 	{
+		case WM_MOVE: {
+			RECT wrect;
+			GetWindowRect(hDlg,&wrect);
+			ramw_x = wrect.left;
+			ramw_y = wrect.top;
+			break;
+			};
+			
 		case WM_INITDIALOG: {
 			if (Full_Screen)
 			{
@@ -596,7 +605,11 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				r.right -= width2;
 				r.left -= width2;
 			}
-
+			if (ramw_x && ramw_y) //If saved window pos exists and meats certain requirements, use it.
+			{
+				r.left = ramw_x;
+				r.top = ramw_y;
+			}
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			char names[3][11] = {"Address","Value","Notes"};
@@ -612,6 +625,8 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			return true;
 			break;
 		}
+		
+		
 		case WM_INITMENU:
 		CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
 		break;
