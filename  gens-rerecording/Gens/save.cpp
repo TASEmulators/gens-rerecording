@@ -2424,6 +2424,10 @@ int Save_Config(char *File_Name)
 	wsprintf(Str_Tmp, "%d", AutoRWLoad);
 	WritePrivateProfileString("Watches", "AutoLoadWatches", Str_Tmp, Conf_File);
 	
+	wsprintf(Str_Tmp, "%d", ramw_x);
+	WritePrivateProfileString("Watches", "Ramwatch_X", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", ramw_y);
+	WritePrivateProfileString("Watches", "Ramwatch_Y", Str_Tmp, Conf_File);
 
 	WritePrivateProfileString("Watches", "Recent Watch 1", rw_recent_files[0], Conf_File);	
 	WritePrivateProfileString("Watches", "Recent Watch 2", rw_recent_files[1], Conf_File);	
@@ -2778,6 +2782,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("Splice","TempFile","",Str_Tmp,1024,Conf_File);
 	
 	AutoRWLoad = GetPrivateProfileInt("Watches", "AutoLoadWatches", false, Conf_File) != 0;
+	
+	ramw_x = GetPrivateProfileInt ("Watches", "Ramwatch_X", 0, Conf_File);
+	ramw_y = GetPrivateProfileInt ("Watches", "Ramwatch_Y", 0, Conf_File);
 
 	GetPrivateProfileString("Watches", "Recent Watch 1", "", &rw_recent_files[0][0], 1024, Conf_File);
 	GetPrivateProfileString("Watches", "Recent Watch 2", "", &rw_recent_files[1][0], 1024, Conf_File);
