@@ -2644,9 +2644,11 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						Save_State_To_Buffer(frameSearch_Start_State_Buffer);
 					}
 					else
+					{
 						Load_State_From_Buffer(frameSearch_End_State_Buffer);
-					SetNextInputCondensed(frameSearchInitialInput);
-					Update_Emulation_One(HWnd);
+						SetNextInputCondensed(frameSearchInitialInput);
+						Update_Emulation_One(HWnd);
+					}
 					Save_State_To_Buffer(frameSearch_End_State_Buffer);
 					Update_Emulation_One(HWnd);
 					soundCleared = false;
