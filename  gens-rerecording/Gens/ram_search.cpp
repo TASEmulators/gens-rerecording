@@ -980,7 +980,6 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_C_RESET:
 					reset_address_info();
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					UpdatePossibilities(ResultCount);
 					return true;
 				case IDC_C_AUTOSEARCH:
 					AutoSearch = !AutoSearch;
