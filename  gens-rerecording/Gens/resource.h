@@ -582,6 +582,8 @@
 #define IDC_STATIC_TEXT4                43401
 #define IDC_STATIC_TEXT5                43402
 #define IDC_STATIC_TEXT6                43403
+#define ID_RS_POSSIBILITIES             -22132
+#define ID_RAMS_POSSIBILITIES           -22132
 
 // Next default values for new objects
 // 
@@ -589,7 +591,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        149
 #define _APS_NEXT_COMMAND_VALUE         1222
-#define _APS_NEXT_CONTROL_VALUE         43404
+#define _APS_NEXT_CONTROL_VALUE         43405
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

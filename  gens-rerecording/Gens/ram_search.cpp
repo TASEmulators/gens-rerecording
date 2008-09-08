@@ -31,6 +31,7 @@ bool littleEndian = false;
 bool preserveChanges = true;
 int tempCount;
 char Watch_Dir[1024]="";
+void UpdatePossibilities(int rs_possible);
 /*
 template <typename T>
 T GetRamValue(unsigned int i)
@@ -255,6 +256,7 @@ void CompactAddrs()
 		rsresults[i].cur = sizeConv(rsresults[i].Index,rs_type_size,"b");
 		rsresults[i].prev = sizeConv(rsresults[i].Index,rs_type_size,"b",true);
 	}
+	UpdatePossibilities(ResultCount);
 }
 void ResetRamValues (unsigned int & rangeStart, unsigned int rangeSize, void* RamBuffer, bool firstTime)
 {
@@ -629,7 +631,6 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
 	static int watchIndex=0;
-
 	switch(uMsg)
 	{
 		case WM_INITDIALOG: {
@@ -979,6 +980,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_C_RESET:
 					reset_address_info();
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
+					UpdatePossibilities(ResultCount);
 					return true;
 				case IDC_C_AUTOSEARCH:
 					AutoSearch = !AutoSearch;
@@ -1180,4 +1182,11 @@ LRESULT CALLBACK PromptWatchNameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 	}
 
 	return false;
+}
+
+void UpdatePossibilities(int rs_possible)
+{
+	char str[20];
+	sprintf(str,"%d Possibilities",rs_possible);
+	SetDlgItemText(RamSearchHWnd,ID_RAMS_POSSIBILITIES,str);
 }
