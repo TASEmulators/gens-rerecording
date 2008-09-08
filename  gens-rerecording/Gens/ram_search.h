@@ -93,7 +93,6 @@ extern int show_ram[RAM_VALS_SHOW];
 extern bool noMisalign;
 extern bool littleEndian;
 
-
 #ifdef __cplusplus
 }
 #endif
