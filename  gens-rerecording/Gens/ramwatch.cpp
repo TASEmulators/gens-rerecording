@@ -581,19 +581,18 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				while (ShowCursor(true) < 0);
 			}
 
-			GetWindowRect(HWnd, &r);
+			GetWindowRect(HWnd, &r);  //Ramwatch window
 			dx1 = (r.right - r.left) / 2;
 			dy1 = (r.bottom - r.top) / 2;
 
-			GetWindowRect(hDlg, &r2);
+			GetWindowRect(hDlg, &r2); // Gens window
 			dx2 = (r2.right - r2.left) / 2;
 			dy2 = (r2.bottom - r2.top) / 2;
 
-			ramwatchmenu=GetMenu(hDlg);
-			rwrecentmenu=CreateMenu();
-			UpdateRW_RMenu(rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+			
 			// push it away from the main window if we can
-			const int width = (r.right-r.left); 
+			const int width = (r.right-r.left);
+			const int height = (r.bottom - r.top);
 			const int width2 = (r2.right-r2.left); 
 			if(r.left+width2 + width < GetSystemMetrics(SM_CXSCREEN))
 			{
@@ -605,13 +604,23 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				r.right -= width2;
 				r.left -= width2;
 			}
-			if (ramw_x && ramw_y) //If saved window pos exists and meats certain requirements, use it.
+
+			//If saved window pos exists and meets certain requirements, use it.
+			if (ramw_x > (0 - width)) //If ramw x appears completely off the left of the screen, use default instead
 			{
-				r.left = ramw_x;
+				if (!(ramw_x > (r2.left-width) && ramw_x < r2.right && ramw_y > (r2.top - height + 5) && ramw_y < r2.bottom - 5)) //Check if it osbcres gens window
+					r.left = ramw_x;
+			}
+			if (ramw_y > 0 - height && ramw_y < height + GetSystemMetrics(SM_CYSCREEN)) //If ramw y appears completely off screen use default instead
+			{
 				r.top = ramw_y;
 			}
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-
+			
+			ramwatchmenu=GetMenu(hDlg);
+			rwrecentmenu=CreateMenu();
+			UpdateRW_RMenu(rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+			
 			char names[3][11] = {"Address","Value","Notes"};
 			int widths[3] = {62,64,64+51+53};
 			init_list_box(GetDlgItem(hDlg,IDC_WATCHLIST),names,3,widths);
