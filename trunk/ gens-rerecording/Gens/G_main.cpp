@@ -5992,7 +5992,8 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	}
 	fseek(TempSplice,0,SEEK_END);
 	unsigned long size = ftell(TempSplice);
-	MainMovie.LastFrame++;
+	//MainMovie.LastFrame++; // changed from ++ to -- because it was causing the input to be spliced 2 frames late at the end (one frame of which was all-0 bytes)
+	MainMovie.LastFrame--;
 	fseek(MainMovie.File,(MainMovie.LastFrame * 3) + 64,SEEK_SET);
 	char *TempBuffer = (char *) malloc(size);
 	fseek(TempSplice,0,SEEK_SET);
@@ -6002,8 +6003,8 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	if (MainMovie.Status == MOVIE_RECORDING) Put_Info("Movie successfully spliced. Resuming playback from now.",2000);
 	else Put_Info("Movie successfully spliced.",2000);
 	MainMovie.Status = MOVIE_PLAYING;
-	fseek(MainMovie.File,64,SEEK_END);
-	MainMovie.LastFrame = (ftell(MainMovie.File) / 3);
+	fseek(MainMovie.File,0,SEEK_END); // changed from 64 past the end of the file to the end of the file...
+	MainMovie.LastFrame = (ftell(MainMovie.File)-64) / 3;
 	SpliceFrame = 0;
 	char cfgFile[1024];
 	strcpy(cfgFile, Gens_Path);
