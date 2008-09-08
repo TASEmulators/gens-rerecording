@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <commctrl.h>
 #include "G_dsound.h"
+#include "ramwatch.h"
 
 extern char rs_c, rs_o, rs_t;
 extern int rs_param, rs_val;
@@ -216,6 +217,7 @@ void InsertWatch(AddressWatcher Watch, char *Comment)
 		rsaddrs[Watch.Index].flags &= RS_FLAG_WATCHED;
 		CompactAddrs();
 		WatchCount++;
+		RWfileChanged=true;
 		return;
 	}
 //	MessageBox(NULL,"I am returning",NULL,MB_OK);
