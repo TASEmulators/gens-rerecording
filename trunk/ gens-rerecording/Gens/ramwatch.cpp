@@ -185,7 +185,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 	FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
-			MessageBox(NULL,"Error opening file.","ERROR",MB_OK);
+			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
 			return;
 		}
 		const char DELIM = '\t';
@@ -198,7 +198,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 			char Device[8];
 			strcpy(Device,(mode > '1')?"32X":"SegaCD");
 			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(NULL,Str_Tmp,"Device Mismatch",MB_OK);
+			MessageBox(RamWatchHWnd,Str_Tmp,"Device Mismatch",MB_OK);
 		}
 		int WatchAdd;
 		fgets(Str_Tmp,1024,WatchFile);
@@ -307,7 +307,7 @@ bool Load_Watches()
 		FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
-			MessageBox(NULL,"Error opening file.","ERROR",MB_OK);
+			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
 			return false;
 		}
 		strcpy(currentWatch,Str_Tmp);
@@ -321,7 +321,7 @@ bool Load_Watches()
 			char Device[8];
 			strcpy(Device,(mode > '1')?"32X":"SegaCD");
 			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(NULL,Str_Tmp,"Device Mismatch",MB_OK);
+			MessageBox(RamWatchHWnd,Str_Tmp,"Device Mismatch",MB_OK);
 		}
 		int WatchAdd;
 		fgets(Str_Tmp,1024,WatchFile);
@@ -515,7 +515,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							EndDialog(hDlg, true);
 						}
 						else 
-							MessageBox(NULL,"Error: Invalid Address.","ERROR",MB_OK);
+							MessageBox(hDlg,"Error: Invalid Address.","ERROR",MB_OK);
 					}
 					else
 					{
@@ -524,7 +524,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							strcat(Str_Tmp," Size must be specified.");
 						if (!t)
 							strcat(Str_Tmp," Type must be specified.");
-						MessageBox(NULL,Str_Tmp,"ERROR",MB_OK);
+						MessageBox(hDlg,Str_Tmp,"ERROR",MB_OK);
 					}
 					RWfileChanged=true;
 					return true;
