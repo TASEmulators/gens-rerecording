@@ -1477,7 +1477,7 @@ int Init_32X(struct Rom *MD_Rom)
 	}
 	else
 	{
-		MessageBox(NULL, "Your 32X bios files aren't correctly configured :\nGenesis 32X bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
+		MessageBox(HWnd, "Your 32X bios files aren't correctly configured :\nGenesis 32X bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
 		return 0;
 	}
 
@@ -1488,7 +1488,7 @@ int Init_32X(struct Rom *MD_Rom)
 	}
 	else
 	{
-		MessageBox(NULL, "Your 32X bios files aren't correctly configured :\nMaster SH2 bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
+		MessageBox(HWnd, "Your 32X bios files aren't correctly configured :\nMaster SH2 bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
 		return 0;
 	}
 
@@ -1499,7 +1499,7 @@ int Init_32X(struct Rom *MD_Rom)
 	}
 	else
 	{
-		MessageBox(NULL, "Your 32X bios files aren't correctly configured :\nSlave SH2 bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
+		MessageBox(HWnd, "Your 32X bios files aren't correctly configured :\nSlave SH2 bios not found.\nGo to menu 'Option -> Bios/Misc Files' to set up them", "Error", MB_OK);
 		return 0;
 	}
 
@@ -1534,7 +1534,7 @@ int Init_32X(struct Rom *MD_Rom)
 		SRAM_End |= 0x00000001;
 
 //		sprintf(Str_Err, "deb = %.8X end = %.8X", SRAM_Start, SRAM_End);
-//		MessageBox(NULL, Str_Err, "", MB_OK);
+//		MessageBox(HWnd, Str_Err, "", MB_OK);
 
 		if ((SRAM_End - SRAM_Start) <= 2) SRAM_Custom = 1;
 		else SRAM_Custom = 0;
@@ -2331,7 +2331,7 @@ int Init_SegaCD(char *iso_name)
 
 	if (Load_Bios(HWnd, Bios_To_Use) == NULL)
 	{
-		MessageBox(NULL, "Your BIOS files aren't correctly configured, do it with 'Option -> Directories/Files...' menu.", "Warning", MB_OK | MB_ICONEXCLAMATION);
+		MessageBox(HWnd, "Your BIOS files aren't correctly configured, do it with 'Option -> Directories/Files...' menu.", "Warning", MB_OK | MB_ICONEXCLAMATION);
 		SetWindowText(HWnd, "Gens - Idle");
 		return 0;
 	}
