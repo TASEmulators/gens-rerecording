@@ -197,7 +197,7 @@ bool sameWatch(AddressWatcher l,AddressWatcher r)
 }
 void InsertWatch(AddressWatcher Watch, char *Comment)
 {
-//	MessageBox(NULL,"Inserting Watch",NULL,MB_OK);
+//	MessageBox(RamSearchHWnd,"Inserting Watch",NULL,MB_OK);
 	if (rsaddrs[Watch.Index].comment) free(rsaddrs[Watch.Index].comment);
 	rsaddrs[Watch.Index].comment = (char *) malloc(strlen(Comment)+2);
 	rsaddrs[Watch.Index].flags |= RS_FLAG_WATCHED;
@@ -222,7 +222,7 @@ void InsertWatch(AddressWatcher Watch, char *Comment)
 		RWfileChanged=true;
 		return;
 	}
-//	MessageBox(NULL,"I am returning",NULL,MB_OK);
+//	MessageBox(RamSearchHWnd,"I am returning",NULL,MB_OK);
 }
 void CompactAddrs()
 {
@@ -555,7 +555,7 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 			reset_address_info();
 			prune(rs_c,rs_o,rs_t,rs_val,rs_param);
 			if(ResultCount && rs_c != 'a')
-				MessageBox(HWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+				MessageBox(RamSearchHWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
 		}
 		if (RamSearchHWnd) ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
 		if (SetPaused) Paused = 0;
@@ -1041,7 +1041,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						reset_address_info();
 						prune(rs_c,rs_o,rs_t,rs_val,rs_param);
 						if(ResultCount && rs_c != 'a')
-							MessageBox(HWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+							MessageBox(RamSearchHWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
 					}
 
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
@@ -1049,7 +1049,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					return true;
 
 invalid_field:
-					MessageBox(HWnd,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
+					MessageBox(RamSearchHWnd,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
 					if(AutoSearch) // stop autosearch if it's on
 					{
 						SendDlgItemMessage(hDlg, IDC_C_AUTOSEARCH, BM_SETCHECK, BST_UNCHECKED, 0);
