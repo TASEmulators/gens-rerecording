@@ -582,8 +582,7 @@
 #define IDC_STATIC_TEXT4                43401
 #define IDC_STATIC_TEXT5                43402
 #define IDC_STATIC_TEXT6                43403
-#define ID_RS_POSSIBILITIES             -22132
-#define ID_RAMS_POSSIBILITIES           -22132
+#define ID_FILES_SAVESTATE_10           43404
 
 // Next default values for new objects
 // 

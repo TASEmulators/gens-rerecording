@@ -18,7 +18,6 @@ extern unsigned char Kaillera_Keys[16];
 extern unsigned int DelayFactor; // determines the timing of "continuous frame advance"
 extern bool BackgroundInput;
 
-int String_Size(char *Chaine);
 unsigned int Get_Key(void);
 int Check_Key_Pressed(unsigned int key);
 int Check_Skip_Key(); // Modif

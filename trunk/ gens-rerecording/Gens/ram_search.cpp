@@ -32,6 +32,7 @@ bool preserveChanges = true;
 int tempCount;
 char Watch_Dir[1024]="";
 void UpdatePossibilities(int rs_possible);
+int last_rs_possible = -1;
 /*
 template <typename T>
 T GetRamValue(unsigned int i)
@@ -741,6 +742,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
 			if (!noMisalign) SendDlgItemMessage(hDlg, IDC_MISALIGN, BM_SETCHECK, BST_CHECKED, 0);
 			if (littleEndian) SendDlgItemMessage(hDlg, IDC_ENDIAN, BM_SETCHECK, BST_CHECKED, 0);
+			last_rs_possible = -1;
 			return true;
 		}	break;
 
@@ -982,7 +984,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
 					return true;
 				case IDC_C_AUTOSEARCH:
-					AutoSearch = !AutoSearch;
+					AutoSearch = SendDlgItemMessage(hDlg, IDC_C_AUTOSEARCH, BM_GETCHECK, 0, 0) != 0;
 					if (!AutoSearch) return true;
 				case IDC_C_SEARCH:
 				{
@@ -1048,6 +1050,11 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 invalid_field:
 					MessageBox(HWnd,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
+					if(AutoSearch) // stop autosearch if it's on
+					{
+						SendDlgItemMessage(hDlg, IDC_C_AUTOSEARCH, BM_SETCHECK, BST_UNCHECKED, 0);
+						SendMessage(hDlg, WM_COMMAND, IDC_C_AUTOSEARCH, 0);
+					}
 					return true;
 				}
 				case IDC_C_WATCH:
@@ -1185,7 +1192,13 @@ LRESULT CALLBACK PromptWatchNameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 
 void UpdatePossibilities(int rs_possible)
 {
-	char str[20];
-	sprintf(str,"%d Possibilities",rs_possible);
-	SetDlgItemText(RamSearchHWnd,ID_RAMS_POSSIBILITIES,str);
+	if(rs_possible != last_rs_possible)
+	{
+		last_rs_possible = rs_possible;
+		if(rs_possible > 0)
+			sprintf(Str_Tmp," RAM Search - %d Possibilit%s",rs_possible, rs_possible==1?"y":"ies");
+		else
+			strcpy(Str_Tmp," RAM Search");
+		SetWindowText(RamSearchHWnd, Str_Tmp);
+	}
 }
