@@ -7315,6 +7315,25 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return false;
 }
 
+void RefreshEnabledPorts(HWND hDlg)
+{
+	int curController_1_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PORT1, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP1B), curController_1_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP1C), curController_1_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP1D), curController_1_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP1B), curController_1_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP1C), curController_1_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP1D), curController_1_Type);
+
+	int curController_2_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PORT2, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP2B), curController_2_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP2C), curController_2_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_COMBO_PADP2D), curController_2_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP2B), curController_2_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP2C), curController_2_Type);
+	EnableWindow(GetDlgItem(hDlg,IDC_BUTTON_SETKEYSP2D), curController_2_Type);
+}
+
 
 LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -7402,12 +7421,17 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 			PopulateHotkeyListbox(listbox);
 
+			RefreshEnabledPorts(hDlg);
+
 			return true;
 		}	break;
 
 		case WM_COMMAND:
+		{
+			int controlID = LOWORD(wParam);
+			int messageID = HIWORD(wParam);
 
-			if (HIWORD(wParam) == LBN_SELCHANGE && LOWORD(wParam) == IDC_HOTKEYLIST)
+			if (messageID == LBN_SELCHANGE && controlID == IDC_HOTKEYLIST)
 			{
 				int selCount = SendDlgItemMessage(hDlg, IDC_HOTKEYLIST, LB_GETSELCOUNT, (WPARAM) 0, (LPARAM) 0);
 				EnableWindow(GetDlgItem(hDlg, IDC_REASSIGNKEY), (selCount == 1) ? TRUE : FALSE);
@@ -7416,7 +7440,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				EnableWindow(GetDlgItem(hDlg, IDC_DISABLEKEY), (selCount >= 1) ? TRUE : FALSE);
 			}
 
-			switch(wParam)
+			switch(controlID)
 			{
 				case IDOK:
 					Controller_1_Type = (SendDlgItemMessage(hDlg, IDC_COMBO_PORT1, CB_GETCURSEL, (WPARAM) 0, (LPARAM) 0) & 1);
@@ -7490,7 +7514,7 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				case IDC_REVERTKEY:
 				case IDC_USEDEFAULTKEY:
 				case IDC_DISABLEKEY:
-					ModifyHotkeyFromListbox(GetDlgItem(hDlg, IDC_HOTKEYLIST), wParam, Tex0, hDlg);
+					ModifyHotkeyFromListbox(GetDlgItem(hDlg, IDC_HOTKEYLIST), controlID, Tex0, hDlg);
 					break;
 				case INPUT_FRAMEADVSKIPLAG:
 					frameadvSkipLag ^= 1;
@@ -7508,8 +7532,13 @@ LRESULT CALLBACK ControllerProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 					}
 					return true;
 					break;
+
+				case IDC_COMBO_PORT1:
+				case IDC_COMBO_PORT2:
+					RefreshEnabledPorts(hDlg);
+					return true;
 			}
-			break;
+		}	break;
 		case WM_CLOSE:
 			End_Input();
 			DialogsOpen--;

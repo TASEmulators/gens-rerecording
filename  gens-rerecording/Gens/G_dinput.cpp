@@ -174,6 +174,7 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,            VK_NONE,     ID_FILES_LOADSTATE,       0, NULL, "Load Current Savestate (key2)", "QuickLoadKey"},
 	{MOD_NONE,              VK_F5,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate", "LoadCurrentKey"},
 	{MOD_NONE,            VK_NONE,     ID_FILES_SAVESTATE,       0, NULL, "Save Current Savestate (key2)", "QuickSaveKey"},
+	{MOD_NONE,            VK_NONE,     ID_FILES_SAVESTATE_10,    0, NULL, "Save Backup State", "Save11Key"},
 	{MOD_SHIFT,             VK_F8,     ID_FILES_LOADSTATEAS,     0, NULL, "Load State From...", "LoadFromKey"},
 	{MOD_SHIFT,             VK_F5,     ID_FILES_SAVESTATEAS,     0, NULL, "Save State As...", "SaveAsKey"},
 
@@ -450,6 +451,7 @@ static const char* GetVirtualKeyName(int key)
 
 	switch(key)
 	{
+	case 0: return "None";
 	case VK_LBUTTON: return "LeftClick";
 	case VK_RBUTTON: return "RightClick";
 	case VK_CANCEL: return "Cancel";
@@ -558,6 +560,7 @@ static const char* GetDirectInputKeyName(int key)
 {
 	switch(key)
 	{
+	case 0: return "None";
 	case DIK_ESCAPE: return "Escape";
 	case DIK_1: return "1";
 	case DIK_2: return "2";
@@ -945,18 +948,6 @@ void ModifyHotkeyFromListbox(HWND listbox, WORD command, HWND statusText, HWND p
 		BuildAccelerators(hAccelTable);
 	}
 }
-
-
-
-int String_Size(char *Chaine)
-{
-	int i = 0;
-
-	while (*(Chaine + i++));
-
-	return(i - 1);	
-}
-
 
 void End_Input()
 {
@@ -1380,12 +1371,20 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 			// check for new virtual key presses
 			for(i = 1; i < 255; i++)
 			{
-				if(curVirtKeys[i] && !prevVirtKeys[i] && allowVirtual)
+				if(curVirtKeys[i] && !prevVirtKeys[i])
 				{
-					if(i == VK_CONTROL || i == VK_SHIFT || i == VK_MENU || i == VK_LWIN || i == VK_RWIN || i == VK_LSHIFT || i == VK_RSHIFT || i == VK_LCONTROL || i == VK_RCONTROL || i == VK_LMENU || i == VK_RMENU)
-						continue;
-					button.SetAsVirt(i, curMod);
-					return;
+					if(allowVirtual)
+					{
+						if(i == VK_CONTROL || i == VK_SHIFT || i == VK_MENU || i == VK_LWIN || i == VK_RWIN || i == VK_LSHIFT || i == VK_RSHIFT || i == VK_LCONTROL || i == VK_RCONTROL || i == VK_LMENU || i == VK_RMENU)
+							continue;
+						button.SetAsVirt(i, curMod);
+						return;
+					}
+					else if(i == VK_LBUTTON || i == VK_RBUTTON || i == VK_MBUTTON || i == VK_CANCEL)
+					{
+						button.SetAsDIK(0);
+						return;
+					}
 				}
 			}
 
@@ -2040,99 +2039,61 @@ void Update_Controllers()
 	s_lastInputCondensed = GetCurrentInputCondensed();
 }
 
-/*
-//Modif N. - moved some existing code into this function to reduce redundancy 
-//Upth-Modif - No longer crashes after subdialog closure; no longer has unneeded sleep calls
-int setupKey (char* message, unsigned int & keyVar, HWND hset)
+unsigned int& KeyDialogButtonIDToDIKey(int controlID)
 {
-	if (!Init_Input(ghInstance, hset)) MessageBox(NULL,"I failed to initialize the input.","Notice",MB_OK);
-	for (int i = 0; i < 256; i++)
-		Keys[i] &= ~0x80;
-	MSG m;
-
-	keyVar = Get_Key();
-
-	while (PeekMessage(&m, hset, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-
-	return 1;
-}
-*/
-
-/*int Setting_Keys(HWND hset, int Player, int TypeP) //Upth-Modif - totally redid the controller key redefines. commented out the old version
-{
-	HWND Txt1, Txt2;
-	MSG m;
-	Cur_Player = Player;
-
-	Sleep(250);
-	Txt1 = GetDlgItem(hset, IDC_STATIC_TEXT1);
-	Txt2 = GetDlgItem(hset, IDC_STATIC_TEXT2);
-	if (Txt1 == NULL) return 0;
-	if (Txt2 == NULL) return 0;
-
-	SetWindowText(Txt1, "INPUT KEY FOR UP");
-	Keys_Def[Player].Up = Get_Key();
-	Sleep(250);
-
-	SetWindowText(Txt1, "INPUT KEY FOR DOWN");
-	Keys_Def[Player].Down = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR LEFT");
-	Keys_Def[Player].Left = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR RIGHT");
-	Keys_Def[Player].Right = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR START");
-	Keys_Def[Player].Start = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR A");
-	Keys_Def[Player].A = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR B");
-	Keys_Def[Player].B = Get_Key();
-	Sleep(250);
-	
-	SetWindowText(Txt1, "INPUT KEY FOR C");
-	Keys_Def[Player].C = Get_Key();
-	Sleep(250);
-
-	if (TypeP)
+	switch(controlID)
 	{
-		SetWindowText(Txt1, "INPUT KEY FOR MODE");
-		Keys_Def[Player].Mode = Get_Key();
-		Sleep(250);
-
-		SetWindowText(Txt1, "INPUT KEY FOR X");
-		Keys_Def[Player].X = Get_Key();
-		Sleep(250);
-
-		SetWindowText(Txt1, "INPUT KEY FOR Y");
-		Keys_Def[Player].Y = Get_Key();
-		Sleep(250);
-
-		SetWindowText(Txt1, "INPUT KEY FOR Z");
-		Keys_Def[Player].Z = Get_Key();
-		Sleep(250);
+		case IDC_BUTTON_REDEFINE_UP_KEY: return Temp_Keys.Up;
+		case IDC_BUTTON_REDEFINE_DOWN_KEY: return Temp_Keys.Down;
+		case IDC_BUTTON_REDEFINE_LEFT_KEY: return Temp_Keys.Left;
+		case IDC_BUTTON_REDEFINE_RIGHT_KEY: return Temp_Keys.Right;
+		case IDC_BUTTON_REDEFINE_A_KEY: return Temp_Keys.A;
+		case IDC_BUTTON_REDEFINE_B_KEY: return Temp_Keys.B;
+		case IDC_BUTTON_REDEFINE_C_KEY: return Temp_Keys.C;
+		case IDC_BUTTON_REDEFINE_START_KEY: return Temp_Keys.Start;
+		case IDC_BUTTON_REDEFINE_X_KEY: return Temp_Keys.X;
+		case IDC_BUTTON_REDEFINE_Y_KEY: return Temp_Keys.Y;
+		case IDC_BUTTON_REDEFINE_Z_KEY: return Temp_Keys.Z;
+		case IDC_BUTTON_REDEFINE_MODE_KEY: return Temp_Keys.Mode;
+		default: static unsigned int none = 0; return none;
 	}
+}
 
-	SetWindowText(Txt1, "CONFIGURATION SUCCESSFULL");
-	SetWindowText(Txt2, "PRESS A KEY TO CONTINUE ...");
-	Get_Key();
-	Sleep(500);
+const char* KeyDialogButtonIDToName(int controlID)
+{
+	switch(controlID)
+	{
+		case IDC_BUTTON_REDEFINE_UP_KEY: return "Up";
+		case IDC_BUTTON_REDEFINE_DOWN_KEY: return "Down";
+		case IDC_BUTTON_REDEFINE_LEFT_KEY: return "Left";
+		case IDC_BUTTON_REDEFINE_RIGHT_KEY: return "Right";
+		case IDC_BUTTON_REDEFINE_A_KEY: return "A";
+		case IDC_BUTTON_REDEFINE_B_KEY: return "B";
+		case IDC_BUTTON_REDEFINE_C_KEY: return "C";
+		case IDC_BUTTON_REDEFINE_START_KEY: return "Start";
+		case IDC_BUTTON_REDEFINE_X_KEY: return "X";
+		case IDC_BUTTON_REDEFINE_Y_KEY: return "Y";
+		case IDC_BUTTON_REDEFINE_Z_KEY: return "Z";
+		case IDC_BUTTON_REDEFINE_MODE_KEY: return "Mode";
+		default: return NULL; // important: must return NULL instead of any description
+	}
+}
 
-	while (PeekMessage(&m, hset, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-
-	SetWindowText(Txt1, "");
-	SetWindowText(Txt2, "");
-
-	return 1;
-}*/
+const char* GetPlayerName(int curPlayer)
+{
+	switch (curPlayer)
+	{
+		case 0: return "Player 1";
+		case 1: return "Player 2";
+		case 2: return "Player 1-B";
+		case 3: return "Player 1-C";
+		case 4: return "Player 1-D";
+		case 5: return "Player 2-B";
+		case 6: return "Player 2-C";
+		case 7: return "Player 2-D";
+		default: return "Invalid Player";
+	}
+}
 
 
 LRESULT CALLBACK KeyProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //Upth-Add - This is the new controller key redefinition dialog box
@@ -2145,6 +2106,7 @@ LRESULT CALLBACK KeyProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //U
 
 	static HWND Tex0 = NULL;
 	static HWND Tex1 = NULL;
+	static POINT prevCursorPos;
 
 	switch(uMsg)
 	{
@@ -2167,46 +2129,39 @@ LRESULT CALLBACK KeyProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //U
 			Tex0 = GetDlgItem(hDlg, IDC_STATIC_TEXT1);
 			Tex1 = GetDlgItem(hDlg, IDC_STATIC_TEXT2);
 
-			switch (Cur_Player) //Upth-Add - This part shows what player we're redefining keys for.
-			{
-				case 0:
-					sprintf(Str_Tmp,"Player 1");
-					break;
-				case 1:
-					sprintf(Str_Tmp,"Player 2");
-					break;
-				case 2:
-					sprintf(Str_Tmp,"Player 1-B");
-					break;
-				case 3:
-					sprintf(Str_Tmp,"Player 1-C");
-					break;
-				case 4:
-					sprintf(Str_Tmp,"Player 1-D");
-					break;
-				case 5:
-					sprintf(Str_Tmp,"Player 2-B");
-					break;
-				case 6:
-					sprintf(Str_Tmp,"Player 2-C");
-					break;
-				case 7:
-					sprintf(Str_Tmp,"Player 2-D");
-					break;
-				default:
-					sprintf(Str_Tmp,"Invalid Player");
-					break;
-			}
-
-			SetWindowText(Tex0, Str_Tmp);
+			//Upth-Add - This part shows what player we're redefining keys for.
+			SetWindowText(Tex0, GetPlayerName(Cur_Player));
 
 			if (!Init_Input(ghInstance, hDlg)) return false;
+
+			SetTimer(hDlg, NULL, 50, NULL);
 
 			return true;
 			break;
 
+		case WM_TIMER: // because WM_MOUSEMOVE is too much of a pain
+		if(GetActiveWindow() == hDlg)
+		{
+			POINT point;
+			GetCursorPos(&point);
+			if(point.x != prevCursorPos.x || point.y != prevCursorPos.y)
+			{
+				int controlID = GetDlgCtrlID(WindowFromPoint(point));
+				int diKey = KeyDialogButtonIDToDIKey(controlID);
+				const char* buttonName = KeyDialogButtonIDToName(controlID);
+				if(buttonName)
+				{
+					const char* buttonKey = GetDirectInputKeyName(diKey);
+					sprintf(Str_Tmp, "Current Key for %s Button is:    %s", buttonName, buttonKey);
+					SetWindowText(Tex1, Str_Tmp);
+				}
+				prevCursorPos = point;
+			}
+		}	break;
+
 		case WM_COMMAND:
-			switch(wParam)
+		{	int controlID = LOWORD(wParam);
+			switch(controlID)
 			{
 				case IDOK:
 					Keys_Def[Cur_Player]=Temp_Keys;
@@ -2223,94 +2178,27 @@ LRESULT CALLBACK KeyProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //U
 					EndDialog(hDlg, false);
 					return true;
 					break;
-				case IDC_BUTTON_REDEFINE_UP_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR UP");
-					Temp_Keys.Up = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_DOWN_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR DOWN");
-					Temp_Keys.Down = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_LEFT_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR LEFT");
-					Temp_Keys.Left = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_RIGHT_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR RIGHT");
-					Temp_Keys.Right = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_A_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR A");
-					Temp_Keys.A = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_B_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR B");
-					Temp_Keys.B = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_C_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR C");
-					Temp_Keys.C = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_START_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR START");
-					Temp_Keys.Start = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_X_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR X");
-					Temp_Keys.X = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_Y_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR Y");
-					Temp_Keys.Y = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_Z_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR Z");
-					Temp_Keys.Z = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
-				case IDC_BUTTON_REDEFINE_MODE_KEY:
-					SetWindowText(Tex1, "INPUT KEY FOR MODE");
-					Temp_Keys.Mode = Get_Key();
-					while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE));
-					SetWindowText(Tex1, "");
-					return true;
-					break;
 			}
-			break;
+
+			const char* name = KeyDialogButtonIDToName(controlID);
+			if(name)
+			{
+				sprintf(Str_Tmp, "Please Input Key for: %s Button", name);
+				SetWindowText(Tex1, Str_Tmp);
+				int diKey = Get_Key();
+				if(diKey)
+					KeyDialogButtonIDToDIKey(controlID) = diKey;
+				while (PeekMessage(&m, hDlg, WM_KEYDOWN, WM_KEYDOWN, PM_REMOVE)); // prevent the outer dialog from receiving the key that was pressed for the button
+				//while (PeekMessage(&m, hDlg, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE)); // prevent the outer dialog from receiving extra clicks that were made while waiting for the button
+				SetWindowText(Tex1, "");
+				prevCursorPos.x = -1; // makes the button name refresh
+				return true;
+			}
+
+		}	break;
 
 		case WM_CLOSE:
+			KillTimer(hDlg, NULL);
 			SetWindowText(Tex0, "");
 			End_Input();
 			DialogsOpen--;
