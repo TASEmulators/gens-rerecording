@@ -58,6 +58,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
+				WholeProgramOptimization="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				ExceptionHandling="1"
@@ -93,6 +94,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Release/gens.pdb"
 				SubSystem="2"
+				LinkTimeCodeGeneration="1"
 				TargetMachine="1"
 			/>
 			<Tool

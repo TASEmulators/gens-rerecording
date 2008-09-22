@@ -13,387 +13,431 @@
 #include <commctrl.h>
 #include "G_dsound.h"
 #include "ramwatch.h"
+#include <list>
+#include <vector>
+#ifdef _WIN32
+   #include "BaseTsd.h"
+   typedef INT_PTR intptr_t;
+#else
+   #include "stdint.h"
+#endif
 
-extern char rs_c, rs_o, rs_t;
-extern int rs_param, rs_val;
-bool AutoSearch=false;
 
-LRESULT CALLBACK PromptWatchNameProc(HWND, UINT, WPARAM, LPARAM);
-
-AddressInfo rsaddrs [MAX_RAM_SIZE];
-AddrIndex rsresults [MAX_RAM_SIZE];
-AddressWatcher rswatches[256];
-int ResultCount=0;
-int WatchCount=0;
-char rs_type_size = 'b', rs_last_type_size = 'b';
-bool noMisalign = true;
-bool littleEndian = false;
-bool preserveChanges = true;
-int tempCount;
-char Watch_Dir[1024]="";
-void UpdatePossibilities(int rs_possible);
-int last_rs_possible = -1;
-/*
-template <typename T>
-T GetRamValue(unsigned int i)
+struct MemoryRegion
 {
-	if (Genesis_Started)
-        if (i < GENESIS_RAM_SIZE) 
-		{
-			if(i < _68K_RAM_SIZE)
-				return (T) Ram_68k[i];
-			i -= _68K_RAM_SIZE;
+	unsigned int hardwareAddress; // hardware address of the start of this region
+	unsigned int size; // number of bytes to the end of this region
+	unsigned char* softwareAddress; // pointer to the start of the live emulator source values for this region
+	BOOL byteSwapped; // true if this is a byte-swapped region of memory
 
-			return (T) Ram_Z80[i];
-		}
+	unsigned int virtualIndex; // index into s_prevValues, s_curValues, and s_numChanges, valid after being initialized in ResetMemoryRegions()
+	unsigned int itemIndex; // index into listbox items, valid when s_itemIndicesInvalid is false
+};
 
-	i -= GENESIS_RAM_SIZE;
-    
-    if (_32X_Started)
-        if (i < _32X_RAM_SIZE)
-            return (T) _32X_Ram[i];
+static unsigned char s_prevValues [MAX_RAM_SIZE] = {0}; // values at last search or reset
+static unsigned char s_curValues [MAX_RAM_SIZE] = {0}; // values at last frame update
+static unsigned short s_numChanges [MAX_RAM_SIZE] = {0}; // number of changes of the item starting at this virtual index address
+static MemoryRegion* s_itemIndexToRegionPointer [MAX_RAM_SIZE] = {0}; // used for random access into the memory list (trading memory size to get speed here, too bad it's so much memory), only valid when s_itemIndicesInvalid is false
+static BOOL s_itemIndicesInvalid = true; // if true, the link from listbox items to memory regions (s_itemIndexToRegionPointer) and the link from memory regions to list box items (MemoryRegion::itemIndex) both need to be recalculated
+static BOOL s_prevValuesNeedUpdate = true; // if true, the "prev" values should be updated using the "cur" values on the next frame update signaled
+static unsigned int s_maxItemIndex = 0; // max currently valid item index, the listbox sometimes tries to update things past the end of the list so we need to know this to ignore those attempts
 
-	i -= _32X_RAM_SIZE;
+static const MemoryRegion s_prgRegion    = {  0x020000, SEGACD_RAM_PRG_SIZE, (unsigned char*)Ram_Prg,     false};
+static const MemoryRegion s_word1MRegion = {  0x200000, SEGACD_1M_RAM_SIZE,  (unsigned char*)Ram_Word_1M, false};
+static const MemoryRegion s_word2MRegion = {  0x200000, SEGACD_2M_RAM_SIZE,  (unsigned char*)Ram_Word_2M, false};
+static const MemoryRegion s_z80Region    = {  0xA00000, Z80_RAM_SIZE,        (unsigned char*)Ram_Z80,     false};
+static const MemoryRegion s_68kRegion    = {  0xFF0000, _68K_RAM_SIZE,       (unsigned char*)Ram_68k,     false};
+static const MemoryRegion s_32xRegion    = {0x06000000, _32X_RAM_SIZE,       (unsigned char*)_32X_Ram,    true};
 
-	if (SegaCD_Started)
-        if (i < SEGACD_RAM_SIZE)
-		{
-			if(i < SEGACD_RAM_PRG_SIZE)
-				return (T) Ram_Prg[i];
-			i -= SEGACD_RAM_PRG_SIZE;
+// list of contiguous uneliminated memory regions
+typedef std::list<MemoryRegion> MemoryList;
+static MemoryList s_activeMemoryRegions;
 
-			if(i < SEGACD_1M_RAM_SIZE)
-				return (T) Ram_Word_1M[i];
-			i -= SEGACD_1M_RAM_SIZE;
+// for undo support (could be better, but this way was really easy)
+static MemoryList s_activeMemoryRegionsBackup;
+static int s_undoType = 0; // 0 means can't undo, 1 means can undo, 2 means can redo
 
-			return (T) Ram_Word_2M[i];
-		}
+void RamSearchSaveUndoStateIfNotTooBig(HWND hDlg);
+static const int tooManyRegionsForUndo = 10000;
 
-	return (T) -1;
-}
-unsigned int GetRamValue(unsigned int i,char c)
+void ResetMemoryRegions()
 {
-	switch (c)
+	Clear_Sound_Buffer();
+
+	s_activeMemoryRegions.clear();
+	if(Genesis_Started || _32X_Started || SegaCD_Started)
 	{
-		case 'b': return (unsigned int) (GetRamValue<char>(i));
-		case 'w': return (unsigned int) (GetRamValue<short>(i));
-		case 'd': return (unsigned int) (GetRamValue<long>(i));
-		default: return (unsigned int) -1;
+		s_activeMemoryRegions.push_back(s_68kRegion);
+		s_activeMemoryRegions.push_back(s_z80Region);
+		if(SegaCD_Started)
+		{
+			s_activeMemoryRegions.push_back(s_prgRegion);
+			s_activeMemoryRegions.push_back((Ram_Word_State & 0x2) ? s_word1MRegion : s_word2MRegion);
+		}
+		if(_32X_Started)
+		{
+			s_activeMemoryRegions.push_back(s_32xRegion);
+		}
+	}
+
+	int nextVirtualIndex = 0;
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
+	{
+		MemoryRegion& region = *iter;
+		region.virtualIndex = nextVirtualIndex;
+		assert(((intptr_t)region.softwareAddress & 1) == 0 && "somebody need to reimplement ReadValueAtSoftwareAddress()");
+		nextVirtualIndex = region.virtualIndex + region.size;
+	}
+	assert(nextVirtualIndex <= MAX_RAM_SIZE);
+}
+
+// eliminates a range of hardware addresses from the search results
+// returns 2 if it changed the region and moved the iterator to another region
+// returns 1 if it changed the region but didn't move the iterator
+// returns 0 if it had no effect
+// warning: don't call anything that takes an itemIndex in a loop that calls DeactivateRegion...
+//   doing so would be tremendously slow because DeactivateRegion invalidates the index cache
+int DeactivateRegion(MemoryRegion& region, MemoryList::iterator& iter, unsigned int hardwareAddress, unsigned int size)
+{
+	if(hardwareAddress + size <= region.hardwareAddress || hardwareAddress >= region.hardwareAddress + region.size)
+	{
+		// region is unaffected
+		return 0;
+	}
+	else if(hardwareAddress > region.hardwareAddress && hardwareAddress + size >= region.hardwareAddress + region.size)
+	{
+		// erase end of region
+		region.size = hardwareAddress - region.hardwareAddress;
+		return 1;
+	}
+	else if(hardwareAddress <= region.hardwareAddress && hardwareAddress + size < region.hardwareAddress + region.size)
+	{
+		// erase start of region
+		int eraseSize = (hardwareAddress + size) - region.hardwareAddress;
+		region.hardwareAddress += eraseSize;
+		region.size -= eraseSize;
+		region.softwareAddress += eraseSize;
+		region.virtualIndex += eraseSize;
+		return 1;
+	}
+	else if(hardwareAddress <= region.hardwareAddress && hardwareAddress + size >= region.hardwareAddress + region.size)
+	{
+		// erase entire region
+		iter = s_activeMemoryRegions.erase(iter);
+		s_itemIndicesInvalid = TRUE;
+		return 2;
+	}
+	else //if(hardwareAddress > region.hardwareAddress && hardwareAddress + size < region.hardwareAddress + region.size)
+	{
+		// split region
+		int eraseSize = (hardwareAddress + size) - region.hardwareAddress;
+		MemoryRegion region2 = {region.hardwareAddress + eraseSize, region.size - eraseSize, region.softwareAddress + eraseSize, region.byteSwapped, region.virtualIndex + eraseSize};
+		region.size = hardwareAddress - region.hardwareAddress;
+		iter = s_activeMemoryRegions.insert(++iter, region2);
+		s_itemIndicesInvalid = TRUE;
+		return 2;
+	}
+}
+
+/*
+// eliminates a range of hardware addresses from the search results
+// this is a simpler but usually slower interface for the above function
+void DeactivateRegion(unsigned int hardwareAddress, unsigned int size)
+{
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); )
+	{
+		MemoryRegion& region = *iter;
+		if(2 != DeactivateRegion(region, iter, hardwareAddress, size))
+			++iter;
 	}
 }
 */
-unsigned int sizeConv(unsigned int index, char size, char *prevSize, bool usePrev)
-{
-	int typeSizeDest = (size == 'd') ? 4 : ((size == 'w') ? 2 : 1);
-//	int typeSizeSrc = 1;//(*prevSize == 'd') ? 4 : ((*prevSize == 'w') ? 2 : 1);
-//	if (typeSizeDest == typeSizeSrc)
-//		return (usePrev ? rsaddrs[index].prev : rsaddrs[index].cur);
-//	else if (typeSizeDest < typeSizeSrc)
-//	{
-//		unsigned int mask = 0x0;
-//		if (typeSizeDest == 1) Byte_Swap((usePrev ? &(rsaddrs[index].prev) : &(rsaddrs[index].cur)),typeSizeSrc);
-//		for (int i = 0; i < typeSizeDest; i++)
-//		{
-//			mask <<=8;
-//			mask |= 0xFF;
-//		}
-//		if (littleEndian)
-//			Switch_Endian((usePrev ? &(rsaddrs[index].prev) : &(rsaddrs[index].cur)),typeSizeSrc);
-//		unsigned int val = ((usePrev ? rsaddrs[index].prev : rsaddrs[index].cur) & mask);
-//		if (typeSizeDest == 1) Byte_Swap((usePrev ? &(rsaddrs[index].prev) : &(rsaddrs[index].cur)),typeSizeSrc);
-//		return val;
-//	}
-//	else // (typeSizeDest > typeSizeSrc)
-//	{
-		unsigned int val = 0;
-		for (int i = 0; i < typeSizeDest; i++)
-		{
-			val <<= 8;
-			val |= (usePrev ? rsaddrs[index + i].prev : rsaddrs[index + i].cur);
-		}
-		return val;
-//	}
-}
-void RamSet(unsigned int *d,void *s,char Size)
-{
-	switch (Size)
-	{
-		case 'b': *d = (unsigned int) (*((char *) &s)); break;
-		case 'w': *d = (unsigned int) (*((short *) &s)); break;
-		case 'd': *d = (unsigned int) (*((long *) &s)); break;
-		default: break;
-	}
-}
-//Function to determine the partitions
-// partitions the Array and returns the middle index (subscript)
-int partition(AddrIndex *Array, int top, int bottom)
-{
-	unsigned int x = Array[top].Address;
-	int i = top - 1;
-	int j = bottom + 1;
-	do {
-		do {
-			j--;
-		} while (x <Array[j].Address);
 
-		do {
-			i++;
-		} while (x >Array[i].Address);
+// warning: can be slow
+void CalculateItemIndices(int itemSize)
+{
+	unsigned int itemIndex = 0;
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
+	{
+		MemoryRegion& region = *iter;
+		region.itemIndex = itemIndex;
+		int startSkipSize = ((unsigned int)(itemSize - region.hardwareAddress)) % itemSize;
+		unsigned int start = startSkipSize;
+		unsigned int end = region.size;
+		for(unsigned int i = start; i < end; i += itemSize)
+			s_itemIndexToRegionPointer[itemIndex++] = &region;
+	}
+	s_maxItemIndex = itemIndex;
+	s_itemIndicesInvalid = FALSE;
+}
 
-		if (i < j)
-		{ 
-			AddrIndex temp = Array[i];    // switch elements at positions i and j
-			Array[i] = Array[j];
-			Array[j] = temp;
-		}
-	} while (i < j);    
-	return j;		// returns middle index
-}
-void quicksort(AddrIndex *Array, int top, int bottom)
+template<typename stepType, typename compareType>
+void UpdateRegionsT()
 {
-	// top = subscript of beginning of vector being considered
-	// bottom = subscript of end of vector being considered
-	// this process uses recursion - the process of calling itself
-	int middle;
-	if (top < bottom)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
 	{
-		middle = partition(Array, top, bottom);
-		quicksort(Array, top, middle);   // sort top partition
-		quicksort(Array, middle+1, bottom);    // sort bottom partition
-	}
-	return;
-}
-unsigned int getHardwareAddress(unsigned int index)
-{
-	if (SegaCD_Started)
-	{
-		if (index < SEGACD_RAM_PRG_SIZE) return index + 0x020000;
-		index -= SEGACD_RAM_PRG_SIZE;
-		if (index < SEGACD_2M_RAM_SIZE) return index + 0x200000;
-		index -= SEGACD_2M_RAM_SIZE;
-	}
-	if (index < Z80_RAM_SIZE) return index + 0xA00000;
-	index-= Z80_RAM_SIZE;
-	if (index < _68K_RAM_SIZE) return index + 0xFF0000;
-	index-= _68K_RAM_SIZE;
-	if (index < _32X_RAM_SIZE) return index + 0x06000000;
-	index-= _32X_RAM_SIZE;
-	return 0xFFFFFFFF;
-}
-int getSearchIndex(unsigned int HA,int bot, int top)
-{
-	if (top<bot)	
-		return -1;
-	int mid = (top + bot) / 2;
-	if (HA > getHardwareAddress(mid))
-		return getSearchIndex(HA,mid+1,top);
-	else if (HA < getHardwareAddress(mid))
-		return getSearchIndex(HA,bot,mid-1);
-	return mid;
-}
-bool sameWatch(AddressWatcher l,AddressWatcher r)
-{
-	return ((l.Index == r.Index) && (l.Size == r.Size) && (l.Type == r.Type)/* && (l.WrongEndian == r.WrongEndian)*/);
-}
-void InsertWatch(AddressWatcher Watch, char *Comment)
-{
-//	MessageBox(RamSearchHWnd,"Inserting Watch",NULL,MB_OK);
-	if (rsaddrs[Watch.Index].comment) free(rsaddrs[Watch.Index].comment);
-	rsaddrs[Watch.Index].comment = (char *) malloc(strlen(Comment)+2);
-	rsaddrs[Watch.Index].flags |= RS_FLAG_WATCHED;
-	strcpy(rsaddrs[Watch.Index].comment,Comment);
-/*	for (int j = 0; j < WatchCount; j++)
-	{
-		if (sameWatch(rswatches[j],Watch))
+		MemoryRegion& region = *iter;
+
+		if(s_prevValuesNeedUpdate)
+			memcpy(s_prevValues + region.virtualIndex, s_curValues + region.virtualIndex, region.size + sizeof(compareType) - sizeof(stepType));
+
+		if(region.byteSwapped) // swapbytes
+			Byte_Swap(region.softwareAddress, region.size);
+
+		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+
+		unsigned char* sourceAddr = region.softwareAddress - region.virtualIndex;
+		unsigned int indexStart = region.virtualIndex + startSkipSize;
+		unsigned int indexEnd = region.virtualIndex + region.size;
+
+		if(sizeof(compareType) == 1)
 		{
-			return;
+			for(unsigned int i = indexStart; i < indexEnd; i++)
+			{
+				if(s_curValues[i] != sourceAddr[i^1]) // if value changed
+				{
+					s_curValues[i] = sourceAddr[i^1]; // update value
+					//if(s_numChanges[i] != 0xFFFF)
+						s_numChanges[i]++; // increase change count
+				}
+			}
 		}
-	}*/
-	int i = WatchCount;
+		else // it's more complicated for non-byte sizes because:
+		{    // - more than one byte can affect a given change count entry
+		     // - when more than one of those bytes changes simultaneously the entry's change count should only increase by 1
+		     // - a few of those bytes can be outside the region
+
+			unsigned int nextValidChange [sizeof(compareType)];
+			for(unsigned int i = 0; i < sizeof(compareType); i++)
+				nextValidChange[i] = indexStart + i;
+			for(unsigned int i = indexStart, j = 0; i < indexEnd + sizeof(compareType) - sizeof(stepType); i++, j++)
+			{
+				if(s_curValues[i] != sourceAddr[i^1]) // if value of this byte changed
+				{
+					if(i < indexEnd)
+						s_curValues[i] = sourceAddr[i^1]; // update value
+					for(int k = 0; k < sizeof(compareType); k++) // loop through the previous entries that contain this byte
+					{
+						if(i >= indexEnd+k)
+							continue;
+						int m = (j-k+sizeof(compareType)) & (sizeof(compareType)-1);
+						if(nextValidChange[m]+sizeof(compareType) <= i+sizeof(compareType)) // if we didn't already increase the change count for this entry
+						{
+							//if(s_numChanges[i-k] != 0xFFFF)
+								s_numChanges[i-k]++; // increase the change count for this entry
+							nextValidChange[m] = i+sizeof(compareType); // and remember not to increase it again
+						}
+					}
+				}
+			}
+		}
+
+		if(region.byteSwapped) // unswapbytes
+			Byte_Swap(region.softwareAddress, region.size);
+	}
+
+	s_prevValuesNeedUpdate = false;
+}
+
+template<typename stepType, typename compareType>
+int CountRegionItemsT()
+{
+	if(sizeof(stepType) == 1)
 	{
-		rswatches[i].Address = Watch.Address;
-		rswatches[i].Index = Watch.Index;
-		rswatches[i].Size = Watch.Size;
-		rswatches[i].Type = Watch.Type;
-		rswatches[i].WrongEndian = Watch.WrongEndian = 0;
-		rsaddrs[Watch.Index].flags &= RS_FLAG_WATCHED;
-		CompactAddrs();
-		WatchCount++;
-		RWfileChanged=true;
+		if(s_activeMemoryRegions.empty())
+			return 0;
+
+		if(s_itemIndicesInvalid)
+			CalculateItemIndices(sizeof(stepType));
+
+		MemoryRegion& lastRegion = s_activeMemoryRegions.back();
+		return lastRegion.itemIndex + lastRegion.size;
+	}
+	else // the branch above is faster but won't work if the step size isn't 1
+	{
+		int total = 0;
+		for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
+		{
+			MemoryRegion& region = *iter;
+			int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+			total += (region.size - startSkipSize + (sizeof(stepType)-1)) / sizeof(stepType);
+		}
+		return total;
+	}
+}
+
+// returns information about the item in the form of a "fake" region
+// that has the item in it and nothing else
+template<typename stepType, typename compareType>
+void ItemIndexToVirtualRegion(unsigned int itemIndex, MemoryRegion& virtualRegion)
+{
+	if(s_itemIndicesInvalid)
+		CalculateItemIndices(sizeof(stepType));
+
+	if(itemIndex >= s_maxItemIndex)
+	{
+		memset(&virtualRegion, 0, sizeof(MemoryRegion));
 		return;
 	}
-//	MessageBox(RamSearchHWnd,"I am returning",NULL,MB_OK);
-}
-void CompactAddrs()
-{
-	const int typeSizeSize = ((rs_type_size=='b') ? 1 : (rs_type_size=='w') ? 2 : 4);
-	for (int i,j = i = 0; i < CUR_RAM_MAX; i++)
-	{
-		if ((rsaddrs[i].flags & RS_FLAG_TEMP_ELIMINATED) && !((i % min(typeSizeSize,2))&&noMisalign))
-		{
-			rsaddrs[i].flags &= ~RS_FLAG_TEMP_ELIMINATED;
-			rsresults[j].Index = i;
-			rsresults[j].Address = getHardwareAddress(i);
-			ResultCount++;
-			j++;
-		}
-		else if (!((rsaddrs[i].flags & RS_FLAG_ELIMINATED) || (rsaddrs[i].flags & RS_FLAG_TEMP_ELIMINATED)))
-		{
-			if ((i % min(typeSizeSize,2)) && noMisalign)
-			{
-				rsaddrs[i].flags |= RS_FLAG_TEMP_ELIMINATED;
-				ResultCount--;
-			}
-			else
-			{
-				rsresults[j].Index = i;
-				rsresults[j].Address = getHardwareAddress(i);
-				j++;
-			}
-		}
-	}
-	for (int i = 0; i < ResultCount; i++)
-	{
-		rsresults[i].cur = sizeConv(rsresults[i].Index,rs_type_size,"b");
-		rsresults[i].prev = sizeConv(rsresults[i].Index,rs_type_size,"b",true);
-	}
-	UpdatePossibilities(ResultCount);
-}
-void ResetRamValues (unsigned int & rangeStart, unsigned int rangeSize, void* RamBuffer, bool firstTime)
-{
-	if (RamBuffer == (void *) _32X_Ram) Byte_Swap(RamBuffer,rangeSize);
-	const unsigned char* RamBuf = (const unsigned char*) RamBuffer;
-	const int typeSizeSize = (rs_type_size=='b') ? 1 : (rs_type_size=='w') ? 2 : 4;
-	const unsigned int rangeEnd = rangeStart+rangeSize;
-	for (unsigned int i = rangeStart; i < (rangeEnd - (typeSizeSize - 1)); i++)
-	{
-		unsigned char val = RamBuf[(i - rangeStart) ^ 1];
 
-		if(firstTime)
-		{
-			rsaddrs[i].flags = 0;
-			rsaddrs[i].comment = NULL;
-		}
-		rsaddrs[i].cur = rsaddrs[i].prev = val;
-		rsaddrs[i].changes = 0;
-		rsaddrs[i].flags &= ~(RS_FLAG_ELIMINATED | RS_FLAG_TEMP_ELIMINATED);
-		ResultCount++;
+	const MemoryRegion* regionPtr = s_itemIndexToRegionPointer[itemIndex];
+	const MemoryRegion& region = *regionPtr;
 
-		if (!(rsaddrs[i].flags & RS_FLAG_WATCHED))
-		{
-			if(rsaddrs[i].comment && !firstTime)
-				delete[] rsaddrs[i].comment;
-			rsaddrs[i].comment = NULL;
-		}
-	}
-	rangeStart += rangeSize;
-	if (RamBuffer == (void *) _32X_Ram) Byte_Swap(RamBuffer,rangeSize);
-}
-// caution: this function assumes it does not need to decrement ResultCount
-void EliminateRamValues (unsigned int & rangeStart, unsigned int rangeSize, bool firstTime)
-{
-	const unsigned int rangeEnd = rangeStart+rangeSize;
-	for (unsigned int i = rangeStart; i < rangeEnd; i++)
-	{
-		if(firstTime)
-		{
-			rsaddrs[i].flags = 0;
-			rsaddrs[i].comment = NULL;
-		}
-
-		rsaddrs[i].flags |= RS_FLAG_ELIMINATED;
-	}
-	rangeStart += rangeSize;
-}
-void reset_address_info ()
-{
-	static bool firstTime = true;
-
-	ResultCount = 0;
-
-	unsigned int rangeStart = 0;
-	if (Genesis_Started || _32X_Started || SegaCD_Started)
-	{
-		if (SegaCD_Started)
-		{
-			ResetRamValues(rangeStart, SEGACD_RAM_PRG_SIZE, Ram_Prg, firstTime);
-			ResetRamValues(rangeStart, SEGACD_2M_RAM_SIZE, (Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M, firstTime);
-		}
-		ResetRamValues(rangeStart, Z80_RAM_SIZE, Ram_Z80, firstTime);
-		ResetRamValues(rangeStart, _68K_RAM_SIZE, Ram_68k, firstTime);
-		if (_32X_Started)
-			ResetRamValues(rangeStart, _32X_RAM_SIZE, _32X_Ram, firstTime);
-		//else EliminateRamValues(rangeStart, _32X_RAM_SIZE, firstTime);
-	}
-	EliminateRamValues(rangeStart, MAX_RAM_SIZE - rangeStart, firstTime);
-	CompactAddrs();
-	firstTime = false;
-}
-unsigned int HexStrToInt(char *s)
-{
-	unsigned int v=0;
-	sscanf(s, "%8X", &v);
-	return v;
+	int bytesWithinRegion = (itemIndex - region.itemIndex) * sizeof(stepType);
+	int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+	bytesWithinRegion += startSkipSize;
+	
+	virtualRegion.size = sizeof(compareType);
+	virtualRegion.hardwareAddress = region.hardwareAddress + bytesWithinRegion;
+	virtualRegion.softwareAddress = region.softwareAddress + bytesWithinRegion;
+	virtualRegion.virtualIndex = region.virtualIndex + bytesWithinRegion;
+	virtualRegion.byteSwapped = region.byteSwapped;
+	virtualRegion.itemIndex = itemIndex;
+	return;
 }
 
-void UpdateRamValues (unsigned int & rangeStart, unsigned int rangeSize, void* RamBuffer)
+template<typename stepType, typename compareType>
+unsigned int ItemIndexToVirtualIndex(unsigned int itemIndex)
 {
-	const int typeSizeSize = (rs_type_size=='b') ? 1 : (rs_type_size=='w') ? 2 : 4;
-	const unsigned int rangeEnd = rangeStart+rangeSize;
-	if (RamBuffer == (void *) _32X_Ram) Byte_Swap(RamBuffer,rangeSize);
-	const unsigned char* RamBuf = (const unsigned char*)RamBuffer;
-	for (unsigned int i = rangeStart; i < rangeEnd; i++)
-	{
-		unsigned char val = RamBuf[(i - rangeStart) ^ 1];
-		if (rsaddrs[i].cur != val)
-		{
-			rsaddrs[i].cur = val;
-			for (int j = 0; j < typeSizeSize; j++)
-				rsaddrs[i - j].changes++;			
-		}
-	}
-	rangeStart = rangeEnd;
-	if (RamBuffer == (void *) _32X_Ram) Byte_Swap(RamBuffer,rangeSize);
-}
-void signal_new_frame ()
-{
-	unsigned int rangeStart = 0;
-	int ResultIndex,WatchIndex=ResultIndex=0;
-	if (Genesis_Started || _32X_Started || SegaCD_Started)
-	{
-		if (SegaCD_Started)
-		{
-			UpdateRamValues(rangeStart, SEGACD_RAM_PRG_SIZE, Ram_Prg);
-			UpdateRamValues(rangeStart, (Ram_Word_State & 0x2) ? SEGACD_1M_RAM_SIZE : SEGACD_2M_RAM_SIZE , (Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M);
-		}
-		UpdateRamValues(rangeStart, Z80_RAM_SIZE, Ram_Z80);
-		UpdateRamValues(rangeStart, _68K_RAM_SIZE, Ram_68k);
-		if (_32X_Started)
-			UpdateRamValues(rangeStart, _32X_RAM_SIZE, _32X_Ram);
-//		else rangeStart += _32X_RAM_SIZE;
-	}
-	CompactAddrs();
+	MemoryRegion virtualRegion;
+	ItemIndexToVirtualRegion<stepType,compareType>(itemIndex, virtualRegion);
+	return virtualRegion.virtualIndex;
 }
 
-void Switch_Endian (void *ptr, int size)
+template<typename T>
+T ReadBigEndian(const unsigned char* data)
 {
-	char *bef = (char *)ptr;
-	char *aft = (char *) malloc(size);
-	for (int i = 1; i <= size; i++)
-		aft[i-1] = bef[size - i];
-	for (int i = 0; i < size; i++)
-		bef[i] = aft[i];
-	free(aft);
+	T rv = 0;
+	for(int i = 0; i < sizeof(T); i++)
+	{
+		rv <<= 8;
+		rv |= *data++;
+	}
+	return rv;
 }
-// happens after a size change
-//void SetCurRamValues (unsigned int & rangeStart, unsigned int rangeSize, void* RamBuffer)
-//{
-//}
-void signal_new_size ()
+template<> signed char ReadBigEndian(const unsigned char* data) { return *data; }
+template<> unsigned char ReadBigEndian(const unsigned char* data) { return *data; }
+
+
+template<typename stepType, typename compareType>
+compareType GetPrevValueFromVirtualIndex(unsigned int virtualIndex)
 {
-	CompactAddrs();
-	rs_last_type_size = rs_type_size;
+	return ReadBigEndian<compareType>(s_prevValues + virtualIndex);
+	//return *(compareType*)(s_prevValues+virtualIndex);
 }
+template<typename stepType, typename compareType>
+compareType GetCurValueFromVirtualIndex(unsigned int virtualIndex)
+{
+	return ReadBigEndian<compareType>(s_curValues + virtualIndex);
+//	return *(compareType*)(s_curValues+virtualIndex);
+}
+template<typename stepType, typename compareType>
+unsigned short GetNumChangesFromVirtualIndex(unsigned int virtualIndex)
+{
+	unsigned short num = s_numChanges[virtualIndex];
+	//for(unsigned int i = 1; i < sizeof(stepType); i++)
+	//	if(num < s_numChanges[virtualIndex+i])
+	//		num = s_numChanges[virtualIndex+i];
+	return num;
+}
+
+template<typename stepType, typename compareType>
+compareType GetPrevValueFromItemIndex(unsigned int itemIndex)
+{
+	int virtualIndex = ItemIndexToVirtualIndex<stepType,compareType>(itemIndex);
+	return GetPrevValueFromVirtualIndex<stepType,compareType>(virtualIndex);
+}
+template<typename stepType, typename compareType>
+compareType GetCurValueFromItemIndex(unsigned int itemIndex)
+{
+	int virtualIndex = ItemIndexToVirtualIndex<stepType,compareType>(itemIndex);
+	return GetCurValueFromVirtualIndex<stepType,compareType>(virtualIndex);
+}
+template<typename stepType, typename compareType>
+unsigned short GetNumChangesFromItemIndex(unsigned int itemIndex)
+{
+	int virtualIndex = ItemIndexToVirtualIndex<stepType,compareType>(itemIndex);
+	return GetNumChangesFromVirtualIndex<stepType,compareType>(virtualIndex);
+}
+template<typename stepType, typename compareType>
+unsigned int GetHardwareAddressFromItemIndex(unsigned int itemIndex)
+{
+	MemoryRegion virtualRegion;
+	ItemIndexToVirtualRegion<stepType,compareType>(itemIndex, virtualRegion);
+	return virtualRegion.hardwareAddress;
+}
+
+// this one might be unreliable, haven't used it much
+template<typename stepType, typename compareType>
+unsigned int HardwareAddressToItemIndex(unsigned int hardwareAddress)
+{
+	if(s_itemIndicesInvalid)
+		CalculateItemIndices(sizeof(stepType));
+
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
+	{
+		MemoryRegion& region = *iter;
+		if(hardwareAddress >= region.hardwareAddress && hardwareAddress < region.hardwareAddress + region.size)
+		{
+			int indexWithinRegion = (hardwareAddress - region.hardwareAddress) / sizeof(stepType);
+			return region.itemIndex + indexWithinRegion;
+		}
+	}
+
+	return -1;
+}
+
+
+
+
+// workaround for a parser error in MSVC that sometimes deletes a comma preceeding a macro
+// this macro takes a type and a signed/unsigned modifier, and returns the same type with that modifier whether or not the compiler decides to delete the comma between them
+template<typename T, typename ignored=void>
+struct DummyType { typedef T t; };
+#define COMMAHACK(sign, type) DummyType<sign type, sign>::t
+#ifdef _MSC_VER
+#pragma warning(disable : 4114) // disable "same modifier used twice" warning that otherwise would get issued when the compiler bug happens
+#endif
+
+// it's ugly but I can't think of a better way to call these functions that isn't also slower, since
+// I need the current values of these arguments to determine which primitive types are used within the function
+#define CALL_WITH_T_SIZE_TYPES(functionName, sizeTypeID, isSigned, requireAligned, ...) \
+	(sizeTypeID == 'b' \
+		? (isSigned \
+			? functionName<char, COMMAHACK(signed,char)>(__VA_ARGS__) \
+			: functionName<char, COMMAHACK(unsigned,char)>(__VA_ARGS__)) \
+	: sizeTypeID == 'w' \
+		? (isSigned \
+			? (requireAligned \
+				? functionName<short, COMMAHACK(signed,short)>(__VA_ARGS__) \
+				: functionName<char, COMMAHACK(signed,short)>(__VA_ARGS__)) \
+			: (requireAligned \
+				? functionName<short, COMMAHACK(unsigned,short)>(__VA_ARGS__) \
+				: functionName<char, COMMAHACK(unsigned,short)>(__VA_ARGS__))) \
+	: sizeTypeID == 'd' \
+		? (isSigned \
+			? (requireAligned \
+				? functionName<short, COMMAHACK(signed,long)>(__VA_ARGS__) \
+				: functionName<char, COMMAHACK(signed,long)>(__VA_ARGS__)) \
+			: (requireAligned \
+				? functionName<short, COMMAHACK(unsigned,long)>(__VA_ARGS__) \
+				: functionName<char, COMMAHACK(unsigned,long)>(__VA_ARGS__))) \
+	: functionName<char, COMMAHACK(signed,char)>(__VA_ARGS__))
+
+// version that takes a forced comparison type
+#define CALL_WITH_T_STEP(functionName, sizeTypeID, sign,type, requireAligned, ...) \
+	(sizeTypeID == 'b' \
+		? functionName<char, COMMAHACK(sign,type)>(__VA_ARGS__) \
+	: sizeTypeID == 'w' \
+		? (requireAligned \
+			? functionName<short, COMMAHACK(sign,type)>(__VA_ARGS__) \
+			: functionName<char, COMMAHACK(sign,type)>(__VA_ARGS__)) \
+	: sizeTypeID == 'd' \
+		? (requireAligned \
+			? functionName<short, COMMAHACK(sign,type)>(__VA_ARGS__) \
+			: functionName<char, COMMAHACK(sign,type)>(__VA_ARGS__)) \
+	: functionName<char, COMMAHACK(sign,type)>(__VA_ARGS__))
+
 
 // basic comparison functions:
 template <typename T> inline bool LessCmp (T x, T y, T i)        { return x < y; }
@@ -403,65 +447,95 @@ template <typename T> inline bool MoreEqualCmp (T x, T y, T i)   { return x >= y
 template <typename T> inline bool EqualCmp (T x, T y, T i)       { return x == y; }
 template <typename T> inline bool UnequalCmp (T x, T y, T i)     { return x != y; }
 template <typename T> inline bool DiffByCmp (T x, T y, T p)      { return x - y == p || y - x == p; }
+template <typename T> inline bool ModIsCmp (T x, T y, T p)       { return p && x % p == y; }
 
 // compare-to type functions:
-template <typename T>
+template<typename stepType, typename T>
 void SearchRelative (bool(*cmpFun)(T,T,T), T ignored, T param)
 {
-	for(int i = 0; i < ResultCount; i++)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); )
 	{
-		if(!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_ELIMINATED) && !cmpFun((T)rsresults[i].cur, (T)rsresults[i].prev, param))
-		{
-			if (!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_TEMP_ELIMINATED)) tempCount--;
-			rsaddrs[rsresults[i].Index].flags &= ~RS_FLAG_TEMP_ELIMINATED;
-			rsaddrs[rsresults[i].Index].flags |= RS_FLAG_ELIMINATED;
-		}
+		MemoryRegion& region = *iter;
+		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+		unsigned int start = region.virtualIndex + startSkipSize;
+		unsigned int end = region.virtualIndex + region.size;
+		for(unsigned int i = start, hwaddr = region.hardwareAddress; i < end; i += sizeof(stepType), hwaddr += sizeof(stepType))
+			if(!cmpFun(GetCurValueFromVirtualIndex<stepType,T>(i), GetPrevValueFromVirtualIndex<stepType,T>(i), param))
+				if(2 == DeactivateRegion(region, iter, hwaddr, sizeof(stepType)))
+					goto outerContinue;
+		++iter;
+outerContinue:
+		continue;
 	}
 }
-template <typename T>
+template<typename stepType, typename T>
 void SearchSpecific (bool(*cmpFun)(T,T,T), T value, T param)
 {
-	for(int i = 0; i < ResultCount; i++)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); )
 	{
-		if(!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_ELIMINATED) && !cmpFun((T)rsresults[i].cur, value, param))
-		{
-			if (!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_TEMP_ELIMINATED)) tempCount--;
-			rsaddrs[rsresults[i].Index].flags &= ~RS_FLAG_TEMP_ELIMINATED;
-			rsaddrs[rsresults[i].Index].flags |= RS_FLAG_ELIMINATED;
-		}
+		MemoryRegion& region = *iter;
+		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+		unsigned int start = region.virtualIndex + startSkipSize;
+		unsigned int end = region.virtualIndex + region.size;
+		for(unsigned int i = start, hwaddr = region.hardwareAddress; i < end; i += sizeof(stepType), hwaddr += sizeof(stepType))
+			if(!cmpFun(GetCurValueFromVirtualIndex<stepType,T>(i), value, param))
+				if(2 == DeactivateRegion(region, iter, hwaddr, sizeof(stepType)))
+					goto outerContinue;
+		++iter;
+outerContinue:
+		continue;
 	}
 }
-template <typename T>
-void SearchAddress (bool(*cmpFun)(T,T,T), unsigned int address, T param)
+template<typename stepType, typename T>
+void SearchAddress (bool(*cmpFun)(T,T,T), T address, T param)
 {
-	for(int i = 0; i < ResultCount; i++)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); )
 	{
-		if(!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_ELIMINATED) && !cmpFun(getHardwareAddress(rsresults[i].Index), address, param))
-		{
-			if (!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_TEMP_ELIMINATED)) tempCount--;
-			rsaddrs[rsresults[i].Index].flags &= ~RS_FLAG_TEMP_ELIMINATED;
-			rsaddrs[rsresults[i].Index].flags |= RS_FLAG_ELIMINATED;
-		}
+		MemoryRegion& region = *iter;
+		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+		unsigned int start = region.virtualIndex + startSkipSize;
+		unsigned int end = region.virtualIndex + region.size;
+		for(unsigned int i = start, hwaddr = region.hardwareAddress; i < end; i += sizeof(stepType), hwaddr += sizeof(stepType))
+			if(!cmpFun(hwaddr, address, param))
+				if(2 == DeactivateRegion(region, iter, hwaddr, sizeof(stepType)))
+					goto outerContinue;
+		++iter;
+outerContinue:
+		continue;
 	}
 }
-template <typename T>
-void SearchChanges (bool(*cmpFun)(T,T,T), unsigned int changes, T param)
+template<typename stepType, typename T>
+void SearchChanges (bool(*cmpFun)(T,T,T), T changes, T param)
 {
-	for(int i = 0; i < ResultCount; i++)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); )
 	{
-		if(!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_ELIMINATED) && !cmpFun(rsaddrs[rsresults[i].Index].changes, changes, param))
-		{
-			if (!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_TEMP_ELIMINATED)) tempCount--;
-			rsaddrs[rsresults[i].Index].flags &= ~RS_FLAG_TEMP_ELIMINATED;
-			rsaddrs[rsresults[i].Index].flags |= RS_FLAG_ELIMINATED;
-		}
+		MemoryRegion& region = *iter;
+		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+		unsigned int start = region.virtualIndex + startSkipSize;
+		unsigned int end = region.virtualIndex + region.size;
+		for(unsigned int i = start, hwaddr = region.hardwareAddress; i < end; i += sizeof(stepType), hwaddr += sizeof(stepType))
+			if(!cmpFun(GetNumChangesFromVirtualIndex<stepType,T>(i), changes, param))
+				if(2 == DeactivateRegion(region, iter, hwaddr, sizeof(stepType)))
+					goto outerContinue;
+		++iter;
+outerContinue:
+		continue;
 	}
 }
+
+char rs_c='s';
+char rs_o='=';
+char rs_t='s';
+int rs_param=0, rs_val=0, rs_val_valid=0;
+char rs_type_size = 'b', rs_last_type_size = rs_type_size;
+bool noMisalign = true, rs_last_no_misalign = noMisalign;
+bool littleEndian = false;
+int last_rs_possible = -1;
+int last_rs_regions = -1;
 
 void prune(char c,char o,char t,int v,int p)
 {
 	// repetition-reducing macros
-	tempCount = ResultCount;
 	#define DO_SEARCH(sf) \
 	switch (o) \
 	{ \
@@ -472,158 +546,506 @@ void prune(char c,char o,char t,int v,int p)
 		case 'l': DO_SEARCH_2(LessEqualCmp,sf); break; \
 		case 'm': DO_SEARCH_2(MoreEqualCmp,sf); break; \
 		case 'd': DO_SEARCH_2(DiffByCmp,sf); break; \
+		case '%': DO_SEARCH_2(ModIsCmp,sf); break; \
 		default: assert(!"Invalid operator for this search type."); break; \
 	}
 
 	// perform the search, eliminating nonmatching values
 	switch (c)
 	{
-		#define DO_SEARCH_2(CmpFun,sf) \
-		switch(rs_type_size) \
-		{ \
-			case 'b': t == 's' ? sf<signed char>(CmpFun,v,p)  : sf<unsigned char>(CmpFun,v,p);  break; \
-			case 'w': t == 's' ? sf<signed short>(CmpFun,v,p) : sf<unsigned short>(CmpFun,v,p); break; \
-			case 'd': t == 's' ? sf<signed long>(CmpFun,v,p)  : sf<unsigned long>(CmpFun,v,p);  break; \
-		}
+		#define DO_SEARCH_2(CmpFun,sf) CALL_WITH_T_SIZE_TYPES(sf, rs_type_size, t, noMisalign, CmpFun,v,p)
 		case 'r': DO_SEARCH(SearchRelative); break;
 		case 's': DO_SEARCH(SearchSpecific); break;
 
 		#undef DO_SEARCH_2
-		#define DO_SEARCH_2(CmpFun,sf) sf<unsigned long>(CmpFun,v,p);
+		#define DO_SEARCH_2(CmpFun,sf) CALL_WITH_T_STEP(sf, rs_type_size, unsigned,int, noMisalign, CmpFun,v,p);
 		case 'a': DO_SEARCH(SearchAddress); break;
+
+		#undef DO_SEARCH_2
+		#define DO_SEARCH_2(CmpFun,sf) CALL_WITH_T_STEP(sf, rs_type_size, unsigned,short, noMisalign, CmpFun,v,p);
 		case 'n': DO_SEARCH(SearchChanges); break;
 
 		default: assert(!"Invalid search comparison type."); break;
 	}
 
-	ResultCount = tempCount;
+	s_prevValuesNeedUpdate = true;
+
+	int prevNumItems = last_rs_possible;
+
 	CompactAddrs();
-	// update address info after search
-	for (int i = 0; i < ResultCount; i++)
+
+	if(prevNumItems == last_rs_possible)
 	{
-		if(!(rsaddrs[rsresults[i].Index].flags & RS_FLAG_ELIMINATED))
+		SetRamSearchUndoType(RamSearchHWnd, 0); // nothing to undo
+	}
+}
+
+
+
+
+template<typename stepType, typename T>
+bool CompareRelativeAtItem (bool(*cmpFun)(T,T,T), int itemIndex, T ignored, T param)
+{
+	return cmpFun(GetCurValueFromItemIndex<stepType,T>(itemIndex), GetPrevValueFromItemIndex<stepType,T>(itemIndex), param);
+}
+template<typename stepType, typename T>
+bool CompareSpecificAtItem (bool(*cmpFun)(T,T,T), int itemIndex, T value, T param)
+{
+	return cmpFun(GetCurValueFromItemIndex<stepType,T>(itemIndex), value, param);
+}
+template<typename stepType, typename T>
+bool CompareAddressAtItem (bool(*cmpFun)(T,T,T), int itemIndex, T address, T param)
+{
+	return cmpFun(GetHardwareAddressFromItemIndex<stepType,T>(itemIndex), address, param);
+}
+template<typename stepType, typename T>
+bool CompareChangesAtItem (bool(*cmpFun)(T,T,T), int itemIndex, T changes, T param)
+{
+	return cmpFun(GetNumChangesFromItemIndex<stepType,T>(itemIndex), changes, param);
+}
+
+unsigned int HexStrToInt(char *s)
+{
+	unsigned int v=0;
+	sscanf(s, "%8X", &v);
+	return v;
+}
+
+int ReadControlInt(int controlID, bool forceHex, BOOL& success)
+{
+	int rv = 0;
+	BOOL ok = false;
+
+	if(!forceHex)
+	{
+		rv = GetDlgItemInt(RamSearchHWnd,controlID,&ok,(rs_t == 's'));
+	}
+
+	if(!ok)
+	{
+		if(GetDlgItemText(RamSearchHWnd,controlID,Str_Tmp,16))
 		{
-			rsaddrs[rsresults[i].Index].prev = rsaddrs[rsresults[i].Index].cur;
-			rsresults[i].prev = rsresults[i].cur;
-			if (!preserveChanges)
-				rsaddrs[i].changes = 0;
+			const char* strPtr = Str_Tmp;
+			bool negate = false;
+			while(strPtr[0] == '-')
+				strPtr++, negate = !negate;
+			if(strPtr[0] == '+')
+				strPtr++;
+			if(strPtr[0] == '0' && tolower(strPtr[1]) == 'x')
+				strPtr += 2, forceHex = true;
+			if(strPtr[0] == '$')
+				strPtr++, forceHex = true;
+			if(!forceHex)
+			{
+				const char* strSearchPtr = strPtr;
+				while(*strSearchPtr)
+				{
+					int c = tolower(*strSearchPtr++);
+					if(c >= 'a' && c <= 'f')
+						forceHex = true;
+				}
+			}
+			const char* formatString = forceHex ? "%X" : ((rs_t=='s') ? "%d" : "%u");
+			if(sscanf(strPtr, formatString, &rv) > 0)
+				ok = true;
+			if(negate)
+				rv = -rv;
 		}
 	}
 
+	success = ok;
+	return rv;
+}
+
+
+bool Set_RS_Val()
+{
+	BOOL success;
+
+	// update rs_val
+	switch(rs_c)
+	{
+		case 'r':
+		default:
+			rs_val = 0;
+			break;
+		case 's':
+			rs_val = ReadControlInt(IDC_EDIT_COMPAREVALUE, rs_t == 'h', success);
+			if(!success)
+				return false;
+			if((rs_type_size == 'b' && rs_t == 's' && (rs_val < -128 || rs_val > 127)) ||
+			   (rs_type_size == 'b' && rs_t != 's' && (rs_val < 0 || rs_val > 255)) ||
+			   (rs_type_size == 'w' && rs_t == 's' && (rs_val < -32768 || rs_val > 32767)) ||
+			   (rs_type_size == 'w' && rs_t != 's' && (rs_val < 0 || rs_val > 65535)))
+			   return false;
+			break;
+		case 'a':
+			rs_val = ReadControlInt(IDC_EDIT_COMPAREADDRESS, true, success);
+			if(!success || rs_val < 0 || rs_val > 0x06040000)
+				return false;
+			break;
+		case 'n': {
+			rs_val = ReadControlInt(IDC_EDIT_COMPARECHANGES, false, success);
+			if(!success || rs_val < 0 || rs_val > 0xFFFF)
+				return false;
+		}	break;
+	}
+
+	// also update rs_param
+	switch(rs_o)
+	{
+		default:
+			rs_param = 0;
+			break;
+		case 'd':
+			rs_param = ReadControlInt(IDC_EDIT_DIFFBY, false, success);
+			if(!success)
+				return false;
+			break;
+		case '%':
+			rs_param = ReadControlInt(IDC_EDIT_MODBY, false, success);
+			if(!success || rs_param == 0)
+				return false;
+			break;
+	}
+
+	// validate that rs_param fits in the comparison data type
+	{
+		int appliedSize = rs_type_size;
+		int appliedSign = rs_t;
+		if(rs_c == 'n')
+			appliedSize = 'w', appliedSign = 'u';
+		if(rs_c == 'a')
+			appliedSize = 'd', appliedSign = 'u';
+		if((appliedSize == 'b' && appliedSize == 's' && (rs_param < -128 || rs_param > 127)) ||
+		   (appliedSize == 'b' && appliedSize != 's' && (rs_param < 0 || rs_param > 255)) ||
+		   (appliedSize == 'w' && appliedSize == 's' && (rs_param < -32768 || rs_param > 32767)) ||
+		   (appliedSize == 'w' && appliedSize != 's' && (rs_param < 0 || rs_param > 65535)))
+		   return false;
+	}
+
+	return true;
+}
+
+bool IsSatisfied(int itemIndex)
+{
+	if(!rs_val_valid)
+		return true;
+	int o = rs_o;
+	switch (rs_c)
+	{
+		#undef DO_SEARCH_2
+		#define DO_SEARCH_2(CmpFun,sf) return CALL_WITH_T_SIZE_TYPES(sf, rs_type_size,(rs_t=='s'),noMisalign, CmpFun,itemIndex,rs_val,rs_param);
+		case 'r': DO_SEARCH(CompareRelativeAtItem); break;
+		case 's': DO_SEARCH(CompareSpecificAtItem); break;
+
+		#undef DO_SEARCH_2
+		#define DO_SEARCH_2(CmpFun,sf) return CALL_WITH_T_STEP(sf, rs_type_size, unsigned,int, noMisalign, CmpFun,itemIndex,rs_val,rs_param);
+		case 'a': DO_SEARCH(CompareAddressAtItem); break;
+
+		#undef DO_SEARCH_2
+		#define DO_SEARCH_2(CmpFun,sf) return CALL_WITH_T_STEP(sf, rs_type_size, unsigned,short, noMisalign, CmpFun,itemIndex,rs_val,rs_param);
+		case 'n': DO_SEARCH(CompareChangesAtItem); break;
+	}
+	return false;
+}
+
+
+
+// this is mainly for the RAM watch window
+unsigned int ReadValueAtSoftwareAddress(const unsigned char* address, unsigned int size, int byteSwapped = false)
+{
+	unsigned int value = 0;
+	if(byteSwapped)
+	{
+		// convert to current endianness (default is actually byte-swapped internally)
+		for(unsigned int i = 0; i < size; i++)
+		{
+			value <<= 8;
+			value |= *address++;
+		}
+	}
+	else
+	{
+		// byte-swap and convert to current endianness at the same time
+		for(unsigned int i = 0; i < size; i++)
+		{
+			value <<= 8;
+			value |= *((unsigned char*)((intptr_t)address++^1));
+		}
+	}
+	return value;
+}
+inline bool IsInRange(unsigned int x, unsigned int min, unsigned int size)
+{
+	x -= min;
+	return x < size;
+}
+unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
+{
+	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
+		return ReadValueAtSoftwareAddress(Ram_Prg + address - 0x020000, size);
+	if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, size);
+	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, size);
+	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size);
+	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, true);
+	return 0;
+}
+bool IsHardwareAddressValid(unsigned int address)
+{
+	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
+		return true;
+	if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
+		return true;
+	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		return true;
+	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		return true;
+	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
+		return true;
+	return 0;
+}
+
+
+
+int ResultCount=0;
+bool AutoSearch=false;
+bool AutoSearchAutoRetry=false;
+LRESULT CALLBACK PromptWatchNameProc(HWND, UINT, WPARAM, LPARAM);
+void UpdatePossibilities(int rs_possible, int regions);
+
+
+void CompactAddrs()
+{
+	int size = (rs_type_size=='b' || !noMisalign) ? 1 : 2;
+
+	CalculateItemIndices(size);
+
+	ResultCount = CALL_WITH_T_SIZE_TYPES(CountRegionItemsT, rs_type_size,rs_t=='s',noMisalign);
+	UpdatePossibilities(ResultCount, (int)s_activeMemoryRegions.size());
+	ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
+}
+
+void soft_reset_address_info ()
+{
+	ResetMemoryRegions();
+	memset(s_numChanges, 0, sizeof(s_numChanges));
+	CompactAddrs();
+}
+void reset_address_info ()
+{
+	SetRamSearchUndoType(RamSearchHWnd, 0);
+	s_activeMemoryRegionsBackup.clear(); // not necessary, but we'll take the time hit here instead of at the next thing that sets up an undo
+	memcpy(s_prevValues, s_curValues, sizeof(s_prevValues));
+	s_prevValuesNeedUpdate = false;
+	ResetMemoryRegions();
+	if(!RamSearchHWnd)
+	{
+		s_activeMemoryRegions.clear();
+		ResultCount = 0;
+	}
+	else
+	{
+		// force s_prevValues to be valid
+		signal_new_frame();
+		s_prevValuesNeedUpdate = true;
+		signal_new_frame();
+	}
+	memset(s_numChanges, 0, sizeof(s_numChanges));
+	CompactAddrs();
+}
+
+void signal_new_frame ()
+{
+	CALL_WITH_T_SIZE_TYPES(UpdateRegionsT, rs_type_size,rs_t=='s',noMisalign);
+}
+
+
+
+
+
+
+
+void RefreshRamListSelectedCountControlStatus(HWND hDlg)
+{
+	static int prevSelCount=-1;
+	int selCount = ListView_GetSelectedCount(GetDlgItem(hDlg,IDC_RAMLIST));
+	if(selCount != prevSelCount)
+	{
+		if(selCount < 2 || prevSelCount < 2)
+		{
+			EnableWindow(GetDlgItem(hDlg, IDC_C_WATCH), (selCount == 1 && WatchCount < MAX_WATCH_COUNT) ? TRUE : FALSE);
+			EnableWindow(GetDlgItem(hDlg, IDC_C_ADDCHEAT), (selCount == 1) ? /*TRUE*/FALSE : FALSE);
+			EnableWindow(GetDlgItem(hDlg, IDC_C_ELIMINATE), (selCount >= 1) ? TRUE : FALSE);
+		}
+		prevSelCount = selCount;
+	}
+}
+
+
+
+
+void signal_new_size ()
+{
+	unsigned int oldItemIndex = ListView_GetSelectionMark(GetDlgItem(RamSearchHWnd,IDC_RAMLIST));
+	unsigned int oldAddr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_last_type_size,rs_t=='s',rs_last_no_misalign, oldItemIndex);
+
+	CompactAddrs();
+
+	rs_last_type_size = rs_type_size;
+	rs_last_no_misalign = noMisalign;
+
+	unsigned int newItemIndex = CALL_WITH_T_SIZE_TYPES(HardwareAddressToItemIndex, rs_type_size,rs_t=='s',noMisalign, oldAddr);
+	ListView_SetItemState(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), -1, 0, LVIS_SELECTED); // deselect all
+	if(newItemIndex != -1)
+	{
+		ListView_SetSelectionMark(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex);
+		ListView_SetItemState(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex, 0xFFFFFFFF, LVIS_SELECTED); // select new index
+		ListView_EnsureVisible(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex, 0);
+	}
+	RefreshRamListSelectedCountControlStatus(RamSearchHWnd);
+
+	EnableWindow(GetDlgItem(RamSearchHWnd,IDC_MISALIGN), rs_type_size != 'b');
+}
+
+
+
+
+LRESULT CustomDraw (LPARAM lParam)
+{
+	LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
+
+	switch(lplvcd->nmcd.dwDrawStage) 
+	{
+		case CDDS_PREPAINT :
+			return CDRF_NOTIFYITEMDRAW;
+
+		case CDDS_ITEMPREPAINT:
+		{
+			int rv = CDRF_DODEFAULT;
+
+			if(lplvcd->nmcd.dwItemSpec % 2)
+			{
+				// alternate the background color slightly
+				lplvcd->clrTextBk = RGB(248,248,255);
+				rv = CDRF_NEWFONT;
+			}
+
+			if(!IsSatisfied(lplvcd->nmcd.dwItemSpec))
+			{
+				// tint red any items that would be eliminated if a search were to run now
+				lplvcd->clrText = RGB(192,64,64);
+				rv = CDRF_NEWFONT;
+			}
+
+			return rv;
+		}	break;
+	}
+	return CDRF_DODEFAULT;
 }
 
 void Update_RAM_Search() //keeps RAM values up to date in the search and watch windows
 {
-	static DWORD previousTime = timeGetTime();
-	if ((timeGetTime() - previousTime) < 0x40) return;
-	int watchChanges[128];
-	int changes[128];
-	if(RamWatchHWnd)
+	if (AutoSearch && !ResultCount)
 	{
-		// prepare to detect changes to displayed listview items
-		HWND lv = GetDlgItem(RamWatchHWnd,IDC_WATCHLIST);
-		int top = ListView_GetTopIndex(lv);
-		int count = ListView_GetCountPerPage(lv);
-		int i;
-		for(i = top; i <= top+count; i++)
-			watchChanges[i-top] = (int)sizeConv(rswatches[i].Index,rswatches[i].Size);
-	}
-	if(RamSearchHWnd)
-	{
-		// prepare to detect changes to displayed listview items
-		HWND lv = GetDlgItem(RamSearchHWnd,IDC_RAMLIST);
-		int top = ListView_GetTopIndex(lv);
-		int count = ListView_GetCountPerPage(lv);
-		int i;
-		for(i = top; i <= top+count; i++)
-			changes[i-top] = rsaddrs[rsresults[i].Index].changes;
-	}
-	if (RamSearchHWnd || RamWatchHWnd)
-	{
-		// update all RAM values
-		signal_new_frame();
-	}
-	if (AutoSearch)
-	{
-		int SetPaused = (!(Paused == 1));
-		if (SetPaused) Paused = 1;
-		//Clear_Sound_Buffer();
-		prune(rs_c,rs_o,rs_t,rs_val,rs_param);
-
-		if(!ResultCount)
+		if(!AutoSearchAutoRetry)
 		{
-			reset_address_info();
-			prune(rs_c,rs_o,rs_t,rs_val,rs_param);
-			if(ResultCount && rs_c != 'a')
-				MessageBox(RamSearchHWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+			Clear_Sound_Buffer();
+			int answer = MessageBox(RamSearchHWnd,"Choosing Retry will reset the search once and continue autosearching.\nChoose Ignore will reset the search whenever necessary and continue autosearching.\nChoosing Abort will reset the search once and stop autosearching.","Autosearch - out of results.",MB_ABORTRETRYIGNORE|MB_DEFBUTTON2|MB_ICONINFORMATION);
+			if(answer == IDABORT)
+			{
+				SendDlgItemMessage(RamSearchHWnd, IDC_C_AUTOSEARCH, BM_SETCHECK, BST_UNCHECKED, 0);
+				SendMessage(RamSearchHWnd, WM_COMMAND, IDC_C_AUTOSEARCH, 0);
+			}
+			if(answer == IDIGNORE)
+				AutoSearchAutoRetry = true;
 		}
-		if (RamSearchHWnd) ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
-		if (SetPaused) Paused = 0;
+		reset_address_info();
 	}
+
+	int prevValuesNeededUpdate = s_prevValuesNeedUpdate;
 	if (RamSearchHWnd)
 	{
-		HWND lv = GetDlgItem(RamSearchHWnd,IDC_RAMLIST);
-		int top = ListView_GetTopIndex(lv);
-		int count = ListView_GetCountPerPage(lv)+1;
-		int i;
-		// refresh any visible parts of the listview box that changed
-		int start = -1;
-		bool changed = false;
-		for(i = top; i <= top+count; i++)
-		{
-			if(start == -1)
-			{
-				if((i != top+count) && (changes[i-top] != rsaddrs[rsresults[i].Index].changes))
-				{
-					start = i;
-					if (!changed)
-						changed = true;
-				}
-			}
-			else
-			{
-				if((i == top+count) || (changes[i-top] == rsaddrs[rsresults[i].Index].changes))
-				{
-					ListView_RedrawItems(lv, start, i-1);
-					start = -1;
-				}
-			}
-		}
-		if (changed)
-			UpdateWindow(lv);
+		// update active RAM values
+		signal_new_frame();
 	}
-	if (RamWatchHWnd)
+
+	if (AutoSearch && ResultCount)
 	{
-		HWND lv = GetDlgItem(RamWatchHWnd,IDC_WATCHLIST);
-		int top = ListView_GetTopIndex(lv);
-		int count = ListView_GetCountPerPage(lv)+1;
-		int i;
-		// refresh any visible parts of the listview box that changed
-		int start = -1;
-		bool changed = false;
-		for(i = top; i <= top+count; i++)
+		//Clear_Sound_Buffer();
+		if(!rs_val_valid)
+			rs_val_valid = Set_RS_Val();
+		if(rs_val_valid)
+			prune(rs_c,rs_o,rs_t=='s',rs_val,rs_param);
+	}
+
+	if(RamSearchHWnd)
+	{
+		HWND lv = GetDlgItem(RamSearchHWnd,IDC_RAMLIST);
+		if(prevValuesNeededUpdate != s_prevValuesNeedUpdate)
 		{
-			if(start == -1)
+			// previous values got updated, refresh everything visible
+			ListView_Update(lv, -1);
+		}
+		else
+		{
+			// refresh any visible parts of the listview box that changed
+			static int changes[128];
+			int top = ListView_GetTopIndex(lv);
+			int count = ListView_GetCountPerPage(lv);
+			int start = -1;
+			for(int i = top; i <= top+count; i++)
 			{
-				if((i != top+count) && (watchChanges[i-top] != (int)sizeConv(rswatches[i].Index,rswatches[i].Size)))
+				int changeNum = CALL_WITH_T_SIZE_TYPES(GetNumChangesFromItemIndex, rs_type_size,rs_t=='s',noMisalign, i); //s_numChanges[i];
+				int changed = changeNum != changes[i-top];
+				if(changed)
+					changes[i-top] = changeNum;
+
+				if(start == -1)
 				{
-					start = i;
-					if (!changed)
-						changed = true;
+					if(i != top+count && changed)
+					{
+						start = i;
+						//somethingChanged = true;
+					}
 				}
-			}
-			else
-			{
-				if((i == top+count) || (watchChanges[i-top] == (int)sizeConv(rswatches[i].Index,rswatches[i].Size)))
+				else
 				{
-					ListView_RedrawItems(lv, start, i-1);
-					start = -1;
+					if(i == top+count || !changed)
+					{
+						ListView_RedrawItems(lv, start, i-1);
+						start = -1;
+					}
 				}
 			}
 		}
-		UpdateWindow(lv);
 	}
-	previousTime = timeGetTime();
+
+	if(RamWatchHWnd)
+	{
+		Update_RAM_Watch();
+	}
+}
+
+static int rs_lastPercent = -1;
+inline void UpdateRamSearchProgressBar(int percent)
+{
+	if(rs_lastPercent != percent)
+	{
+		rs_lastPercent = percent;
+		UpdateRamSearchTitleBar(percent);
+	}
+}
+
+static void SelectEditControl(int controlID)
+{
+	HWND hEdit = GetDlgItem(RamSearchHWnd,controlID);
+	SetFocus(hEdit);
+	SendMessage(hEdit, EM_SETSEL, 0, -1);
 }
 
 LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -632,9 +1054,23 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
 	static int watchIndex=0;
+
+
+	// this is pretty stupid but
+	// Windows sends two click messages in a row when a radio button is activated via keyboard
+	// and I want to detect when the radio button is clicked while it's already checked
+	// which means I need some way of discarding the spurious click messages
+	static int duplicateClicks = 0;
+	if(uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
+		duplicateClicks++;
+	else if(uMsg == WM_COMMAND || uMsg == WM_SETCURSOR)
+		duplicateClicks = 0;
+
+
 	switch(uMsg)
 	{
 		case WM_INITDIALOG: {
+			RamSearchHWnd = hDlg;
 			if (Full_Screen)
 			{
 				while (ShowCursor(false) >= 0);
@@ -688,6 +1124,10 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					SendDlgItemMessage(hDlg, IDC_DIFFERENTBY, BM_SETCHECK, BST_CHECKED, 0);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),true);
 					break;
+				case '%':
+					SendDlgItemMessage(hDlg, IDC_MODULO, BM_SETCHECK, BST_CHECKED, 0);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),true);
+					break;
 			}
 			switch (rs_c)
 			{
@@ -731,18 +1171,42 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					SendDlgItemMessage(hDlg, IDC_4_BYTES, BM_SETCHECK, BST_CHECKED, 0);
 					break;
 			}
+
+			s_prevValuesNeedUpdate = true;
+
 			SendDlgItemMessage(hDlg,IDC_C_AUTOSEARCH,BM_SETCHECK,AutoSearch?BST_CHECKED:BST_UNCHECKED,0);
-			char names[5][11] = {"Address","Value","Previous","Changes","Notes"};
-			int widths[5] = {62,64,64,51,53};
+			//const char* names[5] = {"Address","Value","Previous","Changes","Notes"};
+			//int widths[5] = {62,64,64,55,55};
+			const char* names[] = {"Address","Value","Previous","Changes"};
+			int widths[4] = {68,76,76,68};
 			if (!ResultCount)
 				reset_address_info();
 			else
+			{
 				signal_new_frame();
-			init_list_box(GetDlgItem(hDlg,IDC_RAMLIST),names,5,widths);
-			ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
+				CompactAddrs();
+			}
+			init_list_box(GetDlgItem(hDlg,IDC_RAMLIST),names,4,widths);
+			//ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
 			if (!noMisalign) SendDlgItemMessage(hDlg, IDC_MISALIGN, BM_SETCHECK, BST_CHECKED, 0);
 			if (littleEndian) SendDlgItemMessage(hDlg, IDC_ENDIAN, BM_SETCHECK, BST_CHECKED, 0);
 			last_rs_possible = -1;
+			RefreshRamListSelectedCountControlStatus(hDlg);
+
+			// force misalign checkbox to refresh
+			signal_new_size();
+
+			// force undo button to refresh
+			int undoType = s_undoType;
+			SetRamSearchUndoType(hDlg, -2);
+			SetRamSearchUndoType(hDlg, undoType);
+
+			// force possibility count to refresh
+			last_rs_possible--;
+			UpdatePossibilities(ResultCount, (int)s_activeMemoryRegions.size());
+			
+			rs_val_valid = Set_RS_Val();
+
 			return true;
 		}	break;
 
@@ -751,6 +1215,16 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			LPNMHDR lP = (LPNMHDR) lParam;
 			switch (lP->code)
 			{
+				case LVN_ITEMCHANGED: // selection changed event
+				{
+					NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)lP;
+					if(pNMListView->uNewState & LVIS_FOCUSED)
+					{
+						// disable buttons that we don't have the right number of selected items for
+						RefreshRamListSelectedCountControlStatus(hDlg);
+					}
+				}	break;
+
 				case LVN_GETDISPINFO:
 				{
 					LV_DISPINFO *Item = (LV_DISPINFO *)lParam;
@@ -762,92 +1236,58 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					switch (Item->item.iSubItem)
 					{
 						case 0:
-							sprintf(num,"%08X",rsresults[iNum].Address);
-							Item->item.pszText = num;
-							return true;
-						case 1: {
-							int i;
-							int size;
-							switch (rs_type_size)
-							{
-
-								case 'w':
-									size = 2;
-									break;
-								case 'd':
-									size = 4;
-									break;
-								case 'b':
-								default:
-									size = 1;
-									break;									
-							}
-							i = rsresults[Item->item.iItem].cur;
-//							for (int j = 1; j < size; j++)
-//								i |= rsaddrs[rsresults[Item->item.iItem].Index + j].cur << (8 * j);
-//							Byte_Swap(&i,size);
-							sprintf(num,
-								((rs_t == 's')?
-									"%d":
-									(rs_t == 'u')?
-										"%u":
-										"%X"),
-								(rs_t != 's')?
-									i:
-									((rs_type_size == 'b')?
-										(char)(i&0xff):
-										(rs_type_size == 'w')?
-											(short)(i&0xffff):
-											(long)(i&0xffffffff)));
+						{
+							int addr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_type_size,rs_t=='s',noMisalign, iNum);
+							sprintf(num,"%08X",addr);
 							Item->item.pszText = num;
 						}	return true;
-						case 2: {
-							int i;
-							int size;
+						case 1:
+						{
+							int i = CALL_WITH_T_SIZE_TYPES(GetCurValueFromItemIndex, rs_type_size,rs_t=='s',noMisalign, iNum);
+							const char* formatString = ((rs_t=='s') ? "%d" : (rs_t=='u') ? "%u" : (rs_type_size=='d' ? "%08X" : rs_type_size=='w' ? "%04X" : "%02X"));
 							switch (rs_type_size)
 							{
-
-								case 'w':
-									size = 2;
-									break;
-								case 'd':
-									size = 4;
-									break;
 								case 'b':
-								default:
-									size = 1;
-									break;									
+								default: sprintf(num, formatString, rs_t=='s' ? (char)(i&0xff) : (unsigned char)(i&0xff)); break;
+								case 'w': sprintf(num, formatString, rs_t=='s' ? (short)(i&0xffff) : (unsigned short)(i&0xffff)); break;
+								case 'd': sprintf(num, formatString, rs_t=='s' ? (long)(i&0xffffffff) : (unsigned long)(i&0xffffffff)); break;
 							}
-							i = rsresults[Item->item.iItem].prev;
-//							for (int j = 1; j < size; j++)
-//								i |= rsaddrs[rsresults[Item->item.iItem].Index + j].prev << (8 * j);
-//							Byte_Swap(&i,size);
-							sprintf(num,
-								((rs_t == 's')?
-									"%d":
-									(rs_t == 'u')?
-										"%u":
-										"%X"),
-								(rs_t != 's')?
-									i:
-									((rs_type_size == 'b')?
-										(char)(i&0xff):
-										(rs_type_size == 'w')?
-											(short)(i&0xffff):
-											(long)(i&0xffffffff)));
+							Item->item.pszText = num;
+						}	return true;
+						case 2:
+						{
+							int i = CALL_WITH_T_SIZE_TYPES(GetPrevValueFromItemIndex, rs_type_size,rs_t=='s',noMisalign, iNum);
+							const char* formatString = ((rs_t=='s') ? "%d" : (rs_t=='u') ? "%u" : (rs_type_size=='d' ? "%08X" : rs_type_size=='w' ? "%04X" : "%02X"));
+							switch (rs_type_size)
+							{
+								case 'b':
+								default: sprintf(num, formatString, rs_t=='s' ? (char)(i&0xff) : (unsigned char)(i&0xff)); break;
+								case 'w': sprintf(num, formatString, rs_t=='s' ? (short)(i&0xffff) : (unsigned short)(i&0xffff)); break;
+								case 'd': sprintf(num, formatString, rs_t=='s' ? (long)(i&0xffffffff) : (unsigned long)(i&0xffffffff)); break;
+							}
 							Item->item.pszText = num;
 						}	return true;
 						case 3:
-							sprintf(num,"%d",rsaddrs[rsresults[iNum].Index].changes);
+						{
+							int i = CALL_WITH_T_SIZE_TYPES(GetNumChangesFromItemIndex, rs_type_size,rs_t=='s',noMisalign, iNum);
+							sprintf(num,"%d",i);
+
 							Item->item.pszText = num;
-							return true;
-						case 4:
-							Item->item.pszText = rsaddrs[rsresults[iNum].Index].comment ? rsaddrs[rsresults[iNum].Index].comment : "";
-							return true;
+						}	return true;
+						//case 4:
+						//	Item->item.pszText = rsaddrs[rsresults[iNum].Index].comment ? rsaddrs[rsresults[iNum].Index].comment : "";
+						//	return true;
 						default:
 							return false;
 					}
 				}
+
+				case NM_CUSTOMDRAW:
+				{
+					SetWindowLong(hDlg, DWL_MSGRESULT, CustomDraw(lParam));
+					return TRUE;
+				}	break;
+
 				//case LVN_ODCACHEHINT: //Copied this bit from the MSDN virtual listbox code sample. Eventually it should probably do something.
 				//{
 				//	LPNMLVCACHEHINT   lpCacheHint = (LPNMLVCACHEHINT)lParam;
@@ -859,103 +1299,131 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				//	return 0;
 				//}
 			}
-		}
+		}	break;
 
 		case WM_COMMAND:
+		{
+			int rv = false;
 			switch(LOWORD(wParam))
 			{
 				case IDC_SIGNED:
 					rs_t='s';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_UNSIGNED:
 					rs_t='u';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_HEX:
 					rs_t='h';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_1_BYTE:
 					rs_type_size = 'b';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_2_BYTES:
 					rs_type_size = 'w';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_4_BYTES:
 					rs_type_size = 'd';
 					signal_new_size();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				case IDC_MISALIGN:
 					noMisalign = !noMisalign;
-					CompactAddrs();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					//CompactAddrs();
+					signal_new_size();
+					{rv = true; break;}
 				case IDC_ENDIAN:
 //					littleEndian = !littleEndian;
 //					signal_new_size();
-//					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;				
+					{rv = true; break;}				
 				case IDC_LESSTHAN:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = '<';
-					return true;
+					{rv = true; break;}
 				case IDC_MORETHAN:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = '>';
-					return true;
+					{rv = true; break;}
 				case IDC_NOMORETHAN:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = 'l';
-					return true;
+					{rv = true; break;}
 				case IDC_NOLESSTHAN:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = 'm';
-					return true;
+					{rv = true; break;}
 				case IDC_EQUALTO:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = '=';
-					return true;
+					{rv = true; break;}
 				case IDC_DIFFERENTFROM:
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
 					rs_o = '!';
-					return true;
+					{rv = true; break;}
 				case IDC_DIFFERENTBY:
+				{
+					if(rs_o == 'd' && duplicateClicks < 2)
+						SelectEditControl(IDC_EDIT_DIFFBY);
+					else
+						rs_o = 'd';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),true);
-					rs_o = 'd';
-					return true;
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
+				}	{rv = true; break;}
+				case IDC_MODULO:
+				{
+					if(rs_o == '%' && duplicateClicks < 2)
+						SelectEditControl(IDC_EDIT_MODBY);
+					else
+						rs_o = '%';
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
+					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),true);
+				}	{rv = true; break;}
 				case IDC_PREVIOUSVALUE:
 					rs_c='r';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),false);
-					return true;
+					{rv = true; break;}
 				case IDC_SPECIFICVALUE:
-					rs_c='s';
+				{
+					if(rs_c == 's' && duplicateClicks < 2)
+						SelectEditControl(IDC_EDIT_COMPAREVALUE);
+					else
+						rs_c = 's';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),false);
-					return true;
+					{rv = true; break;}
+				}
 				case IDC_SPECIFICADDRESS:
-					rs_c='a';
+				{
+					if(rs_c == 'a' && duplicateClicks < 2)
+						SelectEditControl(IDC_EDIT_COMPAREADDRESS);
+					else
+						rs_c = 'a';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),false);
-					return true;
+				}	{rv = true; break;}
 				case IDC_NUMBEROFCHANGES:
-					rs_c='n';
+				{
+					if(rs_c == 'n' && duplicateClicks < 2)
+						SelectEditControl(IDC_EDIT_COMPARECHANGES);
+					else
+						rs_c = 'n';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),false);
-					return true;
+				}	{rv = true; break;}
 				case IDC_C_ADDCHEAT:
 				{
 //					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST));
@@ -967,118 +1435,178 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 //					Liste_GG[CheatCount].mode = 0;
 //					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITCHEAT), hDlg, (DLGPROC) EditCheatProc,(LPARAM) 0);
 				}
-				case IDC_C_SAVE:
-					// NYI
-					return true;
-				case IDC_C_LOAD:
-					// NYI
-					//strncpy(Str_Tmp,Rom_Name,512);
-					////strcat(Str_Tmp,".gmv");
-					//if(Change_File_S(Str_Tmp, Movhie_Dir, "Save Movie", "GENs Movie\0*.gmv*\0All Files\0*.*\0\0", "gmv"))
-					//{
-					//		SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
-					//}
-					return true;
 				case IDC_C_RESET:
-					reset_address_info();
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+				{
+					RamSearchSaveUndoStateIfNotTooBig(RamSearchHWnd);
+					int prevNumItems = last_rs_possible;
+
+					soft_reset_address_info();
+
+					if(prevNumItems == last_rs_possible)
+						SetRamSearchUndoType(RamSearchHWnd, 0); // nothing to undo
+
+					ListView_SetItemState(GetDlgItem(hDlg,IDC_RAMLIST), -1, 0, LVIS_SELECTED); // deselect all
+					//ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
+					ListView_SetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST), 0);
+					RefreshRamListSelectedCountControlStatus(hDlg);
+					{rv = true; break;}
+				}
+				case IDC_C_RESET_CHANGES:
+					memset(s_numChanges, 0, sizeof(s_numChanges));
+					ListView_Update(GetDlgItem(hDlg,IDC_RAMLIST), -1);
+					//SetRamSearchUndoType(hDlg, 0);
+					{rv = true; break;}
+				case IDC_C_UNDO:
+					if(s_undoType>0)
+					{
+						Clear_Sound_Buffer();
+						if(s_activeMemoryRegions.size() < tooManyRegionsForUndo)
+						{
+							MemoryList tempMemoryList = s_activeMemoryRegions;
+							s_activeMemoryRegions = s_activeMemoryRegionsBackup;
+							s_activeMemoryRegionsBackup = tempMemoryList;
+							SetRamSearchUndoType(hDlg, 3 - s_undoType);
+						}
+						else
+						{
+							s_activeMemoryRegions = s_activeMemoryRegionsBackup;
+							SetRamSearchUndoType(hDlg, -1);
+						}
+						CompactAddrs();
+						ListView_SetItemState(GetDlgItem(hDlg,IDC_RAMLIST), -1, 0, LVIS_SELECTED); // deselect all
+						ListView_SetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST), 0);
+						RefreshRamListSelectedCountControlStatus(hDlg);
+					}
+					{rv = true; break;}
 				case IDC_C_AUTOSEARCH:
 					AutoSearch = SendDlgItemMessage(hDlg, IDC_C_AUTOSEARCH, BM_GETCHECK, 0, 0) != 0;
-					if (!AutoSearch) return true;
+					AutoSearchAutoRetry = false;
+					if (!AutoSearch) {rv = true; break;}
 				case IDC_C_SEARCH:
 				{
-					rs_param = ((rs_o == 'd') ? GetDlgItemInt(hDlg,IDC_EDIT_DIFFBY,NULL,false) : 0);
-
-					switch(rs_c)
-					{
-						case 'r':
-						default:
-							rs_val = 0;
-							break;
-						case 's':
-							if(rs_t == 'h')
-							{
-								if(!GetDlgItemText(hDlg,IDC_EDIT_COMPAREVALUE,Str_Tmp,9))
-									goto invalid_field;
-								rs_val = HexStrToInt(Str_Tmp);
-							}
-							else
-							{
-								BOOL success;
-								rs_val = GetDlgItemInt(hDlg,IDC_EDIT_COMPAREVALUE,&success,(rs_t == 's'));
-								if(!success)
-									goto invalid_field;
-							}
-							if((rs_type_size == 'b' && rs_t == 's' && (rs_val < -128 || rs_val > 127)) ||
-							   (rs_type_size == 'b' && rs_t != 's' && (rs_val < 0 || rs_val > 255)) ||
-							   (rs_type_size == 'w' && rs_t == 's' && (rs_val < -32768 || rs_val > 32767)) ||
-							   (rs_type_size == 'w' && rs_t != 's' && (rs_val < 0 || rs_val > 65535)))
-							   goto invalid_field;
-							break;
-						case 'a':
-							if(!GetDlgItemText(hDlg,IDC_EDIT_COMPAREADDRESS,Str_Tmp,9))
-								goto invalid_field;
-							rs_val = HexStrToInt(Str_Tmp);
-							if(rs_val < 0 || rs_val > 0x0603FFFF)
-								goto invalid_field;
-							break;
-						case 'n': {
-							BOOL success;
-							rs_val = GetDlgItemInt(hDlg,IDC_EDIT_COMPARECHANGES,&success,false);
-							if(!success || rs_val < 0)
-								goto invalid_field;
-						}	break;
-					}
-
-					int SetPaused = (!(Paused == 1));
-					if (SetPaused) Paused = 1;
 					Clear_Sound_Buffer();
-					prune(rs_c,rs_o,rs_t,rs_val,rs_param);
+
+					if(!rs_val_valid && !(rs_val_valid = Set_RS_Val()))
+						goto invalid_field;
+
+					if(ResultCount)
+					{
+						RamSearchSaveUndoStateIfNotTooBig(hDlg);
+
+						prune(rs_c,rs_o,rs_t=='s',rs_val,rs_param);
+
+						RefreshRamListSelectedCountControlStatus(hDlg);
+					}
 
 					if(!ResultCount)
 					{
-						reset_address_info();
-						prune(rs_c,rs_o,rs_t,rs_val,rs_param);
-						if(ResultCount && rs_c != 'a')
-							MessageBox(RamSearchHWnd,"Performing search on all addresses.","Out of results.",MB_OK|MB_ICONINFORMATION);
+
+						MessageBox(RamSearchHWnd,"Resetting search.","Out of results.",MB_OK|MB_ICONINFORMATION);
+						soft_reset_address_info();
 					}
 
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					if (SetPaused) Paused = 0;
-					return true;
+					{rv = true; break;}
 
 invalid_field:
 					MessageBox(RamSearchHWnd,"Invalid or out-of-bound entered value.","Error",MB_OK|MB_ICONSTOP);
-					if(AutoSearch) // stop autosearch if it's on
+					if(AutoSearch) // stop autosearch if it just started
 					{
 						SendDlgItemMessage(hDlg, IDC_C_AUTOSEARCH, BM_SETCHECK, BST_UNCHECKED, 0);
 						SendMessage(hDlg, WM_COMMAND, IDC_C_AUTOSEARCH, 0);
 					}
-					return true;
+					{rv = true; break;}
 				}
 				case IDC_C_WATCH:
 				{
-					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST));
-					rswatches[WatchCount].Index = rsresults[watchIndex].Index;
-					rswatches[WatchCount].Address = rsresults[watchIndex].Address;
-					rswatches[WatchCount].Size = rs_type_size;
-					rswatches[WatchCount].Type = rs_t;
-					rswatches[WatchCount].WrongEndian = 0; //Replace when I get little endian working
-					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PROMPT), hDlg, (DLGPROC) PromptWatchNameProc);
-					return true;
+					int watchItemIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST));
+					if(watchItemIndex >= 0)
+					{
+						AddressWatcher tempWatch;
+						tempWatch.Address = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_type_size,rs_t=='s',noMisalign, watchItemIndex);
+						tempWatch.Size = rs_type_size;
+						tempWatch.Type = rs_t;
+						tempWatch.WrongEndian = 0; //Replace when I get little endian working
+						tempWatch.comment = NULL;
+
+						bool inserted = InsertWatch(tempWatch, hDlg);
+						//ListView_Update(GetDlgItem(hDlg,IDC_RAMLIST), -1);
+
+						// bring up the ram watch window if it's not already showing so the user knows where the watch went
+						if(inserted && !RamWatchHWnd)
+							SendMessage(HWnd, WM_COMMAND, ID_RAM_WATCH, 0);
+						SetForegroundWindow(RamSearchHWnd);
+					}
+					{rv = true; break;}
 				}
-				case IDC_C_WATCH_EDIT:
+
+				// eliminate all selected items
+				case IDC_C_ELIMINATE:
 				{
-					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_RAMLIST));
-					rsaddrs[rsresults[watchIndex].Index].flags |= RS_FLAG_ELIMINATED;
-					ResultCount--;
+					RamSearchSaveUndoStateIfNotTooBig(hDlg);
+
+					HWND ramListControl = GetDlgItem(hDlg,IDC_RAMLIST);
+					int size = (rs_type_size=='b' || !noMisalign) ? 1 : 2;
+					int selCount = ListView_GetSelectedCount(ramListControl);
+					int watchIndex = -1;
+
+					struct AddrRange
+					{
+						unsigned int addr;
+						unsigned int size;
+						unsigned int End() { return addr + size; }
+						AddrRange(unsigned int a, unsigned int s) : addr(a),size(s){}
+					};
+
+					// time-saving trick #1:
+					// condense the selected items into an array of address ranges
+					std::vector<AddrRange> selHardwareAddrs;
+					for(int i = 0, j = 1024; i < selCount; ++i, --j)
+					{
+						watchIndex = ListView_GetNextItem(ramListControl, watchIndex, LVNI_SELECTED);
+						int addr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_type_size,rs_t=='s',noMisalign, watchIndex);
+						if(!selHardwareAddrs.empty() && addr == selHardwareAddrs.back().End())
+							selHardwareAddrs.back().size += size;
+						else
+							selHardwareAddrs.push_back(AddrRange(addr,size));
+
+						if(!j) UpdateRamSearchProgressBar(i * 50 / selCount), j = 1024;
+					}
+
+					// now deactivate the ranges
+
+					// time-saving trick #2:
+					// take advantage of the fact that the listbox items must be in the same order as the regions
+					MemoryList::iterator iter = s_activeMemoryRegions.begin();
+					int numHardwareAddrRanges = selHardwareAddrs.size();
+					for(int i = 0, j = 16; i < numHardwareAddrRanges; ++i, --j)
+					{
+						int addr = selHardwareAddrs[i].addr;
+						int size = selHardwareAddrs[i].size;
+						bool affected = false;
+						while(iter != s_activeMemoryRegions.end())
+						{
+							MemoryRegion& region = *iter;
+							int affNow = DeactivateRegion(region, iter, addr, size);
+							if(affNow)
+								affected = true;
+							else if(affected)
+								break;
+							if(affNow != 2)
+								++iter;
+						}
+
+						if(!j) UpdateRamSearchProgressBar(50 + (i * 50 / selCount)), j = 16;
+					}
+					UpdateRamSearchTitleBar();
+
+					// careful -- if the above two time-saving tricks aren't working,
+					// the runtime can absolutely explode (seconds -> hours) when there are lots of regions
+
+					ListView_SetItemState(ramListControl, -1, 0, LVIS_SELECTED); // deselect all
 					signal_new_size();
-//					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),0);
-					ListView_SetItemCount(GetDlgItem(hDlg,IDC_RAMLIST),ResultCount);
-					return true;
+					{rv = true; break;}
 				}
-				case IDOK:
+				//case IDOK:
 				case IDCANCEL:
 					if (Full_Screen)
 					{
@@ -1088,9 +1616,50 @@ invalid_field:
 					DialogsOpen--;
 					RamSearchHWnd = NULL;
 					EndDialog(hDlg, true);
-					return true;
+					{rv = true; break;}
 			}
-			break;
+
+			// check refresh for comparison preview color update
+			// also, update rs_val if needed
+			bool needRefresh = false;
+			switch(LOWORD(wParam))
+			{
+				case IDC_LESSTHAN:
+				case IDC_MORETHAN:
+				case IDC_NOMORETHAN:
+				case IDC_NOLESSTHAN:
+				case IDC_EQUALTO:
+				case IDC_DIFFERENTFROM:
+				case IDC_DIFFERENTBY:
+				case IDC_MODULO:
+				case IDC_PREVIOUSVALUE:
+				case IDC_SPECIFICVALUE:
+				case IDC_SPECIFICADDRESS:
+				case IDC_NUMBEROFCHANGES:
+				case IDC_SIGNED:
+				case IDC_UNSIGNED:
+				case IDC_HEX:
+					rs_val_valid = Set_RS_Val();
+					needRefresh = true;
+					break;
+				case IDC_EDIT_COMPAREVALUE:
+				case IDC_EDIT_COMPAREADDRESS:
+				case IDC_EDIT_COMPARECHANGES:
+				case IDC_EDIT_DIFFBY:
+				case IDC_EDIT_MODBY:
+					if(HIWORD(wParam) == EN_CHANGE)
+					{
+						rs_val_valid = Set_RS_Val();
+						needRefresh = true;
+					}
+					break;
+			}
+			if(needRefresh)
+				ListView_Update(GetDlgItem(hDlg,IDC_RAMLIST), -1);
+
+
+			return rv;
+		}	break;
 
 		case WM_CLOSE:
 			if (Full_Screen)
@@ -1106,99 +1675,55 @@ invalid_field:
 
 	return false;
 }
-LRESULT CALLBACK PromptWatchNameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //Gets the description of a watched address
+
+void UpdateRamSearchTitleBar(int percent)
 {
-	RECT r;
-	RECT r2;
-	int dx1, dy1, dx2, dy2;
+#define HEADER_STR " RAM Search - "
+#define PROGRESS_STR " %d%% ... "
+#define STATUS_STR "%d Possibilit%s (%d Region%s)"
 
-	switch(uMsg)
-	{
-		case WM_INITDIALOG:
-			if (Full_Screen)
-			{
-				while (ShowCursor(false) >= 0);
-				while (ShowCursor(true) < 0);
-			}
-
-			GetWindowRect(HWnd, &r);
-			dx1 = (r.right - r.left) / 2;
-			dy1 = (r.bottom - r.top) / 2;
-
-			GetWindowRect(hDlg, &r2);
-			dx2 = (r2.right - r2.left) / 2;
-			dy2 = (r2.bottom - r2.top) / 2;
-
-			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-			strcpy(Str_Tmp,"Enter a name for this RAM address.");
-			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
-			strcpy(Str_Tmp,"");
-			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT2,WM_SETTEXT,0,(LPARAM)Str_Tmp);
-			return true;
-			break;
-
-		case WM_COMMAND:
-			switch(LOWORD(wParam))
-			{
-				case IDOK:
-				{
-					if (Full_Screen)
-					{
-						while (ShowCursor(true) < 0);
-						while (ShowCursor(false) >= 0);
-					}
-					GetDlgItemText(hDlg,IDC_PROMPT_EDIT,Str_Tmp,80);
-					AddressWatcher Temp;
-					Temp = rswatches[WatchCount];
-					InsertWatch(Temp,Str_Tmp);
-					if(RamWatchHWnd)
-					{
-						ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
-					}
-					DialogsOpen--;
-					EndDialog(hDlg, true);
-					return true;
-					break;
-				}
-				case ID_CANCEL:
-					if (Full_Screen)
-					{
-						while (ShowCursor(true) < 0);
-						while (ShowCursor(false) >= 0);
-					}
-
-					DialogsOpen--;
-					EndDialog(hDlg, false);
-					return false;
-					break;
-			}
-			break;
-
-		case WM_CLOSE:
-			if (Full_Screen)
-			{
-				while (ShowCursor(true) < 0);
-				while (ShowCursor(false) >= 0);
-			}
-			DialogsOpen--;
-			EndDialog(hDlg, false);
-			return false;
-			break;
-	}
-
-	return false;
+	int poss = last_rs_possible;
+	int regions = last_rs_regions;
+	if(poss <= 0)
+		strcpy(Str_Tmp," RAM Search");
+	else if(percent <= 0)
+		sprintf(Str_Tmp, HEADER_STR STATUS_STR, poss, poss==1?"y":"ies", regions, regions==1?"":"s");
+	else
+		sprintf(Str_Tmp, PROGRESS_STR STATUS_STR, percent, poss, poss==1?"y":"ies", regions, regions==1?"":"s");
+	SetWindowText(RamSearchHWnd, Str_Tmp);
 }
 
-void UpdatePossibilities(int rs_possible)
+void UpdatePossibilities(int rs_possible, int regions)
 {
 	if(rs_possible != last_rs_possible)
 	{
 		last_rs_possible = rs_possible;
-		if(rs_possible > 0)
-			sprintf(Str_Tmp," RAM Search - %d Possibilit%s",rs_possible, rs_possible==1?"y":"ies");
-		else
-			strcpy(Str_Tmp," RAM Search");
-		SetWindowText(RamSearchHWnd, Str_Tmp);
+		last_rs_regions = regions;
+		UpdateRamSearchTitleBar();
+	}
+}
+
+void SetRamSearchUndoType(HWND hDlg, int type)
+{
+	if(s_undoType != type)
+	{
+		if((s_undoType!=2 && s_undoType!=-1)!=(type!=2 && type!=-1))
+			SendDlgItemMessage(hDlg,IDC_C_UNDO,WM_SETTEXT,0,(LPARAM)((type == 2 || type == -1) ? "Redo" : "Undo"));
+		if((s_undoType>0)!=(type>0))
+			EnableWindow(GetDlgItem(hDlg,IDC_C_UNDO),type>0);
+		s_undoType = type;
+	}
+}
+
+void RamSearchSaveUndoStateIfNotTooBig(HWND hDlg)
+{
+	if(s_activeMemoryRegions.size() < tooManyRegionsForUndo)
+	{
+		s_activeMemoryRegionsBackup = s_activeMemoryRegions;
+		SetRamSearchUndoType(hDlg, 1);
+	}
+	else
+	{
+		SetRamSearchUndoType(hDlg, 0);
 	}
 }

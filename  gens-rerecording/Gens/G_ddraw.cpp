@@ -211,6 +211,7 @@ int Update_Frame_Hook()
 int Update_Frame_Fast_Hook()
 {
 	int retval = Update_Frame_Fast();
+	Update_RAM_Search();
 	return retval;
 }
 
@@ -1763,6 +1764,11 @@ void UpdateLagCount()
 		LagCount++;
 		LagCountPersistent++;
 	}
+
+	// catch-all to fix problem with sound stuttered when paused during frame skipping
+	// looks out of place but maybe this function should be renamed
+	extern bool soundCleared;
+	soundCleared = false;
 }
 
 
@@ -1860,13 +1866,13 @@ int Update_Emulation(HWND hWnd)
 							MovieRecordingStuff();
 						FrameCount++; //Modif
 
-						if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0)
+						// note: we check for RamSearchHWnd because if it's open then it's likely causing most of any slowdown we get, in which case skipping renders will only make the slowdown appear worse
+						if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !(RamSearchHWnd || RamWatchHWnd))
 						{
 							Lag_Frame = 1;
 							Update_Frame_Fast_Hook();
 							Update_RAM_Cheats();
 							UpdateLagCount();
-						
 						}
 						else
 						{
@@ -1890,13 +1896,12 @@ int Update_Emulation(HWND hWnd)
 						MovieRecordingStuff();
 					FrameCount++; //Modif
 
-					if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0)
+					if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !(RamSearchHWnd || RamWatchHWnd))
 					{
 						Lag_Frame = 1;
 						Update_Frame_Fast_Hook();
 						Update_RAM_Cheats();
-						UpdateLagCount();
-					
+						UpdateLagCount();					
 					}
 					else
 					{
