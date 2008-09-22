@@ -34,10 +34,10 @@ struct MemoryRegion
 	unsigned int itemIndex; // index into listbox items, valid when s_itemIndicesInvalid is false
 };
 
-static unsigned char s_prevValues [MAX_RAM_SIZE] = {0}; // values at last search or reset
-static unsigned char s_curValues [MAX_RAM_SIZE] = {0}; // values at last frame update
-static unsigned short s_numChanges [MAX_RAM_SIZE] = {0}; // number of changes of the item starting at this virtual index address
-static MemoryRegion* s_itemIndexToRegionPointer [MAX_RAM_SIZE] = {0}; // used for random access into the memory list (trading memory size to get speed here, too bad it's so much memory), only valid when s_itemIndicesInvalid is false
+static unsigned char s_prevValues [MAX_RAM_SIZE+4] = {0}; // values at last search or reset
+static unsigned char s_curValues [MAX_RAM_SIZE+4] = {0}; // values at last frame update
+static unsigned short s_numChanges [MAX_RAM_SIZE+4] = {0}; // number of changes of the item starting at this virtual index address
+static MemoryRegion* s_itemIndexToRegionPointer [MAX_RAM_SIZE+4] = {0}; // used for random access into the memory list (trading memory size to get speed here, too bad it's so much memory), only valid when s_itemIndicesInvalid is false
 static BOOL s_itemIndicesInvalid = true; // if true, the link from listbox items to memory regions (s_itemIndexToRegionPointer) and the link from memory regions to list box items (MemoryRegion::itemIndex) both need to be recalculated
 static BOOL s_prevValuesNeedUpdate = true; // if true, the "prev" values should be updated using the "cur" values on the next frame update signaled
 static unsigned int s_maxItemIndex = 0; // max currently valid item index, the listbox sometimes tries to update things past the end of the list so we need to know this to ignore those attempts
@@ -214,8 +214,7 @@ void UpdateRegionsT()
 			{
 				if(s_curValues[i] != sourceAddr[i^1]) // if value of this byte changed
 				{
-					if(i < indexEnd)
-						s_curValues[i] = sourceAddr[i^1]; // update value
+					s_curValues[i] = sourceAddr[i^1]; // update value
 					for(int k = 0; k < sizeof(compareType); k++) // loop through the previous entries that contain this byte
 					{
 						if(i >= indexEnd+k)
@@ -822,12 +821,15 @@ void UpdatePossibilities(int rs_possible, int regions);
 void CompactAddrs()
 {
 	int size = (rs_type_size=='b' || !noMisalign) ? 1 : 2;
+	int prevResultCount = ResultCount;
 
 	CalculateItemIndices(size);
 
 	ResultCount = CALL_WITH_T_SIZE_TYPES(CountRegionItemsT, rs_type_size,rs_t=='s',noMisalign);
 	UpdatePossibilities(ResultCount, (int)s_activeMemoryRegions.size());
-	ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
+
+	if(ResultCount != prevResultCount)
+		ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
 }
 
 void soft_reset_address_info ()
@@ -889,27 +891,100 @@ void RefreshRamListSelectedCountControlStatus(HWND hDlg)
 
 
 
+struct AddrRange
+{
+	unsigned int addr;
+	unsigned int size;
+	unsigned int End() const { return addr + size; }
+	AddrRange(unsigned int a, unsigned int s) : addr(a),size(s){}
+};
+
 void signal_new_size ()
 {
-	unsigned int oldItemIndex = ListView_GetSelectionMark(GetDlgItem(RamSearchHWnd,IDC_RAMLIST));
-	unsigned int oldAddr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_last_type_size,rs_t=='s',rs_last_no_misalign, oldItemIndex);
+	HWND lv = GetDlgItem(RamSearchHWnd,IDC_RAMLIST);
+
+	int oldSize = (rs_last_type_size=='b' || !rs_last_no_misalign) ? 1 : 2;
+	int newSize = (rs_type_size=='b' || !noMisalign) ? 1 : 2;
+	bool numberOfItemsChanged = (oldSize != newSize);
+
+	unsigned int itemsPerPage = ListView_GetCountPerPage(lv);
+	unsigned int oldTopIndex = ListView_GetTopIndex(lv);
+	unsigned int oldSelectionIndex = ListView_GetSelectionMark(lv);
+	unsigned int oldTopAddr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_last_type_size,rs_t=='s',rs_last_no_misalign, oldTopIndex);
+	unsigned int oldSelectionAddr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_last_type_size,rs_t=='s',rs_last_no_misalign, oldSelectionIndex);
+
+	std::vector<AddrRange> selHardwareAddrs;
+	if(numberOfItemsChanged)
+	{
+		// store selection ranges
+		// unfortunately this can take a while if the user has a huge range of items selected
+		Clear_Sound_Buffer();
+		int selCount = ListView_GetSelectedCount(lv);
+		int size = (rs_last_type_size=='b' || !rs_last_no_misalign) ? 1 : 2;
+		int watchIndex = -1;
+		for(int i = 0; i < selCount; ++i)
+		{
+			watchIndex = ListView_GetNextItem(lv, watchIndex, LVNI_SELECTED);
+			int addr = CALL_WITH_T_SIZE_TYPES(GetHardwareAddressFromItemIndex, rs_last_type_size,rs_t=='s',rs_last_no_misalign, watchIndex);
+			if(!selHardwareAddrs.empty() && addr == selHardwareAddrs.back().End())
+				selHardwareAddrs.back().size += size;
+			else
+				selHardwareAddrs.push_back(AddrRange(addr,size));
+		}
+	}
 
 	CompactAddrs();
 
 	rs_last_type_size = rs_type_size;
 	rs_last_no_misalign = noMisalign;
 
-	unsigned int newItemIndex = CALL_WITH_T_SIZE_TYPES(HardwareAddressToItemIndex, rs_type_size,rs_t=='s',noMisalign, oldAddr);
-	ListView_SetItemState(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), -1, 0, LVIS_SELECTED); // deselect all
-	if(newItemIndex != -1)
+	if(numberOfItemsChanged)
 	{
-		ListView_SetSelectionMark(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex);
-		ListView_SetItemState(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex, 0xFFFFFFFF, LVIS_SELECTED); // select new index
-		ListView_EnsureVisible(GetDlgItem(RamSearchHWnd,IDC_RAMLIST), newItemIndex, 0);
-	}
-	RefreshRamListSelectedCountControlStatus(RamSearchHWnd);
+		// restore selection ranges
+		unsigned int newTopIndex = CALL_WITH_T_SIZE_TYPES(HardwareAddressToItemIndex, rs_type_size,rs_t=='s',noMisalign, oldTopAddr);
+		unsigned int newBottomIndex = newTopIndex + itemsPerPage - 1;
+		SendMessage(lv, WM_SETREDRAW, FALSE, 0);
+		ListView_SetItemState(lv, -1, 0, LVIS_SELECTED|LVIS_FOCUSED); // deselect all
+		for(unsigned int i = 0; i < selHardwareAddrs.size(); i++)
+		{
+			// calculate index ranges of this selection
+			const AddrRange& range = selHardwareAddrs[i];
+			int selRangeTop = CALL_WITH_T_SIZE_TYPES(HardwareAddressToItemIndex, rs_type_size,rs_t=='s',noMisalign, range.addr);
+			int selRangeBottom = -1;
+			for(int endAddr = range.End()-1; endAddr >= selRangeTop && selRangeBottom == -1; endAddr--)
+				selRangeBottom = CALL_WITH_T_SIZE_TYPES(HardwareAddressToItemIndex, rs_type_size,rs_t=='s',noMisalign, endAddr);
+			if(selRangeBottom == -1)
+				selRangeBottom = selRangeTop;
+			if(selRangeTop == -1)
+				continue;
 
-	EnableWindow(GetDlgItem(RamSearchHWnd,IDC_MISALIGN), rs_type_size != 'b');
+			// select the entire range at once without deselecting the other ranges
+			// looks hacky but it works, and the only documentation I found on how to do this was blatantly false and equally hacky anyway
+			POINT pos;
+			ListView_EnsureVisible(lv, selRangeTop, 0);
+			ListView_GetItemPosition(lv, selRangeTop, &pos);
+			SendMessage(lv, WM_LBUTTONDOWN, MK_LBUTTON|MK_CONTROL, MAKELONG(pos.x,pos.y));
+			ListView_EnsureVisible(lv, selRangeBottom, 0);
+			ListView_GetItemPosition(lv, selRangeBottom, &pos);
+			SendMessage(lv, WM_LBUTTONDOWN, MK_LBUTTON|MK_CONTROL|MK_SHIFT, MAKELONG(pos.x,pos.y));
+		}
+
+		// restore previous scroll position
+		if(newBottomIndex != -1)
+			ListView_EnsureVisible(lv, newBottomIndex, 0);
+		if(newTopIndex != -1)
+			ListView_EnsureVisible(lv, newTopIndex, 0);
+
+		SendMessage(lv, WM_SETREDRAW, TRUE, 0);
+
+		RefreshRamListSelectedCountControlStatus(RamSearchHWnd);
+
+		EnableWindow(GetDlgItem(RamSearchHWnd,IDC_MISALIGN), rs_type_size != 'b');
+	}
+	else
+	{
+		ListView_Update(lv, -1);
+	}
 }
 
 
@@ -1206,6 +1281,8 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			UpdatePossibilities(ResultCount, (int)s_activeMemoryRegions.size());
 			
 			rs_val_valid = Set_RS_Val();
+
+			ListView_SetCallbackMask(GetDlgItem(hDlg,IDC_RAMLIST), LVIS_FOCUSED|LVIS_SELECTED);
 
 			return true;
 		}	break;
@@ -1548,14 +1625,6 @@ invalid_field:
 					int size = (rs_type_size=='b' || !noMisalign) ? 1 : 2;
 					int selCount = ListView_GetSelectedCount(ramListControl);
 					int watchIndex = -1;
-
-					struct AddrRange
-					{
-						unsigned int addr;
-						unsigned int size;
-						unsigned int End() { return addr + size; }
-						AddrRange(unsigned int a, unsigned int s) : addr(a),size(s){}
-					};
 
 					// time-saving trick #1:
 					// condense the selected items into an array of address ranges
