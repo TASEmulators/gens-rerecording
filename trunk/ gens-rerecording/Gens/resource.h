@@ -523,6 +523,7 @@
 #define IDC_C_POKE                      41093
 #define IDC_C_CONT                      41094
 #define IDC_C_AUTOSEARCH                41094
+#define IDC_EDIT_MODBY                  41095
 #define IDC_RAMLIST                     41133
 #define IDC_C_SEARCH                    41134
 #define IDC_C_ADDCHEAT                  41135
@@ -539,12 +540,15 @@
 #define IDC_DIFFERENTFROM               41146
 #define IDC_DIFFERENTBY                 41147
 #define IDC_C_AND                       41147
+#define IDC_MODULO                      41148
 #define IDC_C_SAVE                      41148
 #define IDC_UNSIGNED                    41149
 #define IDC_SIGNED                      41150
 #define IDC_HEX                         41151
 #define IDC_C_LOAD                      41152
+#define IDC_C_UNDO                      41152
 #define IDC_C_WATCH2                    41153
+#define IDC_C_RESET_CHANGES             41153
 #define IDC_C_OR                        42147
 #define IDC_PREVIOUSVALUE               42147
 #define IDC_SPECIFICVALUE               42148
@@ -560,6 +564,7 @@
 #define IDC_WATCHLIST                   42171
 #define IDC_C_WATCH_UP                  42172
 #define IDC_C_WATCH_DOWN                42173
+#define IDC_C_ELIMINATE                 42174
 #define IDC_CHEATLIST                   42180
 #define IDC_PROMPT_TEXT                 43000
 #define IDC_PROMPT_TEXT2                43001

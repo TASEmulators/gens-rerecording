@@ -184,10 +184,6 @@ bool RamSearchClosed = false;
 bool RamWatchClosed = false;
 
 unsigned char StateSelectCfg = 0;
-char rs_c='s';
-char rs_o='=';
-char rs_t='s';
-int rs_param=0, rs_val=0;
 bool PaintsEnabled = true;
 extern "C" int g_dontResetAudioCache;
 
@@ -3314,6 +3310,13 @@ dialogAgain: //Nitsuja added this
 					Save_State(Str_Tmp);
 					return 0;
 
+				case ID_FILES_SAVESTATE_10:
+					Set_Current_State(hWnd, 10);
+					Str_Tmp[0] = 0;
+					Get_State_File_Name(Str_Tmp);
+					Save_State(Str_Tmp);
+					return 0;
+
 				case ID_FILES_LOADSTATE_1:
 				case ID_FILES_LOADSTATE_2:
 				case ID_FILES_LOADSTATE_3:
@@ -4772,8 +4775,8 @@ HMENU Build_Main_Menu(void)
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)CPUSlowDownSpeed, "Slow Mode", "", "S&low Mode");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(TAS_Tools,i++,Flags,ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
+	MENU_L(TAS_Tools,i++,Flags,ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
 	//Upth-Add - Menu Tools_Movies
 	i = 0;
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
@@ -6002,7 +6005,7 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	if (MainMovie.Status == MOVIE_RECORDING) Put_Info("Movie successfully spliced. Resuming playback from now.",2000);
 	else Put_Info("Movie successfully spliced.",2000);
 	MainMovie.Status = MOVIE_PLAYING;
-	fseek(MainMovie.File,0,SEEK_END); // changed from 64 past the end of the file to the end of the file...
+	fseek(MainMovie.File,0,SEEK_END);
 	MainMovie.LastFrame = (ftell(MainMovie.File)-64) / 3;
 	SpliceFrame = 0;
 	char cfgFile[1024];
@@ -6360,7 +6363,7 @@ LRESULT CALLBACK RecordMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 }
 
 
-void init_list_box(HWND Box, char Strs[][11], int numColumns, int *columnWidths) //initializes the ram search and/or ram watch listbox
+void init_list_box(HWND Box, const char* Strs[], int numColumns, int *columnWidths) //initializes the ram search and/or ram watch listbox
 {
 	LVCOLUMN Col;
 	Col.mask = LVCF_FMT | LVCF_ORDER | LVCF_SUBITEM | LVCF_TEXT | LVCF_WIDTH;
@@ -6369,7 +6372,7 @@ void init_list_box(HWND Box, char Strs[][11], int numColumns, int *columnWidths)
 	{
 		Col.iOrder = i;
 		Col.iSubItem = i;
-		Col.pszText = Strs[i];
+		Col.pszText = (LPSTR)(Strs[i]);
 		Col.cx = columnWidths[i];
 		ListView_InsertColumn(Box,i,&Col);
 	}

@@ -1077,6 +1077,10 @@ int Init_Genesis(struct Rom *MD_Rom)
 
 	Update_Frame = Do_Genesis_Frame;
 	Update_Frame_Fast = Do_Genesis_Frame_No_VDP;
+
+	Genesis_Started = 1; // used inside reset_address_info
+	SegaCD_Started = 0;
+	_32X_Started = 0;
 	reset_address_info();
 
 	return 1;
@@ -1654,6 +1658,9 @@ int Init_32X(struct Rom *MD_Rom)
 	// Ecco 32X demo needs it
 
 	for(i = 0; i < 0x400; i++) _32X_MSH2_Rom[i + 0x36C] = _32X_Rom[i + 0x400];
+
+	_32X_Started = 1; // used inside reset_address_info
+	SegaCD_Started = 0;
 	reset_address_info();
 
 	return 1;
@@ -2447,7 +2454,10 @@ int Init_SegaCD(char *iso_name)
 	CD_Audio_Buffer_Write_Pos = 2000;
 	CD_Timer_Counter = 0;
 
-	track_number = 0; // Modif N. -- added, was never initialized before 
+	track_number = 0; // Modif N. -- added, was never initialized before
+
+	SegaCD_Started = 1; // used inside reset_address_info
+	_32X_Started = 0;
 	reset_address_info();
 
 	return 1;
