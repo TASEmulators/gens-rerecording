@@ -174,9 +174,10 @@ void CalculateItemIndices(int itemSize)
 template<typename stepType, typename compareType>
 void UpdateRegionsT()
 {
-	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end(); ++iter)
+	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end();)
 	{
 		MemoryRegion& region = *iter;
+		++iter;
 
 		if(s_prevValuesNeedUpdate)
 			memcpy(s_prevValues + region.virtualIndex, s_curValues + region.virtualIndex, region.size + sizeof(compareType) - sizeof(stepType));
@@ -207,14 +208,27 @@ void UpdateRegionsT()
 		     // - when more than one of those bytes changes simultaneously the entry's change count should only increase by 1
 		     // - a few of those bytes can be outside the region
 
+			unsigned int lastIndexToRead = indexEnd + sizeof(compareType) - sizeof(stepType);
+			unsigned int lastIndexToCopy = lastIndexToRead;
+			if(iter != s_activeMemoryRegions.end())
+			{
+				MemoryRegion& nextRegion = *iter;
+				int nextStartSkipSize = ((unsigned int)(sizeof(stepType) - nextRegion.hardwareAddress)) % sizeof(stepType);
+				unsigned int nextIndexStart = nextRegion.virtualIndex + nextStartSkipSize;
+				if(lastIndexToCopy > nextIndexStart)
+					lastIndexToCopy = nextIndexStart;
+			}
+
 			unsigned int nextValidChange [sizeof(compareType)];
 			for(unsigned int i = 0; i < sizeof(compareType); i++)
 				nextValidChange[i] = indexStart + i;
-			for(unsigned int i = indexStart, j = 0; i < indexEnd + sizeof(compareType) - sizeof(stepType); i++, j++)
+
+			for(unsigned int i = indexStart, j = 0; i < lastIndexToRead; i++, j++)
 			{
 				if(s_curValues[i] != sourceAddr[i^1]) // if value of this byte changed
 				{
-					s_curValues[i] = sourceAddr[i^1]; // update value
+					if(i < lastIndexToCopy)
+						s_curValues[i] = sourceAddr[i^1]; // update value
 					for(int k = 0; k < sizeof(compareType); k++) // loop through the previous entries that contain this byte
 					{
 						if(i >= indexEnd+k)
