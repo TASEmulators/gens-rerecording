@@ -42,12 +42,12 @@ static BOOL s_itemIndicesInvalid = true; // if true, the link from listbox items
 static BOOL s_prevValuesNeedUpdate = true; // if true, the "prev" values should be updated using the "cur" values on the next frame update signaled
 static unsigned int s_maxItemIndex = 0; // max currently valid item index, the listbox sometimes tries to update things past the end of the list so we need to know this to ignore those attempts
 
-static const MemoryRegion s_prgRegion    = {  0x020000, SEGACD_RAM_PRG_SIZE, (unsigned char*)Ram_Prg,     false};
-static const MemoryRegion s_word1MRegion = {  0x200000, SEGACD_1M_RAM_SIZE,  (unsigned char*)Ram_Word_1M, false};
-static const MemoryRegion s_word2MRegion = {  0x200000, SEGACD_2M_RAM_SIZE,  (unsigned char*)Ram_Word_2M, false};
-static const MemoryRegion s_z80Region    = {  0xA00000, Z80_RAM_SIZE,        (unsigned char*)Ram_Z80,     false};
-static const MemoryRegion s_68kRegion    = {  0xFF0000, _68K_RAM_SIZE,       (unsigned char*)Ram_68k,     false};
-static const MemoryRegion s_32xRegion    = {0x06000000, _32X_RAM_SIZE,       (unsigned char*)_32X_Ram,    true};
+static const MemoryRegion s_prgRegion    = {  0x020000, SEGACD_RAM_PRG_SIZE, (unsigned char*)Ram_Prg,     true};
+static const MemoryRegion s_word1MRegion = {  0x200000, SEGACD_1M_RAM_SIZE,  (unsigned char*)Ram_Word_1M, true};
+static const MemoryRegion s_word2MRegion = {  0x200000, SEGACD_2M_RAM_SIZE,  (unsigned char*)Ram_Word_2M, true};
+static const MemoryRegion s_z80Region    = {  0xA00000, Z80_RAM_SIZE,        (unsigned char*)Ram_Z80,     true};
+static const MemoryRegion s_68kRegion    = {  0xFF0000, _68K_RAM_SIZE,       (unsigned char*)Ram_68k,     true};
+static const MemoryRegion s_32xRegion    = {0x06000000, _32X_RAM_SIZE,       (unsigned char*)_32X_Ram,    false};
 
 // list of contiguous uneliminated memory regions
 typedef std::list<MemoryRegion> MemoryList;
@@ -171,82 +171,87 @@ void CalculateItemIndices(int itemSize)
 	s_itemIndicesInvalid = FALSE;
 }
 
+template<typename stepType, typename compareType, int swapXOR>
+void UpdateRegionT(const MemoryRegion& region, const MemoryRegion* nextRegionPtr)
+{
+	if(s_prevValuesNeedUpdate)
+		memcpy(s_prevValues + region.virtualIndex, s_curValues + region.virtualIndex, region.size + sizeof(compareType) - sizeof(stepType));
+
+	unsigned int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
+
+	unsigned char* sourceAddr = region.softwareAddress - region.virtualIndex;
+	unsigned int indexStart = region.virtualIndex + startSkipSize;
+	unsigned int indexEnd = region.virtualIndex + region.size;
+
+	if(sizeof(compareType) == 1)
+	{
+		for(unsigned int i = indexStart; i < indexEnd; i++)
+		{
+			if(s_curValues[i] != sourceAddr[i^swapXOR]) // if value changed
+			{
+				s_curValues[i] = sourceAddr[i^swapXOR]; // update value
+				//if(s_numChanges[i] != 0xFFFF)
+					s_numChanges[i]++; // increase change count
+			}
+		}
+	}
+	else // it's more complicated for non-byte sizes because:
+	{    // - more than one byte can affect a given change count entry
+	     // - when more than one of those bytes changes simultaneously the entry's change count should only increase by 1
+	     // - a few of those bytes can be outside the region
+
+		unsigned int endSkipSize = ((unsigned int)(startSkipSize - region.size)) % sizeof(stepType);
+		unsigned int lastIndexToRead = indexEnd + endSkipSize + sizeof(compareType) - sizeof(stepType);
+		unsigned int lastIndexToCopy = lastIndexToRead;
+		if(nextRegionPtr)
+		{
+			const MemoryRegion& nextRegion = *nextRegionPtr;
+			int nextStartSkipSize = ((unsigned int)(sizeof(stepType) - nextRegion.hardwareAddress)) % sizeof(stepType);
+			unsigned int nextIndexStart = nextRegion.virtualIndex + nextStartSkipSize;
+			if(lastIndexToCopy > nextIndexStart)
+				lastIndexToCopy = nextIndexStart;
+		}
+
+		unsigned int nextValidChange [sizeof(compareType)];
+		for(unsigned int i = 0; i < sizeof(compareType); i++)
+			nextValidChange[i] = indexStart + i;
+
+		for(unsigned int i = indexStart, j = 0; i < lastIndexToRead; i++, j++)
+		{
+			if(s_curValues[i] != sourceAddr[i^swapXOR]) // if value of this byte changed
+			{
+				if(i < lastIndexToCopy)
+					s_curValues[i] = sourceAddr[i^swapXOR]; // update value
+				for(int k = 0; k < sizeof(compareType); k++) // loop through the previous entries that contain this byte
+				{
+					if(i >= indexEnd+k)
+						continue;
+					int m = (j-k+sizeof(compareType)) & (sizeof(compareType)-1);
+					if(nextValidChange[m]+sizeof(compareType) <= i+sizeof(compareType)) // if we didn't already increase the change count for this entry
+					{
+						//if(s_numChanges[i-k] != 0xFFFF)
+							s_numChanges[i-k]++; // increase the change count for this entry
+						nextValidChange[m] = i+sizeof(compareType); // and remember not to increase it again
+					}
+				}
+			}
+		}
+	}
+}
+
 template<typename stepType, typename compareType>
 void UpdateRegionsT()
 {
 	for(MemoryList::iterator iter = s_activeMemoryRegions.begin(); iter != s_activeMemoryRegions.end();)
 	{
-		MemoryRegion& region = *iter;
+		const MemoryRegion& region = *iter;
 		++iter;
+		const MemoryRegion* nextRegion = (iter == s_activeMemoryRegions.end()) ? NULL : &*iter;
 
-		if(s_prevValuesNeedUpdate)
-			memcpy(s_prevValues + region.virtualIndex, s_curValues + region.virtualIndex, region.size + sizeof(compareType) - sizeof(stepType));
-
-		if(region.byteSwapped) // swapbytes
-			Byte_Swap(region.softwareAddress, region.size);
-
-		int startSkipSize = ((unsigned int)(sizeof(stepType) - region.hardwareAddress)) % sizeof(stepType);
-
-		unsigned char* sourceAddr = region.softwareAddress - region.virtualIndex;
-		unsigned int indexStart = region.virtualIndex + startSkipSize;
-		unsigned int indexEnd = region.virtualIndex + region.size;
-
-		if(sizeof(compareType) == 1)
-		{
-			for(unsigned int i = indexStart; i < indexEnd; i++)
-			{
-				if(s_curValues[i] != sourceAddr[i^1]) // if value changed
-				{
-					s_curValues[i] = sourceAddr[i^1]; // update value
-					//if(s_numChanges[i] != 0xFFFF)
-						s_numChanges[i]++; // increase change count
-				}
-			}
-		}
-		else // it's more complicated for non-byte sizes because:
-		{    // - more than one byte can affect a given change count entry
-		     // - when more than one of those bytes changes simultaneously the entry's change count should only increase by 1
-		     // - a few of those bytes can be outside the region
-
-			unsigned int lastIndexToRead = indexEnd + sizeof(compareType) - sizeof(stepType);
-			unsigned int lastIndexToCopy = lastIndexToRead;
-			if(iter != s_activeMemoryRegions.end())
-			{
-				MemoryRegion& nextRegion = *iter;
-				int nextStartSkipSize = ((unsigned int)(sizeof(stepType) - nextRegion.hardwareAddress)) % sizeof(stepType);
-				unsigned int nextIndexStart = nextRegion.virtualIndex + nextStartSkipSize;
-				if(lastIndexToCopy > nextIndexStart)
-					lastIndexToCopy = nextIndexStart;
-			}
-
-			unsigned int nextValidChange [sizeof(compareType)];
-			for(unsigned int i = 0; i < sizeof(compareType); i++)
-				nextValidChange[i] = indexStart + i;
-
-			for(unsigned int i = indexStart, j = 0; i < lastIndexToRead; i++, j++)
-			{
-				if(s_curValues[i] != sourceAddr[i^1]) // if value of this byte changed
-				{
-					if(i < lastIndexToCopy)
-						s_curValues[i] = sourceAddr[i^1]; // update value
-					for(int k = 0; k < sizeof(compareType); k++) // loop through the previous entries that contain this byte
-					{
-						if(i >= indexEnd+k)
-							continue;
-						int m = (j-k+sizeof(compareType)) & (sizeof(compareType)-1);
-						if(nextValidChange[m]+sizeof(compareType) <= i+sizeof(compareType)) // if we didn't already increase the change count for this entry
-						{
-							//if(s_numChanges[i-k] != 0xFFFF)
-								s_numChanges[i-k]++; // increase the change count for this entry
-							nextValidChange[m] = i+sizeof(compareType); // and remember not to increase it again
-						}
-					}
-				}
-			}
-		}
-
-		if(region.byteSwapped) // unswapbytes
-			Byte_Swap(region.softwareAddress, region.size);
+		if(region.byteSwapped)
+			UpdateRegionT<stepType, compareType, 1>(region, nextRegion);
+		else
+			UpdateRegionT<stepType, compareType, 0>(region, nextRegion);
 	}
 
 	s_prevValuesNeedUpdate = false;
@@ -769,9 +774,9 @@ bool IsSatisfied(int itemIndex)
 unsigned int ReadValueAtSoftwareAddress(const unsigned char* address, unsigned int size, int byteSwapped = false)
 {
 	unsigned int value = 0;
-	if(byteSwapped)
+	if(!byteSwapped)
 	{
-		// convert to current endianness (default is actually byte-swapped internally)
+		// convert to current endianness
 		for(unsigned int i = 0; i < size; i++)
 		{
 			value <<= 8;
@@ -797,15 +802,15 @@ inline bool IsInRange(unsigned int x, unsigned int min, unsigned int size)
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 {
 	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
-		return ReadValueAtSoftwareAddress(Ram_Prg + address - 0x020000, size);
+		return ReadValueAtSoftwareAddress(Ram_Prg + address - 0x020000, size, true);
 	if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, size);
+		return ReadValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, size, true);
 	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, size);
+		return ReadValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, size, true);
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size);
+		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size, true);
 	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, true);
+		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, false);
 	return 0;
 }
 bool IsHardwareAddressValid(unsigned int address)
