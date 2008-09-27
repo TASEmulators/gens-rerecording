@@ -999,21 +999,36 @@ void DrawInformationOnTheScreen()
 	{
 		if(FrameCounterFrames) //Nitsuja added this option, raw integer frame number display
 		{
-			sprintf(FCTemp,"%d",FrameCount);
+			if(!MainMovie.File || MainMovie.Status == MOVIE_RECORDING)
+				sprintf(FCTemp, "%d", FrameCount);
+			else
+				sprintf(FCTemp, "%d/%d", FrameCount, MainMovie.LastFrame);
 		}
 		else
 		{
 			const int fps = CPU_Mode ? 50 : 60;
-			sprintf(FCTemp,"%d:%02d:%02d",(FrameCount/(fps*60)),(FrameCount/fps)%60,FrameCount%fps); //Nitsuja modified this to use the FPS value instead of 60 | Upth-Modif - Nitsuja forgot that even in PAL mode, it's 60 seconds per minute
+			if(!MainMovie.File || MainMovie.Status == MOVIE_RECORDING)
+				sprintf(FCTemp,"%d:%02d:%02d",(FrameCount/(fps*60)),(FrameCount/fps)%60,FrameCount%fps); //Nitsuja modified this to use the FPS value instead of 60 | Upth-Modif - Nitsuja forgot that even in PAL mode, it's 60 seconds per minute
+			else
+				sprintf(FCTemp,"%d:%02d:%02d/%d:%02d:%02d",(FrameCount/(fps*60)),(FrameCount/fps)%60,FrameCount%fps, (MainMovie.LastFrame/(fps*60)),(MainMovie.LastFrame/fps)%60,MainMovie.LastFrame%fps);
 		}
+
+		unsigned int slashPos = ~0;
+		const char* slash = strchr(FCTemp, '/');
+		if(slash)
+			slashPos = slash - FCTemp;
 
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition;
 			if (!IS_FULL_X_RESOLUTION && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
 				n-=64;
+			BOOL drawRed = Lag_Frame;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
+				if((unsigned int)pos == slashPos)
+					drawRed = (MainMovie.Status != MOVIE_PLAYING);
+
 				m=(FCTemp[pos]-'-')*30;
 
 				for(j=0;j<7;j++,n+=330)
@@ -1022,8 +1037,8 @@ void DrawInformationOnTheScreen()
 					{
 						if(j>0 && j<6)
 						{
-							if (Bits32) MD_Screen32[n]=FCDigit32[m++] & (Lag_Frame?0xFF0000:0xFFFFFF);
-							else MD_Screen[n]=FCDigit[m++] & (Lag_Frame?0xF800:0xFFFF);
+							if (Bits32) MD_Screen32[n]=FCDigit32[m++] & (drawRed?0xFF0000:0xFFFFFF);
+							else MD_Screen[n]=FCDigit[m++] & (drawRed?0xF800:0xFFFF);
 						}
 						else
 						{
