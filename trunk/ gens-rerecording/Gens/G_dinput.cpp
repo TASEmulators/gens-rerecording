@@ -1126,13 +1126,16 @@ void Update_Input()
 
 	rval = lpDIDKeyboard->GetDeviceState(256, &Keys);
 
-	// HACK because DirectInput is totally wacky about recognizing the PAUSE/BREAK key
-	// still not perfect with this, but at least it goes above a 25% success rate
-	if(GetAsyncKeyState(VK_PAUSE)) // normally this should have & 0x8000, but apparently this key is too special for that to work
-		Keys[0xC5] |= 0x80;
-
 	if ((rval == DIERR_INPUTLOST) | (rval == DIERR_NOTACQUIRED))
+	{
 		Restore_Input();
+
+		rval = lpDIDKeyboard->GetDeviceState(256, &Keys);
+		if ((rval == DIERR_INPUTLOST) | (rval == DIERR_NOTACQUIRED))
+		{
+			memset(Keys, 0, sizeof(Keys));
+		}
+	}
 
 	for (i = 0; i < Nb_Joys; i++)
 	{
