@@ -801,8 +801,13 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		
 		
 		case WM_INITMENU:
-		CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
-		break;
+			CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
+			break;
+
+		case WM_MENUSELECT:
+ 		case WM_ENTERSIZEMOVE:
+			Clear_Sound_Buffer();
+			break;
 
 		case WM_NOTIFY:
 		{
