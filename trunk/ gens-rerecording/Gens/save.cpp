@@ -57,6 +57,7 @@ extern "C" int FILE_Play_CD_LBA(int async);
 extern int FS_Minimised;
 extern bool skipLagNow, frameadvSkipLag_Rewind_State_Buffer_Valid;
 extern int frameSearchFrames;
+extern bool s_nextInputCondensedSet;
 
 #ifdef _WIN32
 	#define MINIMIZE								\
@@ -272,6 +273,7 @@ int Load_State(char *Name)
 	else return 0;
 
 	frameadvSkipLag_Rewind_State_Buffer_Valid = false;
+	s_nextInputCondensedSet = false;
 	if(skipLagNow)
 	{
 		skipLagNow = false;
