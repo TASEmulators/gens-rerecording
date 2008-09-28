@@ -156,13 +156,12 @@ int Update_Frame_Adjusted()
 		// the delay from your computer hardware stacks with the delay from the emulated hardware,
 		// so eliminating some of that delay should make it feel closer to the real system
 
+		int retval = Update_Frame();
 		disableSound2 = true;
-		int retval = Update_Frame_Fast();
 		Save_State_To_Buffer(State_Buffer);
-		for(int i = 0; i < VideoLatencyCompensation-1; i++)
+		for(int i = 0; i < VideoLatencyCompensation; i++)
 			Update_Frame_Fast();
 		disableSound2 = false;
-		Update_Frame();
 		Load_State_From_Buffer(State_Buffer);
 		return retval;
 	}
