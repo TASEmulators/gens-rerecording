@@ -1530,9 +1530,9 @@ static void SetCurrentInputCondensed(long long input)
 	Controller_2_Mode = (input & (1LL<<(32+7))) ? 1 : 0;
 }
 
-static long long s_lastInputCondensed = ~0;
-static long long s_nextInputCondensed = ~0;
-static bool s_nextInputCondensedSet = false;
+long long s_lastInputCondensed = ~0;
+long long s_nextInputCondensed = ~0;
+bool s_nextInputCondensedSet = false;
 
 long long GetLastInputCondensed()
 {
@@ -1550,7 +1550,6 @@ void SetNextInputCondensed(long long input)
 #endif
 void Update_Controllers()
 {
-
 	Update_Input();
 
 	if (Check_Key_Pressed(Keys_Def[0].Up))
