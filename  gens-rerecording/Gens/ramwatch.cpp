@@ -829,7 +829,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 							Item->item.pszText = num;
 							return true;
 						case 1: {
-							int i = GetCurrentValue(rswatches[iNum]); // could use rswatches[iNum].CurValue here but this seems fast enough and less likely to show out-of-date values
+							int i = rswatches[iNum].CurValue;
 							int t = rswatches[iNum].Type;
 							int size = rswatches[iNum].Size;
 							const char* formatString = ((t=='s') ? "%d" : (t=='u') ? "%u" : (size=='d' ? "%08X" : size=='w' ? "%04X" : "%02X"));
