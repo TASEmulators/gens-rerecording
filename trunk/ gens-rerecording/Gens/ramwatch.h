@@ -17,7 +17,7 @@ struct AddressWatcher
 	char Type;
 	char* comment; // NULL means no comment, non-NULL means allocated comment
 	bool WrongEndian;
-	unsigned int CurValue; // used to determine when the value has changed
+	unsigned int CurValue;
 };
 extern AddressWatcher rswatches[256];
 extern int WatchCount; // number of valid items in rswatches
