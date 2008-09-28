@@ -325,13 +325,6 @@ void UpdateRWRecentArray(const char* addString, unsigned int arrayLen, HMENU men
 
 	// The filename wasn't found in the list. That means we need to add it.
 
-	// If there's no space left in the recent files list, get rid of the last
-	// item in the list.
-	if(rw_recent_files[arrayLen - 1])
-	{
-		free(rw_recent_files[arrayLen - 1]);
-	}
-
 	// Move the other items down.
 	for(unsigned int x = arrayLen - 1; x; x--)
 	{
@@ -339,7 +332,6 @@ void UpdateRWRecentArray(const char* addString, unsigned int arrayLen, HMENU men
 	}
 
 	// Add the new item.
-	//strcpy(rw_recent_files[0],addString) + 1); //mbg merge 7/17/06 added cast
 	strcpy(rw_recent_files[0], addString);
 
 	// Update the recent files menu
@@ -401,7 +393,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 			do {
 				fgets(Str_Tmp,1024,WatchFile);
 			} while (Str_Tmp[0] == '\n');
-			sscanf(Str_Tmp,"*%05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
+			sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
 			Temp.WrongEndian = 0;
 			char *Comment = strrchr(Str_Tmp,DELIM) + 1;
 			*strrchr(Comment,'\n') = '\0';
@@ -432,7 +424,7 @@ bool Save_Watches()
 		const char DELIM = '\t';
 		for (int i = 0; i < WatchCount; i++)
 		{
-			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Address,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rswatches[i].comment);
+			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",i,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rswatches[i].comment);
 			fputs(Str_Tmp,WatchFile);
 		}
 		
@@ -463,7 +455,7 @@ if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save
 		const char DELIM = '\t';
 		for (int i = 0; i < WatchCount; i++)
 		{
-			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",rswatches[i].Address,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rswatches[i].comment);
+			sprintf(Str_Tmp,"%05X%c%08X%c%c%c%c%c%d%c%s\n",i,DELIM,rswatches[i].Address,DELIM,rswatches[i].Size,DELIM,rswatches[i].Type,DELIM,rswatches[i].WrongEndian,DELIM,rswatches[i].comment);
 			fputs(Str_Tmp,WatchFile);
 		}
 		fclose(WatchFile);
@@ -512,7 +504,7 @@ bool Load_Watches()
 			do {
 				fgets(Str_Tmp,1024,WatchFile);
 			} while (Str_Tmp[0] == '\n');
-			sscanf(Str_Tmp,"*%05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
+			sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
 			Temp.WrongEndian = 0;
 			char *Comment = strrchr(Str_Tmp,DELIM) + 1;
 			*strrchr(Comment,'\n') = '\0';
