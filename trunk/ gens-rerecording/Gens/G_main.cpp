@@ -5994,8 +5994,7 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	}
 	fseek(TempSplice,0,SEEK_END);
 	unsigned long size = ftell(TempSplice);
-	//MainMovie.LastFrame++; // changed from ++ to -- because it was causing the input to be spliced 2 frames late at the end (one frame of which was all-0 bytes)
-	MainMovie.LastFrame--;
+	//MainMovie.LastFrame++; // removed ++ because it was causing the input to be spliced 1 frame late at the end
 	fseek(MainMovie.File,(MainMovie.LastFrame * 3) + 64,SEEK_SET);
 	char *TempBuffer = (char *) malloc(size);
 	fseek(TempSplice,0,SEEK_SET);
