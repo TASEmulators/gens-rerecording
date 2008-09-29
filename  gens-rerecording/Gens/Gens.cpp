@@ -1119,6 +1119,7 @@ extern "C"
 {
 	int disableSound = false;
 	int disableSound2 = false; // slower but more reversible way of disabling sound generation
+	int disableRamSearchUpdate = false;
 	int Seg_Junk[882];
 }
 

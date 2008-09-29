@@ -1042,8 +1042,12 @@ LRESULT CustomDraw (LPARAM lParam)
 	return CDRF_DODEFAULT;
 }
 
+extern "C" int disableRamSearchUpdate;
 void Update_RAM_Search() //keeps RAM values up to date in the search and watch windows
 {
+	if(disableRamSearchUpdate)
+		return;
+
 	if (AutoSearch && !ResultCount)
 	{
 		if(!AutoSearchAutoRetry)
