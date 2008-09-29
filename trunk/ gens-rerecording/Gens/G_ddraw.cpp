@@ -54,7 +54,7 @@ int FPS_Style = EMU_MODE | BLANC;
 int Message_Style = EMU_MODE | BLANC | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
-extern "C" int disableSound, disableSound2;
+extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
 
 long int MovieSize;//Modif
 int SlowFrame=0; //Modif
@@ -158,11 +158,14 @@ int Update_Frame_Adjusted()
 
 		disableSound2 = true;
 		int retval = Update_Frame_Fast();
+		Update_RAM_Search();
+		disableRamSearchUpdate = true;
 		Save_State_To_Buffer(State_Buffer);
 		for(int i = 0; i < VideoLatencyCompensation-1; i++)
 			Update_Frame_Fast();
 		disableSound2 = false;
 		Update_Frame();
+		disableRamSearchUpdate = false;
 		Load_State_From_Buffer(State_Buffer);
 		return retval;
 	}
