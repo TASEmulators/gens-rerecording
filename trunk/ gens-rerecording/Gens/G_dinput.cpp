@@ -8,6 +8,7 @@
 #include "movie.h"
 #include "save.h" //Modif
 #include "hackdefs.h"
+#include "luascript.h"
 
 #define KEYDOWN(key) (Keys[key] & 0x80) 
 #define MAX_JOYS 8
@@ -1477,7 +1478,7 @@ unsigned int Get_Key(void)
 	return tempButton.diKey;
 }
 
-static long long GetCurrentInputCondensed()
+long long GetCurrentInputCondensed()
 {
 	long long a = Controller_1_Up|(Controller_1_Down<<1)|(Controller_1_Left<<2)|(Controller_1_Right<<3)|(Controller_1_A<<4)|(Controller_1_B<<5)|(Controller_1_C<<6)|(Controller_1_Start<<7);
 	long long b = Controller_1B_Up|(Controller_1B_Down<<1)|(Controller_1B_Left<<2)|(Controller_1B_Right<<3)|(Controller_1B_A<<4)|(Controller_1B_B<<5)|(Controller_1B_C<<6)|(Controller_1B_Start<<7);
@@ -1532,16 +1533,26 @@ static void SetCurrentInputCondensed(long long input)
 
 long long s_lastInputCondensed = ~0;
 long long s_nextInputCondensed = ~0;
+long long s_nextInputMask = ~0;
 bool s_nextInputCondensedSet = false;
 
 long long GetLastInputCondensed()
 {
 	return s_lastInputCondensed;
 }
-void SetNextInputCondensed(long long input)
+void SetNextInputCondensed(long long input, long long mask)
 {
-	s_nextInputCondensed = input;
-	s_nextInputCondensedSet = true;
+	if(!s_nextInputCondensedSet)
+	{
+		s_nextInputCondensed = input;
+		s_nextInputMask = mask;
+		s_nextInputCondensedSet = true;
+	}
+	else
+	{
+		s_nextInputCondensed = (input & mask) | (s_nextInputCondensed & ~mask);
+		s_nextInputMask |= mask;
+	}
 }
 
 
@@ -2033,9 +2044,19 @@ void Update_Controllers()
 	#endif
 
 
+	CallRegisteredLuaFunctions(LUACALL_BEFOREEMULATION);
+
+
 	if(s_nextInputCondensedSet)
 	{
-		SetCurrentInputCondensed(s_nextInputCondensed);
+		if(s_nextInputMask == ~0)
+			SetCurrentInputCondensed(s_nextInputCondensed);
+		else
+		{
+			long long newInput = s_nextInputCondensed & s_nextInputMask;
+			long long keptInput = GetCurrentInputCondensed() & ~s_nextInputMask;
+			SetCurrentInputCondensed(newInput | keptInput);
+		}
 		s_nextInputCondensedSet = false;
 	}
 	s_lastInputCondensed = GetCurrentInputCondensed();

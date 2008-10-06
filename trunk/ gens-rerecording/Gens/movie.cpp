@@ -6,6 +6,7 @@
 #include "G_Input.h"
 #include "movie.h"
 #include "mem_M68K.h"
+#include "luascript.h"
 long unsigned int FrameCount=0;
 long unsigned int LagCount=0;
 long unsigned int LagCountPersistent = 0; // same as LagCount but ignores manual resets
@@ -142,6 +143,10 @@ void MoviePlayingStuff()
 			MustUpdateMenu=1;
 		}
 	}
+	
+	// because this function gets called instead of Update_Controllers
+	// and Update_Controllers is otherwise responsible for LUACALL_BEFOREEMULATION
+	CallRegisteredLuaFunctions(LUACALL_BEFOREEMULATION);
 }
 //Modif N - p1copy (playback player 1 while recording others)
 void MoviePlayPlayer1()

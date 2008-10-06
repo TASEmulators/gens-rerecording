@@ -22,6 +22,7 @@
 #include "io.h"
 #include "hackscommon.h"
 #include "drawutil.h"
+#include "luascript.h"
 //#define SONICSPEEDHACK
 //#define SONICCAMHACK
 //#define SK
@@ -141,6 +142,9 @@ int (*Update_Frame_Fast)();
 
 int Update_Frame_Adjusted()
 {
+	if(disableVideoLatencyCompensationCount)
+		disableVideoLatencyCompensationCount--;
+
 	if(!IsVideoLatencyCompensationOn())
 	{
 		// normal update
@@ -173,8 +177,12 @@ int Update_Frame_Adjusted()
 
 int Update_Frame_Hook()
 {
+	// note: we don't handle LUACALL_BEFOREEMULATION here
+	// because it needs to run immediately before SetCurrentInputCondensed() might get called
+	// in order for joypad.get() and joypad.set() to work as expected
+
 	#ifdef SONICCAMHACK
-	return SonicCamHack();
+	int retval = SonicCamHack();
 	#else
 		int retval = Update_Frame_Adjusted();
 
@@ -208,12 +216,23 @@ int Update_Frame_Hook()
 			CamX = CheatRead<short>(CAMXPOS);
 			CamY = CheatRead<short>(CAMYPOS);
 		#endif
-		return retval;
 	#endif
+
+	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
+
+	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATIONGUI);
+
+	return retval;
 }
 int Update_Frame_Fast_Hook()
 {
+	// note: we don't handle LUACALL_BEFOREEMULATION here
+	// because it needs to run immediately before SetCurrentInputCondensed() might get called
+	// in order for joypad.get() and joypad.set() to work as expected
+
 	int retval = Update_Frame_Fast();
+
+	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
 	Update_RAM_Search();
 	return retval;
 }
@@ -1751,7 +1770,7 @@ int Update_Crazy_Effect(HWND hWnd)
 	return 1;
 }
 
-static void UpdateInput()
+void UpdateInput()
 {
 	if(MainMovie.Status==MOVIE_PLAYING)
 		MoviePlayingStuff();
@@ -2035,6 +2054,15 @@ void Update_Emulation_One_Before(HWND hWnd)
 	Lag_Frame = 1;
 }
 
+void Update_Emulation_One_Before_Minimal()
+{
+	UpdateInput();
+	if(MainMovie.Status==MOVIE_RECORDING)
+		MovieRecordingStuff();
+	FrameCount++;
+	Lag_Frame = 1;
+}
+
 void Update_Emulation_One_After(HWND hWnd)
 {
 	Update_RAM_Cheats();
@@ -2060,6 +2088,18 @@ void Update_Emulation_After_Fast(HWND hWnd)
 
 	DUMPAVICLEAN
 	Flip(hWnd);
+}
+
+void Update_Emulation_After_Controlled(HWND hWnd, bool flip)
+{
+	Update_RAM_Cheats();
+	UpdateLagCount();
+
+	if(flip)
+	{
+		DUMPAVICLEAN
+		Flip(hWnd);
+	}
 }
 
 
