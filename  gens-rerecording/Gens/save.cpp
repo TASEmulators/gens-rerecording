@@ -35,6 +35,7 @@
 #include "movie.h"
 #include "ram_search.h"
 #include "ramwatch.h"
+#include "luascript.h"
 #include <direct.h>
 #ifdef _DEBUG
 #include <assert.h>
@@ -178,9 +179,12 @@ int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND
 	return 0;
 }
 
+int s_lastStateNumberGotten = 0;
 
 void Get_State_File_Name(char *name)
 {
+	s_lastStateNumberGotten = Current_State;
+
 	char Ext[6] = ".gsX";
 
 	SetCurrentDirectory(Gens_Path);
@@ -226,6 +230,9 @@ int Load_State_From_Buffer(unsigned char *buf)
 		MainMovie.LastFrame = ((ftell(MainMovie.File) - 64)/3);
 	}
 
+	extern bool frameadvSkipLag_Rewind_State_Buffer_Valid;
+	frameadvSkipLag_Rewind_State_Buffer_Valid = false;
+
 	buf += Import_Genesis(buf); //upthmodif - fixed for new, additive, length determination
 	if (SegaCD_Started)
 	{
@@ -261,6 +268,9 @@ void TruncateMovieToFrameCount()
 
 int Load_State(char *Name)
 {
+	int stateNumber = s_lastStateNumberGotten;
+	s_lastStateNumberGotten = 0;
+
 	FILE *f;
 	unsigned char *buf;
 	int len;
@@ -452,8 +462,12 @@ int Load_State(char *Name)
 	fclose(f);
 	Update_RAM_Search();
 
+	if(stateNumber)
+		CallRegisteredLuaFunctionsWithArg(LUACALL_AFTERLOAD, stateNumber);
+
 	return Show_Genesis_Screen(HWnd);
 }
+
 int Save_State_To_Buffer (unsigned char *buf)
 {
 	int len;
@@ -480,6 +494,10 @@ int Save_State_To_Buffer (unsigned char *buf)
 }
 int Save_State (char *Name)
 {
+	int stateNumber = s_lastStateNumberGotten;
+	s_lastStateNumberGotten = 0;
+	CallRegisteredLuaFunctionsWithArg(LUACALL_BEFORESAVE, stateNumber);
+
 	FILE *f;
 	unsigned char *buf;
 	int len;

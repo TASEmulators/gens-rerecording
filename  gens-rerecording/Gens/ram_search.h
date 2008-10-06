@@ -41,6 +41,7 @@ void signal_new_size();
 void UpdateRamSearchTitleBar(int percent = 0);
 void SetRamSearchUndoType(HWND hDlg, int type);
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
+void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsigned int size);
 bool IsHardwareAddressValid(unsigned int address);
 extern int curr_ram_size;
 extern bool noMisalign;

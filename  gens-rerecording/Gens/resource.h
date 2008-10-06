@@ -43,6 +43,7 @@
 #define RAMWATCH_MENU                   147
 #define IDD_RECORD_A_MOVIE              148
 #define IDR_ACCELERATOR1                148
+#define IDD_LUA                         149
 #define IDC_STATIC_WARNING_BITMAP       1000
 #define IDC_JOYINFO1                    1001
 #define IDC_JOYINFO2                    1002
@@ -189,10 +190,13 @@
 #define IDC_CANCEL_RECORD               1145
 #define IDC_BUTTON1                     1146
 #define IDC_REASSIGNKEY                 1146
+#define IDC_BUTTON_LUABROWSE            1146
 #define IDC_STATIC_WARNING_EXIST        1147
 #define IDC_EDIT_NOTE                   1148
 #define IDC_STATIC_CON1_CURSET          1149
 #define IDC_STATIC_CON2_CURSET          1150
+#define IDC_BUTTON_LUASTOP              1150
+#define IDC_BUTTON_LUARUN               1151
 #define IDC_DISABLE_BLUE_SCREEN         1153
 #define IDC_FRAMECOUNTER                1154
 #define IDC_TOP_LEFT                    1155
@@ -246,6 +250,25 @@
 #define ID_FILE_RECENT                  1219
 #define RAMMENU_FILE_APPEND             1220
 #define ID_FILE_OPEN1221                1221
+#define IDC_NEW_LUA_SCRIPT              1222
+#define IDC_LUA_SCRIPT_0                1223
+#define IDC_LUA_SCRIPT_1                1224
+#define IDC_LUA_SCRIPT_2                1225
+#define IDC_LUA_SCRIPT_3                1226
+#define IDC_LUA_SCRIPT_4                1227
+#define IDC_LUA_SCRIPT_5                1228
+#define IDC_LUA_SCRIPT_6                1229
+#define IDC_LUA_SCRIPT_7                1230
+#define IDC_LUA_SCRIPT_8                1231
+#define IDC_LUA_SCRIPT_9                1232
+#define IDC_LUA_SCRIPT_10               1233
+#define IDC_LUA_SCRIPT_11               1234
+#define IDC_LUA_SCRIPT_12               1235
+#define IDC_LUA_SCRIPT_13               1236
+#define IDC_LUA_SCRIPT_14               1237
+#define IDC_LUA_SCRIPT_15               1238
+#define IDC_EDIT_LUAPATH                1280
+#define IDC_LUACONSOLE                  1281
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -593,9 +616,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        149
-#define _APS_NEXT_COMMAND_VALUE         1222
-#define _APS_NEXT_CONTROL_VALUE         43405
+#define _APS_NEXT_RESOURCE_VALUE        150
+#define _APS_NEXT_COMMAND_VALUE         1282
+#define _APS_NEXT_CONTROL_VALUE         43407
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

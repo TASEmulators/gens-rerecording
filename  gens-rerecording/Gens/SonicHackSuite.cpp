@@ -1409,12 +1409,12 @@ int SonicCamHack()
 		}
 		else
 		{
-			disableSound2 = true;
+			disableRamUpdate = disableSound2 = true;
 			retval = Update_Frame_Fast();
 			Save_State_To_Buffer(State_Buffer);
 			for(int i = 0; i < VideoLatencyCompensation-1; i++)
 				Update_Frame_Fast();
-			disableSound2 = false;
+			disableRamUpdate = disableSound2 = false;
 			CamX = CheatRead<signed short>(CAMOFFSET1);
 			CamY = CheatRead<signed short>(CAMOFFSET1+4);
 			Update_Frame();
@@ -1500,12 +1500,12 @@ int SonicCamHack()
 			memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
 
 
-		//Update_Frame_Fast();
+		Update_Frame_Fast();
 		// since we're just doing prediction updates,
 		// chances are good we can get away with only updating
 		// the Genesis part of the emulation on these iterations
 		// (it's a lot faster this way)
-		Do_Genesis_Frame_No_VDP();
+		//Do_Genesis_Frame_No_VDP(); // ok, actually it doesn't work so great, even if it's fast
 
 		if (i == numframes)
 		{

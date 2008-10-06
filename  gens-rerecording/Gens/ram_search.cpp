@@ -794,6 +794,27 @@ unsigned int ReadValueAtSoftwareAddress(const unsigned char* address, unsigned i
 	}
 	return value;
 }
+void WriteValueAtSoftwareAddress(unsigned char* address, unsigned int value, unsigned int size, int byteSwapped = false)
+{
+	if(!byteSwapped)
+	{
+		// write as big endian
+		for(int i = size-1; i >= 0; i--)
+		{
+			address[i] = value & 0xFF;
+			value >>= 8;
+		}
+	}
+	else
+	{
+		// byte-swap and write as big endian at the same time
+		for(int i = size-1; i >= 0; i--)
+		{
+			*((unsigned char*)((intptr_t)(address+i)^1)) = value & 0xFF;
+			value >>= 8;
+		}
+	}
+}
 inline bool IsInRange(unsigned int x, unsigned int min, unsigned int size)
 {
 	x -= min;
@@ -812,6 +833,19 @@ unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
 		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, false);
 	return 0;
+}
+void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsigned int size)
+{
+	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
+		WriteValueAtSoftwareAddress(Ram_Prg + address - 0x020000, value, size, true);
+	else if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
+		WriteValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, value, size, true);
+	else if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		WriteValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, value, size, true);
+	else if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		WriteValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, value, size, true);
+	else if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
+		WriteValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, value, size, false);
 }
 bool IsHardwareAddressValid(unsigned int address)
 {

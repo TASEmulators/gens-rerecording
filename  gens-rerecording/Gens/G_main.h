@@ -45,6 +45,7 @@ extern int SegaCD_Accurate;
 extern int DialogsOpen;
 extern int SlowDownMode; //Modif
 extern int VideoLatencyCompensation; // Modif N.
+extern int disableVideoLatencyCompensationCount;
 
 extern BOOL AutoFireKeyDown;	//Modif N.
 extern BOOL AutoHoldKeyDown;	//Modif N.

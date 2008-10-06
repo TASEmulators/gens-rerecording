@@ -51,6 +51,115 @@ void PutText (char *string, short x, short y, short xl, short yl, short xh, shor
 	Print_Text(string,strlen(string),x,y,style);
 }
 
+extern "C" int Small_Font_Data;
+static void PutTextInternal (const char *str, short x, short y, int color, int backcolor)
+{
+	int color32 = color >> 8;
+	int color16 = DrawUtil::Pix32To16(color32);
+	int Opac = color & 0xFF;
+	int backcolor32 = backcolor >> 8;
+	int backcolor16 = DrawUtil::Pix32To16(backcolor32);
+	int backOpac = backcolor & 0xFF;
+
+	while(*str)
+	{
+		int c = *str++;
+		const unsigned char* Cur_Glyph = (const unsigned char*)&Small_Font_Data + (c-32)*7*4;
+
+		for(int y2 = 0; y2 < 8; y2++)
+		{
+			unsigned int glyphLine = *((unsigned int*)Cur_Glyph + y2);
+			for(int x2 = -1; x2 < 4; x2++)
+			{
+				int shift = x2 << 3;
+				int mask = 0xFF << shift;
+				int intensity = (glyphLine & mask) >> shift;
+
+				if(intensity && x2 >= 0 && y2 < 7)
+				{
+					int xdraw = max(0,min(319,x+x2));
+					int ydraw = max(0,min(223,y+y2));
+					unsigned int off = ydraw * 336 + xdraw + 8;
+
+					if(Opac < 255)
+					{
+						if (Bits32)
+							MD_Screen32[off] = DrawUtil::Blend(color32,MD_Screen32[off], (int)Opac+1);
+						else
+							MD_Screen[off] = DrawUtil::Blend(color16,MD_Screen[off], (int)Opac+1);
+					}
+					else
+					{
+						if (Bits32) 
+							MD_Screen32[off] = color32;
+						else
+							MD_Screen[off] = color16;
+					}
+				}
+				else if(backOpac)
+				{
+					for(int y3 = max(0,y2-1); y3 <= min(6,y2+1); y3++)
+					{
+						unsigned int glyphLine = *((unsigned int*)Cur_Glyph + y3);
+						for(int x3 = max(0,x2-1); x3 <= min(3,x2+1); x3++)
+						{
+							int shift = x3 << 3;
+							int mask = 0xFF << shift;
+							intensity |= (glyphLine & mask) >> shift;
+						}
+					}
+					if(intensity)
+					{
+						int xdraw = max(0,min(319,x+x2));
+						int ydraw = max(0,min(223,y+y2));
+						unsigned int off = ydraw * 336 + xdraw + 8;
+
+						if(backOpac < 255)
+						{
+							if (Bits32)
+								MD_Screen32[off] = DrawUtil::Blend(backcolor32,MD_Screen32[off], (int)backOpac+1);
+							else
+								MD_Screen[off] = DrawUtil::Blend(backcolor16,MD_Screen[off], (int)backOpac+1);
+						}
+						else
+						{
+							if (Bits32) 
+								MD_Screen32[off] = backcolor32;
+							else
+								MD_Screen[off] = backcolor16;
+						}
+					}
+				}
+			}
+		}
+
+		x += 4;
+	}
+}
+
+void PutText2 (const char *string, short x, short y, int color, int outlineColor)
+{
+	if(!string)
+		return;
+
+	int xl = 0;
+	int yl = 0;
+	int xh = 318 - 4*strlen(string);
+	int yh = 217;
+	x = min(max(x,xl),xh);
+	y = min(max(y,yl),yh);
+
+	PutTextInternal(string,x,y,color,outlineColor);
+	//if(outlineColor & 0xFF)
+	//{
+	//	const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
+	//	const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
+	//	for(int i = 0 ; i < 8 ; i++)
+	//		PutTextInternal(string,x + xOffset[i],y + yOffset[i],outlineColor, 0);
+ //	}
+	//PutTextInternal(string,x,y,color, 0);
+}
+
 void Pixel (short x, short y, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
 {
 //	unsigned char Opac;
@@ -75,8 +184,14 @@ void Pixel (short x, short y, unsigned int color32, unsigned short color16, char
 	off *= 336;
 	off += x;
 
-	color32 = DrawUtil::Blend(color32,MD_Screen32[off], (int)Opac+1);
-	color16 = DrawUtil::Blend(color16,MD_Screen[off], (int)Opac+1);
+	if(Opac < 255)
+	{
+		if (Bits32) 
+			color32 = DrawUtil::Blend(color32,MD_Screen32[off], (int)Opac+1);
+		else
+			color16 = DrawUtil::Blend(color16,MD_Screen[off], (int)Opac+1);
+	}
+
 	if (Bits32) 
 		MD_Screen32[off] = color32;
 	else
@@ -162,6 +277,35 @@ void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, un
 			DrawLine(x1,y1,x2,y2,color32,color16,wrap,fillOpac);
 	}
 }
+
+void DrawBoxPP2 (short x1, short y1, short x2, short y2, unsigned int fillcolor32, unsigned int outlinecolor32)
+{
+	int fillOpac  = fillcolor32 & 0xFF;
+	int outlineOpac  = outlinecolor32 & 0xFF;
+	fillcolor32 >>= 8;
+	outlinecolor32 >>= 8;
+	int fillcolor16 = DrawUtil::Pix32To16(fillcolor32);
+	int outlinecolor16 = DrawUtil::Pix32To16(outlinecolor32);
+
+	if (x1 > x2) x1^=x2, x2^=x1, x1^=x2;
+	if (y1 > y2) y1^=y2, y2^=y1, y1^=y2;
+
+	for (short x = x1; x <= x2; x++)
+		Pixel(x,y1,outlinecolor32,outlinecolor16,0, outlineOpac);
+	for (short y = y1; y <= y2; y++)
+		Pixel(x1,y,outlinecolor32,outlinecolor16,0, outlineOpac);
+	if(y1 != y2)
+		for (short x = x1; x <= x2; x++)
+			Pixel(x,y2,outlinecolor32,outlinecolor16,0, outlineOpac);
+	if(x1 != x2)
+		for (short y = y1; y <= y2; y++)
+			Pixel(x2,y,outlinecolor32,outlinecolor16,0, outlineOpac);
+
+	for(short y = y1+1; y <= y2-1; y++)
+		for(short x = x1+1; x <= x2-1; x++)
+			Pixel(x,y,fillcolor32,fillcolor16,0, fillOpac);
+}
+
 void DrawBoxCWH (short x, short y, short w, short h, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac, char fill, unsigned char fillOpac)
 {
 	for (short JXQ = 0; JXQ <= w; JXQ++)

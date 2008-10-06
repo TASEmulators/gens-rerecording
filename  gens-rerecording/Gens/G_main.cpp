@@ -43,7 +43,9 @@
 #include "ram_search.h"
 #include "movie.h"
 #include "ramwatch.h"
+#include "luascript.h"
 #include <errno.h>
+#include <vector>
 
 extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
@@ -119,6 +121,7 @@ int Gens_Menu_Width = 0; // in pixels
 HWND RamSearchHWnd = NULL; // modeless dialog
 HWND RamWatchHWnd = NULL; // modeless dialog
 HWND RamCheatHWnd = NULL; // modeless dialog
+std::vector<HWND> LuaScriptHWnds; // modeless dialogs
 HWND VolControlHWnd = NULL;
 
 char Str_Tmp[1024];
@@ -158,6 +161,7 @@ int SS_Actived;
 int DialogsOpen = 0; //Modif
 int SlowDownMode = 0; //Modif
 int VideoLatencyCompensation = 0;
+int disableVideoLatencyCompensationCount = 0;
 
 BOOL AutoFireKeyDown=0;	//Modif N.
 BOOL AutoHoldKeyDown=0;	//Modif N.
@@ -235,6 +239,7 @@ LRESULT CALLBACK RamCheatProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK VolumeProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptSpliceFrameProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptSeekFrameProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK LuaScriptProc(HWND, UINT, WPARAM, LPARAM);
 
 LRESULT CALLBACK EditWatchProc(HWND, UINT, WPARAM, LPARAM);
 void DoMovieSplice();
@@ -341,6 +346,8 @@ int Set_Latency_Compensation(int Num)
 	sprintf(msg, "Set to adjust for %d frame%s of video lag", VideoLatencyCompensation, VideoLatencyCompensation==1?"":"s");
 	MESSAGE_L(msg, msg, 1500)
 
+	disableVideoLatencyCompensationCount = 0;
+
 	Build_Main_Menu();
 	return(1);
 }
@@ -350,29 +357,14 @@ int IsVideoLatencyCompensationOn()
 	if(MainMovie.Status == MOVIE_PLAYING && !MainMovie.Recorded)
 		return 0; // the option is for input responsiveness, it's useless when watching a movie
 
+	if(disableVideoLatencyCompensationCount > 0)
+		return 0;
+
 	return VideoLatencyCompensation > 0;
 }
 
-int GetCurrentInputCondensed()
-{
-	int a = Controller_1_Up|(Controller_1_Down<<1)|(Controller_1_Left<<2)|(Controller_1_Right<<3)|(Controller_1_A<<4)|(Controller_1_B<<5)|(Controller_1_C<<6)|(Controller_1_Start<<7);
-	int b, c;
-	if(MainMovie.TriplePlayerHack)
-	{
-		b = Controller_1B_Up|(Controller_1B_Down<<1)|(Controller_1B_Left<<2)|(Controller_1B_Right<<3)|(Controller_1B_A<<4)|(Controller_1B_B<<5)|(Controller_1B_C<<6)|(Controller_1B_Start<<7);
-		c = Controller_1C_Up|(Controller_1C_Down<<1)|(Controller_1C_Left<<2)|(Controller_1C_Right<<3)|(Controller_1C_A<<4)|(Controller_1C_B<<5)|(Controller_1C_C<<6)|(Controller_1C_Start<<7);	
-	}
-	else
-	{
-		b = Controller_2_Up|(Controller_2_Down<<1)|(Controller_2_Left<<2)|(Controller_2_Right<<3)|(Controller_2_A<<4)|(Controller_2_B<<5)|(Controller_2_C<<6)|(Controller_2_Start<<7);
-		c = Controller_1_X|(Controller_1_Y<<1)|(Controller_1_Z<<2)|(Controller_1_Mode<<3)|(Controller_2_X<<4)|(Controller_2_Y<<5)|(Controller_2_Z<<6)|(Controller_2_Mode<<7);
-	}
-	return a | (b << 8) | (c << 16) | (0xFF << 24);
-}
 
-
-
-int Set_Current_State(HWND hWnd, int Num)
+int Set_Current_State(int Num)
 {
 	FILE *f;
 	
@@ -1855,6 +1847,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 void End_All(void)
 {
+	StopAllLuaScripts();
 	AskSave();
 	Free_Rom(Game);
 	End_DDraw();
@@ -2041,6 +2034,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	}
 	while (Gens_Running)
 	{
+		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			if (!GetMessage(&msg, NULL, 0, 0))
@@ -2052,12 +2046,20 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 				continue;
 			if (VolControlHWnd && IsDialogMessage(VolControlHWnd, &msg))
 				continue;
+			bool docontinue = false;
+			for(unsigned int i=0; i<LuaScriptHWnds.size(); i++)
+				if (IsDialogMessage(LuaScriptHWnds[i], &msg))
+					docontinue = true;
+			if (docontinue)
+				continue;
 			if (TranslateAccelerator (HWnd, hAccelTable, &msg))
 				continue;
 
 			TranslateMessage(&msg); 
 			DispatchMessage(&msg);
 		}
+
+		DontWorryLua();
 
 		Update_Input();
 
@@ -2155,7 +2157,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			else //if(frameadvSkipLag && skipLagNow && !Paused)
 			{
-				if(FrameCount == 0)
+				if(FrameCount == 0 || !frameadvSkipLag_Rewind_State_Buffer_Valid)
 				{
 					// this case is to interrupt the auto-frame skipping if the game or movie is reset or reloaded
 					Paused = 1;
@@ -2711,6 +2713,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 						SetForegroundWindow(RamSearchHWnd);
 					break;
+
 				case ID_RAM_WATCH:
 					if(!RamWatchHWnd)
 					{
@@ -2720,6 +2723,36 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 						SetForegroundWindow(RamWatchHWnd);
 					break;
+
+				case IDC_NEW_LUA_SCRIPT:
+					if(LuaScriptHWnds.size() < 16)
+					{
+						CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), hWnd, (DLGPROC) LuaScriptProc);
+						DialogsOpen++;
+					}
+					break;
+				case IDC_LUA_SCRIPT_0:
+				case IDC_LUA_SCRIPT_1:
+				case IDC_LUA_SCRIPT_2:
+				case IDC_LUA_SCRIPT_3:
+				case IDC_LUA_SCRIPT_4:
+				case IDC_LUA_SCRIPT_5:
+				case IDC_LUA_SCRIPT_6:
+				case IDC_LUA_SCRIPT_7:
+				case IDC_LUA_SCRIPT_8:
+				case IDC_LUA_SCRIPT_9:
+				case IDC_LUA_SCRIPT_10:
+				case IDC_LUA_SCRIPT_11:
+				case IDC_LUA_SCRIPT_12:
+				case IDC_LUA_SCRIPT_13:
+				case IDC_LUA_SCRIPT_14:
+				case IDC_LUA_SCRIPT_15:
+				{
+					unsigned int index = LOWORD(wParam) - IDC_LUA_SCRIPT_0;
+					if(LuaScriptHWnds.size() > index)
+						SetForegroundWindow(LuaScriptHWnds[index]);
+				}	break;
+
 				case ID_VOLUME_CONTROL:
 					if(!VolControlHWnd)
 					{
@@ -3124,11 +3157,11 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_FILES_PREVIOUSSTATE:
-					Set_Current_State(hWnd, (Current_State + 9) % 10);
+					Set_Current_State((Current_State + 9) % 10);
 					return 0;
 
 				case ID_FILES_NEXTSTATE:
-					Set_Current_State(hWnd, (Current_State + 1) % 10);
+					Set_Current_State((Current_State + 1) % 10);
 					return 0;
 
 				case ID_GRAPHICS_VSYNC:
@@ -3303,7 +3336,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SAVESTATE_8:
 				case ID_FILES_SAVESTATE_9:
 				case ID_FILES_SAVESTATE_0:
-					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_SAVESTATE_1 + 1) % 10);
+					Set_Current_State((LOWORD(wParam) - ID_FILES_SAVESTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
@@ -3311,7 +3344,7 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_FILES_SAVESTATE_10:
-					Set_Current_State(hWnd, 10);
+					Set_Current_State(10);
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
 					Save_State(Str_Tmp);
@@ -3327,7 +3360,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_LOADSTATE_8:
 				case ID_FILES_LOADSTATE_9:
 				case ID_FILES_LOADSTATE_0:
-					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_LOADSTATE_1 + 1) % 10);
+					Set_Current_State((LOWORD(wParam) - ID_FILES_LOADSTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
@@ -3344,7 +3377,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SETSTATE_8:
 				case ID_FILES_SETSTATE_9:
 				case ID_FILES_SETSTATE_0:
-					Set_Current_State(hWnd, (LOWORD(wParam) - ID_FILES_SETSTATE_1 + 1) % 10);
+					Set_Current_State((LOWORD(wParam) - ID_FILES_SETSTATE_1 + 1) % 10);
 					return 0;
 
 				case ID_MOVIE_CHANGETRACK_ALL:
@@ -4279,6 +4312,7 @@ HMENU Build_Main_Menu(void)
 	HMENU Movies_Tracks; //Upth-Add - submenu of Tas_Tools -> Tools_Movies
 	HMENU Tools_AVI;    //Upth-Add - Submenu of TAS_Tools
 	HMENU Tools_Trace;    //Upth-Add - Submenu of TAS_Tools
+	HMENU Lua_Script;
 
 	DestroyMenu(Gens_Menu);
 
@@ -4326,6 +4360,7 @@ HMENU Build_Main_Menu(void)
 	Movies_Tracks = CreatePopupMenu(); //Upth-Add - Initialize new menu
 	Tools_AVI = CreatePopupMenu(); //Upth-Add - Initialize my new menus
 	Tools_Trace = CreatePopupMenu(); //Upth-Add - Initialize my new menus
+	Lua_Script = CreatePopupMenu();
 
 	// Création des sous-menu pricipaux
 
@@ -4770,6 +4805,7 @@ HMENU Build_Main_Menu(void)
 	//Upth-Add - Menu TAS_Tools 
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Movies, "Movie", "", "&Movie");
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_AVI, "AVI Options", "", "&AVI Options");
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Lua_Script, "Lua Scripting", "", "&Lua Scripting");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Trace, "Tracer Tools", "", "&Tracer tools");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
@@ -4803,6 +4839,18 @@ HMENU Build_Main_Menu(void)
 	i = 0;
 	MENU_L(Tools_Trace, i++, Flags | (trace_map ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_TRACE, "Log Instructions", "", "&Trace");
 	MENU_L(Tools_Trace, i++, Flags | (hook_trace ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_HOOK, "Log RAM access", "", "&Hook RAM");
+
+	i = 0;
+	MENU_L(Lua_Script,i++,Flags,IDC_NEW_LUA_SCRIPT,"New Lua Script Window...","","&New Lua Script Window...");
+	if(!LuaScriptHWnds.empty())
+	{
+		InsertMenu(Lua_Script, i++, MF_SEPARATOR, NULL, NULL);
+		for(unsigned int j=0; j<LuaScriptHWnds.size(); j++)
+		{
+			GetWindowText(LuaScriptHWnds[j], Str_Tmp, 1024);
+			MENU_L(Lua_Script,i++,Flags,IDC_LUA_SCRIPT_0+j,Str_Tmp,"",Str_Tmp);
+		}
+	}
 
 	//Upth-Modif - Slow Mode Selection -- now a submenu of TAS_Tools
 	// Menu CPUSlowDownSpeed

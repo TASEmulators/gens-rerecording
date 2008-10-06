@@ -39,6 +39,6 @@ void ModifyHotkeyFromListbox(HWND listbox, WORD command, HWND statusText, HWND p
 int Check_Skip_Key_Released(void);
 int Check_Skip_Key_Pressed(void);
 long long GetLastInputCondensed();
-void SetNextInputCondensed(long long input);
+void SetNextInputCondensed(long long input, long long mask = ~0);
 
 #endif
