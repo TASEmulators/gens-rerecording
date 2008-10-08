@@ -58,7 +58,7 @@ int WINAPI FileSysWatcher (LPVOID arg)
 				// so check to make sure it was the file we care about
 				if(memcmp(&origData.ftLastWriteTime, &data.ftLastWriteTime, sizeof(FILETIME)))
 				{
-					RequestAbortLuaScript((int)hDlg);
+					RequestAbortLuaScript((int)hDlg, "terminated to reload the script");
 					PostMessage(hDlg, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
 				}
 			}
@@ -119,17 +119,24 @@ void PrintToWindowConsole(int hDlgAsInt, const char* str)
 
 	LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
 
-	if(!strncmp(info.filename.c_str(), str, info.filename.length()))
-	{
-		std::string str2 = str;
-		std::string from = info.filename + ":";
-		substring_replace(str2, from, "ERROR: line ", "line ");
-		SendMessage(hConsole, EM_REPLACESEL, false, (LPARAM)str2.c_str());
-	}
-	else
 	{
 		SendMessage(hConsole, EM_REPLACESEL, false, (LPARAM)str);
 	}
+}
+
+void OnStart(int hDlgAsInt)
+{
+	HWND hDlg = (HWND)hDlgAsInt;
+	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), true);
+	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Restart");
+	SetWindowText(GetDlgItem(hDlg, IDC_LUACONSOLE), "");
+}
+
+void OnStop(int hDlgAsInt)
+{
+	HWND hDlg = (HWND)hDlgAsInt;
+	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), false);
+	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Run");
 }
 
 extern "C" int Clear_Sound_Buffer(void);
@@ -191,7 +198,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			LuaWindowInfo[hDlg] = info;
 			RegisterWatcherThread(hDlg);
 
-			OpenLuaContext((int)hDlg, PrintToWindowConsole);
+			OpenLuaContext((int)hDlg, PrintToWindowConsole, OnStart, OnStop);
 
 			return true;
 		}	break;
@@ -253,7 +260,6 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_BUTTON_LUARUN:
 				{
 					SetActiveWindow(HWnd);
-					SetWindowText(GetDlgItem(hDlg, IDC_LUACONSOLE), "");
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
 					strcpy(Str_Tmp,info.filename.c_str());
 					RunLuaScriptFile((int)hDlg, Str_Tmp);

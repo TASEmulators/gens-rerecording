@@ -1847,7 +1847,6 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 void End_All(void)
 {
-	StopAllLuaScripts();
 	AskSave();
 	Free_Rom(Game);
 	End_DDraw();
@@ -1865,6 +1864,114 @@ void End_All(void)
 	timeEndPeriod(1);
 }
 
+void Handle_Gens_Messages()
+{
+	MSG msg;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+	{
+		if (!GetMessage(&msg, NULL, 0, 0))
+		{
+			Gens_Running = 0;
+			StopAllLuaScripts();
+		}
+
+		if (RamSearchHWnd && IsDialogMessage(RamSearchHWnd, &msg))
+			continue;
+		if (RamWatchHWnd && IsDialogMessage(RamWatchHWnd, &msg))
+			continue;
+		if (VolControlHWnd && IsDialogMessage(VolControlHWnd, &msg))
+			continue;
+		bool docontinue = false;
+		for(unsigned int i=0; i<LuaScriptHWnds.size(); i++)
+			if (IsDialogMessage(LuaScriptHWnds[i], &msg))
+				docontinue = true;
+		if (docontinue)
+			continue;
+		if (TranslateAccelerator (HWnd, hAccelTable, &msg))
+			continue;
+
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg);
+	}
+
+	DontWorryLua();
+
+	Update_Input();
+}
+
+// stripped-down single step of the main loop but with some extra control over what it does
+bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
+{
+	Handle_Gens_Messages();
+	Check_Misc_Key();
+	if (MustUpdateMenu)
+	{
+		Build_Main_Menu();
+		MustUpdateMenu=0;
+	}
+
+	bool reachedEmulate = false;
+
+	if (!(Genesis_Started || _32X_Started || SegaCD_Started))
+		return reachedEmulate;
+
+	if((Active || BackgroundInput) && Check_Skip_Key())
+	{
+		// handle frame advance key
+		if(Paused)
+		{
+			if(allowEmulate)
+				Update_Emulation_One(HWnd);
+			reachedEmulate = true;
+			soundCleared = false;
+			tgtime = timeGetTime();
+			lastFrameAdvancePaused = false;
+		}
+		else
+		{
+			// if the game isn't paused yet then the first press of the frame advance key only pauses the game
+			Paused = 1;
+			Clear_Sound_Buffer();
+			soundCleared = true;
+			lastFrameAdvancePaused = true;
+		}
+	}
+	else // normal emulation
+	{
+		if ((Active) && (!Paused))	// EMULATION
+		{
+			if(allowEmulate)
+				Update_Emulation(HWnd);
+			reachedEmulate = true;
+		}
+		else		// EMULATION PAUSED
+		{
+			if(!soundCleared && timeGetTime() - tgtime >= 125) //eliminate stutter
+			{
+				Clear_Sound_Buffer();
+				soundCleared = true;
+			}
+		}
+
+		if(Sleep_Time && allowSleep)
+		{
+			if (Paused)
+			{
+				Sleep(1);
+			}
+			else
+			{
+				static int count = 0;
+				count++;
+				if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
+					if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
+						Sleep(1);
+			}
+		}
+	}
+
+	return reachedEmulate;
+}
 
 int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -2034,34 +2141,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	}
 	while (Gens_Running)
 	{
-		MSG msg;
-		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-		{
-			if (!GetMessage(&msg, NULL, 0, 0))
-				Gens_Running = 0;
-
-			if (RamSearchHWnd && IsDialogMessage(RamSearchHWnd, &msg))
-				continue;
-			if (RamWatchHWnd && IsDialogMessage(RamWatchHWnd, &msg))
-				continue;
-			if (VolControlHWnd && IsDialogMessage(VolControlHWnd, &msg))
-				continue;
-			bool docontinue = false;
-			for(unsigned int i=0; i<LuaScriptHWnds.size(); i++)
-				if (IsDialogMessage(LuaScriptHWnds[i], &msg))
-					docontinue = true;
-			if (docontinue)
-				continue;
-			if (TranslateAccelerator (HWnd, hAccelTable, &msg))
-				continue;
-
-			TranslateMessage(&msg); 
-			DispatchMessage(&msg);
-		}
-
-		DontWorryLua();
-
-		Update_Input();
+		Handle_Gens_Messages();
 
 #ifdef GENS_DEBUG
 		if (Debug)						// DEBUG
@@ -2074,7 +2154,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		if (Genesis_Started || _32X_Started || SegaCD_Started)
 		{
 			Check_Misc_Key();
-			Update_Input();
+			//Update_Input(); // disabled because we just called it in Handle_Gens_Messages
 
 			if (MustUpdateMenu)
 			{
@@ -2413,6 +2493,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CloseMovieFile(&MainMovie);
 			if ((Check_If_Kaillera_Running())) return 0;
 			Gens_Running = 0;
+			StopAllLuaScripts();
 			return 0;
 		
 		case WM_RBUTTONDOWN:
