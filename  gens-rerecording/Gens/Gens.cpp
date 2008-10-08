@@ -1083,7 +1083,7 @@ int Init_Genesis(struct Rom *MD_Rom)
 	SegaCD_Started = 0;
 	_32X_Started = 0;
 	reset_address_info();
-	StopAllLuaScripts();
+	RestartAllLuaScripts();
 
 	return 1;
 }
@@ -1667,7 +1667,7 @@ int Init_32X(struct Rom *MD_Rom)
 	_32X_Started = 1; // used inside reset_address_info
 	SegaCD_Started = 0;
 	reset_address_info();
-	StopAllLuaScripts();
+	RestartAllLuaScripts();
 
 	return 1;
 }
@@ -2465,7 +2465,7 @@ int Init_SegaCD(char *iso_name)
 	SegaCD_Started = 1; // used inside reset_address_info
 	_32X_Started = 0;
 	reset_address_info();
-	StopAllLuaScripts();
+	RestartAllLuaScripts();
 
 	return 1;
 }

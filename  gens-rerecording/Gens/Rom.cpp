@@ -20,6 +20,7 @@
 #include "unzip.h"
 #include "wave.h"
 #include "cd_file.h"
+#include "luascript.h"
 
 
 int File_Type_Index;
@@ -861,6 +862,8 @@ void Free_Rom(Rom *Rom_MD)
 	if (Game == NULL) return;
 	//CloseRamWindows();
 	
+	StopAllLuaScripts();
+
 #ifdef CC_SUPPORT
 	CC_Close();
 #endif
