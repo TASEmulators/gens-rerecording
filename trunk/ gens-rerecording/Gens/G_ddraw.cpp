@@ -1811,6 +1811,8 @@ void UpdateLagCount()
 
 int Update_Emulation(HWND hWnd)
 {
+	int prevFrameCount = FrameCount;
+
 	static int Over_Time = 0;
 	int current_div;
 
@@ -2029,7 +2031,7 @@ int Update_Emulation(HWND hWnd)
 		}
 	}
 
-	return 1;
+	return prevFrameCount != FrameCount;
 }
 
 void Update_Emulation_One_Before(HWND hWnd)

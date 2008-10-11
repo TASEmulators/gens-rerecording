@@ -198,6 +198,7 @@ char *TempName;
 char SpliceMovie[1024];
 long x = 0, y = 0, xg = 0, yg = 0;
 
+bool frameadvSkipLagForceDisable = false;
 bool frameadvSkipLag = false;
 bool skipLagNow = false;
 bool lastFrameAdvancePaused = false;
@@ -1940,9 +1941,8 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 	{
 		if ((Active) && (!Paused))	// EMULATION
 		{
-			if(allowEmulate)
-				Update_Emulation(HWnd);
-			reachedEmulate = true;
+			if(!allowEmulate || Update_Emulation(HWnd))
+				reachedEmulate = true;
 		}
 		else		// EMULATION PAUSED
 		{
@@ -2164,6 +2164,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 			int frameAdvanceKeyJustReleased = ((GetActiveWindow() == HWnd) || BackgroundInput) ? Check_Skip_Key_Released() : 0;
 			static int frameAdvanceKeyWasJustPressed = 0;
+			bool skipOptionEnabled = frameadvSkipLag;
+			bool frameadvSkipLag = skipOptionEnabled && !frameadvSkipLagForceDisable;
 
 			if(!(frameadvSkipLag && skipLagNow && !Paused))
 			{

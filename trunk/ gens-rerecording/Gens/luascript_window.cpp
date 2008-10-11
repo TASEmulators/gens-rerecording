@@ -91,18 +91,6 @@ void KillWatcherThread (HWND hDlg)
 	info.fileWatcherThread = NULL;
 }
 
-void substring_replace(std::string& in, const std::string& from, const std::string& to, const std::string& totwo)
-{
-	std::string::size_type n = 0;
-	const std::string::size_type len = from.length();
-	bool replaced = false;
-	while((n = in.find(from, n)) != -1)
-	{
-		in.replace(n, len, replaced ? totwo : to);
-		replaced = true;
-	}
-}
-
 void PrintToWindowConsole(int hDlgAsInt, const char* str)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
@@ -124,23 +112,27 @@ void PrintToWindowConsole(int hDlgAsInt, const char* str)
 	}
 }
 
+extern int Show_Genesis_Screen(HWND hWnd);
 void OnStart(int hDlgAsInt)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
+	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), false); // disable browse while running because it misbehaves if clicked in a frameadvance loop
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), true);
 	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Restart");
-	SetWindowText(GetDlgItem(hDlg, IDC_LUACONSOLE), "");
+	SetWindowText(GetDlgItem(hDlg, IDC_LUACONSOLE), ""); // clear the console
+	Show_Genesis_Screen(HWnd); // otherwise we might never show the first thing the script draws
 }
 
 void OnStop(int hDlgAsInt)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
+	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), true);
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), false);
 	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Run");
+	Show_Genesis_Screen(HWnd); // otherwise we might never show the last thing the script draws
 }
 
 extern "C" int Clear_Sound_Buffer(void);
-extern int Show_Genesis_Screen(HWND hWnd);
 
 LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -263,8 +255,6 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
 					strcpy(Str_Tmp,info.filename.c_str());
 					RunLuaScriptFile((int)hDlg, Str_Tmp);
-					if(Paused)
-						Show_Genesis_Screen(HWnd);
 				}	break;
 				case IDC_BUTTON_LUASTOP:
 				{

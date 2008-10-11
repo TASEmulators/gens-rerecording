@@ -35,6 +35,8 @@ extern void Update_Emulation_After_Controlled(HWND hWnd, bool flip);
 extern void UpdateLagCount();
 extern bool BackgroundInput;
 extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
+extern bool frameadvSkipLagForceDisable;
+extern "C" void Put_Info(char *Message, int Duration);
 
 extern "C" {
 	#include "lua/src/lua.h"
@@ -46,12 +48,15 @@ extern "C" {
 struct LuaContextInfo {
 	bool started;
 	bool running;
+	bool returned;
 	bool restart;
 	bool restartLater;
 	lua_State* L;
 	int worryCount;
 	bool panic;
 	bool ranExit;
+	bool guiFuncsNeedDeferring;
+	bool ranFrameAdvance;
 	int speedMode;
 	char panicMessage [64];
 	std::string lastFilename;
@@ -61,6 +66,154 @@ struct LuaContextInfo {
 };
 std::map<int, LuaContextInfo> luaContextInfo;
 std::map<lua_State*, int> luaStateToContextMap; // because callbacks from lua will only give us a Lua_State to work with
+int g_numScriptsStarted = 0;
+
+static const char* luaCallIDStrings [] =
+{
+	"CALL_BEFOREEMULATION",
+	"CALL_AFTEREMULATION",
+	"CALL_AFTEREMULATIONGUI",
+	"CALL_BEFOREEXIT",
+	"CALL_BEFORESAVE",
+	"CALL_AFTERLOAD",
+};
+static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0];
+
+void StopScriptIfFinished(int uid, bool justReturned = false);
+
+int registerbefore(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFOREEMULATION]);
+	StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+int registerafter(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTEREMULATION]);
+	StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+int registerexit(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFOREEXIT]);
+	//StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+int registergui(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTEREMULATIONGUI]);
+	StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+int registersave(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFORESAVE]);
+	StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+int registerload(lua_State* L)
+{
+	if (!lua_isnil(L,1))
+		luaL_checktype(L, 1, LUA_TFUNCTION);
+	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTERLOAD]);
+	StopScriptIfFinished(luaStateToContextMap[L]);
+	return 0;
+}
+
+
+static const char* deferredGUIIDString = "lazygui";
+
+// store the most recent C function call from Lua (and all its arguments)
+// for later evaluation
+void DeferFunctionCall(lua_State* L, const char* idstring)
+{
+	// there's probably a cleaner way of doing this using lua_pushcclosure or lua_getfenv
+
+	int num = lua_gettop(L);
+
+	// get the C function pointer
+	int funcStackIndex = -(num+1);
+	lua_CFunction cf = lua_tocfunction(L, funcStackIndex);
+	assert(cf); // the above is kind of a hack so it might need to be replaced with the following also-hack if this assert fails:
+	//lua_CFunction cf = &(L->ci->func)->value.gc->cl.c.f;
+	lua_pushcfunction(L,cf);
+
+	// make a list of the function and its arguments (and also pop those arguments from the stack)
+	lua_createtable(L, num+1, 0);
+	lua_insert(L, 1);
+	for(int n = num+1; n > 0; n--)
+		lua_rawseti(L, 1, n);
+
+	// put the list into a global array
+	lua_getfield(L, LUA_REGISTRYINDEX, idstring);
+	lua_insert(L, 1);
+	int curSize = luaL_getn(L, 1);
+	lua_rawseti(L, 1, curSize+1);
+
+	// clean the stack
+	lua_settop(L, 0);
+}
+void CallDeferredFunctions(lua_State* L, const char* idstring)
+{
+	lua_settop(L, 0);
+	lua_getfield(L, LUA_REGISTRYINDEX, idstring);
+	int numCalls = luaL_getn(L, 1);
+	for(int i = 1; i <= numCalls; i++)
+	{
+        lua_rawgeti(L, 1, i);  // get the function+arguments list
+		int listSize = luaL_getn(L, 2);
+
+		// push the arguments and the function
+		for(int j = 1; j <= listSize; j++)
+			lua_rawgeti(L, 2, j);
+
+		// get and pop the function
+		lua_CFunction cf = lua_tocfunction(L, -1);
+		lua_pop(L, 1);
+
+		// swap the arguments on the stack with the list we're iterating through
+		// before calling the function, because C functions assume argument 1 is at 1 on the stack
+		lua_pushvalue(L, 1);
+		lua_remove(L, 2);
+		lua_remove(L, 1);
+
+		// call the function
+		cf(L);
+ 
+		// put the list back where it was
+		lua_replace(L, 1);
+		lua_settop(L, 1);
+	}
+
+	// clear the list of deferred functions
+	lua_newtable(L);
+	lua_setfield(L, LUA_REGISTRYINDEX, idstring);
+
+	// clean the stack
+	lua_settop(L, 0);
+}
+
+bool DeferGUIFuncIfNeeded(lua_State* L)
+{
+	int uid = luaStateToContextMap[L];
+	LuaContextInfo& info = luaContextInfo[uid];
+	if(info.guiFuncsNeedDeferring)
+	{
+		DeferFunctionCall(L, deferredGUIIDString);
+		return true;
+	}
+	return false;
+}
 
 void worry(lua_State* L, int intensity)
 {
@@ -70,12 +223,14 @@ void worry(lua_State* L, int intensity)
 		info.worryCount += intensity;
 }
 
-static int print(lua_State* L)
-{
-	int uid = luaStateToContextMap[L];
-	LuaContextInfo& info = luaContextInfo[uid];
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
 
-	char str[1024];
+static const char* toCString(lua_State* L)
+{
+	static const int maxLen = 1024;
+	static char str[maxLen];
 	str[0] = 0;
 	char* ptr = str;
 
@@ -86,15 +241,31 @@ static int print(lua_State* L)
 		//if (i>1)
 		//	ptr += sprintf(ptr, "\t");
 		if (lua_isstring(L,i))
-			ptr += sprintf(ptr, "%s",lua_tostring(L,i));
+			ptr += snprintf(ptr, maxLen, "%s",lua_tostring(L,i));
 		else if (lua_isnil(L,i))
-			ptr += sprintf(ptr, "%s","nil");
+			ptr += snprintf(ptr, maxLen, "%s","nil");
 		else if (lua_isboolean(L,i))
-			ptr += sprintf(ptr, "%s",lua_toboolean(L,i) ? "true" : "false");
+			ptr += snprintf(ptr, maxLen, "%s",lua_toboolean(L,i) ? "true" : "false");
 		else
-			ptr += sprintf(ptr, "%s:%p",luaL_typename(L,i),lua_topointer(L,i));
+			ptr += snprintf(ptr, maxLen, "%s:%p",luaL_typename(L,i),lua_topointer(L,i)); // TODO: replace this with something more useful (even though this is the usual method, it doesn't show anything in the table)
 	}
-	ptr += sprintf(ptr, "\r\n");
+	ptr += snprintf(ptr, maxLen, "\r\n");
+	return str;
+}
+
+static int message(lua_State* L)
+{
+	const char* str = toCString(L);
+	Put_Info((char*)str, 500);
+	return 0;
+}
+
+static int print(lua_State* L)
+{
+	int uid = luaStateToContextMap[L];
+	LuaContextInfo& info = luaContextInfo[uid];
+
+	const char* str = toCString(L);
 
 	if(info.print)
 		info.print(uid, str);
@@ -107,8 +278,6 @@ static int print(lua_State* L)
 
 #define HOOKCOUNT 4096
 #define MAX_WORRY_COUNT 600
-bool rescueDisabled = false;
-int numTries = 0;
 void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 {
 	int uid = luaStateToContextMap[L];
@@ -247,88 +416,81 @@ int speedmode(lua_State* L)
 	return 0;
 }
 
-int frameadvance(lua_State* L)
+int genswait(lua_State* L)
 {
 	int uid = luaStateToContextMap[L];
 	LuaContextInfo& info = luaContextInfo[uid];
+
 	switch(info.speedMode)
 	{
 		default:
 		case 0: // "normal"
-			while(!Step_Gens_MainLoop(true, true));
+			while(!Step_Gens_MainLoop(true, false) && !info.panic);
 			break;
 		case 1: // "nothrottle"
-			while(!Step_Gens_MainLoop(Paused!=0, false));
+		case 2: // "turbo"
+		case 3: // "maximum"
+			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
+			break;
+	}
+	return 0;
+}
+
+int frameadvance(lua_State* L)
+{
+	int uid = luaStateToContextMap[L];
+	LuaContextInfo& info = luaContextInfo[uid];
+
+	if(!info.ranFrameAdvance)
+	{
+		// otherwise we'll never see the first frame of GUI drawing
+		if(info.onstart && info.speedMode != 3)
+			info.onstart(uid);
+		info.ranFrameAdvance = true;
+	}
+
+	switch(info.speedMode)
+	{
+		default:
+		case 0: // "normal"
+			while(!Step_Gens_MainLoop(true, true) && !info.panic);
+			break;
+		case 1: // "nothrottle"
+			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
 			if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
 				emulateframefastnoskipping(L);
 			else
 				emulateframefast(L);
 			break;
 		case 2: // "turbo"
-			while(!Step_Gens_MainLoop(Paused!=0, false));
+			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
 			emulateframefast(L);
 			break;
 		case 3: // "maximum"
-			while(!Step_Gens_MainLoop(Paused!=0, false));
+			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
 			emulateframeinvisible(L);
 			break;
 	}
 	return 0;
 }
 
-static const char* luaCallIDStrings [] =
+int genspause(lua_State* L)
 {
-	"_BEFOREEMULATION",
-	"_AFTEREMULATION",
-	"_AFTEREMULATIONGUI",
-	"_BEFOREEXIT",
-	"_BEFORESAVE",
-	"_AFTERLOAD",
-};
-static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0];
+	Paused = 1;
+	frameadvance(L);
 
-int registerbefore(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFOREEMULATION]);
+	// allow the user to not have to manually unpause
+	// after restarting a script that used gens.pause()
+	int uid = luaStateToContextMap[L];
+	LuaContextInfo& info = luaContextInfo[uid];
+	if(info.panic)
+		Paused = 0;
+
 	return 0;
 }
-int registerafter(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTEREMULATION]);
-	return 0;
-}
-int registerexit(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFOREEXIT]);
-	return 0;
-}
-int registergui(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTEREMULATIONGUI]);
-	return 0;
-}
-int registersave(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFORESAVE]);
-	return 0;
-}
-int registerload(lua_State* L)
-{
-	if (!lua_isnil(L,1))
-		luaL_checktype(L, 1, LUA_TFUNCTION);
-	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTERLOAD]);
-	return 0;
-}
+
+
+
 
 
 int readbyte(lua_State* L)
@@ -599,6 +761,10 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 
 int guitext(lua_State* L)
 {
+	if(DeferGUIFuncIfNeeded(L))
+		return 0; // we have to wait until later to call this function because gens hasn't emulated the next frame yet
+		          // (the only way to avoid this deferring is to be in a gui.register or gens.registerafter callback)
+
 	int x = luaL_checkinteger(L,1) & 0xFFFF;
 	int y = luaL_checkinteger(L,2) & 0xFFFF;
 	const char* str = luaL_checkstring(L,3);
@@ -608,10 +774,14 @@ int guitext(lua_State* L)
 		int backColor = getcolor(L,5,0x000000FF);
 		PutText2(str, x, y, foreColor, backColor);
 	}
+
 	return 0;
 }
 int guibox(lua_State* L)
 {
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	int x1 = luaL_checkinteger(L,1) & 0xFFFF;
 	int y1 = luaL_checkinteger(L,2) & 0xFFFF;
 	int x2 = luaL_checkinteger(L,3) & 0xFFFF;
@@ -625,6 +795,9 @@ int guibox(lua_State* L)
 }
 int guipixel(lua_State* L)
 {
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	int x = luaL_checkinteger(L,1) & 0xFFFF;
 	int y = luaL_checkinteger(L,2) & 0xFFFF;
 	int color = getcolor(L,3,0xFFFFFFFF);
@@ -638,6 +811,9 @@ int guipixel(lua_State* L)
 }
 int guiline(lua_State* L)
 {
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	int x1 = luaL_checkinteger(L,1) & 0xFFFF;
 	int y1 = luaL_checkinteger(L,2) & 0xFFFF;
 	int x2 = luaL_checkinteger(L,3) & 0xFFFF;
@@ -725,6 +901,8 @@ static const struct luaL_reg genslib [] =
 {
 	{"frameadvance", frameadvance},
 	{"speedmode", speedmode},
+	{"wait", genswait},
+	{"pause", genspause},
 	{"emulateframe", emulateframe},
 	{"emulateframefastnoskipping", emulateframefastnoskipping},
 	{"emulateframefast", emulateframefast},
@@ -735,7 +913,7 @@ static const struct luaL_reg genslib [] =
 	{"registerafter", registerafter},
 	{"registerexit", registerexit},
 	{"dontworry", dontworry},
-	//{"message", message},
+	{"message", message},
 	{NULL, NULL}
 };
 static const struct luaL_reg guilib [] =
@@ -810,11 +988,14 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	LuaContextInfo newInfo;
 	newInfo.started = false;
 	newInfo.running = false;
+	newInfo.returned = false;
 	newInfo.restart = false;
 	newInfo.restartLater = false;
 	newInfo.worryCount = 0;
 	newInfo.panic = false;
 	newInfo.ranExit = false;
+	newInfo.guiFuncsNeedDeferring = false;
+	newInfo.ranFrameAdvance = false;
 	newInfo.speedMode = 0;
 	newInfo.print = print;
 	newInfo.onstart = onstart;
@@ -822,6 +1003,8 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	newInfo.L = NULL;
 	luaContextInfo[uid] = newInfo;
 }
+
+void RefreshScriptStartedStatus();
 
 void RunLuaScriptFile(int uid, const char* filenameCStr)
 {
@@ -851,6 +1034,8 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		info.worryCount = 0;
 		info.panic = false;
 		info.ranExit = false;
+		info.guiFuncsNeedDeferring = true;
+		info.ranFrameAdvance = false;
 		info.restart = false;
 		info.restartLater = false;
 		info.speedMode = 0;
@@ -870,12 +1055,19 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		// register a function to periodically check for inactivity
 		lua_sethook(L, LuaRescueHook, LUA_MASKCOUNT, HOOKCOUNT);
 
+		// deferred evaluation table
+		lua_newtable(L);
+		lua_setfield(L, LUA_REGISTRYINDEX, deferredGUIIDString);
+
 		info.started = true;
+		RefreshScriptStartedStatus();
 		if(info.onstart)
 			info.onstart(uid);
 		info.running = true;
+		info.returned = false;
 		int errorcode = luaL_dofile(L,filename.c_str());
 		info.running = false;
+		info.returned = true;
 
 		if (errorcode)
 		{
@@ -886,11 +1078,68 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 			}
 			else
 			{
-				fprintf(stderr, "%s\r\n", lua_tostring(L,-1));
+				fprintf(stderr, "%s\n", lua_tostring(L,-1));
 			}
 			StopLuaScript(uid);
 		}
+		else
+		{
+			StopScriptIfFinished(uid, true);
+		}
 	} while(info.restart);
+}
+
+void StopScriptIfFinished(int uid, bool justReturned)
+{
+	LuaContextInfo& info = luaContextInfo[uid];
+	if(!info.returned)
+		return;
+
+	// the script has returned, but it is not necessarily done running
+	// because it may have registered a function that it expects to keep getting called
+	// so check if it has any registered functions and stop the script only if it doesn't
+
+	bool keepAlive = false;
+	for(int calltype = 0; calltype < LUACALL_COUNT; calltype++)
+	{
+		if(calltype == LUACALL_BEFOREEXIT) // this is probably the only one that shouldn't keep the script alive
+			continue;
+
+		lua_State* L = info.L;
+		if(L)
+		{
+			const char* idstring = luaCallIDStrings[calltype];
+			lua_getfield(L, LUA_REGISTRYINDEX, idstring);
+			bool isFunction = lua_isfunction(L, -1);
+			lua_pop(L, 1);
+
+			if(isFunction)
+			{
+				keepAlive = true;
+				break;
+			}
+		}
+	}
+
+	if(keepAlive)
+	{
+		if(justReturned)
+		{
+			if(info.print)
+				info.print(uid, "script returned but is still running registered functions\r\n");
+			else
+				fprintf(stderr, "%s\n", "script returned but is still running registered functions");
+		}
+	}
+	else
+	{
+		if(info.print)
+			info.print(uid, "script finished running\r\n");
+		else
+			fprintf(stderr, "%s\n", "script finished running");
+
+		StopLuaScript(uid);
+	}
 }
 
 void RequestAbortLuaScript(int uid, const char* message)
@@ -952,7 +1201,7 @@ void CallExitFunction(int uid)
 				}
 				else
 				{
-					fprintf(stderr, "%s\r\n", lua_tostring(L,-1));
+					fprintf(stderr, "%s\n", lua_tostring(L,-1));
 				}
 			}
 		}
@@ -976,12 +1225,17 @@ void StopLuaScript(int uid)
 	{
 		CallExitFunction(uid);
 
-		lua_close(L);
-		luaStateToContextMap.erase(L);
-		info.L = NULL;
-		info.started = false;
 		if(info.onstop)
-			info.onstop(uid);
+			info.onstop(uid); // must happen before closing L and after the exit function, otherwise the final GUI state of the script won't be shown properly or at all
+
+		if(info.started) // this check is necessary
+		{
+			lua_close(L);
+			luaStateToContextMap.erase(L);
+			info.L = NULL;
+			info.started = false;
+		}
+		RefreshScriptStartedStatus();
 	}
 }
 
@@ -1003,8 +1257,14 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 		int uid = iter->first;
 		LuaContextInfo& info = iter->second;
 		lua_State* L = info.L;
-		if(L)
+		if(L && (!info.panic || calltype == LUACALL_BEFOREEXIT))
 		{
+			// handle deferred GUI function calls and disabling deferring when unnecessary
+			if(calltype == LUACALL_AFTEREMULATIONGUI || calltype == LUACALL_AFTEREMULATION)
+				info.guiFuncsNeedDeferring = false;
+			if(calltype == LUACALL_AFTEREMULATIONGUI)
+				CallDeferredFunctions(L, deferredGUIIDString);
+
 			lua_settop(L, 0);
 			lua_getfield(L, LUA_REGISTRYINDEX, idstring);
 			
@@ -1027,12 +1287,18 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 						}
 						else
 						{
-							fprintf(stderr, "%s\r\n", lua_tostring(L,-1));
+							fprintf(stderr, "%s\n", lua_tostring(L,-1));
 						}
 						StopLuaScript(uid);
 					}
 				}
 			}
+			else
+			{
+				lua_pop(L, 1);
+			}
+
+			info.guiFuncsNeedDeferring = true;
 		}
 
 		++iter;
@@ -1075,11 +1341,15 @@ void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
 						}
 						else
 						{
-							fprintf(stderr, "%s\r\n", lua_tostring(L,-1));
+							fprintf(stderr, "%s\n", lua_tostring(L,-1));
 						}
 						StopLuaScript(uid);
 					}
 				}
+			}
+			else
+			{
+				lua_pop(L, 1);
 			}
 		}
 
@@ -1130,3 +1400,24 @@ void RestartAllLuaScripts()
 		++iter;
 	}
 }
+
+// sets anything that needs to depend on the total number of scripts running
+void RefreshScriptStartedStatus()
+{
+	int numScriptsStarted = 0;
+
+	std::map<int, LuaContextInfo>::const_iterator iter = luaContextInfo.begin();
+	std::map<int, LuaContextInfo>::const_iterator end = luaContextInfo.end();
+	while(iter != end)
+	{
+		int uid = iter->first;
+		LuaContextInfo& info = luaContextInfo[uid];
+		if(info.started)
+			numScriptsStarted++;
+		++iter;
+	}
+
+	frameadvSkipLagForceDisable = (numScriptsStarted != 0); // disable while scripts are running because currently lag skipping makes lua callbacks get called twice per frame advance
+	g_numScriptsStarted = numScriptsStarted;
+}
+
