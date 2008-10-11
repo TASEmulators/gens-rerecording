@@ -60,10 +60,19 @@ static void PutTextInternal (const char *str, short x, short y, int color, int b
 	int backcolor32 = backcolor >> 8;
 	int backcolor16 = DrawUtil::Pix32To16(backcolor32);
 	int backOpac = backcolor & 0xFF;
+	int origX = x;
 
 	while(*str)
 	{
 		int c = *str++;
+		if(c == '\n')
+		{
+			x = origX;
+			y += 8;
+			continue;
+		}
+		if((unsigned int)(c-32) >= 96)
+			continue;
 		const unsigned char* Cur_Glyph = (const unsigned char*)&Small_Font_Data + (c-32)*7*4;
 
 		for(int y2 = 0; y2 < 8; y2++)
