@@ -258,6 +258,8 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				}	break;
 				case IDC_BUTTON_LUASTOP:
 				{
+					PrintToWindowConsole((int)hDlg, "user clicked stop button\r\n");
+					SetActiveWindow(HWnd);
 					StopLuaScript((int)hDlg);
 				}	break;
 				//case IDOK:
