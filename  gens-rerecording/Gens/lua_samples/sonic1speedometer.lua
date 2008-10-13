@@ -5,7 +5,7 @@
 
 
 -- create space in memory for a savestate
-savestate = state.create()
+state = savestate.create()
 
 -- register a function to run when the screen gets updated
 gui.register( function ()
@@ -16,14 +16,14 @@ gui.register( function ()
 
 	-- look 2 frames into the future, pretending the B button is held,
 	-- and get what the X and Y velocity of the player will be
-	state.get(savestate)
+	savestate.get(state)
 	for n=1,2 do
 		joypad.set(1, {B = true})
 		gens.emulateframeinvisible()
 	end
 	jumpxvel = memory.readwordsigned(0xffd010)
 	jumpyvel = memory.readwordsigned(0xffd012)
-	state.set(savestate)
+	savestate.set(state)
 
 	-- print the velocities onscreen, near the top-left corner,
 	-- in a yellow color with a black outline

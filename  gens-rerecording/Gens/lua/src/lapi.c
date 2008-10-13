@@ -333,6 +333,22 @@ LUA_API lua_Integer lua_tointeger (lua_State *L, int idx) {
     return 0;
 }
 
+// added this because lua_tointeger is inadequate for unsigned 32-bit integers
+// (for example, it turns 0xFFFFFFFF into 0x80000000,
+//  which is totally unacceptable for bitwise operations and RGBA values)
+LUA_API lua_Integer lua_tounsigned (lua_State *L, int idx) {
+  TValue n;
+  const TValue *o = index2adr(L, idx);
+  if (tonumber(o, &n)) {
+    lua_Integer res;
+    lua_Number num = nvalue(o);
+    res = (unsigned int)num;
+    return res;
+  }
+  else
+    return 0;
+}
+
 
 LUA_API int lua_toboolean (lua_State *L, int idx) {
   const TValue *o = index2adr(L, idx);

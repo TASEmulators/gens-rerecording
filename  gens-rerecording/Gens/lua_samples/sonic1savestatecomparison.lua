@@ -134,7 +134,7 @@ function printtable(o)
 end
 
 -- a function to associate the info records with savestates the user makes
-state.registersave( function (statenumber)
+savestate.registersave( function (statenumber)
 
 	-- only save the frame record info into the numbered savestates
 	if statenumber == nil then return nil end
@@ -145,7 +145,7 @@ state.registersave( function (statenumber)
 end)
 
 -- a function to load the info records associated with the savestates the user loads
-state.registerload( function (statenumber)
+savestate.registerload( function (statenumber)
 
 	-- only restore the frame record info from numbered savestates
 	if statenumber == nil then return end
