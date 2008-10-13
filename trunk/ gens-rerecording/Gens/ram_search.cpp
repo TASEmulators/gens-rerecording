@@ -822,28 +822,32 @@ inline bool IsInRange(unsigned int x, unsigned int min, unsigned int size)
 }
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 {
+	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size, true);
+	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		return ReadValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, size, true);
 	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
 		return ReadValueAtSoftwareAddress(Ram_Prg + address - 0x020000, size, true);
 	if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
 		return ReadValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, size, true);
-	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, size, true);
-	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
-		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size, true);
+	if(IsInRange(address, 0x0, Rom_Size))
+		return ReadValueAtSoftwareAddress(Rom_Data + address, size, true);
 	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
 		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, false);
 	return 0;
 }
 void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsigned int size)
 {
-	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
+	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		WriteValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, value, size, true);
+	else if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		WriteValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, value, size, true);
+	else if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
 		WriteValueAtSoftwareAddress(Ram_Prg + address - 0x020000, value, size, true);
 	else if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
 		WriteValueAtSoftwareAddress(((Ram_Word_State & 0x2) ? Ram_Word_1M : Ram_Word_2M) + address - 0x200000, value, size, true);
-	else if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
-		WriteValueAtSoftwareAddress(Ram_Z80 + address - 0xA00000, value, size, true);
-	else if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
-		WriteValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, value, size, true);
+	//else if(IsInRange(address, 0x0, Rom_Size))
+	//	WriteValueAtSoftwareAddress(Rom_Data + address, value, size, true); // potentially useful, but it's too dangerous to allow it if the ROM isn't part of the savestate format
 	else if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
 		WriteValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, value, size, false);
 }
