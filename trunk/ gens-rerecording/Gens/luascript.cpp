@@ -37,6 +37,7 @@ extern bool BackgroundInput;
 extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
 extern bool frameadvSkipLagForceDisable;
 extern "C" void Put_Info(char *Message, int Duration);
+extern int Show_Genesis_Screen();
 
 extern "C" {
 	#include "lua/src/lua.h"
@@ -299,7 +300,7 @@ static int bitand(lua_State *L)
 	int rv = ~0;
 	int numArgs = lua_gettop(L);
 	for(int i = 1; i <= numArgs; i++)
-		rv &= luaL_checkunsigned(L,i);
+		rv &= luaL_checkinteger(L,i);
 	lua_settop(L,0);
 	lua_pushinteger(L,rv);
 	return 1;
@@ -309,7 +310,7 @@ static int bitor(lua_State *L)
 	int rv = 0;
 	int numArgs = lua_gettop(L);
 	for(int i = 1; i <= numArgs; i++)
-		rv |= luaL_checkunsigned(L,i);
+		rv |= luaL_checkinteger(L,i);
 	lua_settop(L,0);
 	lua_pushinteger(L,rv);
 	return 1;
@@ -319,14 +320,14 @@ static int bitxor(lua_State *L)
 	int rv = 0;
 	int numArgs = lua_gettop(L);
 	for(int i = 1; i <= numArgs; i++)
-		rv ^= luaL_checkunsigned(L,i);
+		rv ^= luaL_checkinteger(L,i);
 	lua_settop(L,0);
 	lua_pushinteger(L,rv);
 	return 1;
 }
 static int bitshift(lua_State *L)
 {
-	int num = luaL_checkunsigned(L,1);
+	int num = luaL_checkinteger(L,1);
 	int shift = luaL_checkinteger(L,2);
 	if(shift < 0)
 		num <<= -shift;
@@ -503,8 +504,8 @@ int frameadvance(lua_State* L)
 	if(!info.ranFrameAdvance)
 	{
 		// otherwise we'll never see the first frame of GUI drawing
-		if(info.onstart && info.speedMode != SPEEDMODE_MAXIMUM)
-			info.onstart(uid);
+		if(info.speedMode != SPEEDMODE_MAXIMUM)
+			Show_Genesis_Screen();
 		info.ranFrameAdvance = true;
 	}
 
@@ -617,7 +618,7 @@ int writeword(lua_State* L)
 int writedword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
-	unsigned long value = (unsigned long)(luaL_checkunsigned(L,2));
+	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
 	WriteValueAtHardwareAdress(address, value, 4);
 	return 0;
 }
@@ -817,7 +818,7 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 		}	break;
 		case LUA_TNUMBER:
 		{
-			return lua_tounsigned(L,idx);
+			return lua_tointeger(L,idx);
 		}	break;
 	}
 	return defaultColor;
@@ -982,12 +983,13 @@ static const struct luaL_reg guilib [] =
 {
 	{"register", registergui},
 	{"text", guitext},
-	{"drawtext", guitext},
 	{"box", guibox},
-	{"drawbox", guibox},
 	{"pixel", guipixel},
-	{"drawpixel", guipixel},
 	{"line", guiline},
+	// alternative names
+	{"drawtext", guitext},
+	{"drawbox", guibox},
+	{"drawpixel", guipixel},
 	{"drawline", guiline},
 	{NULL, NULL}
 };
@@ -1162,6 +1164,7 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		}
 		else
 		{
+			Show_Genesis_Screen();
 			StopScriptIfFinished(uid, true);
 		}
 	} while(info.restart);

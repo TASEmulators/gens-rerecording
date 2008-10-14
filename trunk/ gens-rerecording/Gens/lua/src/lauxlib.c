@@ -193,22 +193,10 @@ LUALIB_API lua_Integer luaL_checkinteger (lua_State *L, int narg) {
   return d;
 }
 
-LUALIB_API lua_Integer luaL_checkunsigned (lua_State *L, int narg) {
-  lua_Integer d = lua_tounsigned(L, narg);
-  if (d == 0 && !lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
-    tag_error(L, narg, LUA_TNUMBER);
-  return d;
-}
-
 
 LUALIB_API lua_Integer luaL_optinteger (lua_State *L, int narg,
                                                       lua_Integer def) {
   return luaL_opt(L, luaL_checkinteger, narg, def);
-}
-
-LUALIB_API lua_Integer luaL_optunsigned (lua_State *L, int narg,
-                                                      lua_Integer def) {
-  return luaL_opt(L, luaL_checkunsigned, narg, def);
 }
 
 

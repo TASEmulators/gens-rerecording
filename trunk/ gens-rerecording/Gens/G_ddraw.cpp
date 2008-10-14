@@ -2259,13 +2259,16 @@ int Pause_Screen(void)
 	return 1;
 }
 
-
 int Show_Genesis_Screen(HWND hWnd)
 {
 	Do_VDP_Only();
 	Flip(hWnd);
 
 	return 1;
+}
+int Show_Genesis_Screen()
+{
+	return Show_Genesis_Screen(HWnd);
 }
 
 int Take_Shot()
