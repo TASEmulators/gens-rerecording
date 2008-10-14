@@ -853,17 +853,19 @@ void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsign
 }
 bool IsHardwareAddressValid(unsigned int address)
 {
+	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
+		return true;
+	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
+		return true;
 	if(SegaCD_Started && IsInRange(address, 0x020000, SEGACD_RAM_PRG_SIZE))
 		return true;
 	if(SegaCD_Started && IsInRange(address, 0x200000, SEGACD_1M_RAM_SIZE))
 		return true;
-	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
-		return true;
-	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
-		return true;
+	//if(IsInRange(address, 0x0, Rom_Size)) // disabled because this function is used by RAM watch and this range isn't RAM
+	//	return true;
 	if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
 		return true;
-	return 0;
+	return false;
 }
 
 

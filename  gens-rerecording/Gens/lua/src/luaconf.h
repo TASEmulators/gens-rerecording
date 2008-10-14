@@ -558,7 +558,7 @@
     (defined(__i386) || defined (_M_IX86) || defined(__i386__))
 
 /* On a Microsoft compiler, use assembler */
-#if defined(_MSC_VER)
+#if 0//defined(_MSC_VER) // disabled because it handles some integers very incorrectly and the other case works perfectly fine with current MSVC compilers
 
 #define lua_number2int(i,d)   __asm fld d   __asm fistp i
 #define lua_number2integer(i,n)		lua_number2int(i, n)
