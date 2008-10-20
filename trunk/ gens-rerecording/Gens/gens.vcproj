@@ -600,6 +600,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ParseCmdLine.cpp"
+				>
+			</File>
+			<File
 				RelativePath="pcm.c"
 				>
 				<FileConfiguration
@@ -1521,6 +1525,10 @@
 			</File>
 			<File
 				RelativePath="net.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ParseCmdLine.h"
 				>
 			</File>
 			<File
