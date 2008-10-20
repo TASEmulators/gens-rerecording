@@ -44,6 +44,7 @@
 #include "movie.h"
 #include "ramwatch.h"
 #include "luascript.h"
+#include "ParseCmdLine.h"
 #include <errno.h>
 #include <vector>
 
@@ -2077,57 +2078,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// Have to do it *before* load by command line
 	Init_Genesis_Bios();
 
-	if (lpCmdLine[0])
-	{
-		int src;
-
-#ifdef CC_SUPPORT
-//		src = CC_Connect("CCGEN://Stef:gens@emu.consoleclassix.com/sonicthehedgehog2.gen", (char *) Rom_Data, CC_End_Callback);
-		src = CC_Connect(lpCmdLine, (char *) Rom_Data, CC_End_Callback);
-
-		if (src == 0)
-		{
-			Load_Rom_CC(CCRom.RName, CCRom.RSize);
-			Build_Main_Menu();
-		}
-		else if (src == 1)
-		{
-			MessageBox(HWnd, "Error during connection", NULL, MB_OK);
-		}
-		else if (src == 2)
-		{
-#endif
-		src = 0;
-		
-		if (lpCmdLine[src] == '"')
-		{
-			src++;
-			
-			while ((lpCmdLine[src] != '"') && (lpCmdLine[src] != 0))
-			{
-				Str_Tmp[src - 1] = lpCmdLine[src];
-				src++;
-			}
-
-			Str_Tmp[src - 1] = 0;
-		}
-		else
-		{
-			while (lpCmdLine[src] != 0)
-			{
-				Str_Tmp[src] = lpCmdLine[src];
-				src++;
-			}
-
-			Str_Tmp[src] = 0;
-		}
-
-		Pre_Load_Rom(HWnd, Str_Tmp);
-
-#ifdef CC_SUPPORT
-		}
-#endif
-	}
+	ParseCmdLine(lpCmdLine, HWnd);
 
 	for (char r = 0; r <= 0x1F; r++)
 	{
