@@ -14,6 +14,118 @@
 #include "save.h"
 #include "ym2612.h"
 
+	// Sonic camera hack
+	#ifdef SK
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x10;
+		const unsigned char YPo = 0x14;
+		const unsigned char XVo = 0x18;
+		const unsigned char YVo = 0x1A;
+		const unsigned char To = 0x28;
+		const unsigned char Wo = 0x1F;
+		const unsigned char Ho = 0x1E;
+		const unsigned char Fo = 0x4;
+		const unsigned int CAMOFFSET1 = 0xFFEE78;
+		const unsigned int CAMOFFSET2 = 0xFFEE80;
+		const unsigned int CAMLOCK = 0xFFEE0A;
+		const unsigned int INLEVELFLAG = 0xFFB004;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x1FCC;
+		const unsigned int SPRITESIZE = 0x4A;
+		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
+		const unsigned char XSCROLLRATE = 32;
+		const unsigned char YSCROLLRATE = 16;
+		const int NumObj = (SSTLEN/SPRITESIZE);
+	#elif defined S2
+		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int POSOFFSET = 0xB000;
+		const unsigned int SSTLEN = 0x2600;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int CAMOFFSET1 = 0xFFEE00;
+		const unsigned int CAMOFFSET2 = 0xFFEE00;
+		const unsigned int CAMLOCK = 0xFFFEBE;
+		const unsigned int INLEVELFLAG = 0xFFB001;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+		const int NumObj = (SSTLEN/SPRITESIZE);
+	#elif defined GAME_SCD
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFF1926;
+		const unsigned int CAMOFFSET3 = 0xFFFCA4;
+		const unsigned int CAMLOCK = 0xFFF744;
+		const unsigned int INLEVELFLAG = 0xFFD001;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+		const int NumObj = (SSTLEN/SPRITESIZE);
+	#elif defined S1MMCD
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFF1926;
+		const unsigned int CAMOFFSET3 = 0xFFFCA4;
+		const unsigned int CAMLOCK = 0xFFF744;
+		const unsigned int INLEVELFLAG = 0xFFD001;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+		const int NumObj = (SSTLEN/SPRITESIZE);
+#elif defined S1
+		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned char XPo = 0x8;
+		const unsigned char YPo = 0xC;
+		const unsigned char XVo = 0x10;
+		const unsigned char YVo = 0x12;
+		const unsigned char To = 0x20;
+		const unsigned char Wo = 0x17;
+		const unsigned char Ho = 0x16;
+		const unsigned char Fo = 1;
+		const unsigned int CAMOFFSET1 = 0xFFF700;
+		const unsigned int CAMOFFSET2 = 0xFFF710;
+		const unsigned int CAMOFFSET3 = 0xFFFDB8;
+		const unsigned int CAMOFFSET4 = 0xFFF616;
+		const unsigned int CAMLOCK = 0xFFF744;
+		const unsigned int INLEVELFLAG = 0xFFD04B;
+		const unsigned int POSOFFSET = 0xD000;
+		const unsigned int SSTLEN = 0x2000;
+		const unsigned int SPRITESIZE = 0x40;
+		const unsigned int LEVELHEIGHT = 2047;
+		const unsigned char XSCROLLRATE = 16;
+		const unsigned char YSCROLLRATE = 16;
+		const int NumObj = (SSTLEN/SPRITESIZE);
+		bool Tails = false;
+	#endif
 #ifdef SONICCAMHACK
 unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 //extern "C" int Do_VDP_Only();
@@ -28,9 +140,8 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 	unsigned char Num = CheatRead<unsigned char>(index);
 	switch (Num)
 	{
-//#ifdef S1
+#ifdef S1
 		case 0x0C:
-		case 0x44:
 			X = 0x8;
 			Y = 0x20;
 			return;
@@ -60,14 +171,15 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 		case 0x6B:
 		case 0x70:
 		case 0x71:
-			X = CheatRead<unsigned char>(index + 0x17);
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = CheatRead<unsigned char>(index + 0x16);
 			return;
 		case 0x18:
 		case 0x52:
 		case 0x59:
 		case 0x5A:
-			X = CheatRead<unsigned char>(index + 0x17);
+		case 0x6C:
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = 9;
 			return;
 		case 0x1A:
@@ -79,7 +191,7 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 			X = 6;
 			Y = 0x20;
 		case 0x2F:
-			X = CheatRead<unsigned char>(index + 0x17);
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = (CheatRead<unsigned char>(index + 0x1A) == 2)?0x30:0x20;
 			return;
 		case 0x30:
@@ -87,7 +199,7 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 			Y = (CheatRead<unsigned char>(index + 0x24) < 3)?0x48:0x38;
 			return;
 		case 0x31:
-			X = CheatRead<unsigned char>(index + 0x17);
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = 0xC;
 			return;
 		case 0x32:
@@ -97,7 +209,7 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 		case 0x33:
 		case 0x5B:
 		case 0x83:
-			X = CheatRead<unsigned char>(index + 0x17);
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = 0x10;
 			return;
 		case 0x36:
@@ -112,7 +224,7 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 			Y = 0x20;
 			return;
 		case 0x3E:
-			X = CheatRead<unsigned char>(index + 0x17);
+			X = CheatRead<unsigned char>(index + 0x19);
 			Y = 0x18;
 			if (CheatRead<unsigned char>(index + 0x24) == 0x04)
 				Y = 0x08;
@@ -121,10 +233,20 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 			X = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?8:0x10;
 			Y = ((CheatRead<unsigned char>(index + 0x24) == 8) || (CheatRead<unsigned char>(index + 0x24) == 0xA) || (CheatRead<unsigned char>(index + 0x24) == 0xC))?0xE:0x8;
 			return;
-//		case 0x44:
-//			X = 8;
-//			Y = 0x20;
-//			return;
+		case 0x7:
+			if (!Tails)
+				return;
+		case 0x44:
+			if ((CheatRead<unsigned char>(index + 0x28) & 0x10) == 0)
+			{
+				X = 8;
+				Y = 0x20;
+			}
+			else 
+			{
+				X = Y = 3;
+			}
+			return;
 		case 0x45:
 			X = 0xC;
 			Y = 0x20;
@@ -152,6 +274,10 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 			X=0x10;
 			Y=0x7;
 			return;
+/*		case 0x71:
+			X=CheatRead<unsigned char>(index + 0x24) & 0xF0;
+			Y=(CheatRead<unsigned char>(index + 0x24) & 0xF) << 4;
+			return;*/
 		case 0x79:
 			X=0x8;
 			Y=(CheatRead<unsigned char>(index + 0x24) == 2)?0x20:0x8;
@@ -167,7 +293,7 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 		case 0x86:
 			X = Y = 8;
 			return;
-//#endif
+#endif
 		default:
 			X = Y = 3;
 	}
@@ -178,106 +304,6 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 #define SPEC 3
 int ColorTable32[4] = {0x8000FF,0x00FFFF,0xFF0000,0x00FF00};
 unsigned short ColorTable16[4] = {0x4010,0x07FF,0xF800,0x07E0};
-	// Sonic camera hack
-	#ifdef SK
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x10;
-		const unsigned char YPo = 0x14;
-		const unsigned char XVo = 0x18;
-		const unsigned char YVo = 0x1A;
-		const unsigned char To = 0x28;
-		const unsigned char Wo = 0x1F;
-		const unsigned char Ho = 0x1E;
-		const unsigned char Fo = 0x4;
-		const unsigned int CAMOFFSET1 = 0xFFEE78;
-		const unsigned int CAMOFFSET2 = 0xFFEE80;
-		const unsigned int INLEVELFLAG = 0xFFB004;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x1FCC;
-		const unsigned int SPRITESIZE = 0x4A;
-		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-		const unsigned char XSCROLLRATE = 32;
-		const unsigned char YSCROLLRATE = 16;
-	#elif defined S2
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x2600;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int CAMOFFSET1 = 0xFFEE00;
-		const unsigned int INLEVELFLAG = 0xFFB001;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#elif defined GAME_SCD
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFF1926;
-		const unsigned int CAMOFFSET3 = 0xFFFCA4;
-		const unsigned int INLEVELFLAG = 0xFFD001;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#elif defined S1MMCD
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFF1926;
-		const unsigned int CAMOFFSET3 = 0xFFFCA4;
-		const unsigned int INLEVELFLAG = 0xFFD001;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-#elif defined S1
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFFF710;
-		const unsigned int CAMOFFSET3 = 0xFFFDB8;
-		const unsigned int CAMOFFSET4 = 0xFFF616;
-		const unsigned int INLEVELFLAG = 0xFFD04B;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-	#endif
 #ifdef GAME_SCD
 		unsigned int SizeTableX = 0x2070C6;
 		unsigned int SizeTableY = 0x2070C7;
@@ -324,17 +350,27 @@ unsigned short GetBlockSK(int X,int Y)
 //Num lock enables display of 16x16 tile angles and collision indices
 void DisplaySolid()
 {
-//		if (GetKeyState(VK_SCROLL))
-//			return;
+//		if (GetKeyState(VK_SCROLL))	return; //scroll lock disables solidity display for compatibility with map-dumping hack
 
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
 		unsigned short BLOCKSIZE,TILEMASK;
 		unsigned char BLOCKSHIFT,SOLIDSHIFT,DRAWSHIFT;
 		bool S3;
 	#ifdef S1
-		COLARR = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x055236 : 0x062A00);	//support for Knuckles in Sonic 1
+		COLARR = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x055236 : 0x062A00);	//support for Knuckles in Sonic 1,
 		COLARR2 = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x056236 : 0x063A00);	//Romhack created by "Stealth"
 		ANGARR = ((* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? 0x055136 : 0x062900);	//Detected by comparing ROM checksum to that of S1K.bin
+		char Title[0x32] = "";
+		memcpy(Title,&Rom_Data[0x120],0x30);
+		Byte_Swap(Title,0x30);
+		if (!strcmp("MILES \"TAILS\" PROWER IN SONIC THE HEDGEHOG      ",Title))
+		{
+			COLARR = 0x621D6;	//support for Tails in Sonic 1
+			COLARR2 = 0x631D6;	//Romhack created by "Pu7o"
+			ANGARR = 0x620D6;	//Detected by comparing the ROM header Title string.
+			Tails = true;
+		}
+		else Tails = false;
 		CAMMASK = 0xFF00;	//2s complement of meta-tile block size 
 		BLOCKSIZE = 0x100;	//size in pixels of meta-tile blocks
 		GETBLOCK = GetBlockS1;//(X >> 8) + ((Y & 0x700) >> 1)
@@ -453,8 +489,9 @@ void DisplaySolid()
 							}
 						}
 						Block--;
-						if ((GetKeyState(VK_CAPITAL)))
+						if ((GetKeyState(VK_CAPITAL)) && !(GetKeyState(VK_SCROLL)))
 						{	//if capslock is pressed, we display the block number at it's top-left corner
+							//unless scroll lock is pressed, in which case turn it off for map dumping purposes.
 							sprintf(Str_Tmp,"%02X",Block);
 							PutText(Str_Tmp,(X-CamX)+3,(Y-CamY)+4,0,0,0,0,BLANC,BLEU);
 						}
@@ -1097,7 +1134,7 @@ void DisplaySolid()
 //Num lock enables display of each object's base address in RAM
 void DrawBoxes()
 {
-	if (!GetKeyState(VK_SCROLL))
+//	if (!GetKeyState(VK_SCROLL))
 	{
 		PX = CheatRead<unsigned short>(P1OFFSET + XPo);
 		PY = CheatRead<unsigned short>(P1OFFSET + YPo);
@@ -1409,12 +1446,12 @@ int SonicCamHack()
 		}
 		else
 		{
-			disableRamUpdate = disableSound2 = true;
+			disableRamSearchUpdate = disableSound2 = true;
 			retval = Update_Frame_Fast();
 			Save_State_To_Buffer(State_Buffer);
 			for(int i = 0; i < VideoLatencyCompensation-1; i++)
 				Update_Frame_Fast();
-			disableRamUpdate = disableSound2 = false;
+			disableRamSearchUpdate = disableSound2 = false;
 			CamX = CheatRead<signed short>(CAMOFFSET1);
 			CamY = CheatRead<signed short>(CAMOFFSET1+4);
 			Update_Frame();
@@ -1558,5 +1595,524 @@ int SonicCamHack()
 	Update_RAM_Search(); //RAM_Search was updating with the "fake" values, and doesn't seem to update after "skipped" frames.
 
 	return rv;
+}
+#endif
+#ifdef SONICMAPHACK
+#include "vdp_io.h"
+long x = 0, y = 0, xg = 0, yg = 0;
+void Update_RAM_Cheats()
+{
+#ifdef GAME_SCD
+		static unsigned int NITSUJA = 0x202EFC;	//Palmtree Panic 1 has something camera related here
+		static unsigned int STEALTH = 0;		//What our camera related thing was last frame
+		static unsigned int NITSUJA2 = 0x2029D0;	//Palmtree Panic 1 has something camera related here
+		static unsigned int STEALTH2 = 0;		//What our camera related thing was last frame
+		static unsigned int NITSUJA3 = 0x202F00;	//Palmtree Panic 1 has something camera related here
+		static unsigned int STEALTH3 = 0;		//What our camera related thing was last frame
+		if (CheatRead<unsigned int>(NITSUJA) != STEALTH) //if our collision pointer changed, search for a new one
+		{
+			int addr = 0x200000;	//Word RAM starts at 0x200000
+			bool found = false;
+			while ((addr <= 0x23FFFC) && !found) //and ends at 0x240000
+			{
+				addr += 2;
+				if (CheatRead<unsigned int>(addr) == 0x31C0F700)
+				{
+					found = true;	//I found that they each only had one instance of this
+				}
+			}
+			if (found) 
+			{
+				NITSUJA = addr;	//0x38 bytes into FindFloor, we have a long pointer to the angle array
+				STEALTH = 0x4E75F700;
+				CheatWrite<unsigned int>(NITSUJA,STEALTH);	//so we update the angle array pointer flag
+				sprintf(Str_Tmp,"%08X:%08X",CheatRead<unsigned int>(NITSUJA),STEALTH);
+				Put_Info(Str_Tmp,1000);
+			}
+			else
+			{	
+				sprintf(Str_Tmp,"%08X:%08X",CheatRead<unsigned int>(NITSUJA),STEALTH);
+				Put_Info(Str_Tmp,1000);
+				return;
+			}
+		}
+		if (CheatRead<unsigned int>(NITSUJA2) != STEALTH2) //if our collision pointer changed, search for a new one
+		{
+			int addr = 0x200000;	//Word RAM starts at 0x200000
+			bool found = false;
+			while ((addr <= 0x23FFFC) && !found) //and ends at 0x240000
+			{
+				addr += 2;
+				if (CheatRead<unsigned int>(addr) == 0x31C0F704)
+				{
+					found = true;	//I found that they each only had one instance of this
+				}
+			}
+			if (found) 
+			{
+				NITSUJA2 = addr;	//0x38 bytes into FindFloor, we have a long pointer to the angle array
+				STEALTH2 = 0x4E75F704;
+				CheatWrite<unsigned int>(NITSUJA2,STEALTH2);	//so we update the angle array pointer flag
+			}
+//			else return;
+		}
+		if (CheatRead<unsigned int>(NITSUJA3) != STEALTH3) //if our collision pointer changed, search for a new one
+		{
+			int addr = 0x200000;	//Word RAM starts at 0x200000
+			bool found = false;
+			while ((addr <= 0x23FFFC) && !found) //and ends at 0x240000
+			{
+				addr += 2;
+				if (CheatRead<unsigned int>(addr) == 0x31C3F73C)
+				{
+					found = true;	//I found that they each only had one instance of this
+				}
+			}
+			if (found) 
+			{
+				NITSUJA3 = addr;	//0x38 bytes into FindFloor, we have a long pointer to the angle array
+				STEALTH3 = 0x6006F73C;
+				CheatWrite<unsigned int>(NITSUJA3,STEALTH3);	//so we update the angle array pointer flag
+			}
+//			else return;
+		}
+#endif
+	static const int ratio = 1 << POWEROFTWO;
+	// XXX: camhack / maphack, sonic 3
+	if(!GetKeyState(VK_SCROLL))
+		return;
+
+	static unsigned int SSTObjID[NumObj];
+	static unsigned int SSTObjXP[NumObj];
+	static unsigned int SSTObjYP[NumObj];
+	int listInd,SSTInd = SPRITESIZE;
+	for (listInd = 0; listInd < NumObj; listInd++, SSTInd += SPRITESIZE)
+	{
+		unsigned int id;
+#ifdef SK
+		id = CheatRead<unsigned int>(P1OFFSET + SSTInd);
+#else
+		id = CheatRead<unsigned char>(P1OFFSET + SSTInd);
+#endif
+		if (id != SSTObjID[listInd])
+		{
+			SSTObjID[listInd] = id;
+			if (id)
+			{
+				SSTObjXP[listInd] = CheatRead<unsigned int>(P1OFFSET + SSTInd + XPo);
+				SSTObjYP[listInd] = CheatRead<unsigned int>(P1OFFSET + SSTInd + YPo);
+			}
+		}
+		else 
+		{
+			CheatWrite<unsigned int>(P1OFFSET + SSTInd + XPo,SSTObjXP[listInd]);
+			CheatWrite<unsigned int>(P1OFFSET + SSTInd + YPo,SSTObjYP[listInd]);
+			CheatWrite<short>(P1OFFSET + SSTInd + XVo,0);
+			CheatWrite<unsigned int>(P1OFFSET + SSTInd + YVo,0);
+			CheatWrite<unsigned char>(P1OFFSET + SSTInd + 0x26,0);
+//			CheatWrite<unsigned short>(P1OFFSET + SSTInd + 0x30,0);
+			CheatWrite<unsigned char>(P1OFFSET + SSTInd + 0x34,0);
+		}
+	}
+	bool ksU = (GetAsyncKeyState('I')&0x8000)!=0, ksD = (GetAsyncKeyState('K')&0x8000)!=0, ksL = (GetAsyncKeyState('J')&0x8000)!=0, ksR = (GetAsyncKeyState('L')&0x8000)!=0;
+	static bool ksUPrev = ksU, ksDPrev = ksD, ksLPrev = ksL, ksRPrev = ksR;
+
+	static int snapCount = 0;
+	static bool snapPast = true;
+	static bool sDown = false;
+	bool keepgoing = false;
+	if(x==xg && y==yg)
+	{
+		if(!snapPast)
+		{
+			snapCount++;
+			if(snapCount > 3)
+			{
+				snapCount = 0;
+				snapPast = true;
+				keepgoing = GetKeyState(VK_CAPITAL) != 0;
+			}
+		}
+	}
+	else
+	{
+		snapCount = 0;
+		snapPast = false;
+	}
+		static const int X = 13824;
+		static const int Y = 2048;
+
+	if(!GetKeyState(VK_NUMLOCK))
+	{
+
+	// camera movement, IJKL
+	if(ksL && (/*!ksLPrev ||*/ snapPast) && xg >  0) xg -= 320/2, xg -= xg % (320/2), snapPast = false;
+	if(ksR && (/*!ksRPrev ||*/ snapPast) && xg+160<X*ratio) xg += 320/2, xg -= xg % (320/2), snapPast = false;
+	if(ksU && (/*!ksUPrev ||*/ snapPast) && yg >= 0) yg -= 112, yg -= yg % 112, snapPast = false;
+	if(ksD && (/*!ksDPrev ||*/ snapPast) && yg+112<Y*ratio) yg += 112, yg -= yg % 112, snapPast = false;
+	
+	}
+
+	ksUPrev = ksU, ksDPrev = ksD, ksLPrev = ksL, ksRPrev = ksR;
+
+	if(GetAsyncKeyState(VK_OEM_PERIOD))
+	{
+		//xg = CheatRead<unsigned short>(POSOFFX) - 160; // reset camera
+		//yg = CheatRead<unsigned short>(0xD00C) - 112; // reset camera
+		xg = (CheatRead<unsigned short>(P1OFFSET + XPo) & 0xffffff)-160; // reset camera
+		yg = (CheatRead<unsigned short>(P1OFFSET + YPo) & 0xffffff)-120; // reset camera
+		snapPast = false;
+		snapCount = 0;
+	}
+
+	/*if(GetKeyState(VK_NUMLOCK))
+	{
+		sDown = false;
+		x = CheatRead<unsigned long>(0xFFEE78); // get camera position x
+		y = CheatRead<unsigned long>(0xFFEE78+4); // get camera position y
+		CheatWrite<unsigned short>(0xFFEE0B, 0); // unlock camera
+	}
+	else*/ if(!keepgoing)
+	{
+		if(x != xg)
+		{
+			if(abs(x - xg) <= SCROLLSPEED)
+				x = xg;
+			//else if(abs(x - xg) >= 640)
+			//{
+			//	if(x < xg) x = xg - 320;
+			//	else if(x > xg) x = xg + 320;
+			//}
+			else
+			{
+				if(x < xg) x += SCROLLSPEED;
+				else if(x > xg) x -= SCROLLSPEED;
+			}
+		}
+		if(y != yg)
+		{
+			if(abs(y - yg) <= SCROLLSPEED)
+				y = yg;
+			//else if(abs(y - yg) >= 240)
+			//{
+			//	if(y < yg) y = yg - 120;
+			//	else if(y > yg) y = yg + 120;
+			//}
+			else
+			{
+				if(y < yg) y += SCROLLSPEED;
+				else if(y > yg) y -= SCROLLSPEED;
+			}
+		}
+
+		if(x < 0)
+			x = 0; // prevent crash
+		if(xg < 0)
+			xg = 0;
+
+		//CheatWrite<unsigned short>(0xFFF700, x);
+		CheatWrite<unsigned short>(CAMOFFSET1, (unsigned short)x); // set camera position x
+		CheatWrite<unsigned short>(CAMOFFSET2, (unsigned short)x);
+//		CheatWrite<unsigned long>(0xFFA80C, x);
+//		CheatWrite<unsigned long>(0xFFA814, x);
+//		CheatWrite<unsigned long>(0xFFA818, x);
+		//CheatWrite<unsigned short>(0xFFF704, y);
+		CheatWrite<unsigned short>(CAMOFFSET1+4, (unsigned short)y);  // set camera position y
+		CheatWrite<unsigned short>(CAMOFFSET2+4, (unsigned short)y);
+//		CheatWrite<unsigned long>(0xFFA80C+4, y);
+//		CheatWrite<unsigned long>(0xFFA814+4, y);
+//		CheatWrite<unsigned long>(0xFFA818+4, y);
+		if(GetAsyncKeyState(VK_OEM_COMMA))
+		{
+			//CheatWrite(0xFFD008,x+160);
+			CheatWrite<short>(P1OFFSET + XPo, (short)x+160);
+			//CheatWrite(0xFFD00C,y+112);
+			CheatWrite<short>(P1OFFSET + YPo, (short)y+120);
+		}
+		//CheatWrite<unsigned short>(0xFFB00B, CheatRead<unsigned short>(0xB00B) & ~0x80); // no death
+//		CheatWrite<unsigned short>(0xFFEE0B, 0); // no camera lock on death
+#ifdef SK
+		CheatWrite<unsigned char>(P1OFFSET + Fo, CheatRead<unsigned char>(P1OFFSET + Fo) & ~0x4); // no death
+		CheatWrite<unsigned char>(CAMLOCK, 0x1); // yes camera lock always!
+#endif
+	//	CheatWrite<unsigned short>(0xFFFFCE, 0x86A0); // no camera lock(?)
+
+		//CheatWrite<unsigned char>(0xFFB06F, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB1E1, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB353, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB39D, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB3E7, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB47B, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB50F, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB559, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB6CB, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFB75F, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFCC2F, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFCCC3, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFCD0A, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFEE26, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFF634, 0); // no animation?
+		//CheatWrite<unsigned char>(0xFFF654, 0); // no animation?
+
+//		CheatWrite<unsigned char>(0xFFF653, 0); // no burning palette animation
+		//CheatWrite<unsigned char>(0xFFFEB2, 0); // no ring animation
+		//memset(&(Ram_68k[0xFE70]),0,0x22);
+		memset(&(Ram_68k[0xFE60]),0,0x40);	// hold oscilators
+	}
+
+	// XXX: screenshot, for map capture
+	{
+		if(GetAsyncKeyState('S'))
+		{
+			if(!sDown)
+				keepgoing = true;
+			sDown = true;
+		}
+		else
+			sDown = false;
+		if(!keepgoing)
+			return;
+		int i, j, tmp, offs, num = -1;
+		unsigned long BW;
+
+		SetCurrentDirectory(Gens_Path);
+
+		i = (X * Y * 3) + 54;
+
+//		if (!Game) return;
+
+		static unsigned char *DestFull = NULL;
+		if(!DestFull)
+		{
+			DestFull = (unsigned char *) malloc(i);
+			memset(DestFull, 0, i);
+
+			// write BMP header
+			{
+				DestFull[0] = 'B';
+				DestFull[1] = 'M';
+
+				DestFull[2] = (unsigned char) ((i >> 0) & 0xFF);
+				DestFull[3] = (unsigned char) ((i >> 8) & 0xFF);
+				DestFull[4] = (unsigned char) ((i >> 16) & 0xFF);
+				DestFull[5] = (unsigned char) ((i >> 24) & 0xFF);
+
+				DestFull[6] = DestFull[7] = DestFull[8] = DestFull[9] = 0;
+
+				DestFull[10] = 54;
+				DestFull[11] = DestFull[12] = DestFull[13] = 0;
+
+				DestFull[14] = 40;
+				DestFull[15] = DestFull[16] = DestFull[17] = 0;
+
+				DestFull[18] = (unsigned char) ((X >> 0) & 0xFF);
+				DestFull[19] = (unsigned char) ((X >> 8) & 0xFF);
+				DestFull[20] = (unsigned char) ((X >> 16) & 0xFF);
+				DestFull[21] = (unsigned char) ((X >> 24) & 0xFF);
+
+				DestFull[22] = (unsigned char) ((Y >> 0) & 0xFF);
+				DestFull[23] = (unsigned char) ((Y >> 8) & 0xFF);
+				DestFull[24] = (unsigned char) ((Y >> 16) & 0xFF);
+				DestFull[25] = (unsigned char) ((Y >> 24) & 0xFF);
+
+				DestFull[26] = 1;
+				DestFull[27] = 0;
+				
+				DestFull[28] = 24;
+				DestFull[29] = 0;
+
+				DestFull[30] = DestFull[31] = DestFull[32] = DestFull[33] = 0;
+
+				i -= 54;
+				
+				DestFull[34] = (unsigned char) ((i >> 0) & 0xFF);
+				DestFull[35] = (unsigned char) ((i >> 8) & 0xFF);
+				DestFull[36] = (unsigned char) ((i >> 16) & 0xFF);
+				DestFull[37] = (unsigned char) ((i >> 24) & 0xFF);
+
+				DestFull[38] = DestFull[42] = 0xC4;
+				DestFull[39] = DestFull[43] = 0x0E;
+				DestFull[40] = DestFull[44] = DestFull[41] = DestFull[45] = 0;
+
+				DestFull[46] = DestFull[47] = DestFull[48] = DestFull[49] = 0;
+				DestFull[50] = DestFull[51] = DestFull[52] = DestFull[53] = 0;
+			}
+		}
+		if(!DestFull)
+			return;
+
+		int mode = (Mode_555 & 1);
+		int Hmode = (VDP_Reg.Set4 & 0x01);
+		int Vmode = (VDP_Reg.Set2 & 0x08);
+
+		unsigned char *Src = (Bits32?(unsigned char *)(MD_Screen32):(unsigned char *)(MD_Screen));
+		if(Vmode)
+			Src += 336 * 239 * 2 * (Bits32?2:1);
+		else
+			Src += 336 * 223 * 2 * (Bits32?2:1);
+
+		unsigned char *Dest = (unsigned char *)(DestFull) + 54;
+		unsigned short WaterY = CheatRead<unsigned short>(0xFFF64A) >> POWEROFTWO;
+		if (CheatRead<unsigned short>(0xFFF648) > CheatRead<unsigned short>(0xFFF646)) WaterY = CheatRead<unsigned short>(0xFFF646) >> POWEROFTWO;
+
+		if (mode)
+		{
+			for(offs = Vmode ? 0 : (3*X*8)/4, j = (Vmode ? 240 : 224); j > 0; j-=4, Src -= 336 * 2 *4, offs += (3 * X))
+			{
+				if (Hmode==0) offs+=96/4;
+				for(i = Hmode ? 320 : 256; i > (Hmode ? 320 : 256)>>1; i-=4) // right half only, 4 pixels at a time
+				{
+					int r=0, g=0, b=0, c=0;
+					for(int xp = 0 ; xp < 4 ; xp++)
+					{
+						for(int yp = 0 ; yp < 4 ; yp++)
+						{
+							tmp = (unsigned int) (Src[2 * (i+xp) + (yp*336*2) + 16] + (Src[2 * (i+xp) + (yp*336*2) + 17] << 8));
+							if(!tmp) continue;
+							r += ((tmp >> 7) & 0xF8);
+							g += ((tmp >> 2) & 0xF8);
+							b += ((tmp << 3) & 0xF8);
+							c++;
+						}
+					}
+					if(!c) continue;
+					Dest[offs + (3 * (i>>2)) + 2] = r/c;
+					Dest[offs + (3 * (i>>2)) + 1] = g/c;
+					Dest[offs + (3 * (i>>2))    ] = b/c;
+				}
+			}
+		}
+		else
+		{
+//			Src -= 336 * 2 *4;
+			for(offs = (Vmode ? 0 : 3*((X*(8+((Y*ratio-(Vmode ? 240 : 224))-y)))/ratio)) + 3*(x/ratio), j = (Vmode ? 241 : 225) - ratio; j > 0; j-=ratio, Src -= 336 * 2 * ratio * (Bits32?2:1), offs += (3 * X))
+			{
+				if (Hmode==0) offs+=96/4;
+				if(offs > X*Y*3) break;
+				for(i = (Hmode ? 320 : 256)-ratio; i >= 0; i-=ratio)
+				{
+					if(offs + (3 * (i>>POWEROFTWO)) + 2 < 0)
+						continue; // don't copy past end of the bitmap
+
+					if(i < 120 && (j < 60 || j >= 224 - 24))
+					{
+						if(Dest[offs + (3 * (i>>POWEROFTWO)) + 2] || Dest[offs + (3 * (i>>POWEROFTWO)) + 1] || Dest[offs + (3 * (i>>POWEROFTWO))])
+							continue; // don't copy score/time/rings/lives displays over anything that's already been copied
+					}
+
+					int colors [ratio*ratio];
+					int freq [ratio*ratio];
+					int rs [ratio*ratio];
+					int gs [ratio*ratio];
+					int bs [ratio*ratio];
+
+					int r=0, g=0, b=0, c=0, numoff=0, fr=0,fg=0,fb=0,first=0,firstoff=0;
+					for(int xp = 0 ; xp < ratio ; xp++)
+					{
+						for(int yp = 0 ; yp < ratio ; yp++)
+						{
+							tmp = *(unsigned short *) &(Src[2 * (i+xp) + (yp*336*2) + 16]);
+							if (Bits32) tmp = *(unsigned int *) &(Src[2*(2 * (i+xp) + (yp*336*2) + 16)]);
+							colors[yp+ratio*xp] = tmp;
+							rs[yp+ratio*xp] = (Bits32?((tmp >> 16) & 0xFF):((tmp >> 8) & 0xF8));
+							gs[yp+ratio*xp] = (Bits32?((tmp >> 8) & 0xFF):((tmp >> 3) & 0xFC));
+							bs[yp+ratio*xp] = (Bits32?(tmp & 0xFF):((tmp << 3) & 0xF8));
+							if(!tmp) {numoff++; if(!xp && !yp) firstoff=1; continue;}
+							r += (Bits32?((tmp >> 16) & 0xFF):((tmp >> 8) & 0xF8));
+							g += (Bits32?((tmp >> 8) & 0xFF):((tmp >> 3) & 0xFC));
+							b += (Bits32?(tmp & 0xFF):((tmp << 3) & 0xF8));
+//							if(!first) {first=1; fr=r; fg=g; fb=b;}
+							c++;
+						}
+					}
+					//if(!r && !g && !b)
+					//{
+					//	b = 48; r = 32; g = 32; // background, if Layer 1 is turned off
+					//}
+					if(!c || (numoff>10 && firstoff) /*|| (!fr && !fg && !fb)*/)
+					{
+						b = 48; r = 32; g = 32; // background, if Layer 1 is turned off
+						if (((X * Y * 3) - offs) >= (WaterY * X * 3))
+							b = 128;
+					}
+					else
+					{
+						for(int ii = 0 ; ii < ratio*ratio; ii++)
+						{
+							freq[ii] = 0;
+						}
+						for(int ii = 0 ; ii < ratio*ratio; ii++)
+						{
+							for(int jj = ii ; jj < ratio*ratio; jj++)
+							{
+								if(colors[ii] == colors[jj])
+								{
+									freq[ii]++;
+									freq[jj]++;
+								}
+							}
+						}
+						fr = (Bits32?((colors[0] >> 16) & 0xFF):((colors[0]>> 3) & 0xFC));
+						fg = (Bits32?((colors[0] >> 8) & 0xFF):((colors[0] >> 3) & 0xFC));
+						fb = (Bits32?(colors[0] & 0xFF):((colors[0] << 3) & 0xF8));;
+						int bestfreq = 0;
+						for(int ii = 0 ; ii < ratio*ratio; ii++)
+						{
+							if(freq[ii] > bestfreq)
+							{
+								bestfreq = freq[ii];
+								fr = rs[ii];
+								fg = gs[ii];
+								fb = bs[ii];
+							}
+							else if(bestfreq && freq[ii] == bestfreq)
+							{
+								if(fr || fg || fb)
+								{
+									rs[ii] = (fr + rs[ii]) >> 1;
+									gs[ii] = (fg + gs[ii]) >> 1;
+									bs[ii] = (fb + bs[ii]) >> 1;
+								}
+								if(rs[ii] || gs[ii] || bs[ii])
+								{
+									fr = rs[ii];
+									fg = gs[ii];
+									fb = bs[ii];
+								}
+							}
+						}
+
+	
+						r /= c; g /= c; b /= c;
+
+						// we have bilinear filtering so far, but that's a bit blurry, so mix it with point sampling
+						if(fr || fg || fb)
+						{
+							int diff = abs(fr-r) + abs(fg-g) + abs(fb-b);
+							while(diff >= 88)
+							{
+								r = (r*7+fr)/8;
+								g = (g*7+fg)/8;
+								b = (b*7+fb)/8;
+								diff = abs(fr-r) + abs(fg-g) + abs(fb-b);
+							}
+						}
+					}
+					Dest[offs + (3 * (i>>POWEROFTWO)) + 2] = r;
+					Dest[offs + (3 * (i>>POWEROFTWO)) + 1] = g;
+					Dest[offs + (3 * (i>>POWEROFTWO))    ] = b;
+				}
+			}
+		}
+
+		if(GetAsyncKeyState('B'))
+		{
+			HANDLE ScrShot_File;
+			ScrShot_File = CreateFile("mapcap.bmp", GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			WriteFile(ScrShot_File, DestFull, (X * Y * 3) + 54, &BW, NULL);
+			CloseHandle(ScrShot_File);
+		}
+	}
+
 }
 #endif

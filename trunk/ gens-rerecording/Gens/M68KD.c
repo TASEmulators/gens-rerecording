@@ -925,42 +925,42 @@ char *M68KDisasm(unsigned short (*NW)(), unsigned int (*NL)())
 				{
 					case 0:
 						//ASR.w  #1,a
-						sprintf(Dbg_Str, "ASR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ASR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 	
 					case 1:
 						//ASL.w  #1,a
-						sprintf(Dbg_Str, "ASL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ASL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 2:
 						//LSR.w  #1,a
-						sprintf(Dbg_Str, "LSR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "LSR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 3:
 						//LSL.w  #1,a
-						sprintf(Dbg_Str, "LSL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "LSL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 4:
 						//ROXR.w  #1,a
-						sprintf(Dbg_Str, "ROXR.W  #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ROXR.W  #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 5:
 						//ROXL.w  #1,a
-						sprintf(Dbg_Str, "ROXL.W  #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ROXL.W  #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 6:
 						//ROR.w  #1,a
-						sprintf(Dbg_Str, "ROR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ROR.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
 
 					case 7:
 						//ROL.w  #1,a
-						sprintf(Dbg_Str, "ROL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+						sprintf(Dbg_Str, "ROL.W   #1,%s%c", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 						break;
  
 				}
@@ -971,82 +971,82 @@ char *M68KDisasm(unsigned short (*NW)(), unsigned int (*NL)())
 				{
 					case 0: case 8: case 16:
 						//ASR.z  #k,Dd
-						sprintf(Dbg_Str, "ASR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ASR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 1: case 9: case 17:
 						//LSR.z  #k,Dd
-						sprintf(Dbg_Str, "LSR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "LSR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 2: case 10: case 18:
 						//ROXR.z  #k,Dd
-						sprintf(Dbg_Str, "ROXR%-4s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROXR%-4s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 3: case 11: case 19:
 						//ROR.z  #k,Dd
-						sprintf(Dbg_Str, "ROR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROR%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 4: case 12: case 20:
 						//ASR.z  Ds,Dd
-						sprintf(Dbg_Str, "ASR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ASR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 5: case 13: case 21:
 						//LSR.z  Ds,Dd
-						sprintf(Dbg_Str, "LSR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "LSR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 6: case 14: case 22:
 						//ROXR.z  Ds,Dd
-						sprintf(Dbg_Str, "ROXR%-4sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROXR%-4sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 7: case 15: case 23:
 						//ROR.z  Ds,Dd
-						sprintf(Dbg_Str, "ROR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROR%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 32: case 40: case 48:
 						//ASL.z  #k,Dd
-						sprintf(Dbg_Str, "ASL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ASL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 33: case 41: case 49:
 						//LSL.z  #k,Dd
-						sprintf(Dbg_Str, "LSL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "LSL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 34: case 42: case 50:
 						//ROXL.z  #k,Dd
-						sprintf(Dbg_Str, "ROXL%-4s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROXL%-4s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 35: case 43: case 51:
 						//ROL.z  #k,Dd
-						sprintf(Dbg_Str, "ROL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROL%-5s#%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 36: case 44: case 52:
 						//ASL.z  Ds,Dd
-						sprintf(Dbg_Str, "ASL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ASL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 37: case 45: case 53:
 						//LSL.z  Ds,Dd
-						sprintf(Dbg_Str, "LSL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "LSL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 38: case 46: case 54:
 						//ROXL.z  Ds,Dd
-						sprintf(Dbg_Str, "ROXL%-4sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROXL%-4sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 					case 39: case 47: case 55:
 						//ROL.z  Ds,Dd
-						sprintf(Dbg_Str, "ROL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), (OPC >> 9) & 0x7, ((OPC & 0x7)?OPC & 0x7:8), 0);
+						sprintf(Dbg_Str, "ROL%-5sD%.1d,D%.1d%c", Make_Dbg_Size_Str((OPC >> 6) & 0x3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8,OPC & 0x7, 0);
 						break;
 
 				}
@@ -1499,10 +1499,10 @@ char *M68KDisasm2(unsigned short (*NW)(), unsigned int (*NL)(), unsigned int hoo
 			{
 				if (OPC & 0x100)
 					//SUBQ.z  #k3,a
-					sprintf(Dbg_Str, "SUBQ%-4s#%.1d,%s%c", Make_Dbg_Size_Str((OPC >> 6) & 3), (OPC >> 9) & 0x7, Make_Dbg_EA_Str((OPC >> 6) & 3, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+					sprintf(Dbg_Str, "SUBQ%-4s#%.1d,%s%c", Make_Dbg_Size_Str((OPC >> 6) & 3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8, Make_Dbg_EA_Str((OPC >> 6) & 3, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 				else
 					//ADDQ.z  #k3,a
-					sprintf(Dbg_Str, "ADDQ%-4s#%.1d,%s%c", Make_Dbg_Size_Str((OPC >> 6) & 3), (OPC >> 9) & 0x7, Make_Dbg_EA_Str((OPC >> 6) & 3, (OPC & 0x38) >> 3, ((OPC & 0x7)?OPC & 0x7:8)), 0);
+					sprintf(Dbg_Str, "ADDQ%-4s#%.1d,%s%c", Make_Dbg_Size_Str((OPC >> 6) & 3), ((OPC >> 9) & 0x7)?(OPC >> 9) & 0x7:8, Make_Dbg_EA_Str((OPC >> 6) & 3, (OPC & 0x38) >> 3, OPC & 0x7), 0);
 				break;
 			}
 			break;

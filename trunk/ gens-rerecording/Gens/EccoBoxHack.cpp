@@ -57,7 +57,8 @@ void EccoDraw3D()
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 }
-
+#endif
+#if (defined ECCOBOXHACK) || (defined ECCO1BOXHACK)
 void EccoDrawBoxes()
 {
 //	CamX-=8;
@@ -392,9 +393,14 @@ void EccoDrawBoxes()
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//animate objects
+#ifdef ECCOBOXHACK
 	CardBoard = CheatRead<unsigned int>(0xFFCFB8);
+#else
+	CardBoard = CheatRead<unsigned int>(0xFFD828); 
+#endif
 	while (CardBoard)
 	{
+#ifdef ECCOBOXHACK
 		unsigned short flags = CheatRead<unsigned short>(CardBoard + 0x10);
 		//if ((flags & 0x2000) || !(flags & 2));
 		unsigned int type = CheatRead<unsigned long>(CardBoard + 0xC);
@@ -454,18 +460,35 @@ void EccoDrawBoxes()
 			Ypos -= CamY, Ypos2 -= CamY;
 			Xmid -= CamX, Ymid -= CamY;
 			if (type == 0xA6C4A) DrawEccoOct(Xmid,Ymid,70,0x00FF00,0x07E0,1,-1);
+#else
+			unsigned int type = CheatRead<unsigned long>(CardBoard + 0x6);
+			Xpos = CheatRead<unsigned short>(CardBoard + 0x17);
+			Xpos2= CheatRead<unsigned short>(CardBoard + 0x1F);
+			Ypos = CheatRead<unsigned short>(CardBoard + 0x1B);
+			Ypos2= CheatRead<unsigned short>(CardBoard + 0x23);
+			Xmid = CheatRead<unsigned short>(CardBoard + 0x0F);
+			Ymid = CheatRead<unsigned short>(CardBoard + 0x13);
+			Xpos >>= 2, Xpos2 >>= 2;
+			Ypos >>= 2, Ypos2 >>= 2;
+			Xmid >>= 2, Ymid >>= 2;
+			Xpos -= CamX, Xpos2 -= CamX;
+			Ypos -= CamY, Ypos2 -= CamY;
+			Xmid -= CamX, Ymid -= CamY;
+#endif
 			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FF00,0x07E0,1,-1);
-			Xpos += Xpos2;
-			Ypos += Ypos2;
-			Xpos >>= 1;
-			Ypos >>= 1;
+//			Xpos += Xpos2;
+//			Ypos += Ypos2;
+//			Xpos >>= 1;
+//			Ypos >>= 1;
+#ifdef ECCOBOXHACK
 		}
+#endif
 		sprintf(Str_Tmp,"%08X",type);
-		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(0,Ypos-5),216),BLEU);
-		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(2,Ypos-3),218),BLEU);
-		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(2,Ypos-3),218),BLEU);
-		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(0,Ypos-5),216),BLEU);
-		Print_Text(Str_Tmp,8,min(max(1,Xpos-15),286),min(max(1,Ypos-4),217),ROUGE);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(0,Ymid-5),216),BLEU);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(2,Ymid-3),218),BLEU);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(2,Ymid-3),218),BLEU);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(0,Ymid-5),216),BLEU);
+		Print_Text(Str_Tmp,8,min(max(1,Xmid-15),286),min(max(1,Ymid-4),217),ROUGE);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//events
