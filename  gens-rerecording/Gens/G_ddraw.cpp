@@ -93,8 +93,10 @@ int (*Update_Frame_Fast)();
 
 
 //#define MAPHACK
-#ifndef MAPHACK
+#ifndef SONICMAPHACK
 #define Update_RAM_Cheats(); 
+#else
+#include "SonicHackSuite.h"
 #endif
 
 #define DUMPAVICLEAN \
@@ -131,13 +133,10 @@ int (*Update_Frame_Fast)();
 	}
 #ifdef SONICCAMHACK
 #include "SonicHackSuite.h"
-#include "HacksCommon.h"
 #elif defined RKABOXHACK
 #include "RKABoxHack.h"
-#include "HacksCommon.h"
-#elif defined ECCOBOXHACK
+#elif (defined ECCOBOXHACK) || (defined ECCO1BOXHACK)
 #include "EccoBoxHack.h"
-#include "HacksCommon.h"
 #endif
 
 int Update_Frame_Adjusted()
@@ -190,29 +189,29 @@ int Update_Frame_Hook()
 			RKADrawBoxes();
 			CamX = CheatRead<short>(0xFFB158);
 			CamY = CheatRead<short>(0xFFB1D6);
-		#elif defined ECCOBOXHACK
+		#elif (defined ECCOBOXHACK) || (defined ECCO1BOXHACK) 
 			unsigned char curlev = CheatRead<unsigned char>(0xFFA7E0);
 			static int PrevX = 0,PrevY = 0;
 			int xpos,ypos;
-			switch (CheatRead<unsigned char>(0xFFA555))
-			{
-				case 0x20:
-				case 0x28:
-				case 0xAC:
+//			switch (CheatRead<unsigned char>(0xFFA555))
+//			{
+//				case 0x20:
+//				case 0x28:
+//				case 0xAC:
 					EccoDrawBoxes();
 					xpos = CheatRead<int>(0xFFA8F0);
 					ypos = CheatRead<int>(0xFFA8F4);
-					break;
-				case 0xF6:
-					EccoDraw3D();
-					xpos = ypos = CheatRead<int>(0xFFB13E);
-					break;
-				default:
-					xpos = PrevX + 1;
-					ypos = PrevY + 1;
-			}
-			if ((xpos == PrevX) && (ypos == PrevY) && CheatRead<int>(0xFFAA32)) Lag_Frame = 1;
-			else	PrevX = xpos,PrevY = ypos;
+//					break;
+//				case 0xF6:
+//					EccoDraw3D();
+//					xpos = ypos = CheatRead<int>(0xFFB13E);
+//					break;
+//				default:
+//					xpos = PrevX + 1;
+//					ypos = PrevY + 1;
+//			}
+//			if ((xpos == PrevX) && (ypos == PrevY) && CheatRead<int>(0xFFAA32)) Lag_Frame = 1;
+//			else	PrevX = xpos,PrevY = ypos;
 			CamX = CheatRead<short>(CAMXPOS);
 			CamY = CheatRead<short>(CAMYPOS);
 		#endif

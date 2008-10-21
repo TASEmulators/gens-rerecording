@@ -186,6 +186,7 @@ void Pixel (short x, short y, unsigned int color32, unsigned short color16, char
 		}
 		else wrap = 0;	// if it's not offscreen, end this loop early
 	}
+	if ((x < 0) || (x > 319) || (y < 0) || (y > 223)) return;
 	x = max(0,min(319,x));
 	y = max(0,min(223,y));
 	x+=8;
