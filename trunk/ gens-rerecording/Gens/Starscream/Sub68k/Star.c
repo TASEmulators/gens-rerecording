@@ -256,7 +256,7 @@ static void gen_variables(void) {
 
 	emit("\n");
 	emit("\textern Ram_68k\n");
-	emit("\textern _GensTrace_cd\n");
+	emit("\textern _hook_exec_cd\n");
 
 	emit("\textern _hook_read_byte_cd\n");
 	emit("\textern _hook_read_word_cd\n");
@@ -722,7 +722,7 @@ emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
 emit("mov [_hook_pc_cd],esi\n");
-emit("call _GensTrace_cd\n");
+emit("call _hook_exec_cd\n");
 emit("popad\n");
 
 	emit("jmp dword[__jmptbl+ebx*4]\n");
@@ -1335,7 +1335,7 @@ emit("ror ah,4\n");
 emit("or al,ah\n");
 emit("mov [__sr],al\n");
 
-emit("call _GensTrace_cd\n");
+emit("call _hook_exec_cd\n");
 emit("popad\n");
 
 		emit("jmp dword[__jmptbl+ebx*4]\n");

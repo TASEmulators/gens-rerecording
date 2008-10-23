@@ -332,6 +332,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\corehooks.cpp"
+				>
+			</File>
+			<File
 				RelativePath="Cpu_68k.c"
 				>
 				<FileConfiguration
@@ -1412,6 +1416,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Corehooks.h"
+				>
+			</File>
+			<File
 				RelativePath="Cpu_68k.h"
 				>
 			</File>
@@ -1573,6 +1581,10 @@
 			</File>
 			<File
 				RelativePath="Star_68k.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tracer.h"
 				>
 			</File>
 			<File
