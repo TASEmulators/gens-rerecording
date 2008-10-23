@@ -1974,7 +1974,7 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 	return reachedEmulate;
 }
 
-int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
+int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) //note: nCmdShow is always one indicating that lpCmdLine contains something (even when it doesn't)
 {
 ///////////////////////////////////////////////////
 
@@ -2078,8 +2078,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// Have to do it *before* load by command line
 	Init_Genesis_Bios();
 
-	ParseCmdLine(lpCmdLine, HWnd);
-
+	if (lpCmdLine[0])ParseCmdLine(lpCmdLine, HWnd);
+	
 	for (char r = 0; r <= 0x1F; r++)
 	{
 		for (char g = 0; g <= 0x3F; g++)
