@@ -256,7 +256,7 @@ static void gen_variables(void) {
 
 	emit("\n");
 	emit("\textern Ram_68k\n");
-	emit("\textern _GensTrace\n");
+	emit("\textern _hook_exec\n");
 
 	emit("\textern _hook_read_byte\n");
 	emit("\textern _hook_read_word\n");
@@ -703,7 +703,7 @@ emit("js near execquit\n");
 	emit("sub esi,ebp\n");
 	emit("sub esi,byte 2\n");
 	emit("mov [_hook_pc],esi\n");
-	emit("call _GensTrace\n");
+	emit("call _hook_exec\n");
 	emit("popad\n");
 	
 	emit("jmp dword[__jmptbl+ebx*4]\n");
@@ -1259,7 +1259,7 @@ static void ret_timing(int n) {
 		emit("or al,ah\n");
 		emit("mov [__sr],al\n");
 		
-		emit("call _GensTrace\n");
+		emit("call _hook_exec\n");
 		emit("popad\n");
 		
 		emit("jmp dword[__jmptbl+ebx*4]\n");

@@ -25,23 +25,23 @@ extern bool trace_map;
 extern bool hook_trace;
 
 extern "C" {
-	uint32 hook_address;
-	uint32 hook_value;
-	uint32 hook_pc;
+	extern uint32 hook_address;
+	extern uint32 hook_value;
+	extern uint32 hook_pc;
 	
 	unsigned int dma_src, dma_len;
 
-	void hook_read_byte();
-	void hook_read_word();
-	void hook_read_dword();
-	void hook_write_byte();
-	void hook_write_word();
-	void hook_write_dword();
+	void trace_read_byte();
+	void trace_read_word();
+	void trace_read_dword();
+	void trace_write_byte();
+	void trace_write_word();
+	void trace_write_dword();
 
-	void hook_write_vram_byte();
-	void hook_write_vram_word();
-	void hook_read_vram_byte();
-	void hook_read_vram_word();
+	void trace_write_vram_byte();
+	void trace_write_vram_word();
+	void trace_read_vram_byte();
+	void trace_read_vram_word();
 
 	void hook_dma();
 	void hook_vdp_reg();
@@ -181,7 +181,7 @@ void GensTrace()
 }
 
 
-void hook_read_byte()
+void trace_read_byte()
 {
 	unsigned int start, stop;
 
@@ -242,7 +242,7 @@ void hook_read_byte()
 }
 
 
-void hook_read_word()
+void trace_read_word()
 {
 	unsigned int start, stop;
 
@@ -303,7 +303,7 @@ void hook_read_word()
 }
 
 
-void hook_read_dword()
+void trace_read_dword()
 {
 	unsigned int start, stop;
 
@@ -362,7 +362,7 @@ void hook_read_dword()
 			hook_value & 0xffffffff, hook_address );
 	}
 }
-void hook_write_byte()
+void trace_write_byte()
 {
 	unsigned int start, stop;
 
@@ -370,6 +370,8 @@ void hook_write_byte()
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
+
+	if (hook_address >= 0x00e00000) hook_address |= 0x00ff0000;
 
 	start = hook_address;
 	stop = start + 0;
@@ -428,7 +430,7 @@ void hook_write_byte()
 }
 
 
-void hook_write_word()
+void trace_write_word()
 {
 	unsigned int start, stop;
 
@@ -489,7 +491,7 @@ void hook_write_word()
 }
 
 
-void hook_write_dword()
+void trace_write_dword()
 {
 	unsigned int start, stop;
 
@@ -704,7 +706,7 @@ void hook_dma()
 }
 
 
-void hook_write_vram_byte()
+void trace_write_vram_byte()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -783,7 +785,7 @@ void hook_write_vram_byte()
 }
 
 
-void hook_write_vram_word()
+void trace_write_vram_word()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -862,7 +864,7 @@ void hook_write_vram_word()
 }
 
 
-void hook_read_vram_byte()
+void trace_read_vram_byte()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -941,7 +943,7 @@ void hook_read_vram_byte()
 }
 
 
-void hook_read_vram_word()
+void trace_read_vram_word()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;

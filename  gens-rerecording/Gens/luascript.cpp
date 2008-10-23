@@ -89,11 +89,99 @@ static const char* luaCallIDStrings [] =
 	"CALL_BEFORESAVE",
 	"CALL_AFTERLOAD",
 };
+
 static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0];
 
 void StopScriptIfFinished(int uid, bool justReturned = false);
 
-int registerbefore(lua_State* L)
+int add_memory_proc (int *list, int addr, int &numprocs)
+{
+	if (numprocs >= 16) return 1;
+	int i = 0;
+	while ((i < numprocs) && (list[i] < addr))
+		i++;
+	for (int j = numprocs; j >= i; j--)
+		list[j] = list[j-i];
+	list[i] = addr;
+	numprocs++;
+	return 0;
+}
+int del_memory_proc (int *list, int addr, int &numprocs)
+{
+	if (numprocs <= 0) return 1;
+	int i = 0;
+//	bool found = false;
+	while ((i < numprocs) && (list[i] != addr))
+		i++;
+	if (list[i] == addr)
+	{
+		while (i < numprocs)
+		{
+			list[i] = list[i+1];
+			i++;
+		}
+		list[i]=0;
+		return 0;
+	}
+	else return 1;
+}
+#define memreg(proc)\
+int proc##_writelist[16];\
+int proc##_readlist[16];\
+int proc##_execlist[16];\
+int proc##_numwritefuncs = 0;\
+int proc##_numreadfuncs = 0;\
+int proc##_numexecfuncs = 0;\
+int memory_register##proc##write (lua_State* L)\
+{\
+	unsigned int addr = luaL_checkinteger(L, 1);\
+	char Name[16];\
+	sprintf(Name,#proc"_W%08X",addr);\
+	if (lua_type(L,2) != LUA_TNIL && lua_type(L,2) != LUA_TFUNCTION)\
+		luaL_error(L, "function or nil expected in arg 2 to memory.register" #proc "write");\
+	lua_setfield(L, LUA_REGISTRYINDEX, Name);\
+	if (lua_type(L,2) == LUA_TNIL) \
+		del_memory_proc(proc##_writelist, addr, proc##_numwritefuncs);\
+	else \
+		if (add_memory_proc(proc##_writelist, addr, proc##_numwritefuncs)) \
+			luaL_error(L, #proc "write hook registry is full.");\
+	return 0;\
+}\
+int memory_register##proc##read (lua_State* L)\
+{\
+	unsigned int addr = luaL_checkinteger(L, 1);\
+	char Name[16];\
+	sprintf(Name,#proc"_R%08X",addr);\
+	if (lua_type(L,2) != LUA_TNIL && lua_type(L,2) != LUA_TFUNCTION)\
+		luaL_error(L, "function or nil expected in arg 2 to memory.register" #proc "write");\
+	lua_setfield(L, LUA_REGISTRYINDEX, Name);\
+	if (lua_type(L,2) == LUA_TNIL) \
+		del_memory_proc(proc##_readlist, addr, proc##_numreadfuncs);\
+	else \
+		if (add_memory_proc(proc##_readlist, addr, proc##_numreadfuncs)) \
+			luaL_error(L, #proc "read hook registry is full.");\
+	return 0;\
+}\
+int memory_register##proc##exec (lua_State* L)\
+{\
+	unsigned int addr = luaL_checkinteger(L, 1);\
+	char Name[16];\
+	sprintf(Name,#proc"_E%08X",addr);\
+	if (lua_type(L,2) != LUA_TNIL && lua_type(L,2) != LUA_TFUNCTION)\
+		luaL_error(L, "function or nil expected in arg 2 to memory.register" #proc "write");\
+	lua_setfield(L, LUA_REGISTRYINDEX, Name);\
+	if (lua_type(L,2) == LUA_TNIL) \
+		del_memory_proc(proc##_execlist, addr, proc##_numexecfuncs);\
+	else \
+		if (add_memory_proc(proc##_execlist, addr, proc##_numexecfuncs)) \
+			luaL_error(L, #proc "exec hook registry is full.");\
+	return 0;\
+}
+memreg(M68K)
+memreg(S68K)
+//memreg(SH2)
+//memreg(Z80)
+int gens_registerbefore(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -101,7 +189,7 @@ int registerbefore(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
-int registerafter(lua_State* L)
+int gens_registerafter(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -109,7 +197,7 @@ int registerafter(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
-int registerexit(lua_State* L)
+int gens_registerexit(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -117,7 +205,7 @@ int registerexit(lua_State* L)
 	//StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
-int registergui(lua_State* L)
+int gui_register(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -125,7 +213,7 @@ int registergui(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
-int registersave(lua_State* L)
+int state_registersave(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -133,7 +221,7 @@ int registersave(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
-int registerload(lua_State* L)
+int state_registerload(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -272,7 +360,7 @@ static const char* toCString(lua_State* L)
 	return str;
 }
 
-static int message(lua_State* L)
+static int gens_message(lua_State* L)
 {
 	const char* str = toCString(L);
 	Put_Info((char*)str, 500);
@@ -380,7 +468,7 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 	}
 }
 
-int emulateframe(lua_State* L)
+int gens_emulateframe(lua_State* L)
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -391,7 +479,7 @@ int emulateframe(lua_State* L)
 	return 0;
 }
 
-int emulateframefastnoskipping(lua_State* L)
+int gens_emulateframefastnoskipping(lua_State* L)
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -404,7 +492,7 @@ int emulateframefastnoskipping(lua_State* L)
 	return 0;
 }
 
-int emulateframefast(lua_State* L)
+int gens_emulateframefast(lua_State* L)
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -428,7 +516,7 @@ int emulateframefast(lua_State* L)
 	return 0;
 }
 
-int emulateframeinvisible(lua_State* L)
+int gens_emulateframeinvisible(lua_State* L)
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -454,7 +542,7 @@ int emulateframeinvisible(lua_State* L)
 	return 0;
 }
 
-int speedmode(lua_State* L)
+int gens_speedmode(lua_State* L)
 {
 	SpeedMode newSpeedMode = SPEEDMODE_NORMAL;
 	if(lua_isnumber(L,1))
@@ -477,7 +565,7 @@ int speedmode(lua_State* L)
 	return 0;
 }
 
-int genswait(lua_State* L)
+int gens_wait(lua_State* L)
 {
 	LuaContextInfo& info = *luaStateToContextMap[L];
 
@@ -496,7 +584,7 @@ int genswait(lua_State* L)
 	return 0;
 }
 
-int frameadvance(lua_State* L)
+int gens_frameadvance(lua_State* L)
 {
 	int uid = luaStateToUIDMap[L];
 	LuaContextInfo& info = *luaStateToContextMap[L];
@@ -518,26 +606,26 @@ int frameadvance(lua_State* L)
 		case SPEEDMODE_NOTHROTTLE:
 			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
 			if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
-				emulateframefastnoskipping(L);
+				gens_emulateframefastnoskipping(L);
 			else
-				emulateframefast(L);
+				gens_emulateframefast(L);
 			break;
 		case SPEEDMODE_TURBO:
 			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			emulateframefast(L);
+			gens_emulateframefast(L);
 			break;
 		case SPEEDMODE_MAXIMUM:
 			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			emulateframeinvisible(L);
+			gens_emulateframeinvisible(L);
 			break;
 	}
 	return 0;
 }
 
-int genspause(lua_State* L)
+int gens_pause(lua_State* L)
 {
 	Paused = 1;
-	frameadvance(L);
+	gens_frameadvance(L);
 
 	// allow the user to not have to manually unpause
 	// after restarting a script that used gens.pause()
@@ -552,7 +640,7 @@ int genspause(lua_State* L)
 
 
 
-int readbyte(lua_State* L)
+int memory_readbyte(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned char value = (unsigned char)(ReadValueAtHardwareAddress(address, 1) & 0xFF);
@@ -560,7 +648,7 @@ int readbyte(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1; // we return the number of return values
 }
-int readbytesigned(lua_State* L)
+int memory_readbytesigned(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	signed char value = (signed char)(ReadValueAtHardwareAddress(address, 1) & 0xFF);
@@ -568,7 +656,7 @@ int readbytesigned(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int readword(lua_State* L)
+int memory_readword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned short value = (unsigned short)(ReadValueAtHardwareAddress(address, 2) & 0xFFFF);
@@ -576,7 +664,7 @@ int readword(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int readwordsigned(lua_State* L)
+int memory_readwordsigned(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	signed short value = (signed short)(ReadValueAtHardwareAddress(address, 2) & 0xFFFF);
@@ -584,7 +672,7 @@ int readwordsigned(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int readdword(lua_State* L)
+int memory_readdword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(ReadValueAtHardwareAddress(address, 4));
@@ -592,7 +680,7 @@ int readdword(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int readdwordsigned(lua_State* L)
+int memory_readdwordsigned(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	signed long value = (signed long)(ReadValueAtHardwareAddress(address, 4));
@@ -601,21 +689,21 @@ int readdwordsigned(lua_State* L)
 	return 1;
 }
 
-int writebyte(lua_State* L)
+int memory_writebyte(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned char value = (unsigned char)(luaL_checkinteger(L,2) & 0xFF);
 	WriteValueAtHardwareAdress(address, value, 1);
 	return 0;
 }
-int writeword(lua_State* L)
+int memory_writeword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned short value = (unsigned short)(luaL_checkinteger(L,2) & 0xFFFF);
 	WriteValueAtHardwareAdress(address, value, 2);
 	return 0;
 }
-int writedword(lua_State* L)
+int memory_writedword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
@@ -623,7 +711,7 @@ int writedword(lua_State* L)
 	return 0;
 }
 
-int statecreate(lua_State* L)
+int state_create(lua_State* L)
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 	{
@@ -640,7 +728,7 @@ int statecreate(lua_State* L)
 
 	return 1;
 }
-int stateget(lua_State* L)
+int state_get(lua_State* L)
 {
 	void* stateBuffer = lua_touserdata(L,1);
 
@@ -649,7 +737,7 @@ int stateget(lua_State* L)
 
 	return 1;
 }
-int stateset(lua_State* L)
+int state_set(lua_State* L)
 {
 	void* stateBuffer = lua_touserdata(L,1);
 
@@ -658,7 +746,7 @@ int stateset(lua_State* L)
 
 	return 0;
 }
-int statesave(lua_State* L)
+int state_save(lua_State* L)
 {
 	int stateNumber = luaL_checkinteger(L,1);
 	Set_Current_State(stateNumber);
@@ -667,7 +755,7 @@ int statesave(lua_State* L)
 	Save_State(Str_Tmp);
 	return 0;
 }
-int stateload(lua_State* L)
+int state_load(lua_State* L)
 {
 	int stateNumber = luaL_checkinteger(L,1);
 	Set_Current_State(stateNumber);
@@ -712,7 +800,7 @@ s_buttonDescs [] =
 };
 
 
-int joyset(lua_State* L)
+int joy_set(lua_State* L)
 {
 	int controllerNumber = luaL_checkinteger(L,1);
 
@@ -745,7 +833,7 @@ int joyset(lua_State* L)
 
 	return 0;
 }
-int joyget(lua_State* L)
+int joy_get(lua_State* L)
 {
 	int controllerNumber = luaL_checkinteger(L,1);
 	lua_newtable(L);
@@ -824,7 +912,7 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 	return defaultColor;
 }
 
-int guitext(lua_State* L)
+int gui_text(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0; // we have to wait until later to call this function because gens hasn't emulated the next frame yet
@@ -842,7 +930,7 @@ int guitext(lua_State* L)
 
 	return 0;
 }
-int guibox(lua_State* L)
+int gui_box(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -858,7 +946,7 @@ int guibox(lua_State* L)
 
 	return 0;
 }
-int guipixel(lua_State* L)
+int gui_pixel(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -874,7 +962,7 @@ int guipixel(lua_State* L)
 
 	return 0;
 }
-int guiline(lua_State* L)
+int gui_line(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -893,59 +981,59 @@ int guiline(lua_State* L)
 	return 0;
 }
 
-int getframecount(lua_State* L)
+int gens_getframecount(lua_State* L)
 {
 	lua_pushinteger(L, FrameCount);
 	return 1;
 }
-int getlagcount(lua_State* L)
+int gens_getlagcount(lua_State* L)
 {
 	lua_pushinteger(L, LagCountPersistent);
 	return 1;
 }
-int getmovielength(lua_State* L)
+int movie_getlength(lua_State* L)
 {
 	lua_pushinteger(L, MainMovie.LastFrame);
 	return 1;
 }
-int ismovieactive(lua_State* L)
+int movie_isactive(lua_State* L)
 {
 	lua_pushboolean(L, MainMovie.File != NULL);
 	return 1;
 }
-int getrerecordcount(lua_State* L)
+int movie_rerecordcount(lua_State* L)
 {
 	lua_pushinteger(L, MainMovie.NbRerecords);
 	return 1;
 }
-int getreadonly(lua_State* L)
+int movie_getreadonly(lua_State* L)
 {
 	lua_pushboolean(L, MainMovie.ReadOnly);
 	return 1;
 }
-int setreadonly(lua_State* L)
+int movie_setreadonly(lua_State* L)
 {
 	bool readonly = lua_toboolean(L,1) != 0;
 	MainMovie.ReadOnly = readonly;
 	return 0;
 }
-int ismovierecording(lua_State* L)
+int movie_isrecording(lua_State* L)
 {
 	lua_pushboolean(L, MainMovie.Status == MOVIE_RECORDING);
 	return 1;
 }
-int ismovieplaying(lua_State* L)
+int movie_isplaying(lua_State* L)
 {
 	lua_pushboolean(L, MainMovie.Status == MOVIE_PLAYING);
 	return 1;
 }
-int getmoviename(lua_State* L)
+int movie_getname(lua_State* L)
 {
 	lua_pushstring(L, MainMovie.FileName);
 	return 1;
 }
 
-int clearaudio(lua_State* L)
+int sound_clear(lua_State* L)
 {
 	Clear_Sound_Buffer();
 	return 0;
@@ -963,96 +1051,148 @@ int dontworry(lua_State* L)
 
 static const struct luaL_reg genslib [] =
 {
-	{"frameadvance", frameadvance},
-	{"speedmode", speedmode},
-	{"wait", genswait},
-	{"pause", genspause},
-	{"emulateframe", emulateframe},
-	{"emulateframefastnoskipping", emulateframefastnoskipping},
-	{"emulateframefast", emulateframefast},
-	{"emulateframeinvisible", emulateframeinvisible},
-	{"framecount", getframecount},
-	{"lagcount", getlagcount},
-	{"registerbefore", registerbefore},
-	{"registerafter", registerafter},
-	{"registerexit", registerexit},
-	{"message", message},
+	{"frameadvance", gens_frameadvance},
+	{"speedmode", gens_speedmode},
+	{"wait", gens_wait},
+	{"pause", gens_pause},
+	{"emulateframe", gens_emulateframe},
+	{"emulateframefastnoskipping", gens_emulateframefastnoskipping},
+	{"emulateframefast", gens_emulateframefast},
+	{"emulateframeinvisible", gens_emulateframeinvisible},
+	{"framecount", gens_getframecount},
+	{"lagcount", gens_getlagcount},
+	{"registerbefore", gens_registerbefore},
+	{"registerafter", gens_registerafter},
+	{"registerexit", gens_registerexit},
+	{"message", gens_message},
 	{NULL, NULL}
 };
 static const struct luaL_reg guilib [] =
 {
-	{"register", registergui},
-	{"text", guitext},
-	{"box", guibox},
-	{"pixel", guipixel},
-	{"line", guiline},
+	{"register", gui_register},
+	{"text", gui_text},
+	{"box", gui_box},
+	{"pixel", gui_pixel},
+	{"line", gui_line},
 	// alternative names
-	{"drawtext", guitext},
-	{"drawbox", guibox},
-	{"drawpixel", guipixel},
-	{"drawline", guiline},
+	{"drawtext", gui_text},
+	{"drawbox", gui_box},
+	{"drawpixel", gui_pixel},
+	{"drawline", gui_line},
 	{NULL, NULL}
 };
 static const struct luaL_reg statelib [] =
 {
-	{"create", statecreate},
-	{"set", stateset},
-	{"get", stateget},
-	{"save", statesave},
-	{"load", stateload},
-	{"registersave", registersave},
-	{"registerload", registerload},
+	{"create", state_create},
+	{"set", state_set},
+	{"get", state_get},
+	{"save", state_save},
+	{"load", state_load},
+	{"registersave", state_registersave},
+	{"registerload", state_registerload},
 	{NULL, NULL}
 };
 static const struct luaL_reg memorylib [] =
 {
-	{"readbyte", readbyte},
-	{"readbyteunsigned", readbyte},
-	{"readbytesigned", readbytesigned},
-	{"readword", readword},
-	{"readwordunsigned", readword},
-	{"readwordsigned", readwordsigned},
-	{"readdword", readdword},
-	{"readdwordunsigned", readdword},
-	{"readdwordsigned", readdwordsigned},
-	{"writebyte", writebyte},
-	{"writeword", writeword},
-	{"writedword", writedword},
+	{"readbyte", memory_readbyte},
+	{"readbyteunsigned", memory_readbyte},
+	{"readbytesigned", memory_readbytesigned},
+	{"readword", memory_readword},
+	{"readwordunsigned", memory_readword},
+	{"readwordsigned", memory_readwordsigned},
+	{"readdword", memory_readdword},
+	{"readdwordunsigned", memory_readdword},
+	{"readdwordsigned", memory_readdwordsigned},
+	{"writebyte", memory_writebyte},
+	{"writeword", memory_writeword},
+	{"writedword", memory_writedword},
 	// alternate naming scheme for word and double-word
-	{"readshort", readword},
-	{"readshortunsigned", readword},
-	{"readshortsigned", readwordsigned},
-	{"readlong", readdword},
-	{"readlongunsigned", readdword},
-	{"readlongsigned", readdwordsigned},
-	{"writeshort", writeword},
-	{"writelong", writedword},
+	{"readshort", memory_readword},
+	{"readshortunsigned", memory_readword},
+	{"readshortsigned", memory_readwordsigned},
+	{"readlong", memory_readdword},
+	{"readlongunsigned", memory_readdword},
+	{"readlongsigned", memory_readdwordsigned},
+	{"writeshort", memory_writeword},
+	{"writelong", memory_writedword},
+
+	//main 68000 memory hooks
+	{"register", memory_registerM68Kwrite},
+	{"registerwrite", memory_registerM68Kwrite},
+	{"registerread", memory_registerM68Kread},
+	{"registerexec", memory_registerM68Kexec},
+
+	//full names for main 68000 memory hooks
+	{"registerM68K", memory_registerM68Kwrite},
+	{"registerM68Kwrite", memory_registerM68Kwrite},
+	{"registerM68Kread", memory_registerM68Kread},
+	{"registerM68Kexec", memory_registerM68Kexec},
+
+	//alternate names for main 68000 memory hooks
+	{"registergen", memory_registerM68Kwrite},
+	{"registergenwrite", memory_registerM68Kwrite},
+	{"registergenread", memory_registerM68Kread},
+	{"registergenexec", memory_registerM68Kexec},
+
+	//sub 68000 (segaCD) memory hooks
+	{"registerS68K", memory_registerS68Kwrite},
+	{"registerS68Kwrite", memory_registerS68Kwrite},
+	{"registerS68Kread", memory_registerS68Kread},
+	{"registerS68Kexec", memory_registerS68Kexec},
+
+	//alternate names for sub 68000 (segaCD) memory hooks
+	{"registerCD", memory_registerS68Kwrite},
+	{"registerCDwrite", memory_registerS68Kwrite},
+	{"registerCDread", memory_registerS68Kread},
+	{"registerCDexec", memory_registerS68Kexec},
+
+//	//Super-H 2 (32X) memory hooks
+//	{"registerSH2", memory_registerSH2write},
+//	{"registerSH2write", memory_registerSH2write},
+//	{"registerSH2read", memory_registerSH2read},
+//	{"registerSH2exec", memory_registerSH2PC},
+//	{"registerSH2PC", memory_registerSH2PC},
+
+//	//alternate names for Super-H 2 (32X) memory hooks
+//	{"register32X", memory_registerSH2write},
+//	{"register32Xwrite", memory_registerSH2write},
+//	{"register32Xread", memory_registerSH2read},
+//	{"register32Xexec", memory_registerSH2PC},
+//	{"register32XPC", memory_registerSH2PC},
+
+//	//Z80 (sound controller) memory hooks
+//	{"registerZ80", memory_registerZ80write},
+//	{"registerZ80write", memory_registerZ80write},
+//	{"registerZ80read", memory_registerZ80read},
+//	{"registerZ80PC", memory_registerZ80PC},
+
 	{NULL, NULL}
 };
 static const struct luaL_reg joylib [] =
 {
-	{"get", joyget},
-	{"set", joyset},
-	{"read", joyget},
-	{"write", joyset},
+	{"get", joy_get},
+	{"set", joy_set},
+	{"read", joy_get},
+	{"write", joy_set},
 	{NULL, NULL}
 };
 static const struct luaL_reg movielib [] =
 {
-	{"length", getmovielength},
-	{"active", ismovieactive},
-	{"recording", ismovierecording},
-	{"playing", ismovieplaying},
-	{"name", getmoviename},
-	{"rerecordcount", getrerecordcount},
-	{"readonly", getreadonly},
-	{"getreadonly", getreadonly},
-	{"setreadonly", setreadonly},
+	{"length", movie_getlength},
+	{"active", movie_isactive},
+	{"recording", movie_isrecording},
+	{"playing", movie_isplaying},
+	{"name", movie_getname},
+	{"getname", movie_getname},
+	{"rerecordcount", movie_rerecordcount},
+	{"readonly", movie_getreadonly},
+	{"getreadonly", movie_getreadonly},
+	{"setreadonly", movie_setreadonly},
 	{NULL, NULL}
 };
 static const struct luaL_reg soundlib [] =
 {
-	{"clear", clearaudio},
+	{"clear", sound_clear},
 	{NULL, NULL}
 };
 

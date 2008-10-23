@@ -25,16 +25,16 @@ extern bool trace_map;
 extern bool hook_trace;
 
 extern "C" {
-	uint32 hook_address_cd;
-	uint32 hook_value_cd;
-	uint32 hook_pc_cd;
+	extern uint32 hook_address_cd;
+	extern uint32 hook_value_cd;
+	extern uint32 hook_pc_cd;
 	
-	void hook_read_byte_cd();
-	void hook_read_word_cd();
-	void hook_read_dword_cd();
-	void hook_write_byte_cd();
-	void hook_write_word_cd();
-	void hook_write_dword_cd();
+	void trace_read_byte_cd();
+	void trace_read_word_cd();
+	void trace_read_dword_cd();
+	void trace_write_byte_cd();
+	void trace_write_word_cd();
+	void trace_write_dword_cd();
 
 	void GensTrace_cd();
 };
@@ -227,7 +227,7 @@ void GensTrace_cd()
 }
 
 
-void hook_read_byte_cd()
+void trace_read_byte_cd()
 {
 	unsigned int start, stop;
 
@@ -288,7 +288,7 @@ void hook_read_byte_cd()
 }
 
 
-void hook_read_word_cd()
+void trace_read_word_cd()
 {
 	unsigned int start, stop;
 
@@ -349,7 +349,7 @@ void hook_read_word_cd()
 }
 
 
-void hook_read_dword_cd()
+void trace_read_dword_cd()
 {
 	unsigned int start, stop;
 
@@ -410,7 +410,7 @@ void hook_read_dword_cd()
 }
 
 
-void hook_write_byte_cd()
+void trace_write_byte_cd()
 {
 	unsigned int start, stop;
 
@@ -471,7 +471,7 @@ void hook_write_byte_cd()
 }
 
 
-void hook_write_word_cd()
+void trace_write_word_cd()
 {
 	unsigned int start, stop;
 
@@ -532,7 +532,7 @@ void hook_write_word_cd()
 }
 
 
-void hook_write_dword_cd()
+void trace_write_dword_cd()
 {
 	unsigned int start, stop;
 
@@ -747,7 +747,7 @@ void hook_dma()
 }
 
 
-void hook_write_vram_byte()
+void trace_write_vram_byte()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -826,7 +826,7 @@ void hook_write_vram_byte()
 }
 
 
-void hook_write_vram_word()
+void trace_write_vram_word()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -905,7 +905,7 @@ void hook_write_vram_word()
 }
 
 
-void hook_read_vram_byte()
+void trace_read_vram_byte()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
@@ -984,7 +984,7 @@ void hook_read_vram_byte()
 }
 
 
-void hook_read_vram_word()
+void trace_read_vram_word()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
