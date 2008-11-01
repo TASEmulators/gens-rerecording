@@ -123,13 +123,14 @@ void OnStart(int hDlgAsInt)
 	Show_Genesis_Screen(HWnd); // otherwise we might never show the first thing the script draws
 }
 
-void OnStop(int hDlgAsInt)
+void OnStop(int hDlgAsInt, bool statusOK)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), true);
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), false);
 	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Run");
-	Show_Genesis_Screen(HWnd); // otherwise we might never show the last thing the script draws
+	if(statusOK)
+		Show_Genesis_Screen(HWnd); // otherwise we might never show the last thing the script draws
 }
 
 extern "C" int Clear_Sound_Buffer(void);
