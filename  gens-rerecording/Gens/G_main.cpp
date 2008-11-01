@@ -1912,10 +1912,10 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 		MustUpdateMenu=0;
 	}
 
-	bool reachedEmulate = false;
-
 	if (!(Genesis_Started || _32X_Started || SegaCD_Started))
-		return reachedEmulate;
+		return true;
+
+	bool reachedEmulate = false;
 
 	if((Active || BackgroundInput) && Check_Skip_Key())
 	{
@@ -2311,6 +2311,9 @@ void BeginMoviePlayback()
 		MainMovie.Status=0;
 		return;
 	}
+
+	struct Temp { Temp() {EnableStopAllLuaScripts(false);} ~Temp() {EnableStopAllLuaScripts(true);}} dontStopScriptsHere;
+
 	FrameCount=0;
 	LagCount = 0;
 	LagCountPersistent = 0;
@@ -2386,6 +2389,93 @@ void BeginMoviePlayback()
 		wsprintf(Str_Tmp, "Resuming recording from savestate. Frame %d.",FrameCount);
 	Put_Info(Str_Tmp, 4500);
 	Build_Main_Menu();
+}
+
+void PlaySubMovie();
+int LoadSubMovie(char* filename);
+void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header);
+
+const char* GensPlayMovie(const char* filename, bool silent)
+{
+	HWND hWnd = HWnd; // case sensitivity at its finest
+
+//	if(MainMovie.Status==MOVIE_RECORDING) //Modif N - disabled; if the user chose playback, they meant it!
+//		return 0;
+//	if(MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED)
+//		CloseMovieFile(&MainMovie);
+	if(!(Game))
+		if(SendMessage(hWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
+			return "no game loaded";
+
+	// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
+	if(MainMovie.Status == MOVIE_RECORDING && MainMovie.File)
+		WriteMovieHeader(&MainMovie);
+
+	if(filename == NULL)
+	{
+		// if no filename was passed in then
+		// bring up the movie dialog to choose which movie to play
+		MINIMIZE
+		DialogsOpen++;
+		DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), hWnd, (DLGPROC) PlayMovieProc);
+		if (PlayMovieCanceled)
+			return "user cancelled";
+	}
+	else
+	{
+		char tempfilename [1024];
+		strncpy(tempfilename, filename, 1024);
+		tempfilename[1023] = 0;
+
+		int gmiRV = LoadSubMovie(tempfilename);
+		if(SubMovie.Ok!=0 && (SubMovie.UseState==0 || SubMovie.StateOk!=0) && (SubMovie.StateRequired==0 || SubMovie.StateOk!=0))
+		{
+			SubMovie.ClearSRAM = true;
+			SubMovie.ReadOnly = true;
+			PlaySubMovie();
+		}
+		else
+		{
+			char header [16];
+			memcpy(header, SubMovie.Header, 16);
+			header[15] = 0;
+
+			PutSubMovieErrorInStr_Tmp(gmiRV, filename, header);
+			return Str_Tmp;
+		}
+	}
+
+	if(!silent)
+	{
+		if(SegaCD_Started && !SegaCD_Accurate)
+		{
+			DialogsOpen++;
+			int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+			DialogsOpen--;
+			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
+			if(answer == IDYES) SegaCD_Accurate = 1;
+		}
+		if(SegaCD_Started && SCD.TOC.Last_Track == 1)
+		{
+			DialogsOpen++;
+			int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+			DialogsOpen--;
+			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
+		}
+	}
+
+	BeginMoviePlayback();
+
+	return NULL; // success
+}
+void GensReplayMovie()
+{
+	if(Game && MainMovie.File)
+	{
+		FlushMovieFile(&MainMovie); // important if we were recording
+		MainMovie.Status = MOVIE_PLAYING;
+		BeginMoviePlayback();
+	}
 }
 
 
@@ -2797,12 +2887,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						SetForegroundWindow(VolControlHWnd);
 					break;
 				case ID_PLAY_FROM_START:
-					if(Game && MainMovie.File)
-					{
-						FlushMovieFile(&MainMovie); // important if we were recording
-						MainMovie.Status = MOVIE_PLAYING;
-						BeginMoviePlayback();
-					}
+					GensReplayMovie();
 					return 0;
 				case ID_RESUME_RECORD:
 					if(!(Game))
@@ -2974,41 +3059,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					return 0;
 				case ID_PLAY_MOVIE:
-//					if(MainMovie.Status==MOVIE_RECORDING) //Modif N - disabled; if the user chose playback, they meant it!
-//						return 0;
-//					if(MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED)
-//						CloseMovieFile(&MainMovie);
-					if(!(Game))
- 						if(SendMessage(hWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
-							return 0;
-
-					// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
-					if(MainMovie.Status == MOVIE_RECORDING && MainMovie.File)
-						WriteMovieHeader(&MainMovie);
-
-					MINIMIZE
-					DialogsOpen++;
-					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), hWnd, (DLGPROC) PlayMovieProc);
-					if (PlayMovieCanceled)
-						return 0;
-					if(SegaCD_Started && !SegaCD_Accurate)
-					{
-						DialogsOpen++;
-						int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
-						DialogsOpen--;
-						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
-						if(answer == IDYES) SegaCD_Accurate = 1;
-					}
-					if(SegaCD_Started && SCD.TOC.Last_Track == 1)
-					{
-						DialogsOpen++;
-						int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
-						DialogsOpen--;
-						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
-					}
-
-					BeginMoviePlayback();
-
+					GensPlayMovie(NULL, false);
 					return 0;
 				
 				case ID_SPLICE:
@@ -5638,6 +5689,101 @@ static const char* PathWithoutPrefixDotOrSlash(const char* path)
 	return path;
 }
 
+int LoadSubMovie(char* filename)
+{
+	// make the filename absolute before loading
+	if(filename[0] && filename[1] != ':')
+	{
+		char tempFile [1024], curDir [1024];
+		strncpy(tempFile, filename, 1024);
+		tempFile[1023] = 0;
+		const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
+		if(!*tempFilePtr || tempFilePtr[1] != ':')
+			strcpy(curDir, Gens_Path); // note: this should definitely not use Movie_Dir, since it only happens when Movie_Dir fails to provide an absolute path or has been temporarily overridden
+		else
+			curDir[0] = 0;
+		_snprintf(filename, 1024, "%s%s", curDir, tempFilePtr);
+	}
+
+	int gmiRV = GetMovieInfo(filename,&SubMovie);
+
+	if(!SubMovie.Ok)
+	{
+		bool wasClearSRAM = SubMovie.ClearSRAM;
+		memset(&SubMovie, 0, sizeof(typeMovie));
+		SubMovie.ClearSRAM = wasClearSRAM;
+	}
+
+	return gmiRV;
+}
+
+void PlaySubMovie()
+{
+	if(SubMovie.Ok)
+	{
+		if(MainMovie.Status) //Modif N - make sure to close existing movie, if any
+			CloseMovieFile(&MainMovie);
+		MainMovie.Status=0;
+		CopyMovie(&SubMovie,&MainMovie);
+
+		//UpthAdd - Load Controller Settings from Movie File
+		if (MainMovie.TriplePlayerHack) {
+			Controller_1_Type |= 0x10;
+			Controller_1B_Type &= ~1;
+			Controller_1C_Type &= ~1;
+		}
+		else Controller_1_Type &= ~0x10;
+		Controller_2_Type &= ~0x10;
+		if (MainMovie.PlayerConfig[0]==3) Controller_1_Type &= ~1;
+		if (MainMovie.PlayerConfig[0]==6) Controller_1_Type |= 1;
+		if (MainMovie.PlayerConfig[1]==3) Controller_2_Type &= ~1;
+		if (MainMovie.PlayerConfig[1]==6) Controller_2_Type |= 1;
+		Track1_FrameCount = MainMovie.LastFrame;
+		Track2_FrameCount = MainMovie.LastFrame;
+		Track3_FrameCount = MainMovie.LastFrame;
+		Make_IO_Table();
+		MainMovie.Status=MOVIE_PLAYING;
+		PlayMovieCanceled=0;
+	}
+}
+
+void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
+{
+	if(!SubMovie.Ok)
+	{
+		switch(gmiRV)
+		{
+		case -1:
+			{
+				int err = errno;
+				if(err == EMFILE)
+					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s (%d).", filename, strerror(err), _getmaxstdio());
+				else
+					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(err));
+			}
+			break;
+		case -2:
+			sprintf(Str_Tmp, "ERROR: File \"%s\" is less than 64 bytes and thus cannot be a GMV.", filename);
+			break;
+		case -3:
+			{
+				for(int i = 0; i < 15; i++)
+					if(!header[i])
+						strcpy(header+i,header+i+1);
+				sprintf(Str_Tmp, "ERROR: File \"%s\" starts with \"%s\" instead of \"Gens Movie\" and thus cannot be a GMV.", filename, header);
+			}
+			break;
+		default:
+			sprintf(Str_Tmp, "ERROR: File \"%s\" not loaded (reason unknown).", filename);
+			break;
+		}
+	}
+	else
+	{
+		sprintf(Str_Tmp, "ERROR: Problem loading savestate.");
+	}
+}
+
 
 LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -5701,34 +5847,15 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					switch(HIWORD(wParam))
 					{
 					case EN_CHANGE:
-					{	char filename [1024];
+					{
+						char filename [1024];
 						char header [16];
 						SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_GETTEXT,(WPARAM)512,(LPARAM)filename);
 
-						// make the filename absolute before loading
-						if(filename[0] && filename[1] != ':')
-						{
-							char tempFile [1024], curDir [1024];
-							strcpy(tempFile, filename);
-							const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
-							if(!*tempFilePtr || tempFilePtr[1] != ':')
-								strcpy(curDir, Gens_Path); // note: this should definitely not use Movie_Dir, since it only happens when Movie_Dir fails to provide an absolute path or has been temporarily overridden
-							else
-								curDir[0] = 0;
- 							sprintf(filename, "%s%s", curDir, tempFilePtr);
-						}
-
-						int gmiRV = GetMovieInfo(filename,&SubMovie);
+						int gmiRV = LoadSubMovie(filename);
 
 						memcpy(header, SubMovie.Header, 16);
 						header[15] = 0;
-
-						if(!SubMovie.Ok)
-						{
-							bool wasClearSRAM = SubMovie.ClearSRAM;
-							memset(&SubMovie, 0, sizeof(typeMovie));
-							SubMovie.ClearSRAM = wasClearSRAM;
-						}
 
 						{
 							sprintf(Str_Tmp,"%d",SubMovie.LastFrame);
@@ -5812,39 +5939,8 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),TRUE);
 						else
 						{
-							if(!SubMovie.Ok)
-							{
-								switch(gmiRV)
-								{
-								case -1:
-									{
-										int err = errno;
-										if(err == EMFILE)
-											sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s (%d).", filename, strerror(err), _getmaxstdio());
-										else
-											sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(err));
-									}
-									break;
-								case -2:
-									sprintf(Str_Tmp, "ERROR: File \"%s\" is less than 64 bytes and thus cannot be a GMV.", filename);
-									break;
-								case -3:
-									{
-										for(int i = 0; i < 15; i++)
-											if(!header[i])
-												strcpy(header+i,header+i+1);
-										sprintf(Str_Tmp, "ERROR: File \"%s\" starts with \"%s\" instead of \"Gens Movie\" and thus cannot be a GMV.", filename, header);
-									}
-									break;
-								default:
-									sprintf(Str_Tmp, "ERROR: File \"%s\" not loaded (reason unknown).", filename);
-									break;
-								}
-							}
-							else
-							{
-								sprintf(Str_Tmp, "ERROR: Problem loading savestate.");
-							}
+							PutSubMovieErrorInStr_Tmp(gmiRV, filename, header);
+
 							SendDlgItemMessage(hDlg,IDC_STATIC_COMMENTS_EDIT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 
 							EnableWindow(GetDlgItem(hDlg,IDC_OK_PLAY ),FALSE);
@@ -5987,32 +6083,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						while (ShowCursor(true) < 0);
 						while (ShowCursor(false) >= 0);
 					}
-					if(SubMovie.Ok)
-					{
-						if(MainMovie.Status) //Modif N - make sure to close existing movie, if any
-							CloseMovieFile(&MainMovie);
-						MainMovie.Status=0;
-						CopyMovie(&SubMovie,&MainMovie);
-
-						//UpthAdd - Load Controller Settings from Movie File
-						if (MainMovie.TriplePlayerHack) {
-							Controller_1_Type |= 0x10;
-							Controller_1B_Type &= ~1;
-							Controller_1C_Type &= ~1;
-						}
-						else Controller_1_Type &= ~0x10;
-						Controller_2_Type &= ~0x10;
-						if (MainMovie.PlayerConfig[0]==3) Controller_1_Type &= ~1;
-						if (MainMovie.PlayerConfig[0]==6) Controller_1_Type |= 1;
-						if (MainMovie.PlayerConfig[1]==3) Controller_2_Type &= ~1;
-						if (MainMovie.PlayerConfig[1]==6) Controller_2_Type |= 1;
-						Track1_FrameCount = MainMovie.LastFrame;
-						Track2_FrameCount = MainMovie.LastFrame;
-						Track3_FrameCount = MainMovie.LastFrame;
-						Make_IO_Table();
-						MainMovie.Status=MOVIE_PLAYING;
-						PlayMovieCanceled=0;
-					}
+					PlaySubMovie();
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;

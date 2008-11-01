@@ -443,7 +443,7 @@ void LoadAccelerators(char *File_Name)
 static const char* alphabet = "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0U\0V\0W\0X\0Y\0Z";
 static const char* digits = "0" "\0" "1" "\0" "2" "\0" "3" "\0" "4" "\0" "5" "\0" "6" "\0" "7" "\0" "8" "\0" "9";
 
-static const char* GetVirtualKeyName(int key)
+const char* GetVirtualKeyName(int key)
 {
 	if(key >= 'A' && key <= 'Z')
 		return alphabet + 2 * (key - 'A');
@@ -549,6 +549,12 @@ static const char* GetVirtualKeyName(int key)
 	case VK_OEM_6: return "]}";
 	case VK_OEM_7: return "'\"";
 	case VK_OEM_8: return "OEM_8";
+	case VK_LSHIFT: return "LShift";
+	case VK_RSHIFT: return "RShift";
+	case VK_LCONTROL: return "LControl";
+	case VK_RCONTROL: return "RControl";
+	case VK_LMENU: return "LAlt";
+	case VK_RMENU: return "RAlt";
 
 	default:
 		static char unk [8];

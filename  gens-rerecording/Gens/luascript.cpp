@@ -38,6 +38,8 @@ extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
 extern bool frameadvSkipLagForceDisable;
 extern "C" void Put_Info(char *Message, int Duration);
 extern int Show_Genesis_Screen();
+extern const char* GensPlayMovie(const char* filename, bool silent);
+extern void GensReplayMovie();
 
 extern "C" {
 	#include "lua/src/lua.h"
@@ -66,6 +68,7 @@ struct LuaContextInfo {
 	bool panic; // if set to true, tells the script to terminate as soon as it can do so safely (used because directly calling lua_close() or luaL_error() is unsafe in some contexts)
 	bool ranExit; // used to prevent a registered exit callback from ever getting called more than once
 	bool guiFuncsNeedDeferring; // true whenever GUI drawing would be cleared by the next emulation update before it would be visible, and thus needs to be deferred until after the next emulation update
+	int numDeferredGUIFuncs; // number of deferred function calls accumulated, used to impose an arbitrary limit to avoid running out of memory
 	bool ranFrameAdvance; // false if gens.frameadvance() hasn't been called yet
 	SpeedMode speedMode; // determines how gens.frameadvance() acts
 	char panicMessage [64]; // a message to print if the script terminates due to panic being set
@@ -73,12 +76,13 @@ struct LuaContextInfo {
 	// callbacks into the lua window... these don't need to exist per context the way I'm using them, but whatever
 	void(*print)(int uid, const char* str);
 	void(*onstart)(int uid);
-	void(*onstop)(int uid);
+	void(*onstop)(int uid, bool statusOK);
 };
 std::map<int, LuaContextInfo*> luaContextInfo;
 std::map<lua_State*, LuaContextInfo*> luaStateToContextMap; // because callbacks from lua will only give us a Lua_State to work with
 std::map<lua_State*, int> luaStateToUIDMap;
 int g_numScriptsStarted = 0;
+bool g_stopAllScriptsEnabled = true;
 
 static const char* luaCallIDStrings [] =
 {
@@ -298,10 +302,14 @@ void CallDeferredFunctions(lua_State* L, const char* idstring)
 	// clear the list of deferred functions
 	lua_newtable(L);
 	lua_setfield(L, LUA_REGISTRYINDEX, idstring);
+	LuaContextInfo& info = *luaStateToContextMap[L];
+	info.numDeferredGUIFuncs = 0;
 
 	// clean the stack
 	lua_settop(L, 0);
 }
+
+#define MAX_DEFERRED_COUNT 16384
 
 bool DeferGUIFuncIfNeeded(lua_State* L)
 {
@@ -314,8 +322,17 @@ bool DeferGUIFuncIfNeeded(lua_State* L)
 	}
 	if(info.guiFuncsNeedDeferring)
 	{
-		// defer whatever function called this one until later
-		DeferFunctionCall(L, deferredGUIIDString);
+		if(info.numDeferredGUIFuncs < MAX_DEFERRED_COUNT)
+		{
+			// defer whatever function called this one until later
+			DeferFunctionCall(L, deferredGUIIDString);
+			info.numDeferredGUIFuncs++;
+		}
+		else
+		{
+			// too many deferred functions on the same frame
+			// silently discard the rest
+		}
 		return true;
 	}
 
@@ -334,31 +351,98 @@ void worry(lua_State* L, int intensity)
 #define snprintf _snprintf
 #endif
 
+#define APPENDPRINT { int n = snprintf(ptr, remaining,
+#define END ); ptr += n; remaining -= n; }
+static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
+{
+	const char* str = ptr; // for debugging
+
+	switch(lua_type(L, i))
+	{
+		case LUA_TNONE: APPENDPRINT "no value" END break;
+		case LUA_TNIL: APPENDPRINT "nil" END break;
+		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
+		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
+		case LUA_TNUMBER: APPENDPRINT "%Lg",lua_tonumber(L,i) END break;
+		default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
+		case LUA_TTABLE:
+		{
+			APPENDPRINT "{" END
+			lua_pushnil(L); // first key
+			int keyIndex = lua_gettop(L);
+			int valueIndex = keyIndex + 1;
+			bool first = true;
+			while(lua_next(L, i))
+			{
+				bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
+				bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tolstring(L, keyIndex, NULL)));
+				if(first)
+					first = false;
+				else
+					APPENDPRINT ", " END
+				if(invalidLuaIdentifier)
+					if(keyIsString)
+						APPENDPRINT "['" END
+					else
+						APPENDPRINT "[" END
+
+				toCStringConverter(L, keyIndex, ptr, remaining); // key
+
+				if(invalidLuaIdentifier)
+					if(keyIsString)
+						APPENDPRINT "']=" END
+					else
+						APPENDPRINT "]=" END
+				else
+					APPENDPRINT "=" END
+
+				bool valueIsString = (lua_type(L, valueIndex) == LUA_TSTRING);
+				if(valueIsString)
+					APPENDPRINT "'" END
+
+				toCStringConverter(L, valueIndex, ptr, remaining); // value
+
+				if(valueIsString)
+					APPENDPRINT "'" END
+
+				lua_pop(L, 1);
+			}
+			APPENDPRINT "}" END
+		}	break;
+	}
+}
 static const char* toCString(lua_State* L)
 {
-	static const int maxLen = 1024;
+	static const int maxLen = 4096;
 	static char str[maxLen];
 	str[0] = 0;
 	char* ptr = str;
 
+	int remaining = maxLen;
 	int n=lua_gettop(L);
-	int i;
-	for (i=1; i<=n; i++)
+	for(int i = 1; i <= n; i++)
 	{
-		//if (i>1)
-		//	ptr += sprintf(ptr, "\t");
-		if (lua_isstring(L,i))
-			ptr += snprintf(ptr, maxLen, "%s",lua_tostring(L,i));
-		else if (lua_isnil(L,i))
-			ptr += snprintf(ptr, maxLen, "%s","nil");
-		else if (lua_isboolean(L,i))
-			ptr += snprintf(ptr, maxLen, "%s",lua_toboolean(L,i) ? "true" : "false");
-		else
-			ptr += snprintf(ptr, maxLen, "%s:%p",luaL_typename(L,i),lua_topointer(L,i)); // TODO: replace this with something more useful (even though this is the usual method, it doesn't show anything in the table)
+		toCStringConverter(L, i, ptr, remaining);
+		if(i != n)
+			APPENDPRINT " " END
 	}
-	ptr += snprintf(ptr, maxLen, "\r\n");
+	APPENDPRINT "\r\n" END
+
 	return str;
 }
+static const char* toCString(lua_State* L, int i)
+{
+	luaL_checkany(L,i);
+	static const int maxLen = 4096;
+	static char str[maxLen];
+	str[0] = 0;
+	char* ptr = str;
+	int remaining = maxLen;
+	toCStringConverter(L, i, ptr, remaining);
+	return str;
+}
+#undef APPENDPRINT
+#undef END
 
 static int gens_message(lua_State* L)
 {
@@ -381,6 +465,15 @@ static int print(lua_State* L)
 
 	worry(L, 10);
 	return 0;
+}
+
+// provides a way to get (from Lua) the string
+// that print() or gens.message() would print
+static int tostring(lua_State* L)
+{
+	const char* str = toCString(L);
+	lua_pushstring(L, str);
+	return 1;
 }
 
 static int bitand(lua_State *L)
@@ -636,6 +729,12 @@ int gens_pause(lua_State* L)
 	return 0;
 }
 
+int gens_redraw(lua_State* L)
+{
+	Show_Genesis_Screen();
+	worry(L,25);
+	return 0;
+}
 
 
 
@@ -833,9 +932,9 @@ int joy_set(lua_State* L)
 
 	return 0;
 }
-int joy_get(lua_State* L)
+int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 {
-	int controllerNumber = luaL_checkinteger(L,1);
+	int controllerNumber = lua_isnumber(L,1) ? luaL_checkinteger(L,1) : 1;
 	lua_newtable(L);
 
 	long long input = GetCurrentInputCondensed();
@@ -846,12 +945,35 @@ int joy_get(lua_State* L)
 		if(bd.controllerNum == controllerNumber)
 		{
 			bool pressed = (input & ((long long)1<<bd.bit)) == 0;
-			lua_pushboolean(L, pressed);
-			lua_setfield(L, -2, bd.name);
+			if((pressed && reportDown) || (!pressed && reportUp))
+			{
+				lua_pushboolean(L, pressed);
+				lua_setfield(L, -2, bd.name);
+			}
 		}
 	}
 
 	return 1;
+}
+// joypad.get(int controllerNumber = 1)
+// returns a table of every game button,
+// true meaning currently-held and false meaning not-currently-held
+// this WILL read input from a currently-playing movie
+int joy_get(lua_State* L)
+{
+	return joy_get_internal(L, true, true);
+}
+// joypad.getdown(int controllerNumber = 1)
+// returns a table of every game button that is currently held
+int joy_getdown(lua_State* L)
+{
+	return joy_get_internal(L, false, true);
+}
+// joypad.getup(int controllerNumber = 1)
+// returns a table of every game button that is not currently held
+int joy_getup(lua_State* L)
+{
+	return joy_get_internal(L, true, false);
 }
 
 static const struct ColorMapping
@@ -920,7 +1042,8 @@ int gui_text(lua_State* L)
 
 	int x = luaL_checkinteger(L,1) & 0xFFFF;
 	int y = luaL_checkinteger(L,2) & 0xFFFF;
-	const char* str = luaL_checkstring(L,3);
+	const char* str = toCString(L,3); // better than using luaL_checkstring here (more permissive)
+	
 	if(str && *str)
 	{
 		int foreColor = getcolor(L,4,0xFFFFFFFF);
@@ -1032,12 +1155,86 @@ int movie_getname(lua_State* L)
 	lua_pushstring(L, MainMovie.FileName);
 	return 1;
 }
+// movie.play() -- plays a movie of the user's choice
+// movie.play(filename) -- starts playing a particular movie
+// throws an error (with a description) if for whatever reason the movie couldn't be played
+int movie_play(lua_State *L)
+{
+	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
+	const char* errorMsg = GensPlayMovie(filename, true);
+	if(errorMsg)
+		luaL_error(L, errorMsg);
+    return 0;
+} 
+int movie_replay(lua_State *L)
+{
+	GensReplayMovie();
+    return 0;
+} 
 
 int sound_clear(lua_State* L)
 {
 	Clear_Sound_Buffer();
 	return 0;
 }
+
+// input.get()
+// takes no input, returns a lua table of entries representing the current input state,
+// independent of the joypad buttons the emulated game thinks are pressed
+// for example:
+//   if the user is holding the W key and the left mouse button
+//   and has the mouse at the bottom-right corner of the game screen,
+//   then this would return {W=true, LeftClick=true, MouseX=319, MouseY=223}
+int input_getcurrentinputstatus(lua_State* L)
+{
+	lua_newtable(L);
+
+#ifdef _WIN32
+	// keyboard and mouse button status
+	{
+		unsigned char keys [256];
+		if(GetKeyboardState(keys))
+		{
+			for(int i = 0; i < 256; i++)
+			{
+				int mask = (i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL) ? 0x01 : 0x80;
+				if(keys[i] & mask)
+				{
+					const char* GetVirtualKeyName(int key);
+					const char* name = GetVirtualKeyName(i);
+					lua_pushboolean(L, true);
+					lua_setfield(L, -2, name);
+				}
+			}
+		}
+	}
+	// mouse position in game screen pixel coordinates
+	{
+		POINT point;
+		RECT rect, srcRectUnused;
+		float xRatioUnused, yRatioUnused;
+		int depUnused;
+		GetCursorPos(&point);
+		ScreenToClient(HWnd, &point);
+		GetClientRect(HWnd, &rect);
+		void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ratio_X, float& Ratio_Y, int& Dep);
+		CalculateDrawArea(Full_Screen ? Render_FS : Render_W, rect, srcRectUnused, xRatioUnused, yRatioUnused, depUnused);
+		int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
+		int yres = ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount) ? 240 : 224;
+		int x = ((point.x - rect.left) * xres) / (rect.right - rect.left);
+		int y = ((point.y - rect.top) * yres) / (rect.bottom - rect.top);
+		lua_pushinteger(L, x);
+		lua_setfield(L, -2, "MouseX");
+		lua_pushinteger(L, y);
+		lua_setfield(L, -2, "MouseY");
+	}
+#else
+	// NYI (well, return an empty table)
+#endif
+
+	return 1;
+}
+
 
 // resets our "worry" counter of the Lua state
 int dontworry(lua_State* L)
@@ -1059,6 +1256,7 @@ static const struct luaL_reg genslib [] =
 	{"emulateframefastnoskipping", gens_emulateframefastnoskipping},
 	{"emulateframefast", gens_emulateframefast},
 	{"emulateframeinvisible", gens_emulateframeinvisible},
+	{"redraw", gens_redraw},
 	{"framecount", gens_getframecount},
 	{"lagcount", gens_getlagcount},
 	{"registerbefore", gens_registerbefore},
@@ -1079,6 +1277,8 @@ static const struct luaL_reg guilib [] =
 	{"drawbox", gui_box},
 	{"drawpixel", gui_pixel},
 	{"drawline", gui_line},
+	{"rect", gui_box},
+	{"drawrect", gui_box},
 	{NULL, NULL}
 };
 static const struct luaL_reg statelib [] =
@@ -1172,8 +1372,20 @@ static const struct luaL_reg joylib [] =
 {
 	{"get", joy_get},
 	{"set", joy_set},
+	{"getdown", joy_getdown},
+	{"getup", joy_getup},
+	// alternative names
 	{"read", joy_get},
 	{"write", joy_set},
+	{"readdown", joy_getdown},
+	{"readup", joy_getup},
+	{NULL, NULL}
+};
+static const struct luaL_reg inputlib [] =
+{
+	{"get", input_getcurrentinputstatus},
+	// alternative names
+	{"read", input_getcurrentinputstatus},
 	{NULL, NULL}
 };
 static const struct luaL_reg movielib [] =
@@ -1188,6 +1400,10 @@ static const struct luaL_reg movielib [] =
 	{"readonly", movie_getreadonly},
 	{"getreadonly", movie_getreadonly},
 	{"setreadonly", movie_setreadonly},
+	{"play", movie_play},
+	{"replay", movie_replay},
+	// alternative names
+	{"open", movie_play},
 	{NULL, NULL}
 };
 static const struct luaL_reg soundlib [] =
@@ -1196,7 +1412,7 @@ static const struct luaL_reg soundlib [] =
 	{NULL, NULL}
 };
 
-void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onstart)(int uid), void(*onstop)(int uid))
+void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onstart)(int uid), void(*onstop)(int uid, bool statusOK))
 {
 	LuaContextInfo* newInfo = new LuaContextInfo();
 	newInfo->started = false;
@@ -1209,6 +1425,7 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	newInfo->panic = false;
 	newInfo->ranExit = false;
 	newInfo->guiFuncsNeedDeferring = false;
+	newInfo->numDeferredGUIFuncs = 0;
 	newInfo->ranFrameAdvance = false;
 	newInfo->speedMode = SPEEDMODE_NORMAL;
 	newInfo->print = print;
@@ -1251,6 +1468,7 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		info.ranExit = false;
 		info.crashed = false;
 		info.guiFuncsNeedDeferring = true;
+		info.numDeferredGUIFuncs = 0;
 		info.ranFrameAdvance = false;
 		info.restart = false;
 		info.restartLater = false;
@@ -1262,10 +1480,12 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		luaL_register(L, "gui", guilib);
 		luaL_register(L, "savestate", statelib);
 		luaL_register(L, "memory", memorylib);
-		luaL_register(L, "joypad", joylib);
+		luaL_register(L, "joypad", joylib); // for game input
+		luaL_register(L, "input", inputlib); // for user input
 		luaL_register(L, "movie", movielib);
 		luaL_register(L, "sound", soundlib);
 		lua_register(L, "print", print);
+		lua_register(L, "tostring", tostring);
 		lua_register(L, "AND", bitand);
 		lua_register(L, "OR", bitor);
 		lua_register(L, "XOR", bitxor);
@@ -1447,8 +1667,8 @@ void StopLuaScript(int uid)
 	{
 		CallExitFunction(uid);
 
-		if(info.onstop && !info.crashed)
-			info.onstop(uid); // must happen before closing L and after the exit function, otherwise the final GUI state of the script won't be shown properly or at all
+		if(info.onstop)
+			info.onstop(uid, !info.crashed); // must happen before closing L and after the exit function, otherwise the final GUI state of the script won't be shown properly or at all
 
 		if(info.started) // this check is necessary
 		{
@@ -1595,8 +1815,16 @@ void DontWorryLua() // everything's going to be OK
 	}
 }
 
+void EnableStopAllLuaScripts(bool enable)
+{
+	g_stopAllScriptsEnabled = enable;
+}
+
 void StopAllLuaScripts()
 {
+	if(!g_stopAllScriptsEnabled)
+		return;
+
 	std::map<int, LuaContextInfo*>::const_iterator iter = luaContextInfo.begin();
 	std::map<int, LuaContextInfo*>::const_iterator end = luaContextInfo.end();
 	while(iter != end)
@@ -1612,6 +1840,9 @@ void StopAllLuaScripts()
 
 void RestartAllLuaScripts()
 {
+	if(!g_stopAllScriptsEnabled)
+		return;
+
 	std::map<int, LuaContextInfo*>::const_iterator iter = luaContextInfo.begin();
 	std::map<int, LuaContextInfo*>::const_iterator end = luaContextInfo.end();
 	while(iter != end)

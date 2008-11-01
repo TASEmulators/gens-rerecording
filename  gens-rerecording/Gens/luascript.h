@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-void OpenLuaContext(int uid, void(*print)(int uid, const char* str) = 0, void(*onstart)(int uid) = 0, void(*onstop)(int uid) = 0);
+void OpenLuaContext(int uid, void(*print)(int uid, const char* str) = 0, void(*onstart)(int uid) = 0, void(*onstop)(int uid, bool statusOK) = 0);
 void RunLuaScriptFile(int uid, const char* filename);
 void StopLuaScript(int uid);
 void RequestAbortLuaScript(int uid, const char* message = 0);
@@ -26,6 +26,7 @@ void CallRegisteredLuaFunctions(LuaCallID calltype);
 void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg);
 void StopAllLuaScripts();
 void RestartAllLuaScripts();
+void EnableStopAllLuaScripts(bool enable);
 void DontWorryLua();
 
 #ifdef __cplusplus
