@@ -535,16 +535,14 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 	{
 		info.worryCount = 0;
 
-		int answer;
-		if(info.panic)
+		int answer = IDYES;
+		if(!info.panic)
 		{
-			answer = IDYES;
-		}
-		else
-		{
+#ifdef _WIN32
 			DialogsOpen++;
 			answer = MessageBox(HWnd, "A Lua script has been running for quite a while. Maybe it is in an infinite loop.\n\nWould you like to stop the script?\n\n(Yes to stop it now,\n No to keep running and not ask again,\n Cancel to keep running but ask again later)", "Lua Alert", MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONASTERISK);
 			DialogsOpen--;
+#endif
 		}
 
 		if(answer == IDNO)
@@ -594,13 +592,15 @@ int gens_emulateframefast(lua_State* L)
 
 	Update_Emulation_One_Before(HWnd);
 
-	if(FrameCount%16 == 0)
+	if(FrameCount%16 == 0) // skip rendering 15 out of 16 frames
 	{
+		// update once and render
 		Update_Frame_Hook();
 		Update_Emulation_After_Controlled(HWnd, true);
 	}
 	else
 	{
+		// update once but skip rendering
 		Update_Frame_Fast_Hook();
 		Update_Emulation_After_Controlled(HWnd, false);
 	}
@@ -634,6 +634,11 @@ int gens_emulateframeinvisible(lua_State* L)
 	worry(L,10);
 	return 0;
 }
+
+#ifndef _WIN32
+	#define stricmp strcasecmp
+	#define strnicmp strncasecmp
+#endif
 
 int gens_speedmode(lua_State* L)
 {
@@ -896,14 +901,68 @@ s_buttonDescs [] =
 	{2, 37, "Y"},
 	{2, 38, "Z"},
 	{2, 39, "Mode"},
+	{0x1B, 8, "Up"},
+	{0x1B, 9, "Down"},
+	{0x1B, 10, "Left"},
+	{0x1B, 11, "Right"},
+	{0x1B, 12, "A"},
+	{0x1B, 13, "B"},
+	{0x1B, 14, "C"},
+	{0x1B, 15, "Start"},
+	{0x1C, 16, "Up"},
+	{0x1C, 17, "Down"},
+	{0x1C, 18, "Left"},
+	{0x1C, 19, "Right"},
+	{0x1C, 20, "A"},
+	{0x1C, 21, "B"},
+	{0x1C, 22, "C"},
+	{0x1C, 23, "Start"},
 };
 
+int joy_getArgControllerNum(lua_State* L, int& index)
+{
+	int controllerNumber;
+	int type = lua_type(L,index);
+	if(type == LUA_TSTRING || type == LUA_TNUMBER)
+	{
+		controllerNumber = 0;
+		if(type == LUA_TSTRING)
+		{
+			const char* str = lua_tostring(L,index);
+			if(!stricmp(str, "1C"))
+				controllerNumber = 0x1C;
+			else if(!stricmp(str, "1B"))
+				controllerNumber = 0x1B;
+			else if(!stricmp(str, "1A"))
+				controllerNumber = 0x1A;
+		}
+		if(!controllerNumber)
+			controllerNumber = luaL_checkinteger(L,index);
+		index++;
+	}
+	else
+	{
+		// argument omitted; default to controller 1
+		controllerNumber = 1;
+	}
 
+	if(controllerNumber == 0x1A)
+		controllerNumber = 1;
+	if(controllerNumber != 1 && controllerNumber != 2 && controllerNumber != 0x1B && controllerNumber != 0x1C)
+		luaL_error(L, "controller number must be 1, 2, '1B', or '1C'");
+
+	return controllerNumber;
+}
+
+
+// joypad.set(controllerNum = 1, inputTable)
+// controllerNum can be 1, 2, '1B', or '1C'
 int joy_set(lua_State* L)
 {
-	int controllerNumber = luaL_checkinteger(L,1);
+	int index = 1;
+	int controllerNumber = joy_getArgControllerNum(L, index);
 
-	luaL_checktype(L, 2, LUA_TTABLE);
+	luaL_checktype(L, index, LUA_TTABLE);
 
 	int input = ~0;
 	int mask = 0;
@@ -913,7 +972,7 @@ int joy_set(lua_State* L)
 		const ButtonDesc& bd = s_buttonDescs[i];
 		if(bd.controllerNum == controllerNumber)
 		{
-			lua_getfield(L, 2, bd.name);
+			lua_getfield(L, index, bd.name);
 			if (!lua_isnil(L,-1))
 			{
 				bool pressed = lua_toboolean(L,-1) != 0;
@@ -932,9 +991,14 @@ int joy_set(lua_State* L)
 
 	return 0;
 }
+
+// joypad.get(controllerNum = 1)
+// controllerNum can be 1, 2, '1B', or '1C'
 int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 {
-	int controllerNumber = lua_isnumber(L,1) ? luaL_checkinteger(L,1) : 1;
+	int index = 1;
+	int controllerNumber = joy_getArgControllerNum(L, index);
+
 	lua_newtable(L);
 
 	long long input = GetCurrentInputCondensed();
