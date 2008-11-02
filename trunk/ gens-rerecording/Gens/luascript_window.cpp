@@ -9,12 +9,15 @@
 #include <string>
 #include <algorithm>
 
+char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
 
 extern std::vector<HWND> LuaScriptHWnds;
 struct LuaPerWindowInfo {
 	std::string filename;
 	HANDLE fileWatcherThread;
-	LuaPerWindowInfo() : fileWatcherThread(NULL) {}
+	bool started;
+	bool closeOnStop;
+	LuaPerWindowInfo() : fileWatcherThread(NULL), started(false), closeOnStop(false) {}
 };
 std::map<HWND, LuaPerWindowInfo> LuaWindowInfo;
 char Lua_Dir[1024]="";
@@ -91,6 +94,80 @@ void KillWatcherThread (HWND hDlg)
 	info.fileWatcherThread = NULL;
 }
 
+
+
+
+void Update_Recent_Script(const char* Path)
+{
+	FILE* file = fopen(Path, "rb");
+	if(file)
+		fclose(file);
+	else
+		return;
+
+	int i;
+	for(i = 0; i < MAX_RECENT_SCRIPTS; i++)
+	{
+		if (!(strcmp(Recent_Scripts[i], Path)))
+		{
+			// move recent item to the top of the list
+			if(i == 0)
+				return;
+			char temp [1024];
+			strcpy(temp, Recent_Scripts[i]);
+			int j;
+			for(j = i; j > 0; j--)
+				strcpy(Recent_Scripts[j], Recent_Scripts[j-1]);
+			strcpy(Recent_Scripts[0], temp);
+			MustUpdateMenu = 1;
+			return;
+		}
+	}
+		
+	for(i = MAX_RECENT_SCRIPTS-1; i > 0; i--)
+		strcpy(Recent_Scripts[i], Recent_Scripts[i - 1]);
+
+	strcpy(Recent_Scripts[0], Path);
+
+	MustUpdateMenu = 1;
+}
+
+bool IsScriptFileOpen(const char* Path)
+{
+	for(std::map<HWND, LuaPerWindowInfo>::iterator iter = LuaWindowInfo.begin(); iter != LuaWindowInfo.end(); ++iter)
+	{
+		LuaPerWindowInfo& info = iter->second;
+		const char* filename = info.filename.c_str();
+		const char* pathPtr = Path;
+
+		// case-insensitive slash-direction-insensitive compare
+		bool same = true;
+		while(*filename || *pathPtr)
+		{
+			if((*filename == '/' || *filename == '\\') && (*pathPtr == '/' || *pathPtr == '\\'))
+			{
+				do {filename++;} while(*filename == '/' || *filename == '\\');
+				do {pathPtr++;} while(*pathPtr == '/' || *pathPtr == '\\');
+			}
+			else if(tolower(*filename) != tolower(*pathPtr))
+			{
+				same = false;
+				break;
+			}
+			else
+			{
+				filename++;
+				pathPtr++;
+			}
+		}
+
+		if(same)
+			return true;
+	}
+	return false;
+}
+
+
 void PrintToWindowConsole(int hDlgAsInt, const char* str)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
@@ -116,6 +193,8 @@ extern int Show_Genesis_Screen(HWND hWnd);
 void OnStart(int hDlgAsInt)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
+	LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+	info.started = true;
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), false); // disable browse while running because it misbehaves if clicked in a frameadvance loop
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), true);
 	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Restart");
@@ -126,11 +205,15 @@ void OnStart(int hDlgAsInt)
 void OnStop(int hDlgAsInt, bool statusOK)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
+	LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+	info.started = false;
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), true);
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), false);
 	SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUARUN), "Run");
 	if(statusOK)
 		Show_Genesis_Screen(HWnd); // otherwise we might never show the last thing the script draws
+	if(info.closeOnStop)
+		PostMessage(hDlg, WM_CLOSE, 0, 0);
 }
 
 extern "C" int Clear_Sound_Buffer(void);
@@ -255,6 +338,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					SetActiveWindow(HWnd);
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
 					strcpy(Str_Tmp,info.filename.c_str());
+					Update_Recent_Script(Str_Tmp);
 					RunLuaScriptFile((int)hDlg, Str_Tmp);
 				}	break;
 				case IDC_BUTTON_LUASTOP:
@@ -290,6 +374,16 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_CLOSE:
 		{
 			LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+
+			PrintToWindowConsole((int)hDlg, "user closed script window\r\n");
+			StopLuaScript((int)hDlg);
+			if(info.started)
+			{
+				// not stopped yet, wait to close until we are, otherwise we'll crash
+				info.closeOnStop = true;
+				return false;
+			}
+
 			if (Full_Screen)
 			{
 				while (ShowCursor(true) < 0);

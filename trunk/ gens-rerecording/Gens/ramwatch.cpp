@@ -17,10 +17,9 @@
 
 static HMENU ramwatchmenu;
 static HMENU rwrecentmenu;
-char rw_recent_files[5][1024];
+char rw_recent_files[MAX_RECENT_WATCHES][1024];
 char Watch_Dir[1024]="";
 const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
-const unsigned int RW_MAX_NUMBER_OF_RECENT_FILES = sizeof(rw_recent_files)/sizeof(*rw_recent_files);
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
 bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
 char currentWatch[1024];
@@ -250,13 +249,13 @@ void UpdateRW_RMenu(HMENU menu, unsigned int mitem, unsigned int baseid)
 	SetMenuItemInfo(GetSubMenu(ramwatchmenu, 0), mitem, FALSE, &moo);
 
 	// Remove all recent files submenus
-	for(x = 0; x < RW_MAX_NUMBER_OF_RECENT_FILES; x++)
+	for(x = 0; x < MAX_RECENT_WATCHES; x++)
 	{
 		RemoveMenu(menu, baseid + x, MF_BYCOMMAND);
 	}
 
 	// Recreate the menus
-	for(x = RW_MAX_NUMBER_OF_RECENT_FILES - 1; x >= 0; x--)
+	for(x = MAX_RECENT_WATCHES - 1; x >= 0; x--)
 	{  
 		char tmp[128 + 5];
 
@@ -345,7 +344,7 @@ void UpdateRWRecentArray(const char* addString, unsigned int arrayLen, HMENU men
 **/
 void RWAddRecentFile(const char *filename)
 {
-	UpdateRWRecentArray(filename, RW_MAX_NUMBER_OF_RECENT_FILES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
+	UpdateRWRecentArray(filename, MAX_RECENT_WATCHES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
 }
 
 void OpenRWRecentFile(int memwRFileNumber)
@@ -353,7 +352,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 	AskSave();
 	ResetWatches();
 	int rnum=memwRFileNumber;
-		if (rnum > RW_MAX_NUMBER_OF_RECENT_FILES) return; //just in case
+		if (rnum > MAX_RECENT_WATCHES) return; //just in case
 		
 	char* x = rw_recent_files[rnum];
 	if (strlen(x)==0) return; //If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
@@ -974,7 +973,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					EndDialog(hDlg, true);
 					return true;
 				default:
-					if (LOWORD(wParam) >= RW_MENU_FIRST_RECENT_FILE && LOWORD(wParam) < RW_MENU_FIRST_RECENT_FILE+RW_MAX_NUMBER_OF_RECENT_FILES)
+					if (LOWORD(wParam) >= RW_MENU_FIRST_RECENT_FILE && LOWORD(wParam) < RW_MENU_FIRST_RECENT_FILE+MAX_RECENT_WATCHES)
 					OpenRWRecentFile(LOWORD(wParam) - RW_MENU_FIRST_RECENT_FILE);
 			}
 			break;
