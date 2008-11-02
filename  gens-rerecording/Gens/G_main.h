@@ -87,6 +87,9 @@ extern char Language_Path[1024];
 extern char CGOffline_Path[1024];
 extern char Manual_Path[1024];
 
+#define MAX_RECENT_SCRIPTS 15
+extern char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
+
 #ifdef __cplusplus
 };
 #endif

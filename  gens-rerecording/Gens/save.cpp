@@ -2019,21 +2019,19 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "32X Master SH2 Bios", _32X_Master_Bios, Conf_File);
 	WritePrivateProfileString("General", "32X Slave SH2 Bios", _32X_Slave_Bios, Conf_File);
 
-	WritePrivateProfileString("General", "Rom 1", Recent_Rom[0], Conf_File);
-	WritePrivateProfileString("General", "Rom 2", Recent_Rom[1], Conf_File);
-	WritePrivateProfileString("General", "Rom 3", Recent_Rom[2], Conf_File);
-	WritePrivateProfileString("General", "Rom 4", Recent_Rom[3], Conf_File);
-	WritePrivateProfileString("General", "Rom 5", Recent_Rom[4], Conf_File);
-	WritePrivateProfileString("General", "Rom 6", Recent_Rom[5], Conf_File);
-	WritePrivateProfileString("General", "Rom 7", Recent_Rom[6], Conf_File);
-	WritePrivateProfileString("General", "Rom 8", Recent_Rom[7], Conf_File);
-	WritePrivateProfileString("General", "Rom 9", Recent_Rom[8], Conf_File);
-	WritePrivateProfileString("General", "Rom 10", Recent_Rom[9], Conf_File);
-	WritePrivateProfileString("General", "Rom 11", Recent_Rom[10], Conf_File);
-	WritePrivateProfileString("General", "Rom 12", Recent_Rom[11], Conf_File);
-	WritePrivateProfileString("General", "Rom 13", Recent_Rom[12], Conf_File);
-	WritePrivateProfileString("General", "Rom 14", Recent_Rom[13], Conf_File);
-	WritePrivateProfileString("General", "Rom 15", Recent_Rom[14], Conf_File);
+	for(int i = 0; i < MAX_RECENT_ROMS; i++)
+	{
+		char str[256];
+		sprintf(str, "Rom %d", i+1);
+		WritePrivateProfileString("General", str, Recent_Rom[i], Conf_File);
+	}
+
+	for(int i = 0; i < MAX_RECENT_SCRIPTS; i++)
+	{
+		char str[256];
+		sprintf(str, "Script %d", i+1);
+		WritePrivateProfileString("General", str, Recent_Scripts[i], Conf_File);
+	}
 
 	wsprintf(Str_Tmp, "%d", File_Type_Index);
 	WritePrivateProfileString("General", "File type index", Str_Tmp, Conf_File);
@@ -2457,11 +2455,12 @@ int Save_Config(char *File_Name)
 	wsprintf(Str_Tmp, "%d", ramw_y);
 	WritePrivateProfileString("Watches", "Ramwatch_Y", Str_Tmp, Conf_File);
 
-	WritePrivateProfileString("Watches", "Recent Watch 1", rw_recent_files[0], Conf_File);	
-	WritePrivateProfileString("Watches", "Recent Watch 2", rw_recent_files[1], Conf_File);	
-	WritePrivateProfileString("Watches", "Recent Watch 3", rw_recent_files[2], Conf_File);	
-	WritePrivateProfileString("Watches", "Recent Watch 4", rw_recent_files[3], Conf_File);	
-	WritePrivateProfileString("Watches", "Recent Watch 5", rw_recent_files[4], Conf_File);
+	for(int i = 0; i < MAX_RECENT_WATCHES; i++)
+	{
+		char str[256];
+		sprintf(str, "Recent Watch %d", i+1);
+		WritePrivateProfileString("Watches", str, rw_recent_files[0], Conf_File);	
+	}
 
 	SaveAccelerators(Conf_File);
 
@@ -2534,21 +2533,19 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("General", "32X Master SH2 Bios", Rom_Dir, &_32X_Master_Bios[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "32X Slave SH2 Bios", Rom_Dir, &_32X_Slave_Bios[0], 1024, Conf_File);
 
-	GetPrivateProfileString("General", "Rom 1", "", &Recent_Rom[0][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 2", "", &Recent_Rom[1][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 3", "", &Recent_Rom[2][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 4", "", &Recent_Rom[3][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 5", "", &Recent_Rom[4][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 6", "", &Recent_Rom[5][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 7", "", &Recent_Rom[6][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 8", "", &Recent_Rom[7][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 9", "", &Recent_Rom[8][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 10", "", &Recent_Rom[9][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 11", "", &Recent_Rom[10][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 12", "", &Recent_Rom[11][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 13", "", &Recent_Rom[12][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 14", "", &Recent_Rom[13][0], 1024, Conf_File);
-	GetPrivateProfileString("General", "Rom 15", "", &Recent_Rom[14][0], 1024, Conf_File);
+	for(int i = 0; i < MAX_RECENT_ROMS; i++)
+	{
+		char str[256];
+		sprintf(str, "Rom %d", i+1);
+		GetPrivateProfileString("General", str, "", &Recent_Rom[i][0], 1024, Conf_File);
+	}
+
+	for(int i = 0; i < MAX_RECENT_SCRIPTS; i++)
+	{
+		char str[256];
+		sprintf(str, "Script %d", i+1);
+		GetPrivateProfileString("General", str, "", &Recent_Scripts[i][0], 1024, Conf_File);
+	}
 
 	File_Type_Index = GetPrivateProfileInt("General", "File type index", 1, Conf_File);
 
@@ -2814,11 +2811,12 @@ int Load_Config(char *File_Name, void *Game_Active)
 	ramw_x = GetPrivateProfileInt ("Watches", "Ramwatch_X", 0, Conf_File);
 	ramw_y = GetPrivateProfileInt ("Watches", "Ramwatch_Y", 0, Conf_File);
 
-	GetPrivateProfileString("Watches", "Recent Watch 1", "", &rw_recent_files[0][0], 1024, Conf_File);
-	GetPrivateProfileString("Watches", "Recent Watch 2", "", &rw_recent_files[1][0], 1024, Conf_File);
-	GetPrivateProfileString("Watches", "Recent Watch 3", "", &rw_recent_files[2][0], 1024, Conf_File);
-	GetPrivateProfileString("Watches", "Recent Watch 4", "", &rw_recent_files[3][0], 1024, Conf_File);
-	GetPrivateProfileString("Watches", "Recent Watch 5", "", &rw_recent_files[4][0], 1024, Conf_File);
+	for(int i = 0; i < MAX_RECENT_WATCHES; i++)
+	{
+		char str[256];
+		sprintf(str, "Recent Watch %d", i+1);
+		GetPrivateProfileString("Watches", str, "", &rw_recent_files[i][0], 1024, Conf_File);
+	}
 
 	LoadAccelerators(Conf_File);
 

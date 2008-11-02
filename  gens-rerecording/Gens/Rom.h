@@ -36,7 +36,8 @@ char Countries[4];
 
 extern int File_Type_Index;
 extern struct Rom *Game;
-extern char Recent_Rom[15][1024];
+#define MAX_RECENT_ROMS 20
+extern char Recent_Rom[MAX_RECENT_ROMS][1024];
 extern char IPS_Dir[1024];
 extern char Rom_Dir[1024];
 extern char Rom_Name[512];

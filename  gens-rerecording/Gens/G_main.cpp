@@ -2587,7 +2587,42 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				Build_Main_Menu();
 				return 0;
 			}
-			else switch(LOWORD(wParam))
+			else {
+
+				int command = LOWORD(wParam);
+
+				if(command >= ID_FILES_OPENRECENTROM0 &&
+				   command <= ID_FILES_OPENRECENTROMMAX &&
+				   command-ID_FILES_OPENRECENTROM0 < MAX_RECENT_ROMS)
+				{
+					if(MainMovie.File!=NULL)
+						CloseMovieFile(&MainMovie);
+					if ((Check_If_Kaillera_Running())) return 0;
+					if (GYM_Playing) Stop_Play_GYM();
+					FrameCount=0;
+					LagCount = 0;
+					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
+					int retval = Pre_Load_Rom(HWnd, Recent_Rom[command - ID_FILES_OPENRECENTROM0]);
+					ReopenRamWindows();
+					return retval;
+				}
+
+				if(command >= ID_LUA_OPENRECENTSCRIPT0 &&
+				   command <= ID_LUA_OPENRECENTSCRIPTMAX &&
+				   command-ID_LUA_OPENRECENTSCRIPT0 < MAX_RECENT_SCRIPTS)
+				{
+					if(LuaScriptHWnds.size() < 16)
+					{
+						char temp [1024];
+						strcpy(temp, Recent_Scripts[command - ID_LUA_OPENRECENTSCRIPT0]);
+						HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), hWnd, (DLGPROC) LuaScriptProc);
+						SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)temp);
+						DialogsOpen++;
+					}
+				}
+
+			switch(command)
 			{
 				case ID_GRAPHICS_NEVER_SKIP_FRAME:
 					Never_Skip_Frame = !Never_Skip_Frame;
@@ -2872,7 +2907,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				case IDC_LUA_SCRIPT_14:
 				case IDC_LUA_SCRIPT_15:
 				{
-					unsigned int index = LOWORD(wParam) - IDC_LUA_SCRIPT_0;
+					unsigned int index = command - IDC_LUA_SCRIPT_0;
 					if(LuaScriptHWnds.size() > index)
 						SetForegroundWindow(LuaScriptHWnds[index]);
 				}	break;
@@ -3114,35 +3149,6 @@ dialogAgain: //Nitsuja added this
 					}
 					return retval;
 				}
-				case ID_FILES_OPENRECENTROM0:
-				case ID_FILES_OPENRECENTROM1:
-				case ID_FILES_OPENRECENTROM2:
-				case ID_FILES_OPENRECENTROM3:
-				case ID_FILES_OPENRECENTROM4:
-				case ID_FILES_OPENRECENTROM5:
-				case ID_FILES_OPENRECENTROM6:
-				case ID_FILES_OPENRECENTROM7:
-				case ID_FILES_OPENRECENTROM8:
-				case ID_FILES_OPENRECENTROM9:
-				case ID_FILES_OPENRECENTROM10:
-				case ID_FILES_OPENRECENTROM11:
-				case ID_FILES_OPENRECENTROM12:
-				case ID_FILES_OPENRECENTROM13:
-				case ID_FILES_OPENRECENTROM14:
-				{
-					if(MainMovie.File!=NULL)
-
-						CloseMovieFile(&MainMovie);
-					if ((Check_If_Kaillera_Running())) return 0;
-					if (GYM_Playing) Stop_Play_GYM();
-					FrameCount=0;
-					LagCount = 0;
-					LagCountPersistent = 0;
-					frameSearchFrames = -1; frameSearchInitialized = false;
-					int retval = Pre_Load_Rom(HWnd, Recent_Rom[LOWORD(wParam) - ID_FILES_OPENRECENTROM0]);
-					ReopenRamWindows();
-					return retval;
-				}
 
 				case ID_FILES_BOOTCD:
 					if(MainMovie.File!=NULL)
@@ -3300,7 +3306,7 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_LAYER3:
 				case ID_GRAPHICS_LAYERSPRITE:
 				case ID_GRAPHICS_LAYERSPRITEHIGH:
-					Change_Layer(hWnd, LOWORD(wParam) - ID_GRAPHICS_LAYER0);
+					Change_Layer(hWnd, command - ID_GRAPHICS_LAYER0);
 					return 0;
 
 				case ID_GRAPHICS_SPRITEALWAYS:
@@ -3310,13 +3316,13 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_LAYERSWAPA:
 				case ID_GRAPHICS_LAYERSWAPB:
 				case ID_GRAPHICS_LAYERSWAPS:
-					Change_LayerSwap(hWnd, LOWORD(wParam) - ID_GRAPHICS_LAYERSWAPA);
+					Change_LayerSwap(hWnd, command - ID_GRAPHICS_LAYERSWAPA);
 					return 0;
 
 				case ID_GRAPHICS_TOGGLEA:
 				case ID_GRAPHICS_TOGGLEB:
 				case ID_GRAPHICS_TOGGLES:
-					Change_Plane(hWnd, LOWORD(wParam) - ID_GRAPHICS_TOGGLEA);
+					Change_Plane(hWnd, command - ID_GRAPHICS_TOGGLEA);
 					return 0;
 
 				case ID_GRAPHICS_RENDER_50SCANLINE:
@@ -3349,7 +3355,7 @@ dialogAgain: //Nitsuja added this
 						int& Rend = Full_Screen ? Render_FS : Render_W;
 						int RendOrder [] = {-1, 0,1,2,11,Bits32?-2:10,3,4,5,6,7,8,9, -1,-1};
 						int index = 1; for(; RendOrder[index] != Rend && index<sizeof(RendOrder)/sizeof(*RendOrder)-1; index++);
-						do {index += (LOWORD(wParam) == ID_GRAPHICS_PREVIOUS_RENDER) ? -1 : 1;} while(RendOrder[index] == -2);
+						do {index += (command == ID_GRAPHICS_PREVIOUS_RENDER) ? -1 : 1;} while(RendOrder[index] == -2);
 						Set_Render(hWnd, Full_Screen, RendOrder[index], false);
 					}
 					return 0;
@@ -3375,7 +3381,7 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_FRAMESKIP_6:
 				case ID_GRAPHICS_FRAMESKIP_7:
 				case ID_GRAPHICS_FRAMESKIP_8:
-					Set_Frame_Skip(hWnd, LOWORD(wParam) - ID_GRAPHICS_FRAMESKIP_0);
+					Set_Frame_Skip(hWnd, command - ID_GRAPHICS_FRAMESKIP_0);
 					return 0;
 
 				case ID_LATENCY_COMPENSATION_0:
@@ -3384,7 +3390,7 @@ dialogAgain: //Nitsuja added this
 				case ID_LATENCY_COMPENSATION_3:
 				case ID_LATENCY_COMPENSATION_4:
 				case ID_LATENCY_COMPENSATION_5:
-					Set_Latency_Compensation(LOWORD(wParam) - ID_LATENCY_COMPENSATION_0);
+					Set_Latency_Compensation(command - ID_LATENCY_COMPENSATION_0);
 					return 0;
 
 				case ID_GRAPHICS_FRAMESKIP_DECREASE:
@@ -3421,7 +3427,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SAVESTATE_8:
 				case ID_FILES_SAVESTATE_9:
 				case ID_FILES_SAVESTATE_0:
-					Set_Current_State((LOWORD(wParam) - ID_FILES_SAVESTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_SAVESTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
@@ -3445,7 +3451,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_LOADSTATE_8:
 				case ID_FILES_LOADSTATE_9:
 				case ID_FILES_LOADSTATE_0:
-					Set_Current_State((LOWORD(wParam) - ID_FILES_LOADSTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_LOADSTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
@@ -3462,7 +3468,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SETSTATE_8:
 				case ID_FILES_SETSTATE_9:
 				case ID_FILES_SETSTATE_0:
-					Set_Current_State((LOWORD(wParam) - ID_FILES_SETSTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_SETSTATE_1 + 1) % 10);
 					return 0;
 
 				case ID_MOVIE_CHANGETRACK_ALL:
@@ -3474,7 +3480,7 @@ dialogAgain: //Nitsuja added this
 				case ID_MOVIE_CHANGETRACK_2:
 				case ID_MOVIE_CHANGETRACK_3:
 				{
-					int chgtrack = LOWORD(wParam) - ID_MOVIE_CHANGETRACK_ALL;
+					int chgtrack = command - ID_MOVIE_CHANGETRACK_ALL;
 					track ^= chgtrack;
 					sprintf(Str_Tmp,"Recording player %d %sed",min(chgtrack,3),(track & chgtrack)?"start":"end");
 					Put_Info(Str_Tmp,1000);
@@ -3719,7 +3725,7 @@ dialogAgain: //Nitsuja added this
 				case ID_CPU_COUNTRY_ORDER + 0:
 				case ID_CPU_COUNTRY_ORDER + 1:
 				case ID_CPU_COUNTRY_ORDER + 2:
-					Change_Country_Order(LOWORD(wParam) - ID_CPU_COUNTRY_ORDER);
+					Change_Country_Order(command - ID_CPU_COUNTRY_ORDER);
 					return 0;
 
 				case ID_SOUND_Z80ENABLE:
@@ -3863,9 +3869,9 @@ dialogAgain: //Nitsuja added this
 				case ID_OPTION_CDDRIVE_5:
 				case ID_OPTION_CDDRIVE_6:
 				case ID_OPTION_CDDRIVE_7:
-					if (Num_CD_Drive > (LOWORD(wParam) - ID_OPTION_CDDRIVE_0))
+					if (Num_CD_Drive > (command - ID_OPTION_CDDRIVE_0))
 					{
-						CUR_DEV = LOWORD(wParam) - ID_OPTION_CDDRIVE_0;
+						CUR_DEV = command - ID_OPTION_CDDRIVE_0;
 					}
 					Build_Main_Menu();
 					return 0;
@@ -4165,6 +4171,7 @@ dialogAgain: //Nitsuja added this
 						Flip(HWnd);
 					}
 					return 0;
+			}
 			}
 			break;
 
@@ -4529,16 +4536,16 @@ HMENU Build_Main_Menu(void)
 
 	// Menu FilesHistory
 	
-	for(i = 0; i < 15; i++)
+	for(i = 0; i < MAX_RECENT_ROMS; i++)
 	{
 		if (strcmp(Recent_Rom[i], ""))
 		{
 			char tmp[1024];
 
-			switch (Detect_Format(Recent_Rom[i]) >> 1)			// do not exist anymore
+			switch (Detect_Format(Recent_Rom[i]) >> 1)
 			{
 				default:
-					strcpy(tmp, "[---]\t- ");
+					strcpy(tmp, "[---]\t- "); // does not exist anymore
 					break;
 
 				case 1:
@@ -4937,6 +4944,40 @@ HMENU Build_Main_Menu(void)
 		}
 	}
 
+	{
+		int dividerI = i;
+		for(unsigned int j=0; j<MAX_RECENT_SCRIPTS; j++)
+		{
+			const char* pathPtr = Recent_Scripts[j];
+			if(!*pathPtr)
+				continue;
+
+			bool IsScriptFileOpen(const char* Path);
+			if(IsScriptFileOpen(pathPtr))
+				continue;
+
+			// only show some of the path
+			const char* pathPtrSearch;
+			int slashesLeft = 2;
+			for(pathPtrSearch = pathPtr + strlen(pathPtr) - 1; 
+				pathPtrSearch != pathPtr && slashesLeft >= 0;
+				pathPtrSearch--)
+			{
+				char c = *pathPtrSearch;
+				if(c == '\\' || c == '/')
+					slashesLeft--;
+			}
+			if(slashesLeft < 0)
+				pathPtr = pathPtrSearch + 2;
+			strcpy(Str_Tmp, pathPtr);
+
+			if(i == dividerI)
+				InsertMenu(Lua_Script, i++, MF_SEPARATOR, NULL, NULL);
+
+			MENU_L(Lua_Script,i++,Flags,ID_LUA_OPENRECENTSCRIPT0+j,Str_Tmp,"",Str_Tmp);
+		}
+	}
+
 	//Upth-Modif - Slow Mode Selection -- now a submenu of TAS_Tools
 	// Menu CPUSlowDownSpeed
 	i = 0;
@@ -5072,6 +5113,7 @@ HMENU Build_Main_Menu(void)
 	if (Full_Screen) SetMenu(HWnd, NULL);
 	else SetMenu(HWnd, Gens_Menu);
 
+	MustUpdateMenu = 0;
 
 	// measure the desired width of the menu in pixels,
 	// such that the menu will only be 1 line tall if the surrounding window is at least this wide

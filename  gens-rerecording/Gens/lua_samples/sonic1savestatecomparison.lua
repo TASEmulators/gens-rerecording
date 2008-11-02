@@ -119,19 +119,6 @@ function duplicatetable (table)
 	return rv
 end
 
--- in case we have to debug what's in a table,
--- because print(table) is pretty useless
-function printtable(o)
-	if type(o) == "table" then
-		for k,v in pairs(o) do
-			printtable(k)
-			print("=")
-			printtable(v)
-		end
-	else
-		print(o)
-	end
-end
 
 -- a function to associate the info records with savestates the user makes
 savestate.registersave( function (statenumber)

@@ -28,7 +28,7 @@ Rom *My_Rom = NULL;
 char Rom_Name[512];
 char Rom_Dir[1024];
 char IPS_Dir[1024];
-char Recent_Rom[15][1024];
+char Recent_Rom[MAX_RECENT_ROMS][1024];
 char US_CD_Bios[1024];
 char EU_CD_Bios[1024];
 char JA_CD_Bios[1024];
@@ -79,13 +79,12 @@ void Get_Dir_From_Path(char *Full_Path, char *Dir)
 
 void Update_Recent_Rom(const char *Path)
 {
-	//Modif N. - added more recent items
-
 	int i;
-	for(i = 0; i < 15; i++)
+	for(i = 0; i < MAX_RECENT_ROMS; i++)
+	{
 		if (!(strcmp(Recent_Rom[i], Path)))
 		{
-			//Modif N. - move recent ROM to the top of the list
+			// move recent item to the top of the list
 			if(i == 0)
 				return;
 			char temp [1024];
@@ -96,8 +95,10 @@ void Update_Recent_Rom(const char *Path)
 			strcpy(Recent_Rom[0], temp);
 			return;
 		}
-		
-	for(i = 15-1; i > 0; i--) strcpy(Recent_Rom[i], Recent_Rom[i - 1]);
+	}
+
+	for(i = MAX_RECENT_ROMS-1; i > 0; i--)
+		strcpy(Recent_Rom[i], Recent_Rom[i - 1]);
 
 	strcpy(Recent_Rom[0], Path);
 }
