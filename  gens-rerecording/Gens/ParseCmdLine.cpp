@@ -13,8 +13,9 @@
 using namespace std;
 
 extern const char* GensPlayMovie(const char* filename, bool silent);
+extern int Paused;
 
-//TODO: -pause (bool), -loadstate, -readonly
+//TODO: -readonly
 
 //To add additional commandline options
 //1) add the identifier (-rom, -play, etc) into the argCmds array
@@ -29,12 +30,14 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-cfg", "-rom", "-play"};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play", "-loadstate", "-pause"};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad;		//Cfg filename
 	string RomToLoad;		//ROM filename
 	string MovieToLoad;		//Movie filename
+	string StateToLoad;		//Savestate filename
+	string PauseGame;		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -64,15 +67,22 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 2:
 			MovieToLoad = newCommand;
 			break;
+		case 3:
+			StateToLoad = newCommand;
+			break;
+		case 4:
+			PauseGame = newCommand;
+			break;
 		}
 	}
 	//--------------------------------------------------------------------------------------------
 	//Execute commands
 	
+	char *x;	//Temp variable used to convert strings to non const char arrays
 	//Cfg
 	if (CfgToLoad[0])
 	{
-		char *x = _strdup(CfgToLoad.c_str());
+		x = _strdup(CfgToLoad.c_str());
 		Load_Config(x, NULL);
 		strcpy(Str_Tmp, "config loaded from ");
 		strcat(Str_Tmp, CfgToLoad.c_str());
@@ -85,6 +95,15 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	//Movie
 	if (MovieToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
 	
+	//Loadstate
+	if (StateToLoad[0])
+	{
+		x = _strdup(StateToLoad.c_str());
+		Load_State(x);
+	}
+
+	//Paused
+	if (PauseGame[0] && MovieToLoad[0]) Paused = 1;
 	
 
 
