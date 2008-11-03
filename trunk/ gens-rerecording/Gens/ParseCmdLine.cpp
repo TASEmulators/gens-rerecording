@@ -15,8 +15,6 @@ using namespace std;
 extern const char* GensPlayMovie(const char* filename, bool silent);
 extern int Paused;
 
-//TODO: -readonly
-
 //To add additional commandline options
 //1) add the identifier (-rom, -play, etc) into the argCmds array
 //2) add a variable to store the argument in the list under "Strings that will get parsed"
@@ -30,7 +28,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-cfg", "-rom", "-play", "-loadstate", "-pause"};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause"};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad;		//Cfg filename
@@ -38,6 +36,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string MovieToLoad;		//Movie filename
 	string StateToLoad;		//Savestate filename
 	string PauseGame;		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
+	string ReadWrite;		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -58,19 +57,22 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		//Assign newCommand to appropriate variable
 		switch (x)
 		{
-		case 0:
+		case 0:	//-cfg
 			CfgToLoad = newCommand;
 			break;
-		case 1:
+		case 1:	//-rom
 			RomToLoad = newCommand;
 			break;
-		case 2:
+		case 2:	//-play
 			MovieToLoad = newCommand;
 			break;
-		case 3:
+		case 3:	//-readwrite
+			ReadWrite = newCommand;
+			break;
+		case 4:	//-loadstate
 			StateToLoad = newCommand;
 			break;
-		case 4:
+		case 5:	//-pause
 			PauseGame = newCommand;
 			break;
 		}
@@ -93,7 +95,10 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	if (RomToLoad[0]) Pre_Load_Rom(HWnd, RomToLoad.c_str());
 	
 	//Movie
-	if (MovieToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
+	if (MovieToLoad[0] && RomToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
+
+	//Read+Write
+	if (ReadWrite[0] && MovieToLoad[0] && RomToLoad[0]) MainMovie.ReadOnly = 0;
 	
 	//Loadstate
 	if (StateToLoad[0])
