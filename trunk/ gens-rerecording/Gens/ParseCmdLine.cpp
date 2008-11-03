@@ -31,12 +31,12 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause"};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
-	string CfgToLoad;		//Cfg filename
-	string RomToLoad;		//ROM filename
-	string MovieToLoad;		//Movie filename
-	string StateToLoad;		//Savestate filename
-	string PauseGame;		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
-	string ReadWrite;		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
+	string CfgToLoad = "";		//Cfg filename
+	string RomToLoad = "";		//ROM filename
+	string MovieToLoad = "";	//Movie filename
+	string StateToLoad = "";	//Savestate filename
+	string PauseGame = "";		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
+	string ReadWrite = "";		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -48,11 +48,16 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	//Commandline parsing loop
 	for (int x = 0; x < (sizeof argCmds / sizeof string); x++)
 	{
-		commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + 1;	//Find beginning of new command
-		trunc = argumentList.substr(commandBegin);								//Truncate argumentList
-		commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
-		if (commandEnd < 0) commandEnd = argLength;								//If no space, new command will end at the end of list
-		newCommand = argumentList.substr(commandBegin, commandEnd);				//assign freshly parsed command to newCommand
+		if (argumentList.find(argCmds[x]) != string::npos)
+		{
+			commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + 1;	//Find beginning of new command
+			trunc = argumentList.substr(commandBegin);								//Truncate argumentList
+			commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
+			if (commandEnd < 0) commandEnd = argLength;								//If no space, new command will end at the end of list
+			newCommand = argumentList.substr(commandBegin, commandEnd);				//assign freshly parsed command to newCommand
+		}
+		else
+			newCommand = "";
 
 		//Assign newCommand to appropriate variable
 		switch (x)
