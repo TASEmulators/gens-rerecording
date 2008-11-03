@@ -7,12 +7,18 @@
 #include "G_main.h"
 #include "rom.h"
 #include "movie.h"
+#include "save.h"
+#include "G_ddraw.h"
 
 using namespace std;
+
 extern const char* GensPlayMovie(const char* filename, bool silent);
+
+//TODO: -pause (bool), -loadstate, -readonly
+
 //To add additional commandline options
 //1) add the identifier (-rom, -play, etc) into the argCmds array
-//2) add a variable to store the argument in the list under "Strings that will get parsed
+//2) add a variable to store the argument in the list under "Strings that will get parsed"
 //3) add an entry in the switch statement in order to assign the variable
 //4) add code under the "execute commands" section to handle the given commandline
 
@@ -23,11 +29,12 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-rom", "-play"};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play"};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
-	string RomToLoad;		//ROM name
-	string MovieToLoad;		//Movie file
+	string CfgToLoad;		//Cfg filename
+	string RomToLoad;		//ROM filename
+	string MovieToLoad;		//Movie filename
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -35,8 +42,8 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string newCommand;		//Will hold newest command being parsed in the loop
 	string trunc;			//Truncated argList (from beginning of command to end of argumentList
 
-
-	//Commandline parsing loop--------------------------------------------------------------------
+	//--------------------------------------------------------------------------------------------
+	//Commandline parsing loop
 	for (int x = 0; x < (sizeof argCmds / sizeof string); x++)
 	{
 		commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + 1;	//Find beginning of new command
@@ -49,25 +56,38 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		switch (x)
 		{
 		case 0:
-			RomToLoad = newCommand;
+			CfgToLoad = newCommand;
 			break;
 		case 1:
+			RomToLoad = newCommand;
+			break;
+		case 2:
 			MovieToLoad = newCommand;
 			break;
 		}
 	}
 	//--------------------------------------------------------------------------------------------
-
 	//Execute commands
 	
+	//Cfg
+	if (CfgToLoad[0])
+	{
+		char *x = _strdup(CfgToLoad.c_str());
+		Load_Config(x, NULL);
+		strcpy(Str_Tmp, "config loaded from ");
+		strcat(Str_Tmp, CfgToLoad.c_str());
+		Put_Info(Str_Tmp, 2000);
+	}
+
 	//ROM
 	if (RomToLoad[0]) Pre_Load_Rom(HWnd, RomToLoad.c_str());
 	
 	//Movie
-	if (MovieToLoad[0]) 
-	{
-	GensPlayMovie(MovieToLoad.c_str(), 1);
-	}
+	if (MovieToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
+	
+	
+
+
 /* OLD CODE	
 		char Str_Tmpy[1024];
 		int src;
