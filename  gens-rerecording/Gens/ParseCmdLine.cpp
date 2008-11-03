@@ -4,11 +4,12 @@
 #include <fstream>
 #include <iostream>
 
+#include "G_main.h"
 #include "rom.h"
 #include "movie.h"
 
 using namespace std;
-
+extern const char* GensPlayMovie(const char* filename, bool silent);
 //To add additional commandline options
 //1) add the identifier (-rom, -play, etc) into the argCmds array
 //2) add a variable to store the argument in the list under "Strings that will get parsed
@@ -65,7 +66,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	//Movie
 	if (MovieToLoad[0]) 
 	{
-	
+	GensPlayMovie(MovieToLoad.c_str(), 1);
 	}
 /* OLD CODE	
 		char Str_Tmpy[1024];
