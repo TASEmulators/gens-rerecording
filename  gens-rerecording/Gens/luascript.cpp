@@ -1133,6 +1133,10 @@ int gui_box(lua_State* L)
 
 	return 0;
 }
+// gui.setpixel(x,y,color)
+// color can be a RGB web color like '#ff7030', or with alpha RGBA like '#ff703060'
+//   or it can be an RGBA hex number like 0xFF703060
+//   or it can be a preset color like 'red', 'orange', 'blue', 'white', etc.
 int gui_pixel(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
@@ -1148,6 +1152,36 @@ int gui_pixel(lua_State* L)
 	Pixel(x, y, color32, color16, 0, Opac);
 
 	return 0;
+}
+// r,g,b = gui.getpixel(x,y)
+int gui_getpixel(lua_State* L)
+{
+	int x = luaL_checkinteger(L,1);
+	int y = luaL_checkinteger(L,2);
+
+	int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
+	int yres = ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount) ? 240 : 224;
+
+	x = max(0,min(xres,x));
+	y = max(0,min(yres,y));
+
+	int off = (y * 336) + x + 8;
+
+	int color;
+	if (Bits32)
+		color = MD_Screen32[off];
+	else
+		color = DrawUtil::Pix16To32(MD_Screen[off]);
+
+	int b = (color & 0x000000FF);
+	int g = (color & 0x0000FF00) >> 8;
+	int r = (color & 0x00FF0000) >> 16;
+
+	lua_pushinteger(L, r);
+	lua_pushinteger(L, g);
+	lua_pushinteger(L, b);
+
+	return 3;
 }
 int gui_line(lua_State* L)
 {
@@ -1257,12 +1291,33 @@ int input_getcurrentinputstatus(lua_State* L)
 	// keyboard and mouse button status
 	{
 		unsigned char keys [256];
-		if(GetKeyboardState(keys))
+		if(!BackgroundInput)
 		{
-			for(int i = 0; i < 256; i++)
+			if(GetKeyboardState(keys))
 			{
-				int mask = (i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL) ? 0x01 : 0x80;
-				if(keys[i] & mask)
+				for(int i = 1; i < 255; i++)
+				{
+					int mask = (i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL) ? 0x01 : 0x80;
+					if(keys[i] & mask)
+					{
+						const char* GetVirtualKeyName(int key);
+						const char* name = GetVirtualKeyName(i);
+						lua_pushboolean(L, true);
+						lua_setfield(L, -2, name);
+					}
+				}
+			}
+		}
+		else // use a slightly different method that will detect background input:
+		{
+			for(int i = 1; i < 255; i++)
+			{
+				int active;
+				if(i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL)
+					active = GetKeyState(i) & 0x01;
+				else
+					active = GetAsyncKeyState(i) & 0x8000;
+				if(active)
 				{
 					const char* GetVirtualKeyName(int key);
 					const char* name = GetVirtualKeyName(i);
@@ -1334,13 +1389,14 @@ static const struct luaL_reg guilib [] =
 	{"register", gui_register},
 	{"text", gui_text},
 	{"box", gui_box},
-	{"pixel", gui_pixel},
 	{"line", gui_line},
+	{"pixel", gui_pixel},
+	{"getpixel", gui_getpixel},
 	// alternative names
 	{"drawtext", gui_text},
 	{"drawbox", gui_box},
-	{"drawpixel", gui_pixel},
 	{"drawline", gui_line},
+	{"drawpixel", gui_pixel},
 	{"rect", gui_box},
 	{"drawrect", gui_box},
 	{NULL, NULL}
