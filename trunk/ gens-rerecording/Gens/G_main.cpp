@@ -211,6 +211,7 @@ extern "C" int Do_VDP_Only();
 extern void Update_Emulation_One_Before(HWND hWnd);
 extern void Update_Emulation_After_Fast(HWND hWnd);
 extern "C" int disableSound, disableSound2;
+extern char Lua_Dir [1024];
 
 int frameSearchFrames = -1;
 bool frameSearchInitialized = false;
@@ -2616,9 +2617,13 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						char temp [1024];
 						strcpy(temp, Recent_Scripts[command - ID_LUA_OPENRECENTSCRIPT0]);
-						HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), hWnd, (DLGPROC) LuaScriptProc);
-						SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)temp);
-						DialogsOpen++;
+						bool IsScriptFileOpen(const char* Path);
+						if(!IsScriptFileOpen(temp))
+						{
+							HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), hWnd, (DLGPROC) LuaScriptProc);
+							SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)temp);
+							DialogsOpen++;
+						}
 					}
 				}
 
@@ -4545,29 +4550,29 @@ HMENU Build_Main_Menu(void)
 			switch (Detect_Format(Recent_Rom[i]) >> 1)
 			{
 				default:
-					strcpy(tmp, "[---]\t- "); // does not exist anymore
+					strcpy(tmp, "[---]    - "); // does not exist anymore
 					break;
 
 				case 1:
-					strcpy(tmp, "[MD]\t- ");
+					strcpy(tmp, "[MD]   - ");
 					break;
 
 				case 2:
-					strcpy(tmp, "[32X]\t- ");
+					strcpy(tmp, "[32X]  - ");
 					break;
 
 				case 3:
-					strcpy(tmp, "[SCD]\t- ");
+					strcpy(tmp, "[SCD] - ");
 					break;
 
 				case 4:
-					strcpy(tmp, "[SCDX]\t- ");
+					strcpy(tmp, "[SCDX] - ");
 					break;
 			}
 
 			Get_Name_From_Path(Recent_Rom[i], Str_Tmp);
 			strcat(tmp, Str_Tmp);
-			InsertMenu(FilesHistory, i, Flags, ID_FILES_OPENRECENTROM0 + i, tmp);
+			MENU_L(FilesHistory, i, Flags, ID_FILES_OPENRECENTROM0 + i, tmp, "", tmp);
 
 		}
 		else break;
@@ -5005,8 +5010,8 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
 	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
 	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Options, i++, Flags, ID_OPTIONS_LOADCONFIG, "Load config", "", "&Load config");
-	MENU_L(Options, i++, Flags, ID_OPTIONS_SAVEASCONFIG, "Save config as", "", "&Save config as");
+	MENU_L(Options, i++, Flags, ID_OPTIONS_LOADCONFIG, "Load Config...", "", "&Load Config...");
+	MENU_L(Options, i++, Flags, ID_OPTIONS_SAVEASCONFIG, "Save Config As...", "", "&Save Config As...");
 
 
 	// Sous-Menu CDDrive
@@ -5307,6 +5312,7 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					}
 
 				case ID_CANCEL:
+				case IDCANCEL:
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -5378,6 +5384,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			WORD_L(ID_CHANGE_PATCH, "Change", "", "Change");
 			WORD_L(ID_CHANGE_IPS, "Change", "", "Change");
 			WORD_L(ID_CHANGE_MOVIE, "Change", "", "Change");
+			WORD_L(ID_CHANGE_LUA, "Change", "", "Change");
 
 			WORD_L(IDC_STATIC_SAVE, "Save static", "", "SAVE STATE");
 			WORD_L(IDC_STATIC_SRAM, "Sram static", "", "SRAM BACKUP");
@@ -5387,6 +5394,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			WORD_L(IDC_STATIC_SHOT, "Shot static", "", "SCREEN SHOT");
 			WORD_L(IDC_STATIC_PATCH, "Patch static", "", "PAT PATCH");
 			WORD_L(IDC_STATIC_IPS, "IPS static", "", "IPS PATCH");
+			WORD_L(IDC_STATIC_LUA, "Lua static", "", "LUA SCRIPT");
 
 			SetDlgItemText(hDlg, IDC_EDIT_SAVE, State_Dir);
 			SetDlgItemText(hDlg, IDC_EDIT_SRAM, SRAM_Dir);
@@ -5398,6 +5406,7 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			SetDlgItemText(hDlg, IDC_EDIT_IPS, IPS_Dir);
 			SetDlgItemText(hDlg, IDC_EDIT_MOVIE, Movie_Dir);
 			SetDlgItemText(hDlg, IDC_EDIT_WATCH, Watch_Dir);
+			SetDlgItemText(hDlg, IDC_EDIT_LUA, Lua_Dir);
 
 			return true;
 			break;
@@ -5452,6 +5461,11 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					if (Change_Dir(Str_Tmp, Str_Tmp2, "IPS Patch directory", "IPS Patch files\0*.ips\0\0", "ips", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_IPS, Str_Tmp);
 					break;
+				case ID_CHANGE_LUA:
+					GetDlgItemText(hDlg, IDC_EDIT_LUA, Str_Tmp2, 1024);
+					if (Change_Dir(Str_Tmp, Str_Tmp2, "Lua script directory", "Lua script files\0*.lua\0\0", "lua", hDlg))
+						SetDlgItemText(hDlg, IDC_EDIT_LUA, Str_Tmp);
+					break;
 				case ID_CHANGE_MOVIE:
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Str_Tmp2, 1024);
 					if (Change_Dir(Str_Tmp, Str_Tmp2, "Movie directory", "Gens Movie files\0*.gmv\0\0", "gmv", hDlg))
@@ -5473,7 +5487,9 @@ LRESULT CALLBACK DirectoriesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					GetDlgItemText(hDlg, IDC_EDIT_IPS, IPS_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_MOVIE, Movie_Dir, 1024);
 					GetDlgItemText(hDlg, IDC_EDIT_WATCH, Watch_Dir, 1024);
+					GetDlgItemText(hDlg, IDC_EDIT_LUA, Lua_Dir, 1024);
 				case ID_CANCEL:
+				case IDCANCEL:
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -5667,6 +5683,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_MANUAL, Manual_Path, 1024);
 
 				case ID_CANCEL:
+				case IDCANCEL:
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6298,6 +6315,7 @@ LRESULT CALLBACK PromptSpliceFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 					break;
 				}
 				case ID_CANCEL:
+				case IDCANCEL:
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
@@ -6377,6 +6395,7 @@ LRESULT CALLBACK PromptSeekFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 					break;
 				}
 				case ID_CANCEL:
+				case IDCANCEL:
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
@@ -6653,6 +6672,7 @@ LRESULT CALLBACK VolumeProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					EndDialog(hDlg, true);
 					return true;
 				case ID_CANCEL:
+				case IDCANCEL:
 					MastVol = TempMast;
 					YM2612Vol = Temp2612;
 					PSGVol = TempPSG;
@@ -7061,6 +7081,7 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				}	break;
 
 				case IDC_OPTION_CANCEL:
+				case IDCANCEL:
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
