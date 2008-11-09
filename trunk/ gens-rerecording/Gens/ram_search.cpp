@@ -1,3 +1,29 @@
+// A few notes about this implementation of a RAM search window:
+//
+// Speed of update was one of the highest priories.
+// This is because I wanted the RAM search window to be able to
+// update every single value in RAM every single frame, and
+// keep track of the exact number of frames across which each value has changed,
+// without causing the emulation to run noticeably slower than normal.
+//
+// The data representation was changed from one entry per valid address
+// to one entry per contiguous range of uneliminated addresses
+// which references uniform pools of per-address properties.
+// - This saves time when there are many items because
+//   it minimizes the amount of data that needs to be stored and processed per address.
+// - It also saves time when there are few items because
+//   it ensures that no time is wasted in iterating through
+//   addresses that have already been eliminated from the search.
+//
+// The worst-case scenario is when every other item has been
+// eliminated from the search, maximizing the number of regions.
+// This implementation manages to handle even that pathological case
+// acceptably well. In fact, it still updates faster than the previous implementation.
+// The time spent setting up or clearing such a large number of regions
+// is somewhat horrendous, but it seems reasonable to have poor worst-case speed
+// during these sporadic "setup" steps to achieve an all-around faster per-update speed.
+// (You can test this case by performing the search: Modulo 2 Is Specific Address 0)
+
 #include "resource.h"
 #include "gens.h"
 #include "mem_m68k.h"
@@ -719,6 +745,8 @@ bool Set_RS_Val()
 			rs_param = ReadControlInt(IDC_EDIT_DIFFBY, false, success);
 			if(!success)
 				return false;
+			if(rs_param < 0)
+				rs_param = -rs_param;
 			break;
 		case '%':
 			rs_param = ReadControlInt(IDC_EDIT_MODBY, false, success);
@@ -1186,24 +1214,22 @@ static void SelectEditControl(int controlID)
 	SendMessage(hEdit, EM_SETSEL, 0, -1);
 }
 
+static BOOL SelectingByKeyboard()
+{
+	int a = GetKeyState(VK_LEFT);
+	int b = GetKeyState(VK_RIGHT);
+	int c = GetKeyState(VK_UP);
+	int d = GetKeyState(VK_DOWN); // space and tab are intentionally omitted
+	return (a | b | c | d) & 0x80;
+}
+
+
 LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	RECT r;
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
 	static int watchIndex=0;
-
-
-	// this is pretty stupid but
-	// Windows sends two click messages in a row when a radio button is activated via keyboard
-	// and I want to detect when the radio button is clicked while it's already checked
-	// which means I need some way of discarding the spurious click messages
-	static int duplicateClicks = 0;
-	if(uMsg == WM_COMMAND && HIWORD(wParam) == BN_CLICKED)
-		duplicateClicks++;
-	else if(uMsg == WM_COMMAND || uMsg == WM_SETCURSOR)
-		duplicateClicks = 0;
-
 
 	switch(uMsg)
 	{
@@ -1511,21 +1537,19 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					{rv = true; break;}
 				case IDC_DIFFERENTBY:
 				{
-					if(rs_o == 'd' && duplicateClicks < 2)
-						SelectEditControl(IDC_EDIT_DIFFBY);
-					else
-						rs_o = 'd';
+					rs_o = 'd';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),false);
+					if(!SelectingByKeyboard())
+						SelectEditControl(IDC_EDIT_DIFFBY);
 				}	{rv = true; break;}
 				case IDC_MODULO:
 				{
-					if(rs_o == '%' && duplicateClicks < 2)
-						SelectEditControl(IDC_EDIT_MODBY);
-					else
-						rs_o = '%';
+					rs_o = '%';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_DIFFBY),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_MODBY),true);
+					if(!SelectingByKeyboard())
+						SelectEditControl(IDC_EDIT_MODBY);
 				}	{rv = true; break;}
 				case IDC_PREVIOUSVALUE:
 					rs_c='r';
@@ -1535,34 +1559,31 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					{rv = true; break;}
 				case IDC_SPECIFICVALUE:
 				{
-					if(rs_c == 's' && duplicateClicks < 2)
-						SelectEditControl(IDC_EDIT_COMPAREVALUE);
-					else
-						rs_c = 's';
+					rs_c = 's';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),false);
+					if(!SelectingByKeyboard())
+						SelectEditControl(IDC_EDIT_COMPAREVALUE);
 					{rv = true; break;}
 				}
 				case IDC_SPECIFICADDRESS:
 				{
-					if(rs_c == 'a' && duplicateClicks < 2)
-						SelectEditControl(IDC_EDIT_COMPAREADDRESS);
-					else
-						rs_c = 'a';
+					rs_c = 'a';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),false);
+					if(!SelectingByKeyboard())
+						SelectEditControl(IDC_EDIT_COMPAREADDRESS);
 				}	{rv = true; break;}
 				case IDC_NUMBEROFCHANGES:
 				{
-					if(rs_c == 'n' && duplicateClicks < 2)
-						SelectEditControl(IDC_EDIT_COMPARECHANGES);
-					else
-						rs_c = 'n';
+					rs_c = 'n';
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPARECHANGES),true);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREVALUE),false);
 					EnableWindow(GetDlgItem(hDlg,IDC_EDIT_COMPAREADDRESS),false);
+					if(!SelectingByKeyboard())
+						SelectEditControl(IDC_EDIT_COMPARECHANGES);
 				}	{rv = true; break;}
 				case IDC_C_ADDCHEAT:
 				{
