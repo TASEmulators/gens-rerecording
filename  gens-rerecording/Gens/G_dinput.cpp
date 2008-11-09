@@ -124,14 +124,14 @@ static InputButton s_inputButtons [] =
 	{MOD_CONTROL,           'B',       ID_FILES_BOOTCD,          0, NULL, "Boot CD", "BootCDKey"},
 	{MOD_CONTROL,           'V',       ID_FILES_OPENCLOSECD,     0, NULL, "Open/Close CD", "OpenCloseCDKey"},
 
+	{MOD_NONE,          VK_NONE,       ID_FILES_OPENRECENTROM0,  0, NULL, "Open Most Recent ROM", "OpenMostRecentROM"},
+	{MOD_NONE,          VK_NONE,       ID_LUA_OPENRECENTSCRIPT0, 0, NULL, "Open Most Recent Lua Script", "OpenMostRecentLua"},
+
 	{MOD_NONE, VK_TAB,   ID_NONE, 0, &FastForwardKeyDown,  "Fast Forward", "FastForwardKey"},
 	{MOD_NONE, VK_OEM_5, ID_NONE, 0, &FrameAdvanceKeyDown, "Frame Advance", "SkipFrameKey"},
 	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoFireKeyDown,     "Auto-Fire Modifier", "AutoFireKey"},
 	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
 	{MOD_NONE, VK_OEM_3, ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
-
-	{MOD_NONE,          VK_NONE,       ID_FILES_OPENRECENTROM0,  0, NULL, "Open Most Recent ROM", "OpenMostRecentROM"},
-	{MOD_NONE,          VK_NONE,       ID_LUA_OPENRECENTSCRIPT0, 0, NULL, "Open Most Recent Lua Script", "OpenMostRecentLua"},
 
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_2,      ID_CHANGE_TRACE,      0, NULL, "Instruction Tracing On/Off", "TraceKey"},
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_PERIOD, ID_CHANGE_HOOK,       0, NULL, "Memory Hooking On/Off", "HookKey"},

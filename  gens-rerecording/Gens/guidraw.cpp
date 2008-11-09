@@ -62,6 +62,9 @@ static void PutTextInternal (const char *str, short x, short y, int color, int b
 	int backOpac = backcolor & 0xFF;
 	int origX = x;
 
+	if(!Opac && !backOpac)
+		return;
+
 	while(*str)
 	{
 		int c = *str++;
@@ -297,15 +300,18 @@ void DrawBoxPP2 (short x1, short y1, short x2, short y2, unsigned int fillcolor3
 	int fillcolor16 = DrawUtil::Pix32To16(fillcolor32);
 	int outlinecolor16 = DrawUtil::Pix32To16(outlinecolor32);
 
+	if(!fillOpac && !outlineOpac)
+		return;
+
 	if (x1 > x2) x1^=x2, x2^=x1, x1^=x2;
 	if (y1 > y2) y1^=y2, y2^=y1, y1^=y2;
 
-	for (short x = x1; x <= x2; x++)
+	for (short x = x1+1; x < x2; x++)
 		Pixel(x,y1,outlinecolor32,outlinecolor16,0, outlineOpac);
 	for (short y = y1; y <= y2; y++)
 		Pixel(x1,y,outlinecolor32,outlinecolor16,0, outlineOpac);
 	if(y1 != y2)
-		for (short x = x1; x <= x2; x++)
+		for (short x = x1+1; x < x2; x++)
 			Pixel(x,y2,outlinecolor32,outlinecolor16,0, outlineOpac);
 	if(x1 != x2)
 		for (short y = y1; y <= y2; y++)

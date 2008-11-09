@@ -70,6 +70,7 @@ struct LuaContextInfo {
 	bool guiFuncsNeedDeferring; // true whenever GUI drawing would be cleared by the next emulation update before it would be visible, and thus needs to be deferred until after the next emulation update
 	int numDeferredGUIFuncs; // number of deferred function calls accumulated, used to impose an arbitrary limit to avoid running out of memory
 	bool ranFrameAdvance; // false if gens.frameadvance() hasn't been called yet
+	int transparencyModifier; // values less than 255 will scale down the opacity of whatever the GUI renders, values greater than 255 will increase the opacity of anything transparent the GUI renders
 	SpeedMode speedMode; // determines how gens.frameadvance() acts
 	char panicMessage [64]; // a message to print if the script terminates due to panic being set
 	std::string lastFilename; // path to where the script last ran from so that restart can work (note: storing the script in memory instead would not be useful because we always want the most up-to-date script from file)
@@ -1064,7 +1065,7 @@ s_colorMapping [] =
 	{"magenta",   0xFF00FFFF},
 };
 
-int getcolor(lua_State *L, int idx, int defaultColor)
+inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 {
 	int type = lua_type(L,idx);
 	switch(type)
@@ -1096,6 +1097,18 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 		}	break;
 	}
 	return defaultColor;
+}
+int getcolor(lua_State *L, int idx, int defaultColor)
+{
+	int color = getcolor_unmodified(L, idx, defaultColor);
+	LuaContextInfo& info = *luaStateToContextMap[L];
+	if(info.transparencyModifier != 255)
+	{
+		int alpha = (((color & 0xFF) * info.transparencyModifier) / 255);
+		if(alpha > 255) alpha = 255;
+		color = (color & ~0xFF) | alpha;
+	}
+	return color;
 }
 
 int gui_text(lua_State* L)
@@ -1149,7 +1162,8 @@ int gui_pixel(lua_State* L)
 	int color16 = DrawUtil::Pix32To16(color32);
 	int Opac = color & 0xFF;
 
-	Pixel(x, y, color32, color16, 0, Opac);
+	if(Opac)
+		Pixel(x, y, color32, color16, 0, Opac);
 
 	return 0;
 }
@@ -1197,8 +1211,47 @@ int gui_line(lua_State* L)
 	int color16 = DrawUtil::Pix32To16(color32);
 	int Opac = color & 0xFF;
 
-	DrawLine(x1, y1, x2, y2, color32, color16, 0, Opac);
+	if(Opac)
+		DrawLine(x1, y1, x2, y2, color32, color16, 0, Opac);
 
+	return 0;
+}
+
+// gui.opacity(number alphaValue)
+// sets the transparency of subsequent draw calls
+// 0.0 is completely transparent, 1.0 is completely opaque
+// non-integer values are supported and meaningful, as are values greater than 1.0
+// it is not necessary to use this function to get transparency (or the less-recommended gui.transparency() either),
+// because you can provide an alpha value in the color argument of each draw call.
+// however, it can be convenient to be able to globally modify the drawing transparency
+int gui_setopacity(lua_State* L)
+{
+	lua_Number opacF = luaL_checknumber(L,1);
+	opacF *= 255.0;
+	if(opacF < 0) opacF = 0;
+	int opac;
+	lua_number2int(opac, opacF);
+	LuaContextInfo& info = *luaStateToContextMap[L];
+	info.transparencyModifier = opac;
+	return 0;
+}
+
+// gui.transparency(number transparencyValue)
+// sets the transparency of subsequent draw calls
+// 0.0 is completely opaque, 4.0 is completely transparent
+// non-integer values are supported and meaningful, as are values less than 0.0
+// this is a legacy funciton, and the range is from 0 to 4 solely for this reason
+// it does the exact same thing as gui.opacity() but with a different argument range
+int gui_settransparency(lua_State* L)
+{
+	lua_Number transp = luaL_checknumber(L,1);
+	lua_Number opacF = 4 - transp;
+	opacF *= 255.0 / 4.0;
+	if(opacF < 0) opacF = 0;
+	int opac;
+	lua_number2int(opac, opacF);
+	LuaContextInfo& info = *luaStateToContextMap[L];
+	info.transparencyModifier = opac;
 	return 0;
 }
 
@@ -1392,6 +1445,8 @@ static const struct luaL_reg guilib [] =
 	{"line", gui_line},
 	{"pixel", gui_pixel},
 	{"getpixel", gui_getpixel},
+	{"opacity", gui_setopacity},
+	{"transparency", gui_settransparency},
 	// alternative names
 	{"drawtext", gui_text},
 	{"drawbox", gui_box},
@@ -1532,26 +1587,32 @@ static const struct luaL_reg soundlib [] =
 	{NULL, NULL}
 };
 
+void ResetInfo(LuaContextInfo& info)
+{
+	info.L = NULL;
+	info.started = false;
+	info.running = false;
+	info.returned = false;
+	info.crashed = false;
+	info.restart = false;
+	info.restartLater = false;
+	info.worryCount = 0;
+	info.panic = false;
+	info.ranExit = false;
+	info.numDeferredGUIFuncs = 0;
+	info.ranFrameAdvance = false;
+	info.transparencyModifier = 255;
+	info.speedMode = SPEEDMODE_NORMAL;
+	info.guiFuncsNeedDeferring = false;
+}
+
 void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onstart)(int uid), void(*onstop)(int uid, bool statusOK))
 {
 	LuaContextInfo* newInfo = new LuaContextInfo();
-	newInfo->started = false;
-	newInfo->running = false;
-	newInfo->returned = false;
-	newInfo->crashed = false;
-	newInfo->restart = false;
-	newInfo->restartLater = false;
-	newInfo->worryCount = 0;
-	newInfo->panic = false;
-	newInfo->ranExit = false;
-	newInfo->guiFuncsNeedDeferring = false;
-	newInfo->numDeferredGUIFuncs = 0;
-	newInfo->ranFrameAdvance = false;
-	newInfo->speedMode = SPEEDMODE_NORMAL;
+	ResetInfo(*newInfo);
 	newInfo->print = print;
 	newInfo->onstart = onstart;
 	newInfo->onstop = onstop;
-	newInfo->L = NULL;
 	luaContextInfo[uid] = newInfo;
 }
 
@@ -1582,17 +1643,9 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		lua_State* L = lua_open();
 		luaStateToContextMap[L] = &info;
 		luaStateToUIDMap[L] = uid;
+		ResetInfo(info);
 		info.L = L;
-		info.worryCount = 0;
-		info.panic = false;
-		info.ranExit = false;
-		info.crashed = false;
 		info.guiFuncsNeedDeferring = true;
-		info.numDeferredGUIFuncs = 0;
-		info.ranFrameAdvance = false;
-		info.restart = false;
-		info.restartLater = false;
-		info.speedMode = SPEEDMODE_NORMAL;
 		info.lastFilename = filename;
 
 		luaL_openlibs(L);
