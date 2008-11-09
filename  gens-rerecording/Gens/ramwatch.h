@@ -1,6 +1,6 @@
 #ifndef RAMWATCH_H
 #define RAMWATCH_H
-void ResetWatches();
+bool ResetWatches();
 void OpenRWRecentFile(int memwRFileNumber);
 extern bool AutoRWLoad;
 #define MAX_RECENT_WATCHES 5

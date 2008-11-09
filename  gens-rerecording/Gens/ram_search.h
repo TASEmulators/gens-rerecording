@@ -32,7 +32,6 @@ extern int ResultCount;
 
 unsigned int sizeConv(unsigned int index,char size, char *prevSize = &rs_type_size, bool usePrev = false);
 unsigned int GetRamValue(unsigned int Addr,char Size);
-unsigned int HexStrToInt(char *);
 void prune(char Search, char Operater, char Type, int Value, int OperatorParameter);
 void CompactAddrs();
 void reset_address_info();

@@ -500,7 +500,6 @@
 #define RAMMENU_FILE_SAVE               40651
 #define RAMMENU_FILE_SAVEAS             40652
 #define RAMMENU_FILE_RECENT             40653
-#define RAMMENU_FILE_CLOSE              40654
 #define ID_WATCHES_MOVEUP               40664
 #define ID_WATCHES_MOVEDOWN             40665
 #define ID_WATCHES_EDITWATCH            40666
