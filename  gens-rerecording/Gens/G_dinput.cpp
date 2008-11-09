@@ -130,6 +130,9 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
 	{MOD_NONE, VK_OEM_3, ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
 
+	{MOD_NONE,          VK_NONE,       ID_FILES_OPENRECENTROM0,  0, NULL, "Open Most Recent ROM", "OpenMostRecentROM"},
+	{MOD_NONE,          VK_NONE,       ID_LUA_OPENRECENTSCRIPT0, 0, NULL, "Open Most Recent Lua Script", "OpenMostRecentLua"},
+
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_2,      ID_CHANGE_TRACE,      0, NULL, "Instruction Tracing On/Off", "TraceKey"},
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_PERIOD, ID_CHANGE_HOOK,       0, NULL, "Memory Hooking On/Off", "HookKey"},
 
@@ -233,6 +236,7 @@ static InputButton s_inputButtons [] =
 	{MOD_SHIFT,          VK_OEM_COMMA, ID_PREV_TRACK,            0, NULL, "Previous Player Track", "PrevTrackKey"},
 	{MOD_SHIFT,         VK_OEM_PERIOD, ID_NEXT_TRACK,            0, NULL, "Next Player Track", "NextTrackKey"},
 
+	{MOD_NONE,              VK_NONE,   IDC_NEW_LUA_SCRIPT,       0, NULL, "New Lua Script Window", "OpenNewLuaScriptWindow"},
 	{MOD_NONE,              VK_NONE,   ID_RAM_SEARCH,            0, NULL, "Ram Search", "RamSearchKey"},
 	{MOD_NONE,              VK_NONE,   ID_RAM_WATCH,             0, NULL, "Ram Watch", "RamWatchKey"},
 	{MOD_NONE,              VK_NONE,   ID_PLAY_MOVIE,            0, NULL, "Play Movie", "PlayMovieKey"},

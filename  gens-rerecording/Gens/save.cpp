@@ -49,6 +49,7 @@ int Current_State = 0;
 char State_Dir[1024] = "";
 char SRAM_Dir[1024] = "";
 char BRAM_Dir[1024] = "";
+extern char Lua_Dir [1024];
 unsigned short FrameBuffer[336 * 240];
 unsigned int FrameBuffer32[336 * 240];
 unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
@@ -2008,6 +2009,7 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "IPS Patch path", IPS_Dir, Conf_File);
 	WritePrivateProfileString("General", "Movie path", Movie_Dir, Conf_File);
 	WritePrivateProfileString("General", "Watch path", Watch_Dir, Conf_File);
+	WritePrivateProfileString("General", "Lua path", Lua_Dir, Conf_File);
 	
 	WritePrivateProfileString("General", "Genesis Bios", Genesis_Bios, Conf_File);
 
@@ -2522,6 +2524,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("General", "IPS Patch path", Rom_Dir, &IPS_Dir[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "Movie path", Rom_Dir, &Movie_Dir[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "Watch path", Rom_Dir, &Watch_Dir[0], 1024, Conf_File);
+	GetPrivateProfileString("General", "Lua path", Rom_Dir, &Lua_Dir[0], 1024, Conf_File);
 
 	GetPrivateProfileString("General", "Genesis Bios", Rom_Dir, &Genesis_Bios[0], 1024, Conf_File);
 

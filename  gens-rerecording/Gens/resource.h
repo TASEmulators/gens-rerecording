@@ -269,6 +269,9 @@
 #define IDC_LUA_SCRIPT_15               1238
 #define IDC_EDIT_LUAPATH                1280
 #define IDC_LUACONSOLE                  1281
+#define IDC_EDIT_LUA                    1282
+#define IDC_STATIC_LUA                  1283
+#define ID_CHANGE_LUA                   1284
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -498,28 +501,12 @@
 #define RAMMENU_FILE_SAVEAS             40652
 #define RAMMENU_FILE_RECENT             40653
 #define RAMMENU_FILE_CLOSE              40654
-#define ACCEL_CTRL_O                    40657
-#define ACCEL_CTRL_W                    40659
-#define ACCEL_CTRL_N                    40660
-#define ACCEL_CTRL_S                    40661
-#define ACCEL_CTRL_SHIFT_S              40662
 #define ID_WATCHES_MOVEUP               40664
 #define ID_WATCHES_MOVEDOWN             40665
 #define ID_WATCHES_EDITWATCH            40666
 #define ID_WATCHES_REMOVEWATCH          40667
 #define ID_WATCHES_NEWWATCH             40668
 #define ID_WATCHES_DUPLICATEWATCH       40669
-#define RAMMENU_WATCHES_NEWWATCH        40670
-#define RAMWATCH_WATCHES_EDITWATCH      40671
-#define RAMWATCH_WATCHES_REMOVEWATCH    40672
-#define RAMWATCH_WATCHES_DUPLICATEWATCH 40673
-#define RAMWATCH_WATCHES_MOVEUP         40674
-#define RAMWATCH_WATCHES_MOVEDOWN       40675
-#define RAMMENU_WATCHES_REMOVEWATCH     40676
-#define RAMMENU_WATCHES_EDITWATCH       40677
-#define RAMMENU_WATCHES_DUPLICATEWATCH  40678
-#define RAMMENU_WATCHES_MOVEUP          40679
-#define RAMMENU_WATCHES_MOVEDOWN        40680
 #define ID_FRAME_SEARCH_NEXT            40700
 #define ID_FRAME_SEARCH_PREV            40701
 #define ID_FRAME_SEARCH_END             40702
@@ -555,7 +542,6 @@
 #define IDC_HEX                         41151
 #define IDC_C_LOAD                      41152
 #define IDC_C_UNDO                      41152
-#define IDC_C_WATCH2                    41153
 #define IDC_C_RESET_CHANGES             41153
 #define IDC_C_OR                        42147
 #define IDC_PREVIOUSVALUE               42147
@@ -573,6 +559,8 @@
 #define IDC_C_WATCH_UP                  42172
 #define IDC_C_WATCH_DOWN                42173
 #define IDC_C_ELIMINATE                 42174
+#define IDC_C_WATCH_DUPLICATE           42175
+#define IDC_C_WATCH_REMOVE              42176
 #define IDC_CHEATLIST                   42180
 #define IDC_PROMPT_TEXT                 43000
 #define IDC_PROMPT_TEXT2                43001
@@ -596,7 +584,6 @@
 #define IDC_STATIC_TEXT5                43402
 #define IDC_STATIC_TEXT6                43403
 #define ID_FILES_SAVESTATE_10           43404
-
 #define ID_FILES_OPENRECENTROM0         44000
 #define ID_FILES_OPENRECENTROMMAX       44099
 #define ID_LUA_OPENRECENTSCRIPT0        44100
