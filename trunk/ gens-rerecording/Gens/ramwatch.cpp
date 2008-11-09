@@ -17,6 +17,7 @@
 
 static HMENU ramwatchmenu;
 static HMENU rwrecentmenu;
+static HACCEL RamWatchAccels = NULL;
 char rw_recent_files[MAX_RECENT_WATCHES][1024];
 char Watch_Dir[1024]="";
 const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
@@ -27,8 +28,8 @@ int ramw_x, ramw_y; //Used to store ramwatch dialog window positions
 AddressWatcher rswatches[256];
 int WatchCount=0;
 
-void QuickSaveWatches();
-void ResetWatches();
+bool QuickSaveWatches();
+bool ResetWatches();
 extern "C" int Clear_Sound_Buffer(void);
 
 unsigned int GetCurrentValue(AddressWatcher& watch)
@@ -219,18 +220,17 @@ void Update_RAM_Watch()
 
 bool AskSave()
 {
-	//This function simply asks to save changes if the watch file contents have changed
-	//returns true if the user decided to save changes, and false if they did not (this is currently not used, but could be valuable information in future feature enhancements
+	//This function asks to save changes if the watch file contents have changed
+	//returns false only if a save was attempted but failed or was cancelled
 	if (RWfileChanged)
 	{
-		if(MessageBox(RamWatchHWnd, "Save Changes?", "Ram Watch Settings", MB_YESNO)==IDYES)
-			{
-				QuickSaveWatches();
-				return true;
-			}
+		int answer = MessageBox(RamWatchHWnd, "Save Changes?", "Ram Watch", MB_YESNOCANCEL);
+		if(answer == IDYES)
+			if(!QuickSaveWatches())
+				return false;
+		return (answer != IDCANCEL);
 	}
-	
-	return false;
+	return true;
 }
 
 
@@ -349,8 +349,8 @@ void RWAddRecentFile(const char *filename)
 
 void OpenRWRecentFile(int memwRFileNumber)
 {
-	AskSave();
-	ResetWatches();
+	if(!ResetWatches())
+		return;
 	int rnum=memwRFileNumber;
 		if (rnum > MAX_RECENT_WATCHES) return; //just in case
 		
@@ -379,7 +379,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 			char Device[8];
 			strcpy(Device,(mode > '1')?"32X":"SegaCD");
 			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(RamWatchHWnd,Str_Tmp,"Device Mismatch",MB_OK);
+			MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
 		}
 		int WatchAdd;
 		fgets(Str_Tmp,1024,WatchFile);
@@ -435,13 +435,12 @@ bool Save_Watches()
 	return false;
 }
 
-void QuickSaveWatches()
+bool QuickSaveWatches()
 {
-if (RWfileChanged==false) return; //If file has not changed, no need to save changes
+if (RWfileChanged==false) return true; //If file has not changed, no need to save changes
 if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save as and then return
 	{
-		Save_Watches();
-		return;
+		return Save_Watches();
 	}
 		
 		strcpy(Str_Tmp,currentWatch);
@@ -459,24 +458,27 @@ if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save
 		}
 		fclose(WatchFile);
 		RWfileChanged=false;
-		return;
+		return true;
 }
 
 
 
 bool Load_Watches()
 {
-	AskSave();
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
 	const char DELIM = '\t';
 	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch", RamWatchHWnd))
 	{
-		
-		FILE *WatchFile = fopen(Str_Tmp,"rb");
+		FILE* WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
 			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
+			return false;
+		}
+		if(!ResetWatches())
+		{
+			fclose(WatchFile);
 			return false;
 		}
 		strcpy(currentWatch,Str_Tmp);
@@ -490,7 +492,7 @@ bool Load_Watches()
 			char Device[8];
 			strcpy(Device,(mode > '1')?"32X":"SegaCD");
 			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(RamWatchHWnd,Str_Tmp,"Device Mismatch",MB_OK);
+			MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
 		}
 		int WatchAdd;
 		fgets(Str_Tmp,1024,WatchFile);
@@ -519,9 +521,10 @@ bool Load_Watches()
 	return false;
 }
 
-void ResetWatches()
+bool ResetWatches()
 {
-	AskSave();
+	if(!AskSave())
+		return false;
 	for (;WatchCount>=0;WatchCount--)
 	{
 		free(rswatches[WatchCount].comment);
@@ -532,6 +535,7 @@ void ResetWatches()
 		ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
 	RWfileChanged = false;
 	currentWatch[0] = NULL;
+	return true;
 }
 
 void RemoveWatch(int watchIndex)
@@ -546,7 +550,6 @@ void RemoveWatch(int watchIndex)
 bool Open_Watches()
 {
 //Closes existing watch and loads a new one.
-ResetWatches();
 if (Load_Watches()) return true;
 else return false;
 }
@@ -617,6 +620,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					t = 0;
 					break;
 			}
+
 			return true;
 			break;
 		
@@ -657,6 +661,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						GetDlgItemText(hDlg,IDC_EDIT_COMPAREADDRESS,Str_Tmp,1024);
 						char *addrstr = Str_Tmp;
 						if (strlen(Str_Tmp) > 8) addrstr = &(Str_Tmp[strlen(Str_Tmp) - 9]);
+						for(int i = 0; addrstr[i]; i++) {if(toupper(addrstr[i]) == 'O') addrstr[i] = '0';}
 						sscanf(addrstr,"%08X",&(Temp.Address));
 
 						if(IsHardwareAddressValid(Temp.Address))
@@ -795,10 +800,12 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 			if (!noMisalign) SendDlgItemMessage(hDlg, IDC_MISALIGN, BM_SETCHECK, BST_CHECKED, 0);
 			if (littleEndian) SendDlgItemMessage(hDlg, IDC_ENDIAN, BM_SETCHECK, BST_CHECKED, 0);
+
+			RamWatchAccels = LoadAccelerators(ghInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
+
 			return true;
 			break;
 		}
-		
 		
 		case WM_INITMENU:
 			CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
@@ -952,7 +959,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				}
 				case IDOK:
 				case IDCANCEL:
-				case RAMMENU_FILE_CLOSE:
 					if (Full_Screen)
 					{
 						while (ShowCursor(true) < 0);
@@ -967,6 +973,17 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					OpenRWRecentFile(LOWORD(wParam) - RW_MENU_FIRST_RECENT_FILE);
 			}
 			break;
+		
+		case WM_KEYDOWN: // handle accelerator keys
+		{
+			MSG msg;
+			msg.hwnd = hDlg;
+			msg.message = uMsg;
+			msg.wParam = wParam;
+			msg.lParam = lParam;
+			if(RamWatchAccels && TranslateAccelerator(hDlg, RamWatchAccels, &msg))
+				return true;
+		}	break;
 
 		case WM_CLOSE:
 			if (Full_Screen)

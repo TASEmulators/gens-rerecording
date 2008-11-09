@@ -764,16 +764,16 @@ RAMWATCH_MENU MENU
 BEGIN
     POPUP "File"
     BEGIN
-        MENUITEM "&New list",                   RAMMENU_FILE_NEW
-        MENUITEM "&Open...",                    RAMMENU_FILE_OPEN
-        MENUITEM "&Save",                       RAMMENU_FILE_SAVE
-        MENUITEM "Sa&ve As...",                 RAMMENU_FILE_SAVEAS
+        MENUITEM "&New list\tCtrl N",                   RAMMENU_FILE_NEW
+        MENUITEM "&Open...\tCtrl O",                    RAMMENU_FILE_OPEN
+        MENUITEM "&Save\tCtrl S",                       RAMMENU_FILE_SAVE
+        MENUITEM "Sa&ve As...\tCtrl Shift S",                 RAMMENU_FILE_SAVEAS
         MENUITEM "&Append file...",             RAMMENU_FILE_APPEND
         MENUITEM "Recent",                      RAMMENU_FILE_RECENT
         MENUITEM SEPARATOR
         MENUITEM "Auto-&load",                  RAMMENU_FILE_AUTOLOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Close\tAlt F4",              RAMMENU_FILE_CLOSE
+        MENUITEM "&Close\tAlt F4",              IDCANCEL
     END
     POPUP "Watches"
     BEGIN
@@ -795,11 +795,10 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS 
 BEGIN
-    "O",            RAMMENU_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
-    "W",            RAMMENU_FILE_CLOSE,           VIRTKEY, CONTROL, NOINVERT
-    "N",            RAMMENU_FILE_NEW,           VIRTKEY, CONTROL, NOINVERT
-    "S",            RAMMENU_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
-    "S",            RAMMENU_FILE_SAVEAS,     VIRTKEY, SHIFT, CONTROL, NOINVERT
+    "N",            RAMMENU_FILE_NEW,       VIRTKEY, CONTROL, NOINVERT
+    "O",            RAMMENU_FILE_OPEN,      VIRTKEY, CONTROL, NOINVERT
+    "S",            RAMMENU_FILE_SAVE,      VIRTKEY, CONTROL, NOINVERT
+    "S",            RAMMENU_FILE_SAVEAS,    VIRTKEY, SHIFT, CONTROL, NOINVERT
 END
 
 #endif    // English (U.S.) resources

@@ -648,13 +648,6 @@ bool CompareChangesAtItem (bool(*cmpFun)(T,T,T), int itemIndex, T changes, T par
 	return cmpFun(GetNumChangesFromItemIndex<stepType,T>(itemIndex), changes, param);
 }
 
-unsigned int HexStrToInt(char *s)
-{
-	unsigned int v=0;
-	sscanf(s, "%8X", &v);
-	return v;
-}
-
 int ReadControlInt(int controlID, bool forceHex, BOOL& success)
 {
 	int rv = 0;
@@ -669,6 +662,7 @@ int ReadControlInt(int controlID, bool forceHex, BOOL& success)
 	{
 		if(GetDlgItemText(RamSearchHWnd,controlID,Str_Tmp,16))
 		{
+			for(int i = 0; Str_Tmp[i]; i++) {if(toupper(Str_Tmp[i]) == 'O') Str_Tmp[i] = '0';}
 			const char* strPtr = Str_Tmp;
 			bool negate = false;
 			while(strPtr[0] == '-')
