@@ -777,13 +777,13 @@ BEGIN
     END
     POPUP "Watches"
     BEGIN
-        MENUITEM "&New Watch\tShift N",         IDC_C_WATCH
-        MENUITEM "&Edit Watch\tShift E",        IDC_C_WATCH_EDIT
-        MENUITEM "&Remove Watch\tShift R",      IDC_C_WATCH_REMOVE
-        MENUITEM "Duplicate Watch\tShift A",    IDC_C_WATCH_DUPLICATE
+        MENUITEM "&New Watch\tN",               IDC_C_WATCH
+        MENUITEM "&Edit Watch\tE",              IDC_C_WATCH_EDIT
+        MENUITEM "&Remove Watch\tR",            IDC_C_WATCH_REMOVE
+        MENUITEM "Duplicate Watch\tA",          IDC_C_WATCH_DUPLICATE
         MENUITEM SEPARATOR
-        MENUITEM "Move Up\tShift U",            IDC_C_WATCH_UP
-        MENUITEM "Move Down\tShift D",          IDC_C_WATCH_DOWN
+        MENUITEM "Move Up\tU",                  IDC_C_WATCH_UP
+        MENUITEM "Move Down\tD",                IDC_C_WATCH_DOWN
     END
 END
 
