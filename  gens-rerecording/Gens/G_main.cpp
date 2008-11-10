@@ -1850,7 +1850,6 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 void End_All(void)
 {
-	//AskSave())
 	Free_Rom(Game);
 	End_DDraw();
 	End_Input();
