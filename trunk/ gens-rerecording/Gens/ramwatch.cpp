@@ -24,7 +24,7 @@ const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
 bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
 char currentWatch[1024];
-int ramw_x, ramw_y; //Used to store ramwatch dialog window positions
+int ramw_x, ramw_y;			//Used to store ramwatch dialog window positions
 AddressWatcher rswatches[256];
 int WatchCount=0;
 
@@ -351,18 +351,28 @@ void OpenRWRecentFile(int memwRFileNumber)
 		if (rnum > MAX_RECENT_WATCHES) return; //just in case
 		
 	char* x = rw_recent_files[rnum];
-	if (strlen(x)==0) return; //If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
-	//char watchfcontents[2048];
-	
+
+	if (strlen(x)==0) 
+		return;		//If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
+		
 	if (rnum != 0) //Change order of recent files if not most recent
 		RWAddRecentFile(x);
 	strcpy(currentWatch,x);
 	strcpy(Str_Tmp,currentWatch);
+	
 	//loadwatches here
 	FILE *WatchFile = fopen(Str_Tmp,"rb");
 		if (!WatchFile)
 		{
-			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
+			int answer = MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OKCANCEL);
+			if (answer == IDOK)
+			{
+			rw_recent_files[rnum][0] = '\0';	//Clear file from list 
+			if (rnum)							//Update the ramwatch list
+				RWAddRecentFile(rw_recent_files[0]); 
+			else
+				RWAddRecentFile(rw_recent_files[1]);
+			}
 			return;
 		}
 		const char DELIM = '\t';
