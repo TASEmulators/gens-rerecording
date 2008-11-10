@@ -506,6 +506,7 @@
 #define ID_WATCHES_REMOVEWATCH          40667
 #define ID_WATCHES_NEWWATCH             40668
 #define ID_WATCHES_DUPLICATEWATCH       40669
+#define ID_WATCHES_UPDOWN               40670
 #define ID_FRAME_SEARCH_NEXT            40700
 #define ID_FRAME_SEARCH_PREV            40701
 #define ID_FRAME_SEARCH_END             40702
@@ -594,7 +595,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        150
 #define _APS_NEXT_COMMAND_VALUE         3000
-#define _APS_NEXT_CONTROL_VALUE         50000
+#define _APS_NEXT_CONTROL_VALUE         50001
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

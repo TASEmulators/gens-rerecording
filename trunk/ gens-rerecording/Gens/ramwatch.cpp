@@ -469,7 +469,7 @@ if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save
 
 
 
-bool Load_Watches()
+bool Load_Watches(bool clear)
 {
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
@@ -482,10 +482,13 @@ bool Load_Watches()
 			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
 			return false;
 		}
-		if(!ResetWatches())
+		if(clear)
 		{
-			fclose(WatchFile);
-			return false;
+			if(!ResetWatches())
+			{
+				fclose(WatchFile);
+				return false;
+			}
 		}
 		strcpy(currentWatch,Str_Tmp);
 		RWAddRecentFile(currentWatch);
@@ -551,13 +554,6 @@ void RemoveWatch(int watchIndex)
 	for (int i = watchIndex; i <= WatchCount; i++)
 		rswatches[i] = rswatches[i+1];
 	WatchCount--;
-}
-
-bool Open_Watches()
-{
-//Closes existing watch and loads a new one.
-if (Load_Watches()) return true;
-else return false;
 }
 
 LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //Gets info for a RAM Watch, and then inserts it into the Watch List
@@ -809,6 +805,9 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 			RamWatchAccels = LoadAccelerators(ghInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
+			// due to some bug in windows, the arrow button width from the resource gets ignored, so we have to set it here
+			SetWindowPos(GetDlgItem(hDlg,ID_WATCHES_UPDOWN), 0,0,0, 30,60, SWP_NOMOVE);
+
 			return true;
 			break;
 		}
@@ -869,7 +868,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					// disable search by keyboard typing,
 					// because it interferes with some of the accelerators
 					// and it isn't very useful here anyway
-					SetWindowLong(hDlg, DWL_MSGRESULT, -1);
+					SetWindowLong(hDlg, DWL_MSGRESULT, ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST)));
 					return 1;
 				}
 			}
@@ -886,10 +885,10 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				//case IDC_C_SAVE:
 					return Save_Watches();
 				case RAMMENU_FILE_OPEN:
-					return Open_Watches();
+					return Load_Watches(true);
 				case RAMMENU_FILE_APPEND:
 				//case IDC_C_LOAD:
-					return Load_Watches();
+					return Load_Watches(false);
 				case RAMMENU_FILE_NEW:
 				//case IDC_C_RESET:
 					ResetWatches();
@@ -899,16 +898,19 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					RemoveWatch(watchIndex);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);	
 					RWfileChanged=true;
+					SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 					return true;
 				case IDC_C_WATCH_EDIT:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) watchIndex);
+					SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 					return true;
 				case IDC_C_WATCH:
 					rswatches[WatchCount].Address = rswatches[WatchCount].WrongEndian = 0;
 					rswatches[WatchCount].Size = 'b';
 					rswatches[WatchCount].Type = 's';
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
+					SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 					return true;
 				case IDC_C_WATCH_DUPLICATE:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
@@ -917,11 +919,12 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					rswatches[WatchCount].Size = rswatches[watchIndex].Size;
 					rswatches[WatchCount].Type = rswatches[watchIndex].Type;
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
+					SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 					return true;
 				case IDC_C_WATCH_UP:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
-					if (watchIndex == 0)
+					if (watchIndex == 0 || watchIndex == -1)
 						return true;
 					void *tmp = malloc(sizeof(AddressWatcher));
 					memcpy(tmp,&(rswatches[watchIndex]),sizeof(AddressWatcher));
@@ -937,7 +940,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				case IDC_C_WATCH_DOWN:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
-					if (watchIndex >= WatchCount - 1)
+					if (watchIndex >= WatchCount - 1 || watchIndex == -1)
 						return true;
 					void *tmp = malloc(sizeof(AddressWatcher));
 					memcpy(tmp,&(rswatches[watchIndex]),sizeof(AddressWatcher));
@@ -949,6 +952,12 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);
 					RWfileChanged=true;
 					return true;
+				}
+				case ID_WATCHES_UPDOWN:
+				{
+					int delta = ((LPNMUPDOWN)lParam)->iDelta;
+					SendMessage(hDlg, WM_COMMAND, delta<0 ? IDC_C_WATCH_UP : IDC_C_WATCH_DOWN,0);
+					break;
 				}
 				case RAMMENU_FILE_AUTOLOAD:
 				{
@@ -980,6 +989,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		
 		case WM_KEYDOWN: // handle accelerator keys
 		{
+			SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 			MSG msg;
 			msg.hwnd = hDlg;
 			msg.message = uMsg;
