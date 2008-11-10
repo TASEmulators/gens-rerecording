@@ -102,6 +102,7 @@ int Change_Sound(HWND hWnd);
 HMENU Build_Main_Menu(void);
 void Update_RAM_Search();
 void Update_RAM_Cheats();
+void ReopenRamWindows();
 int SaveFlags();
 void LoadFlags(int flags);
 void init_list_box(HWND Box, const char* Strs[], int numColumns, int *columnWidths);
