@@ -858,16 +858,14 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 							return false;
 					}
 				}
-				//case LVN_ODCACHEHINT: //Copied this bit from the MSDN virtual listbox code sample. Eventually it should probably do something.
-				//{
-				//	LPNMLVCACHEHINT   lpCacheHint = (LPNMLVCACHEHINT)lParam;
-				//	return 0;
-				//}
-				//case LVN_ODFINDITEM: //Copied this bit from the MSDN virtual listbox code sample. Eventually it should probably do something.
-				//{	
-				//	LPNMLVFINDITEM lpFindItem = (LPNMLVFINDITEM)lParam;
-				//	return 0;
-				//}
+				case LVN_ODFINDITEM:
+				{	
+					// disable search by keyboard typing,
+					// because it interferes with some of the accelerators
+					// and it isn't very useful here anyway
+					SetWindowLong(hDlg, DWL_MSGRESULT, -1);
+					return 1;
+				}
 			}
 		}
 
@@ -890,26 +888,22 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				//case IDC_C_RESET:
 					ResetWatches();
 					return true;
-				case RAMMENU_WATCHES_REMOVE:
 				case IDC_C_WATCH_REMOVE:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					RemoveWatch(watchIndex);
 					ListView_SetItemCount(GetDlgItem(hDlg,IDC_WATCHLIST),WatchCount);	
 					RWfileChanged=true;
 					return true;
-				case RAMMENU_WATCHES_EDIT:
 				case IDC_C_WATCH_EDIT:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) watchIndex);
 					return true;
-				case RAMMENU_WATCHES_NEW:
 				case IDC_C_WATCH:
 					rswatches[WatchCount].Address = rswatches[WatchCount].WrongEndian = 0;
 					rswatches[WatchCount].Size = 'b';
 					rswatches[WatchCount].Type = 's';
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
 					return true;
-				case RAMMENU_WATCHES_DUPLICATE:
 				case IDC_C_WATCH_DUPLICATE:
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
 					rswatches[WatchCount].Address = rswatches[watchIndex].Address;
@@ -918,7 +912,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					rswatches[WatchCount].Type = rswatches[watchIndex].Type;
 					DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_EDITWATCH), hDlg, (DLGPROC) EditWatchProc,(LPARAM) WatchCount);
 					return true;
-				case RAMMENU_WATCHES_MOVEUP:
 				case IDC_C_WATCH_UP:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
@@ -935,7 +928,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					RWfileChanged=true;
 					return true;
 				}
-				case RAMMENU_WATCHES_MOVEDOWN:
 				case IDC_C_WATCH_DOWN:
 				{
 					watchIndex = ListView_GetSelectionMark(GetDlgItem(hDlg,IDC_WATCHLIST));
