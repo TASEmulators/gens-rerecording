@@ -272,12 +272,6 @@
 #define IDC_EDIT_LUA                    1282
 #define IDC_STATIC_LUA                  1283
 #define ID_CHANGE_LUA                   1284
-#define RAMMENU_WATCHES_MOVEUP          3000
-#define RAMMENU_WATCHES_MOVEDOWN        3001
-#define RAMMENU_WATCHES_NEW             3002
-#define RAMMENU_WATCHES_EDIT            3003
-#define RAMMENU_WATCHES_REMOVE          3004
-#define RAMMENU_WATCHES_DUPLICATE       3005
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -599,7 +593,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         3006
+#define _APS_NEXT_COMMAND_VALUE         3000
 #define _APS_NEXT_CONTROL_VALUE         50000
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
