@@ -764,10 +764,10 @@ RAMWATCH_MENU MENU
 BEGIN
     POPUP "File"
     BEGIN
-        MENUITEM "&New list\tCtrl N",                   RAMMENU_FILE_NEW
-        MENUITEM "&Open...\tCtrl O",                    RAMMENU_FILE_OPEN
-        MENUITEM "&Save\tCtrl S",                       RAMMENU_FILE_SAVE
-        MENUITEM "Sa&ve As...\tCtrl Shift S",                 RAMMENU_FILE_SAVEAS
+        MENUITEM "&New list\tCtrl N",           RAMMENU_FILE_NEW
+        MENUITEM "&Open...\tCtrl O",            RAMMENU_FILE_OPEN
+        MENUITEM "&Save\tCtrl S",               RAMMENU_FILE_SAVE
+        MENUITEM "Sa&ve As...\tCtrl Shift S",   RAMMENU_FILE_SAVEAS
         MENUITEM "&Append file...",             RAMMENU_FILE_APPEND
         MENUITEM "Recent",                      RAMMENU_FILE_RECENT
         MENUITEM SEPARATOR
@@ -777,13 +777,13 @@ BEGIN
     END
     POPUP "Watches"
     BEGIN
-        MENUITEM "New Watch",                   IDC_C_WATCH
-        MENUITEM "Edit Watch",                  IDC_C_WATCH_EDIT
-        MENUITEM "Remove Watch",                IDC_C_WATCH_REMOVE
-        MENUITEM "Duplicate Watch",             IDC_C_WATCH_DUPLICATE
+        MENUITEM "&New Watch\tShift N",         IDC_C_WATCH
+        MENUITEM "&Edit Watch\tShift E",        IDC_C_WATCH_EDIT
+        MENUITEM "&Remove Watch\tShift R",      IDC_C_WATCH_REMOVE
+        MENUITEM "Duplicate Watch\tShift A",    IDC_C_WATCH_DUPLICATE
         MENUITEM SEPARATOR
-        MENUITEM "Move Up",                     IDC_C_WATCH_UP
-        MENUITEM "Move Down",                   IDC_C_WATCH_DOWN
+        MENUITEM "Move Up\tShift U",            IDC_C_WATCH_UP
+        MENUITEM "Move Down\tShift D",          IDC_C_WATCH_DOWN
     END
 END
 
@@ -799,6 +799,12 @@ BEGIN
     "O",            RAMMENU_FILE_OPEN,      VIRTKEY, CONTROL, NOINVERT
     "S",            RAMMENU_FILE_SAVE,      VIRTKEY, CONTROL, NOINVERT
     "S",            RAMMENU_FILE_SAVEAS,    VIRTKEY, SHIFT, CONTROL, NOINVERT
+    "U",            RAMMENU_WATCHES_MOVEUP, VIRTKEY, SHIFT, NOINVERT
+    "D",            RAMMENU_WATCHES_MOVEDOWN, VIRTKEY, SHIFT, NOINVERT
+    "N",            RAMMENU_WATCHES_NEW,    VIRTKEY, SHIFT, NOINVERT
+    "E",            RAMMENU_WATCHES_EDIT,   VIRTKEY, SHIFT, NOINVERT
+    "R",            RAMMENU_WATCHES_REMOVE, VIRTKEY, SHIFT, NOINVERT
+    "A",            RAMMENU_WATCHES_DUPLICATE, VIRTKEY, SHIFT, NOINVERT
 END
 
 #endif    // English (U.S.) resources

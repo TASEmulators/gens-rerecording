@@ -97,7 +97,11 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	}
 
 	//ROM
-	if (RomToLoad[0]) Pre_Load_Rom(HWnd, RomToLoad.c_str());
+	if (RomToLoad[0]) 
+	{
+		Pre_Load_Rom(HWnd, RomToLoad.c_str());
+		ReopenRamWindows();
+	}
 	
 	//Movie
 	if (MovieToLoad[0] && RomToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
