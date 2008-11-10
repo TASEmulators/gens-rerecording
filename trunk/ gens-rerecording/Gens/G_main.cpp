@@ -1850,7 +1850,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 void End_All(void)
 {
-	AskSave();
+	//AskSave())
 	Free_Rom(Game);
 	End_DDraw();
 	End_Input();
@@ -2536,12 +2536,15 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WM_CLOSE:
+			if (AskSave())
+			{
 			if (Sound_Initialised) Clear_Sound_Buffer(); //Modif N - making sure sound doesn't stutter on exit
 			if(MainMovie.File!=NULL)
 				CloseMovieFile(&MainMovie);
 			if ((Check_If_Kaillera_Running())) return 0;
 			Gens_Running = 0;
 			StopAllLuaScripts();
+			}
 			return 0;
 		
 		case WM_RBUTTONDOWN:

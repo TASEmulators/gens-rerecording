@@ -337,11 +337,7 @@ void UpdateRWRecentArray(const char* addString, unsigned int arrayLen, HMENU men
 	UpdateRW_RMenu(menu, menuItem, baseId);
 }
 
-/**
-* Add a filename to the recent files list.
-*
-* @param filename Name of the file to add.
-**/
+
 void RWAddRecentFile(const char *filename)
 {
 	UpdateRWRecentArray(filename, MAX_RECENT_WATCHES, rwrecentmenu, RAMMENU_FILE_RECENT, RW_MENU_FIRST_RECENT_FILE);
