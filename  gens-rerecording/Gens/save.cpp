@@ -2461,7 +2461,7 @@ int Save_Config(char *File_Name)
 	{
 		char str[256];
 		sprintf(str, "Recent Watch %d", i+1);
-		WritePrivateProfileString("Watches", str, rw_recent_files[0], Conf_File);	
+		WritePrivateProfileString("Watches", str, &rw_recent_files[i][0], Conf_File);	
 	}
 
 	SaveAccelerators(Conf_File);
