@@ -1754,6 +1754,7 @@ static const struct luaL_reg movielib [] =
 	{"play", movie_play},
 	{"replay", movie_replay},
 	{"stop", movie_close},
+	{"framecount", gens_getframecount}, // for those familiar with other emulators that have movie.framecount() instead of emulatorname.framecount()
 	// alternative names
 	{"open", movie_play},
 	{"close", movie_close},
