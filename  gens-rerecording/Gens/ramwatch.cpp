@@ -23,6 +23,7 @@ char Watch_Dir[1024]="";
 const unsigned int RW_MENU_FIRST_RECENT_FILE = 600;
 bool RWfileChanged = false; //Keeps track of whether the current watch file has been changed, if so, ramwatch will prompt to save changes
 bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
+bool RWSaveWindowPos = false; //Keeps track of whether Save Window position is checked
 char currentWatch[1024];
 int ramw_x, ramw_y;			//Used to store ramwatch dialog window positions
 AddressWatcher rswatches[256];
@@ -775,17 +776,19 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				r.right -= width2;
 				r.left -= width2;
 			}
-
-			//If saved window pos exists and meets certain requirements, use it.
-			if (ramw_x > (0 - width)) //If ramw x appears completely off the left of the screen, use default instead
+			
+			//-----------------------------------------------------------------------------------
+			//If user has Save Window Pos selected, override default positioning
+			if (RWSaveWindowPos)	
 			{
-				if (!(ramw_x > (r2.left-width) && ramw_x < r2.right && ramw_y > (r2.top - height + 5) && ramw_y < r2.bottom - 5)) //Check if it osbcres gens window
-					r.left = ramw_x;
+				//If ramwindow is for some reason completely off screen, use default instead 
+				if (ramw_x > (-width*2) || ramw_x < (width*2 + GetSystemMetrics(SM_CYSCREEN))   ) 
+					r.left = ramw_x;	  //This also ignores cases of windows -32000 error codes
+				//If ramwindow is for some reason completely off screen, use default instead 
+				if (ramw_y > (0-height*2) ||ramw_y < (height*2 + GetSystemMetrics(SM_CYSCREEN))	)
+					r.top = ramw_y;		  //This also ignores cases of windows -32000 error codes
 			}
-			if (ramw_y > 0 - height && ramw_y < height + GetSystemMetrics(SM_CYSCREEN)) //If ramw y appears completely off screen use default instead
-			{
-				r.top = ramw_y;
-			}
+			//-------------------------------------------------------------------------------------
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			
 			ramwatchmenu=GetMenu(hDlg);
@@ -814,6 +817,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 		
 		case WM_INITMENU:
 			CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(ramwatchmenu, RAMMENU_FILE_SAVEWINDOW, RWSaveWindowPos ? MF_CHECKED : MF_UNCHECKED);
 			break;
 
 		case WM_MENUSELECT:
@@ -963,6 +967,12 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				{
 					AutoRWLoad ^= 1;
 					CheckMenuItem(ramwatchmenu, RAMMENU_FILE_AUTOLOAD, AutoRWLoad ? MF_CHECKED : MF_UNCHECKED);
+					break;
+				}
+				case RAMMENU_FILE_SAVEWINDOW:
+				{
+					RWSaveWindowPos ^=1;
+					CheckMenuItem(ramwatchmenu, RAMMENU_FILE_SAVEWINDOW, RWSaveWindowPos ? MF_CHECKED : MF_UNCHECKED);
 					break;
 				}
 				case IDC_C_ADDCHEAT:

@@ -771,6 +771,7 @@ BEGIN
         MENUITEM "Recent",                      RAMMENU_FILE_RECENT
         MENUITEM SEPARATOR
         MENUITEM "Auto-&load",                  RAMMENU_FILE_AUTOLOAD
+        MENUITEM "Save Window Position",        RAMMENU_FILE_SAVEWINDOW
         MENUITEM SEPARATOR
         MENUITEM "&Close\tAlt F4",              IDCANCEL
     END
