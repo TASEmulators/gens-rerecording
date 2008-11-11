@@ -272,6 +272,8 @@
 #define IDC_EDIT_LUA                    1282
 #define IDC_STATIC_LUA                  1283
 #define ID_CHANGE_LUA                   1284
+#define ID_FILE_SAVEWINDOWPOSITION      3000
+#define RAMMENU_FILE_SAVEWINDOW         3001
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -594,7 +596,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         3000
+#define _APS_NEXT_COMMAND_VALUE         3002
 #define _APS_NEXT_CONTROL_VALUE         50001
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
