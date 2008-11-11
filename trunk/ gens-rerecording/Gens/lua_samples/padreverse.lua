@@ -8,6 +8,6 @@ gens.registerbefore( function ()
 	curjoy = joypad.get(1)
 
 	-- set the input to be the same but with left and right switched around
-	joypad.set(1, {Left = curjoy.Right, Right = curjoy.Left})
+	joypad.set(1, {left = curjoy.right, right = curjoy.left})
 
 end)
