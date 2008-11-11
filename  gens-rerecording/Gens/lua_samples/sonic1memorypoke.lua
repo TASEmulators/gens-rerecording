@@ -9,8 +9,8 @@ print("script started on frame ", gens.framecount(), ".")
 gens.registerafter( function ()
 	xspeed = memory.readwordsigned(0xffd010)
 	buttons = joypad.get(1)
-	if buttons.Left then xspeed = xspeed - 64 end
-	if buttons.Right then xspeed = xspeed + 64 end
+	if buttons.left then xspeed = xspeed - 64 end
+	if buttons.right then xspeed = xspeed + 64 end
 	memory.writeword(0xffd010, xspeed)
 end)
 

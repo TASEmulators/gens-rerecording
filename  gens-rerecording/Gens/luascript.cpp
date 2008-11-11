@@ -36,7 +36,7 @@ extern void UpdateLagCount();
 extern bool BackgroundInput;
 extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
 extern bool frameadvSkipLagForceDisable;
-extern "C" void Put_Info(char *Message, int Duration);
+extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
 extern int Show_Genesis_Screen();
 extern const char* GensPlayMovie(const char* filename, bool silent);
 extern void GensReplayMovie();
@@ -80,10 +80,19 @@ struct LuaContextInfo {
 	void(*onstop)(int uid, bool statusOK);
 };
 std::map<int, LuaContextInfo*> luaContextInfo;
-std::map<lua_State*, LuaContextInfo*> luaStateToContextMap; // because callbacks from lua will only give us a Lua_State to work with
 std::map<lua_State*, int> luaStateToUIDMap;
 int g_numScriptsStarted = 0;
 bool g_stopAllScriptsEnabled = true;
+
+#define USE_INFO_STACK
+#ifdef USE_INFO_STACK
+	std::vector<LuaContextInfo*> infoStack;
+	#define GetCurrentInfo() *infoStack.front() // should be faster but relies on infoStack correctly being updated to always have the current info in the first element
+#else
+	std::map<lua_State*, LuaContextInfo*> luaStateToContextMap;
+	#define GetCurrentInfo() *luaStateToContextMap[L] // should always work but might be slower
+#endif
+
 
 static const char* luaCallIDStrings [] =
 {
@@ -303,7 +312,7 @@ void CallDeferredFunctions(lua_State* L, const char* idstring)
 	// clear the list of deferred functions
 	lua_newtable(L);
 	lua_setfield(L, LUA_REGISTRYINDEX, idstring);
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	info.numDeferredGUIFuncs = 0;
 
 	// clean the stack
@@ -314,7 +323,7 @@ void CallDeferredFunctions(lua_State* L, const char* idstring)
 
 bool DeferGUIFuncIfNeeded(lua_State* L)
 {
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	if(info.speedMode == SPEEDMODE_MAXIMUM)
 	{
 		// if the mode is "maximum" then discard all GUI function calls
@@ -343,7 +352,7 @@ bool DeferGUIFuncIfNeeded(lua_State* L)
 
 void worry(lua_State* L, int intensity)
 {
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	if(info.worryCount >= 0)
 		info.worryCount += intensity;
 }
@@ -376,7 +385,7 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 			while(lua_next(L, i))
 			{
 				bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
-				bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tolstring(L, keyIndex, NULL)));
+				bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
 				if(first)
 					first = false;
 				else
@@ -448,7 +457,7 @@ static const char* toCString(lua_State* L, int i)
 static int gens_message(lua_State* L)
 {
 	const char* str = toCString(L);
-	Put_Info((char*)str, 500);
+	Put_Info_NonImmediate((char*)str, 500);
 	return 0;
 }
 
@@ -464,7 +473,7 @@ static int print(lua_State* L)
 	else
 		puts(str);
 
-	worry(L, 10);
+	worry(L, 100);
 	return 0;
 }
 
@@ -522,10 +531,10 @@ static int bitshift(lua_State *L)
 
 
 #define HOOKCOUNT 4096
-#define MAX_WORRY_COUNT 600
+#define MAX_WORRY_COUNT 6000
 void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 {
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 
 	if(info.worryCount < 0 && !info.panic)
 		return;
@@ -567,7 +576,7 @@ int gens_emulateframe(lua_State* L)
 
 	Update_Emulation_One(HWnd);
 
-	worry(L,30);
+	worry(L,300);
 	return 0;
 }
 
@@ -580,7 +589,7 @@ int gens_emulateframefastnoskipping(lua_State* L)
 	Update_Frame_Hook();
 	Update_Emulation_After_Controlled(HWnd, true);
 
-	worry(L,20);
+	worry(L,200);
 	return 0;
 }
 
@@ -606,7 +615,7 @@ int gens_emulateframefast(lua_State* L)
 		Update_Emulation_After_Controlled(HWnd, false);
 	}
 
-	worry(L,15);
+	worry(L,150);
 	return 0;
 }
 
@@ -632,7 +641,7 @@ int gens_emulateframeinvisible(lua_State* L)
 	// when the lua script is also doing prediction updates
 	disableVideoLatencyCompensationCount = VideoLatencyCompensation + 1;
 
-	worry(L,10);
+	worry(L,100);
 	return 0;
 }
 
@@ -659,14 +668,14 @@ int gens_speedmode(lua_State* L)
 			newSpeedMode = SPEEDMODE_MAXIMUM;
 	}
 
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	info.speedMode = newSpeedMode;
 	return 0;
 }
 
 int gens_wait(lua_State* L)
 {
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 
 	switch(info.speedMode)
 	{
@@ -686,7 +695,7 @@ int gens_wait(lua_State* L)
 int gens_frameadvance(lua_State* L)
 {
 	int uid = luaStateToUIDMap[L];
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 
 	if(!info.ranFrameAdvance)
 	{
@@ -728,7 +737,7 @@ int gens_pause(lua_State* L)
 
 	// allow the user to not have to manually unpause
 	// after restarting a script that used gens.pause()
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	if(info.panic)
 		Paused = 0;
 
@@ -738,7 +747,7 @@ int gens_pause(lua_State* L)
 int gens_redraw(lua_State* L)
 {
 	Show_Genesis_Screen();
-	worry(L,25);
+	worry(L,250);
 	return 0;
 }
 
@@ -878,46 +887,46 @@ static const struct ButtonDesc
 }
 s_buttonDescs [] =
 {
-	{1, 0, "Up"},
-	{1, 1, "Down"},
-	{1, 2, "Left"},
-	{1, 3, "Right"},
+	{1, 0, "up"},
+	{1, 1, "down"},
+	{1, 2, "left"},
+	{1, 3, "right"},
 	{1, 4, "A"},
 	{1, 5, "B"},
 	{1, 6, "C"},
-	{1, 7, "Start"},
+	{1, 7, "start"},
 	{1, 32, "X"},
 	{1, 33, "Y"},
 	{1, 34, "Z"},
-	{1, 35, "Mode"},
-	{2, 24, "Up"},
-	{2, 25, "Down"},
-	{2, 26, "Left"},
-	{2, 27, "Right"},
+	{1, 35, "mode"},
+	{2, 24, "up"},
+	{2, 25, "down"},
+	{2, 26, "left"},
+	{2, 27, "right"},
 	{2, 28, "A"},
 	{2, 29, "B"},
 	{2, 30, "C"},
-	{2, 31, "Start"},
+	{2, 31, "start"},
 	{2, 36, "X"},
 	{2, 37, "Y"},
 	{2, 38, "Z"},
-	{2, 39, "Mode"},
-	{0x1B, 8, "Up"},
-	{0x1B, 9, "Down"},
-	{0x1B, 10, "Left"},
-	{0x1B, 11, "Right"},
+	{2, 39, "mode"},
+	{0x1B, 8, "up"},
+	{0x1B, 9, "down"},
+	{0x1B, 10, "left"},
+	{0x1B, 11, "right"},
 	{0x1B, 12, "A"},
 	{0x1B, 13, "B"},
 	{0x1B, 14, "C"},
-	{0x1B, 15, "Start"},
-	{0x1C, 16, "Up"},
-	{0x1C, 17, "Down"},
-	{0x1C, 18, "Left"},
-	{0x1C, 19, "Right"},
+	{0x1B, 15, "start"},
+	{0x1C, 16, "up"},
+	{0x1C, 17, "down"},
+	{0x1C, 18, "left"},
+	{0x1C, 19, "right"},
 	{0x1C, 20, "A"},
 	{0x1C, 21, "B"},
 	{0x1C, 22, "C"},
-	{0x1C, 23, "Start"},
+	{0x1C, 23, "start"},
 };
 
 int joy_getArgControllerNum(lua_State* L, int& index)
@@ -1095,13 +1104,50 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 		{
 			return lua_tointeger(L,idx);
 		}	break;
+		case LUA_TTABLE:
+		{
+			int color = 0xFF;
+			lua_pushnil(L); // first key
+			int keyIndex = lua_gettop(L);
+			int valueIndex = keyIndex + 1;
+			bool first = true;
+			while(lua_next(L, idx))
+			{
+				bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
+				bool valIsNumber = (lua_type(L, valueIndex) == LUA_TNUMBER);
+				if(keyIsString)
+				{
+					const char* key = lua_tostring(L, keyIndex);
+					int value = lua_tointeger(L, valueIndex);
+					if(value < 0) value = 0;
+					if(value > 255) value = 255;
+					switch(tolower(*key))
+					{
+					case 'r':
+						color |= value << 24;
+						break;
+					case 'g':
+						color |= value << 16;
+						break;
+					case 'b':
+						color |= value << 8;
+						break;
+					case 'a':
+						color = (color & ~0xFF) | value;
+						break;
+					}
+				}
+				lua_pop(L, 1);
+			}
+			return color;
+		}	break;
 	}
 	return defaultColor;
 }
 int getcolor(lua_State *L, int idx, int defaultColor)
 {
 	int color = getcolor_unmodified(L, idx, defaultColor);
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	if(info.transparencyModifier != 255)
 	{
 		int alpha = (((color & 0xFF) * info.transparencyModifier) / 255);
@@ -1231,7 +1277,7 @@ int gui_setopacity(lua_State* L)
 	if(opacF < 0) opacF = 0;
 	int opac;
 	lua_number2int(opac, opacF);
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	info.transparencyModifier = opac;
 	return 0;
 }
@@ -1250,7 +1296,7 @@ int gui_settransparency(lua_State* L)
 	if(opacF < 0) opacF = 0;
 	int opac;
 	lua_number2int(opac, opacF);
-	LuaContextInfo& info = *luaStateToContextMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 	info.transparencyModifier = opac;
 	return 0;
 }
@@ -1301,6 +1347,25 @@ int movie_isplaying(lua_State* L)
 	lua_pushboolean(L, MainMovie.Status == MOVIE_PLAYING);
 	return 1;
 }
+int movie_getmode(lua_State* L)
+{
+	switch(MainMovie.Status)
+	{
+	case MOVIE_PLAYING:
+		lua_pushstring(L, "playback");
+		break;
+	case MOVIE_RECORDING:
+		lua_pushstring(L, "record");
+		break;
+	case MOVIE_FINISHED:
+		lua_pushstring(L, "finished");
+		break;
+	default:
+		lua_pushnil(L);
+		break;
+	}
+	return 1;
+}
 int movie_getname(lua_State* L)
 {
 	lua_pushstring(L, MainMovie.FileName);
@@ -1322,12 +1387,120 @@ int movie_replay(lua_State *L)
 	GensReplayMovie();
     return 0;
 } 
+int movie_close(lua_State* L)
+{
+	CloseMovieFile(&MainMovie);
+	return 0;
+}
 
 int sound_clear(lua_State* L)
 {
 	Clear_Sound_Buffer();
 	return 0;
 }
+
+#ifdef _WIN32
+const char* s_keyToName[256] =
+{
+	NULL,
+	"leftclick",
+	"rightclick",
+	NULL,
+	"middleclick",
+	NULL,
+	NULL,
+	NULL,
+	"backspace",
+	"tab",
+	NULL,
+	NULL,
+	NULL,
+	"enter",
+	NULL,
+	NULL,
+	"shift", // 0x10
+	"control",
+	"alt",
+	"pause",
+	"capslock",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"escape",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"space", // 0x20
+	"pageup",
+	"pagedown",
+	"end",
+	"home",
+	"left",
+	"up",
+	"right",
+	"down",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"insert",
+	"delete",
+	NULL,
+	"0","1","2","3","4","5","6","7","8","9",
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	"A","B","C","D","E","F","G","H","I","J",
+	"K","L","M","N","O","P","Q","R","S","T",
+	"U","V","W","X","Y","Z",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"numpad0","numpad1","numpad2","numpad3","numpad4","numpad5","numpad6","numpad7","numpad8","numpad9",
+	"numpad*","numpad+",
+	NULL,
+	"numpad-","numpad.","numpad/",
+	"F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+	"F13","F14","F15","F16","F17","F18","F19","F20","F21","F22","F23","F24",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"numlock",
+	"scrolllock",
+	NULL, // 0x92
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, // 0xB9
+	"semicolon",
+	"plus",
+	"comma",
+	"minus",
+	"period",
+	"slash",
+	"tilde",
+	NULL, // 0xC1
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, // 0xDA
+	"leftbracket",
+	"backslash",
+	"rightbracket",
+	"quote",
+};
+#endif
+
 
 // input.get()
 // takes no input, returns a lua table of entries representing the current input state,
@@ -1353,10 +1526,12 @@ int input_getcurrentinputstatus(lua_State* L)
 					int mask = (i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL) ? 0x01 : 0x80;
 					if(keys[i] & mask)
 					{
-						const char* GetVirtualKeyName(int key);
-						const char* name = GetVirtualKeyName(i);
-						lua_pushboolean(L, true);
-						lua_setfield(L, -2, name);
+						const char* name = s_keyToName[i];
+						if(name)
+						{
+							lua_pushboolean(L, true);
+							lua_setfield(L, -2, name);
+						}
 					}
 				}
 			}
@@ -1365,17 +1540,19 @@ int input_getcurrentinputstatus(lua_State* L)
 		{
 			for(int i = 1; i < 255; i++)
 			{
-				int active;
-				if(i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL)
-					active = GetKeyState(i) & 0x01;
-				else
-					active = GetAsyncKeyState(i) & 0x8000;
-				if(active)
+				const char* name = s_keyToName[i];
+				if(name)
 				{
-					const char* GetVirtualKeyName(int key);
-					const char* name = GetVirtualKeyName(i);
-					lua_pushboolean(L, true);
-					lua_setfield(L, -2, name);
+					int active;
+					if(i == VK_CAPITAL || i == VK_NUMLOCK || i == VK_SCROLL)
+						active = GetKeyState(i) & 0x01;
+					else
+						active = GetAsyncKeyState(i) & 0x8000;
+					if(active)
+					{
+						lua_pushboolean(L, true);
+						lua_setfield(L, -2, name);
+					}
 				}
 			}
 		}
@@ -1396,9 +1573,9 @@ int input_getcurrentinputstatus(lua_State* L)
 		int x = ((point.x - rect.left) * xres) / (rect.right - rect.left);
 		int y = ((point.y - rect.top) * yres) / (rect.bottom - rect.top);
 		lua_pushinteger(L, x);
-		lua_setfield(L, -2, "MouseX");
+		lua_setfield(L, -2, "xmouse");
 		lua_pushinteger(L, y);
-		lua_setfield(L, -2, "MouseY");
+		lua_setfield(L, -2, "ymouse");
 	}
 #else
 	// NYI (well, return an empty table)
@@ -1409,11 +1586,8 @@ int input_getcurrentinputstatus(lua_State* L)
 
 
 // resets our "worry" counter of the Lua state
-int dontworry(lua_State* L)
+int dontworry(LuaContextInfo& info)
 {
-	if(!L)
-		return 0;
-	LuaContextInfo& info = *luaStateToContextMap[L];
 	info.worryCount = min(info.worryCount, 0);
 	return 0;
 }
@@ -1569,16 +1743,20 @@ static const struct luaL_reg movielib [] =
 	{"active", movie_isactive},
 	{"recording", movie_isrecording},
 	{"playing", movie_isplaying},
+	{"mode", movie_getmode},
 	{"name", movie_getname},
 	{"getname", movie_getname},
 	{"rerecordcount", movie_rerecordcount},
 	{"readonly", movie_getreadonly},
 	{"getreadonly", movie_getreadonly},
 	{"setreadonly", movie_setreadonly},
+	{"playback", movie_play},
 	{"play", movie_play},
 	{"replay", movie_replay},
+	{"stop", movie_close},
 	// alternative names
 	{"open", movie_play},
+	{"close", movie_close},
 	{NULL, NULL}
 };
 static const struct luaL_reg soundlib [] =
@@ -1624,6 +1802,11 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 
 	LuaContextInfo& info = *luaContextInfo[uid];
 
+#ifdef USE_INFO_STACK
+	infoStack.insert(infoStack.begin(), &info);
+	struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
+
 	if(info.running)
 	{
 		// it's a little complicated, but... the call to luaL_dofile below
@@ -1641,7 +1824,9 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 	do
 	{
 		lua_State* L = lua_open();
+#ifndef USE_INFO_STACK
 		luaStateToContextMap[L] = &info;
+#endif
 		luaStateToUIDMap[L] = uid;
 		ResetInfo(info);
 		info.L = L;
@@ -1788,13 +1973,17 @@ void CallExitFunction(int uid)
 	if(!L)
 		return;
 
-	dontworry(L);
+	dontworry(info);
 
 	// first call the registered exit function if there is one
 	if(!info.ranExit)
 	{
 		info.ranExit = true;
 
+#ifdef USE_INFO_STACK
+		infoStack.insert(infoStack.begin(), &info);
+		struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
 		lua_settop(L, 0);
 		lua_getfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFOREEXIT]);
 		
@@ -1846,7 +2035,9 @@ void StopLuaScript(int uid)
 		if(info.started) // this check is necessary
 		{
 			lua_close(L);
+#ifndef USE_INFO_STACK
 			luaStateToContextMap.erase(L);
+#endif
 			luaStateToUIDMap.erase(L);
 			info.L = NULL;
 			info.started = false;
@@ -1876,6 +2067,10 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 		lua_State* L = info.L;
 		if(L && (!info.panic || calltype == LUACALL_BEFOREEXIT))
 		{
+#ifdef USE_INFO_STACK
+			infoStack.insert(infoStack.begin(), &info);
+			struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
 			// handle deferred GUI function calls and disabling deferring when unnecessary
 			if(calltype == LUACALL_AFTEREMULATIONGUI || calltype == LUACALL_AFTEREMULATION)
 				info.guiFuncsNeedDeferring = false;
@@ -1936,6 +2131,11 @@ void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
 		lua_State* L = info.L;
 		if(L)
 		{
+#ifdef USE_INFO_STACK
+			infoStack.insert(infoStack.begin(), &info);
+			struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
+
 			lua_settop(L, 0);
 			lua_getfield(L, LUA_REGISTRYINDEX, idstring);
 			
@@ -1978,12 +2178,11 @@ void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
 
 void DontWorryLua() // everything's going to be OK
 {
-	std::map<lua_State*, int>::const_iterator iter = luaStateToUIDMap.begin();
-	std::map<lua_State*, int>::const_iterator end = luaStateToUIDMap.end();
+	std::map<int, LuaContextInfo*>::const_iterator iter = luaContextInfo.begin();
+	std::map<int, LuaContextInfo*>::const_iterator end = luaContextInfo.end();
 	while(iter != end)
 	{
-		lua_State* L = iter->first;
-		dontworry(L);
+		dontworry(*iter->second);
 		++iter;
 	}
 }
