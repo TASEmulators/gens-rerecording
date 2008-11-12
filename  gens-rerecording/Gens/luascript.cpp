@@ -528,6 +528,16 @@ static int bitshift(lua_State *L)
 	lua_pushinteger(L,num);
 	return 1;
 }
+static int bitbit(lua_State *L)
+{
+	int rv = 0;
+	int numArgs = lua_gettop(L);
+	for(int i = 1; i <= numArgs; i++)
+		rv |= (1 << luaL_checkinteger(L,i));
+	lua_settop(L,0);
+	lua_pushinteger(L,rv);
+	return 1;
+}
 
 
 #define HOOKCOUNT 4096
@@ -1849,6 +1859,7 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		lua_register(L, "OR", bitor);
 		lua_register(L, "XOR", bitxor);
 		lua_register(L, "SHIFT", bitshift);
+		lua_register(L, "BIT", bitbit);
 
 		// register a function to periodically check for inactivity
 		lua_sethook(L, LuaRescueHook, LUA_MASKCOUNT, HOOKCOUNT);
