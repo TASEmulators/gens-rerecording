@@ -1196,7 +1196,7 @@ int gui_box(lua_State* L)
 	int x2 = luaL_checkinteger(L,3) & 0xFFFF;
 	int y2 = luaL_checkinteger(L,4) & 0xFFFF;
 	int fillcolor = getcolor(L,5,0xFFFFFF3F);
-	int outlinecolor = getcolor(L,6,0xFFFFFFFF);
+	int outlinecolor = getcolor(L,6,fillcolor&0xFF);
 
 	DrawBoxPP2 (x1, y1, x2, y2, fillcolor, outlinecolor);
 
@@ -1394,7 +1394,10 @@ int movie_play(lua_State *L)
 } 
 int movie_replay(lua_State *L)
 {
-	GensReplayMovie();
+	if(MainMovie.File)
+		GensReplayMovie();
+	else
+		luaL_error(L, "it is invalid to call movie_replay when no movie open.");
     return 0;
 } 
 int movie_close(lua_State* L)
@@ -1518,7 +1521,7 @@ const char* s_keyToName[256] =
 // for example:
 //   if the user is holding the W key and the left mouse button
 //   and has the mouse at the bottom-right corner of the game screen,
-//   then this would return {W=true, LeftClick=true, MouseX=319, MouseY=223}
+//   then this would return {W=true, leftclick=true, xmouse=319, ymouse=223}
 int input_getcurrentinputstatus(lua_State* L)
 {
 	lua_newtable(L);
@@ -1619,6 +1622,7 @@ static const struct luaL_reg genslib [] =
 	{"registerafter", gens_registerafter},
 	{"registerexit", gens_registerexit},
 	{"message", gens_message},
+	{"print", print},
 	{NULL, NULL}
 };
 static const struct luaL_reg guilib [] =
