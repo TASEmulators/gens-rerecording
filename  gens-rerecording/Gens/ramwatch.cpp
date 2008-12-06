@@ -71,10 +71,10 @@ bool InsertWatch(const AddressWatcher& Watch, char *Comment)
 	NewWatch = Watch;
 	//if (NewWatch.comment) free(NewWatch.comment);
 	NewWatch.comment = (char *) malloc(strlen(Comment)+2);
+	NewWatch.CurValue = GetCurrentValue(NewWatch);
 	strcpy(NewWatch.comment, Comment);
 	ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
 	RWfileChanged=true;
-	Update_RAM_Watch(i,i);
 
 	return true;
 }
@@ -173,22 +173,20 @@ bool InsertWatch(const AddressWatcher& Watch, HWND parent)
 	int prevWatchCount = WatchCount;
 
 	rswatches[WatchCount] = Watch;
+	rswatches[WatchCount].CurValue = GetCurrentValue(rswatches[WatchCount]);
 	DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PROMPT), parent, (DLGPROC) PromptWatchNameProc);
-	Update_RAM_Watch(prevWatchCount,prevWatchCount);
 
 	return WatchCount > prevWatchCount;
 }
 
-void Update_RAM_Watch(int minIndex, int maxIndex)
+void Update_RAM_Watch()
 {
-	if((unsigned int)minIndex >= (unsigned int)WatchCount)
-		return;
-	if((unsigned int)maxIndex >= (unsigned int)WatchCount)
-		maxIndex = WatchCount - 1;
-
 	// update cached values and detect changes to displayed listview items
 	BOOL watchChanged[MAX_WATCH_COUNT] = {0};
-	for(int i = minIndex; i <= maxIndex; i++)
+	HWND lv = GetDlgItem(RamWatchHWnd,IDC_WATCHLIST);
+	int top = ListView_GetTopIndex(lv);
+	int count = ListView_GetCountPerPage(lv) + 1; // +1 is so we will update a partially-displayed last item
+	for(int i = 0; i < WatchCount; i++)
 	{
 		unsigned int prevCurValue = rswatches[i].CurValue;
 		unsigned int newCurValue = GetCurrentValue(rswatches[i]);
@@ -200,17 +198,12 @@ void Update_RAM_Watch(int minIndex, int maxIndex)
 	}
 
 	// refresh any visible parts of the listview box that changed
-	HWND lv = GetDlgItem(RamWatchHWnd,IDC_WATCHLIST);
-	int top = ListView_GetTopIndex(lv);
-	int bottom = top + ListView_GetCountPerPage(lv) + 1; // +1 is so we will update a partially-displayed last item
-	if(top < minIndex) top = minIndex;
-	if(bottom > maxIndex+1) bottom = maxIndex+1;
 	int start = -1;
-	for(int i = top; i <= bottom; i++)
+	for(int i = top; i <= top+count; i++)
 	{
 		if(start == -1)
 		{
-			if(i != bottom && watchChanged[i])
+			if(i != top+count && watchChanged[i])
 			{
 				start = i;
 				//somethingChanged = true;
@@ -218,7 +211,7 @@ void Update_RAM_Watch(int minIndex, int maxIndex)
 		}
 		else
 		{
-			if(i == bottom || !watchChanged[i])
+			if(i == top+count || !watchChanged[i])
 			{
 				ListView_RedrawItems(lv, start, i-1);
 				start = -1;
@@ -818,8 +811,6 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 			// due to some bug in windows, the arrow button width from the resource gets ignored, so we have to set it here
 			SetWindowPos(GetDlgItem(hDlg,ID_WATCHES_UPDOWN), 0,0,0, 30,60, SWP_NOMOVE);
-
-			Update_RAM_Watch();
 
 			return true;
 			break;
