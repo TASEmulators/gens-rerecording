@@ -21,9 +21,9 @@ struct AddressWatcher
 	bool WrongEndian;
 	unsigned int CurValue;
 };
-extern AddressWatcher rswatches[256];
+#define MAX_WATCH_COUNT 256
+extern AddressWatcher rswatches[MAX_WATCH_COUNT];
 extern int WatchCount; // number of valid items in rswatches
-#define MAX_WATCH_COUNT (sizeof(rswatches)/sizeof(*rswatches))
 
 extern char Watch_Dir[1024];
 

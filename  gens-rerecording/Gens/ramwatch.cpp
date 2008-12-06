@@ -26,7 +26,7 @@ bool AutoRWLoad = false;    //Keeps track of whether Auto-load is checked
 bool RWSaveWindowPos = false; //Keeps track of whether Save Window position is checked
 char currentWatch[1024];
 int ramw_x, ramw_y;			//Used to store ramwatch dialog window positions
-AddressWatcher rswatches[256];
+AddressWatcher rswatches[MAX_WATCH_COUNT];
 int WatchCount=0;
 
 bool QuickSaveWatches();
@@ -180,29 +180,28 @@ bool InsertWatch(const AddressWatcher& Watch, HWND parent)
 void Update_RAM_Watch()
 {
 	// update cached values and detect changes to displayed listview items
-	BOOL watchChanged[128] = {0};
+	BOOL watchChanged[MAX_WATCH_COUNT] = {0};
 	HWND lv = GetDlgItem(RamWatchHWnd,IDC_WATCHLIST);
 	int top = ListView_GetTopIndex(lv);
-	int count = ListView_GetCountPerPage(lv);
-	int i;
-	for(i = top; i <= top+count; i++)
+	int count = ListView_GetCountPerPage(lv) + 1; // +1 is so we will update a partially-displayed last item
+	for(int i = 0; i < WatchCount; i++)
 	{
 		unsigned int prevCurValue = rswatches[i].CurValue;
 		unsigned int newCurValue = GetCurrentValue(rswatches[i]);
 		if(prevCurValue != newCurValue)
 		{
 			rswatches[i].CurValue = newCurValue;
-			watchChanged[i-top] = TRUE;
+			watchChanged[i] = TRUE;
 		}
 	}
 
 	// refresh any visible parts of the listview box that changed
 	int start = -1;
-	for(i = top; i <= top+count; i++)
+	for(int i = top; i <= top+count; i++)
 	{
 		if(start == -1)
 		{
-			if(i != top+count && watchChanged[i-top])
+			if(i != top+count && watchChanged[i])
 			{
 				start = i;
 				//somethingChanged = true;
@@ -210,7 +209,7 @@ void Update_RAM_Watch()
 		}
 		else
 		{
-			if(i == top+count || !watchChanged[i-top])
+			if(i == top+count || !watchChanged[i])
 			{
 				ListView_RedrawItems(lv, start, i-1);
 				start = -1;
