@@ -72,7 +72,7 @@ MAKE_AUTO_KEY_VAR(Controller_2_Z);
 #define VK_NONE 0
 #define ID_NONE 0
 
-
+// TODO: add a "category" field and a way to filter the hotkey list by category
 
 struct InputButton
 {
@@ -132,6 +132,14 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoFireKeyDown,     "Auto-Fire Modifier", "AutoFireKey"},
 	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
 	{MOD_NONE, VK_OEM_3, ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
+
+	{MOD_NONE,     VK_OEM_COMMA,       ID_TOGGLE_SHOWINPUT,            0, NULL, "Show Input", "ShowInputKey"},
+	{MOD_NONE,    VK_OEM_PERIOD,       ID_TOGGLE_SHOWFRAMEANDLAGCOUNT, 0, NULL, "Show Frame/Lag Counter", "ShowFrameAndLagCounterKey"},
+	{MOD_NONE,          VK_NONE,       ID_TOGGLE_TIMEUNIT,             0, NULL, "Toggle Counter Time Unit", "ToggleCounterTimeUnitKey"},
+	{MOD_NONE,          VK_NONE,       ID_TOGGLE_SHOWFRAMECOUNT,       0, NULL, "Show Frame Counter", "ShowFrameCounterKey"},
+	{MOD_NONE,          VK_NONE,       ID_TOGGLE_SHOWLAGCOUNT,         0, NULL, "Show Lag Counter", "ShowLagCounterKey"},
+	{MOD_NONE,          VK_NONE,       ID_TOGGLE_SHOWFPS,              0, NULL, "Show Framerate", "ShowFPSKey"},
+	{MOD_NONE,          VK_NONE,       ID_TOGGLE_SHOWLED,              0, NULL, "Show SegaCD LED", "ShowLEDKey"},
 
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_2,      ID_CHANGE_TRACE,      0, NULL, "Instruction Tracing On/Off", "TraceKey"},
 	{MOD_CONTROL|MOD_SHIFT, VK_OEM_PERIOD, ID_CHANGE_HOOK,       0, NULL, "Memory Hooking On/Off", "HookKey"},

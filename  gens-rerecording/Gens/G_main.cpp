@@ -3872,6 +3872,38 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					return 0;
 
+				case ID_TOGGLE_SHOWFRAMEANDLAGCOUNT:
+					FrameCounterEnabled = !FrameCounterEnabled;
+					LagCounterEnabled = FrameCounterEnabled;
+					if(FrameCounterEnabled) Flip(hWnd); else Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_TIMEUNIT:
+					FrameCounterFrames = !FrameCounterFrames;
+					LagCounterFrames = FrameCounterFrames;
+					Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_SHOWFRAMECOUNT:
+					FrameCounterEnabled = !FrameCounterEnabled;
+					if(FrameCounterEnabled) Flip(hWnd); else Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_SHOWLAGCOUNT:
+					LagCounterEnabled = !LagCounterEnabled;
+					if(LagCounterEnabled) Flip(hWnd); else Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_SHOWINPUT:
+					ShowInputEnabled = !ShowInputEnabled;
+					if(ShowInputEnabled) Flip(hWnd); else Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_SHOWFPS:
+					Show_FPS = !Show_FPS;
+					if(Show_FPS) Flip(hWnd); else Show_Genesis_Screen(hWnd);
+					break;
+				case ID_TOGGLE_SHOWLED:
+					Show_LED = !Show_LED;
+					Show_Genesis_Screen(hWnd);
+					break;
+
+
 				case ID_OPTION_CDDRIVE_0:
 				case ID_OPTION_CDDRIVE_1:
 				case ID_OPTION_CDDRIVE_2:
