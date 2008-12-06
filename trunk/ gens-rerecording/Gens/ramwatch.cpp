@@ -349,69 +349,83 @@ void OpenRWRecentFile(int memwRFileNumber)
 {
 	if(!ResetWatches())
 		return;
-	int rnum=memwRFileNumber;
-		if (rnum > MAX_RECENT_WATCHES) return; //just in case
-		
-	char* x = rw_recent_files[rnum];
 
-	if (strlen(x)==0) 
-		return;		//If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
-		
-	if (rnum != 0) //Change order of recent files if not most recent
-		RWAddRecentFile(x);
+	int rnum = memwRFileNumber;
+	if ((unsigned int)rnum >= MAX_RECENT_WATCHES)
+		return; //just in case
+
+	char* x;
+
+	while(true)
+	{
+		x = rw_recent_files[rnum];
+		if (!*x) 
+			return;		//If no recent files exist just return.  Useful for Load last file on startup (or if something goes screwy)
+
+		if (rnum) //Change order of recent files if not most recent
+		{
+			RWAddRecentFile(x);
+			rnum = 0;
+		}
+		else
+		{
+			break;
+		}
+	}
+
 	strcpy(currentWatch,x);
 	strcpy(Str_Tmp,currentWatch);
-	
+
 	//loadwatches here
 	FILE *WatchFile = fopen(Str_Tmp,"rb");
-		if (!WatchFile)
+	if (!WatchFile)
+	{
+		int answer = MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OKCANCEL);
+		if (answer == IDOK)
 		{
-			int answer = MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OKCANCEL);
-			if (answer == IDOK)
-			{
 			rw_recent_files[rnum][0] = '\0';	//Clear file from list 
 			if (rnum)							//Update the ramwatch list
 				RWAddRecentFile(rw_recent_files[0]); 
 			else
 				RWAddRecentFile(rw_recent_files[1]);
-			}
-			return;
 		}
-		const char DELIM = '\t';
-		AddressWatcher Temp;
-		char mode;
-		fgets(Str_Tmp,1024,WatchFile);
-		sscanf(Str_Tmp,"%c%*s",&mode);
-		if ((mode == '1' && !(SegaCD_Started)) || (mode == '2' && !(_32X_Started)))
-		{
-			char Device[8];
-			strcpy(Device,(mode > '1')?"32X":"SegaCD");
-			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
-		}
-		int WatchAdd;
-		fgets(Str_Tmp,1024,WatchFile);
-		sscanf(Str_Tmp,"%d%*s",&WatchAdd);
-		WatchAdd+=WatchCount;
-		for (int i = WatchCount; i < WatchAdd; i++)
-		{
-			while (i < 0)
-				i++;
-			do {
-				fgets(Str_Tmp,1024,WatchFile);
-			} while (Str_Tmp[0] == '\n');
-			sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
-			Temp.WrongEndian = 0;
-			char *Comment = strrchr(Str_Tmp,DELIM) + 1;
-			*strrchr(Comment,'\n') = '\0';
-			InsertWatch(Temp,Comment);
-		}
-		
-		fclose(WatchFile);
-		if (RamWatchHWnd)
-			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
-		RWfileChanged=false;
 		return;
+	}
+	const char DELIM = '\t';
+	AddressWatcher Temp;
+	char mode;
+	fgets(Str_Tmp,1024,WatchFile);
+	sscanf(Str_Tmp,"%c%*s",&mode);
+	if ((mode == '1' && !(SegaCD_Started)) || (mode == '2' && !(_32X_Started)))
+	{
+		char Device[8];
+		strcpy(Device,(mode > '1')?"32X":"SegaCD");
+		sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
+		MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
+	}
+	int WatchAdd;
+	fgets(Str_Tmp,1024,WatchFile);
+	sscanf(Str_Tmp,"%d%*s",&WatchAdd);
+	WatchAdd+=WatchCount;
+	for (int i = WatchCount; i < WatchAdd; i++)
+	{
+		while (i < 0)
+			i++;
+		do {
+			fgets(Str_Tmp,1024,WatchFile);
+		} while (Str_Tmp[0] == '\n');
+		sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
+		Temp.WrongEndian = 0;
+		char *Comment = strrchr(Str_Tmp,DELIM) + 1;
+		*strrchr(Comment,'\n') = '\0';
+		InsertWatch(Temp,Comment);
+	}
+
+	fclose(WatchFile);
+	if (RamWatchHWnd)
+		ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+	RWfileChanged=false;
+	return;
 }
 
 bool Save_Watches()
