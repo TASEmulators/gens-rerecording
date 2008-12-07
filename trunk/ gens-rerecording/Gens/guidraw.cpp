@@ -52,7 +52,7 @@ void PutText (char *string, short x, short y, short xl, short yl, short xh, shor
 }
 
 extern "C" int Small_Font_Data;
-static void PutTextInternal (const char *str, short x, short y, int color, int backcolor)
+static void PutTextInternal (const char *str, int len, short x, short y, int color, int backcolor)
 {
 	int color32 = color >> 8;
 	int color16 = DrawUtil::Pix32To16(color32);
@@ -65,7 +65,7 @@ static void PutTextInternal (const char *str, short x, short y, int color, int b
 	if(!Opac && !backOpac)
 		return;
 
-	while(*str)
+	while(*str && len)
 	{
 		int c = *str++;
 		if(c == '\n')
@@ -146,30 +146,60 @@ static void PutTextInternal (const char *str, short x, short y, int color, int b
 		}
 
 		x += 4;
+		len--;
 	}
 }
 
-void PutText2 (const char *string, short x, short y, int color, int outlineColor)
+int strlinelen(const char* string)
+{
+	const char* s = string;
+	while(*s && *s != '\n')
+		s++;
+	if(*s)
+		s++;
+	return s - string;
+}
+
+void PutText2 (const char* string, short x, short y, int color, int outlineColor)
 {
 	if(!string)
 		return;
 
-	int xl = 0;
-	int yl = 0;
-	int xh = 318 - 4*strlen(string);
-	int yh = 217;
-	x = min(max(x,xl),xh);
-	y = min(max(y,yl),yh);
+	const char* ptr = string;
+	while(*ptr)
+	{
+		int len = strlinelen(ptr);
+		int skip = 0;
+		if(len < 1) len = 1;
 
-	PutTextInternal(string,x,y,color,outlineColor);
-	//if(outlineColor & 0xFF)
-	//{
-	//	const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
-	//	const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
-	//	for(int i = 0 ; i < 8 ; i++)
-	//		PutTextInternal(string,x + xOffset[i],y + yOffset[i],outlineColor, 0);
- //	}
-	//PutTextInternal(string,x,y,color, 0);
+		// break up the line if it's too long to display otherwise
+		if(len > 79)
+		{
+			len = 79;
+			const char* ptr2 = ptr + len-1;
+			for(int j = len-1; j; j--, ptr2--)
+			{
+				if(*ptr2 == ' ' || *ptr2 == '\t')
+				{
+					len = j;
+					skip = 1;
+					break;
+				}
+			}
+		}
+
+		int xl = 0;
+		int yl = 0;
+		int xh = 318 - 4*len;
+		int yh = 217;
+		int x2 = min(max(x,xl),xh);
+		int y2 = min(max(y,yl),yh);
+
+		PutTextInternal(ptr,len,x2,y2,color,outlineColor);
+
+		ptr += len + skip;
+		y += 8;
+	}
 }
 
 void Pixel (short x, short y, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
