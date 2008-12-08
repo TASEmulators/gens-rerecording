@@ -44,6 +44,7 @@
 #define IDD_RECORD_A_MOVIE              148
 #define IDR_ACCELERATOR1                148
 #define IDD_LUA                         149
+#define IDI_LUA                         150
 #define IDC_STATIC_WARNING_BITMAP       1000
 #define IDC_JOYINFO1                    1001
 #define IDC_JOYINFO2                    1002
@@ -602,7 +603,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        150
+#define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         3002
 #define _APS_NEXT_CONTROL_VALUE         50001
 #define _APS_NEXT_SYMED_VALUE           101
