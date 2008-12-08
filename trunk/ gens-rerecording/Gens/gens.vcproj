@@ -1669,6 +1669,10 @@
 					>
 				</File>
 				<File
+					RelativePath="resource\lua.ico"
+					>
+				</File>
+				<File
 					RelativePath="resource\sonic.ico"
 					>
 				</File>

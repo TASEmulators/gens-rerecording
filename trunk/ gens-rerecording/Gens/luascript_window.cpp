@@ -11,13 +11,44 @@
 
 char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
 
+struct ControlLayoutInfo
+{
+	int controlID;
+	
+	enum LayoutType // what to do when the containing window resizes
+	{
+		NONE, // leave the control where it was
+		RESIZE_END, // resize the control
+		MOVE_START, // move the control
+	};
+	LayoutType horizontalLayout;
+	LayoutType verticalLayout;
+};
+struct ControlLayoutState
+{
+	int x,y,width,height;
+	bool valid;
+	ControlLayoutState() : valid(false) {}
+};
+
+ControlLayoutInfo controlLayoutInfos [] = {
+	{IDC_LUACONSOLE, ControlLayoutInfo::RESIZE_END, ControlLayoutInfo::RESIZE_END},
+	{IDC_EDIT_LUAPATH, ControlLayoutInfo::RESIZE_END, ControlLayoutInfo::NONE},
+	{IDC_BUTTON_LUARUN, ControlLayoutInfo::MOVE_START, ControlLayoutInfo::NONE},
+	{IDC_BUTTON_LUASTOP, ControlLayoutInfo::MOVE_START, ControlLayoutInfo::NONE},
+};
+static const int numControlLayoutInfos = sizeof(controlLayoutInfos)/sizeof(*controlLayoutInfos);
+
+
 extern std::vector<HWND> LuaScriptHWnds;
 struct LuaPerWindowInfo {
 	std::string filename;
 	HANDLE fileWatcherThread;
 	bool started;
 	bool closeOnStop;
-	LuaPerWindowInfo() : fileWatcherThread(NULL), started(false), closeOnStop(false) {}
+	int width; int height;
+	ControlLayoutState layoutState [numControlLayoutInfos];
+	LuaPerWindowInfo() : fileWatcherThread(NULL), started(false), closeOnStop(false), width(405), height(244) {}
 };
 std::map<HWND, LuaPerWindowInfo> LuaWindowInfo;
 char Lua_Dir[1024]="";
@@ -216,6 +247,7 @@ void OnStop(int hDlgAsInt, bool statusOK)
 		PostMessage(hDlg, WM_CLOSE, 0, 0);
 }
 
+
 extern "C" int Clear_Sound_Buffer(void);
 
 LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -238,6 +270,9 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				while (ShowCursor(false) >= 0);
 				while (ShowCursor(true) < 0);
 			}
+
+			HANDLE hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_LUA));
+			SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
 			GetWindowRect(HWnd, &r);
 			dx1 = (r.right - r.left) / 2;
@@ -271,6 +306,12 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 			LuaPerWindowInfo info;
+			{
+				RECT r3;
+				GetClientRect(hDlg, &r3);
+				info.width = r3.right - r3.left;
+				info.height = r3.bottom - r3.top;
+			}
 			LuaWindowInfo[hDlg] = info;
 			RegisterWatcherThread(hDlg);
 
@@ -282,6 +323,96 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_MENUSELECT:
  		case WM_ENTERSIZEMOVE:
 			Clear_Sound_Buffer();
+			break;
+
+		case WM_SIZING:
+			{
+				// enforce a minimum window size
+
+				LPRECT r = (LPRECT) lParam;
+				int minimumWidth = 264;
+				int minimumHeight = 117;
+				if(r->right - r->left < minimumWidth)
+					if(wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
+						r->left = r->right - minimumWidth;
+					else
+						r->right = r->left + minimumWidth;
+				if(r->bottom - r->top < minimumHeight)
+					if(wParam == WMSZ_TOP || wParam == WMSZ_TOPLEFT || wParam == WMSZ_TOPRIGHT)
+						r->top = r->bottom - minimumHeight;
+					else
+						r->bottom = r->top + minimumHeight;
+			}
+			return TRUE;
+
+		case WM_SIZE:
+			{
+				// resize or move controls in the window as necessary when the window is resized
+
+				LuaPerWindowInfo& windowInfo = LuaWindowInfo[hDlg];
+				int prevDlgWidth = windowInfo.width;
+				int prevDlgHeight = windowInfo.height;
+
+				int dlgWidth = LOWORD(lParam);
+				int dlgHeight = HIWORD(lParam);
+
+				int deltaWidth = dlgWidth - prevDlgWidth;
+				int deltaHeight = dlgHeight - prevDlgHeight;
+
+				for(int i = 0; i < numControlLayoutInfos; i++)
+				{
+					ControlLayoutInfo layoutInfo = controlLayoutInfos[i];
+					ControlLayoutState& layoutState = windowInfo.layoutState[i];
+
+					HWND hCtrl = GetDlgItem(hDlg,layoutInfo.controlID);
+
+					int x,y,width,height;
+					if(layoutState.valid)
+					{
+						x = layoutState.x;
+						y = layoutState.y;
+						width = layoutState.width;
+						height = layoutState.height;
+					}
+					else
+					{
+						RECT r;
+						GetWindowRect(hCtrl, &r);
+						POINT p = {r.left, r.top};
+						ScreenToClient(hDlg, &p);
+						x = p.x;
+						y = p.y;
+						width = r.right - r.left;
+						height = r.bottom - r.top;
+					}
+
+					switch(layoutInfo.horizontalLayout)
+					{
+						case ControlLayoutInfo::RESIZE_END: width += deltaWidth; break;
+						case ControlLayoutInfo::MOVE_START: x += deltaWidth; break;
+						default: break;
+					}
+					switch(layoutInfo.verticalLayout)
+					{
+						case ControlLayoutInfo::RESIZE_END: height += deltaHeight; break;
+						case ControlLayoutInfo::MOVE_START: y += deltaHeight; break;
+						default: break;
+					}
+
+					SetWindowPos(hCtrl, 0, x,y, width,height, 0);
+
+					layoutState.x = x;
+					layoutState.y = y;
+					layoutState.width = width;
+					layoutState.height = height;
+					layoutState.valid = true;
+				}
+
+				windowInfo.width = dlgWidth;
+				windowInfo.height = dlgHeight;
+
+				RedrawWindow(hDlg, NULL, NULL, RDW_INVALIDATE);
+			}
 			break;
 
 		case WM_COMMAND:

@@ -600,16 +600,16 @@ BEGIN
     CTEXT           "",IDC_PROMPT_TEXT2,0,11,190,8,SS_CENTERIMAGE
 END
 
-IDD_LUA DIALOGEX 0, 0, 270, 151
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_LUA DIALOGEX 0, 0, 270, 150
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Lua Script"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     PUSHBUTTON      "Browse...",IDC_BUTTON_LUABROWSE,7,31,50,16
-    PUSHBUTTON      "Run",IDC_BUTTON_LUARUN,212,31,50,16
+    PUSHBUTTON      "Run",IDC_BUTTON_LUARUN,213,31,50,16
     PUSHBUTTON      "Stop",IDC_BUTTON_LUASTOP,160,31,50,16
-    EDITTEXT        IDC_EDIT_LUAPATH,7,16,255,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_LUACONSOLE,7,61,255,81,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY
+    EDITTEXT        IDC_EDIT_LUAPATH,7,16,256,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LUACONSOLE,7,61,256,81,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY
     LTEXT           "Output Console",IDC_STATIC,7,51,51,8
     LTEXT           "Script File",IDC_STATIC,7,7,32,8
 END
@@ -697,7 +697,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 144
+        BOTTOMMARGIN, 143
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -712,6 +712,7 @@ END
 // remains consistent on all systems.
 IDI_GENS                ICON                    "resource\\Gens2.ico"
 IDI_SONIC               ICON                    "resource\\sonic.ico"
+IDI_LUA                 ICON                    "resource\\lua.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
