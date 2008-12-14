@@ -277,6 +277,8 @@ void CloseRamWindows() //Close the Ram Search & Watch windows when rom closes
 }
 void ReopenRamWindows() //Reopen them when a new Rom is loaded
 {
+	HWND hwnd = GetActiveWindow();
+
 	if (RamSearchClosed)
 	{
 		RamSearchClosed = false;
@@ -297,6 +299,9 @@ void ReopenRamWindows() //Reopen them when a new Rom is loaded
 			DialogsOpen++;
 		}
 	}
+
+	if(hwnd == HWnd && hwnd != GetActiveWindow())
+		SetActiveWindow(HWnd); // restore focus to the main window if it had it before
 }
 
 int Change_VSync(HWND hWnd)
