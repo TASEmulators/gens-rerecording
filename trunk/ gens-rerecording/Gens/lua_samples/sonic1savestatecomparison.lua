@@ -9,36 +9,43 @@
 -- 
 -- additionally, you can watch someone else's movie and then save on a slot you won't overwrite
 -- then play from the start and you can tell whether you're faster than they were
+-- (this can be quite useful for making TASes)
 -- note that you must save and keep a savestate around for its ghost to be drawn
 -- you might find the "Save Backup State" hotkey useful for this purpose
 -- 
 -- currently this script only works for Sonic 1 (and derivatives like Sonic 1 Megamix)
 -- because the addresses such as 0xffd008 are game-specific
 -- also, the hitbox is probably not as accurate as it could be
--- 
--- this script saves its data in "C:\\luatemp_s1ghostdata.txt" on exit
--- and loads it back in from there on startup
--- so you shouldn't lose it between sessions or script restarts
--- however it has not been tested very thoroughly yet
+-- etc., etc.
+-- but the intent is for this to be a relatively easy-to-understand script
+-- rather than fully-featured and robust-as-possible
 
 
 -- a helper function to get the info we want to store per in-game frame
 -- (for now this is only the player position)
 function getperframeinfo()
-	x = memory.readwordsigned(0xffd008)
-	y = memory.readwordsigned(0xffd00c)
-	info = {x=x, y=y}
+	local x = memory.readwordsigned(0xffd008)
+	local y = memory.readwordsigned(0xffd00c)
+	local info = {x=x, y=y}
 	return info
 end
 
 -- a helper function to combine the current in-game time
 -- and current level into a single unique number
 function getinstantid()
-	level = 1 + memory.readword(0xfffe10)
-	frames = memory.readbyte(0xfffe25)
-	seconds = memory.readbyte(0xfffe24)
-	minutes = memory.readbyte(0xfffe23)
-	id = frames + 60*(seconds + 60*(minutes + 10*(level)))
+	local level = 1 + memory.readword(0xfffe10)
+	local frames = memory.readbyte(0xfffe25)
+	local seconds = memory.readbyte(0xfffe24)
+	local minutes = memory.readbyte(0xfffe23)
+	local id = frames + 60*(seconds + 60*(minutes + 10*(level)))
+
+	-- unfortunately the frame number stored at 0xfffe25
+	-- will sometimes fail to increment evenly (1,2,3,3,5,6,7,7,9,...)
+	-- so pretend it got incremented if the value stays the same for 2 frames
+	if lastidvalid and id == lastid then
+		id = id + 1
+	end
+
 	return id
 end
 
@@ -53,6 +60,7 @@ function renderframeinfo(records, id, tracknumber)
 	if records == nil then return end
 
 	info = records[id]
+
 	if info == nil then return end
 
 	-- draw a box where the player is
@@ -92,7 +100,16 @@ gens.registerafter( function ()
 
 	-- store the new information for this frame
 	id = getinstantid()
+
+	if id == lastid then
+		lastidvalid = false
+	else
+		lastid = id
+		lastidvalid = true
+	end
+
 	currentframeinforecords[id] = getperframeinfo()
+
 
 end)
 
@@ -106,86 +123,50 @@ gui.register( function ()
 	for statenumber,records in pairs(savestateframeinforecords) do
 		renderframeinfo(records, id, statenumber)
 	end
-	renderframeinfo(currentframeinforecords, id, 0)
+	renderframeinfo(currentframeinforecords, id, -1)
 
 end)
-
--- lua doesn't seem to have a built-in way of doing this...
-function duplicatetable (table)
-	rv = {}
-	for key,value in pairs(table) do
-		rv[key]=value
-	end
-	return rv
-end
 
 
 -- a function to associate the info records with savestates the user makes
 savestate.registersave( function (statenumber)
 
 	-- only save the frame record info into the numbered savestates
-	if statenumber == nil then return nil end
+	if statenumber == nil then return end
 
 	-- save all the perframeinfo records for this state
-	savestateframeinforecords[statenumber] = duplicatetable(currentframeinforecords)
+	savestateframeinforecords[statenumber] = copytable(currentframeinforecords)
+	return currentframeinforecords -- the return value(s) becomes the argument(s) after the statenumber of the registered load function
 
 end)
 
 -- a function to load the info records associated with the savestates the user loads
-savestate.registerload( function (statenumber)
+savestate.registerload( function (statenumber, savedinforecords)
 
 	-- only restore the frame record info from numbered savestates
 	if statenumber == nil then return end
 
+	-- sanity check
+	if savedinforecords == nil then savedinforecords = {} end
+
 	-- restore all the perframeinfo records for this state
-	currentframeinforecords = savestateframeinforecords[statenumber]
-	if currentframeinforecords == nil then currentframeinforecords = {} end
+	savestateframeinforecords[statenumber] = savedinforecords
+	currentframeinforecords = copytable(savedinforecords)
 
 end)
 
 
--- a function to save a table out to file
-function serialize (o)
-	if type(o) == "number" then
-		io.write(o)
-	elseif type(o) == "string" then
-		io.write(string.format("%q", o))
-	elseif type(o) == "table" then
-		io.write("{\n")
-		for k,v in pairs(o) do
-			io.write("  [")
-			serialize(k)
-			io.write("] = ")
-			serialize(v)
-			io.write(",\n")
-		end
-		io.write("}\n")
-	elseif type(o) == "nil" then
-		io.write("nil")
-	else
-		error("cannot serialize a " .. type(o))
+-- startup code: temporarily load each savestate to retrieve its ghost info
+do
+	sound.clear() -- as a courtesy, clear the sound before operations like this that can take more than 0.5 seconds or so
+	gens.speedmode("maximum") -- this prevents loading numbered savestates from refreshing the screen
+	savestateframeinforecords = {}
+	local prevstate = savestate.create()
+	savestate.get(prevstate)
+	for x = 0,10 do
+		savestate.load(x) -- load each numbered savestate (1-9, 0, and also the hidden #10 if it's there)
 	end
+	savestate.set(prevstate)
+	gens.speedmode("normal") -- reset mode to normal
 end
 
-
-function deserialize (filename)
---	assert(loadfile(filename)) -- enable to get error information
-	loadfile(filename)()
-end
-
-
--- startup code: load savestateframeinforecords from file
-temp = io.open("C:\\luatemp_s1ghostdata.txt", "r") -- check if file exists
-if temp ~= nil then -- if it exists then load it
-	io.close(temp)
-	deserialize("C:\\luatemp_s1ghostdata.txt")
-	if savestateframeinforecords == nil then savestateframeinforecords = {} end
-end
-
--- exit code: save savestateframeinforecords to file
-gens.registerexit( function()
-	sound.clear() -- in case it takes a while to save
-	io.output("C:\\luatemp_s1ghostdata.txt")
-	io.write("savestateframeinforecords = ")
-	serialize(savestateframeinforecords)
-end)

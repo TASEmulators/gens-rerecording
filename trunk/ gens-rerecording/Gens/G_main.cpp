@@ -3443,20 +3443,22 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SAVESTATE_8:
 				case ID_FILES_SAVESTATE_9:
 				case ID_FILES_SAVESTATE_0:
+				{
 					Set_Current_State((command - ID_FILES_SAVESTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
-					Str_Tmp[0] = 0;
-					Get_State_File_Name(Str_Tmp);
-					Save_State(Str_Tmp);
+					char Name [1024] = {0};
+					Get_State_File_Name(Name);
+					Save_State(Name);
 					return 0;
-
+				}
 				case ID_FILES_SAVESTATE_10:
+				{
 					Set_Current_State(10);
-					Str_Tmp[0] = 0;
-					Get_State_File_Name(Str_Tmp);
-					Save_State(Str_Tmp);
+					char Name [1024] = {0};
+					Get_State_File_Name(Name);
+					Save_State(Name);
 					return 0;
-
+				}
 				case ID_FILES_LOADSTATE_1:
 				case ID_FILES_LOADSTATE_2:
 				case ID_FILES_LOADSTATE_3:
@@ -3467,13 +3469,14 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_LOADSTATE_8:
 				case ID_FILES_LOADSTATE_9:
 				case ID_FILES_LOADSTATE_0:
+				{
 					Set_Current_State((command - ID_FILES_LOADSTATE_1 + 1) % 10);
 					//if (Check_If_Kaillera_Running()) return 0;
-					Str_Tmp[0] = 0;
-					Get_State_File_Name(Str_Tmp);
-					Load_State(Str_Tmp);
+					char Name [1024] = {0};
+					Get_State_File_Name(Name);
+					Load_State(Name);
 					return 0;
-
+				}
 				case ID_FILES_SETSTATE_1:
 				case ID_FILES_SETSTATE_2:
 				case ID_FILES_SETSTATE_3:

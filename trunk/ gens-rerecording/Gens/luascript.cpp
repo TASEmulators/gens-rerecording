@@ -6,6 +6,7 @@
 #include "movie.h"
 #include "vdp_io.h"
 #include "drawutil.h"
+#include "unzip.h"
 #include <assert.h>
 #include <vector>
 #include <map>
@@ -74,6 +75,10 @@ struct LuaContextInfo {
 	SpeedMode speedMode; // determines how gens.frameadvance() acts
 	char panicMessage [64]; // a message to print if the script terminates due to panic being set
 	std::string lastFilename; // path to where the script last ran from so that restart can work (note: storing the script in memory instead would not be useful because we always want the most up-to-date script from file)
+	std::string nextFilename; // path to where the script should run from next, mainly used in case the restart flag is true
+	unsigned int dataSaveKey; // crc32 of the save data key, used to decide which script should get which data... by default (if no key is specified) it's calculated from the script filename
+	unsigned int dataLoadKey; // same as dataSaveKey but set through registerload instead of registersave if the two differ
+	bool dataSaveLoadKeySet; // false if the data save keys are unset or set to their default value
 	// callbacks into the lua window... these don't need to exist per context the way I'm using them, but whatever
 	void(*print)(int uid, const char* str);
 	void(*onstart)(int uid);
@@ -82,6 +87,7 @@ struct LuaContextInfo {
 std::map<int, LuaContextInfo*> luaContextInfo;
 std::map<lua_State*, int> luaStateToUIDMap;
 int g_numScriptsStarted = 0;
+bool g_anyScriptsHighSpeed = false;
 bool g_stopAllScriptsEnabled = true;
 
 #define USE_INFO_STACK
@@ -107,6 +113,10 @@ static const char* luaCallIDStrings [] =
 static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0];
 
 void StopScriptIfFinished(int uid, bool justReturned = false);
+void SetSaveKey(LuaContextInfo& info, const char* key);
+void SetLoadKey(LuaContextInfo& info, const char* key);
+void RefreshScriptStartedStatus();
+void RefreshScriptSpeedStatus();
 
 int add_memory_proc (int *list, int addr, int &numprocs)
 {
@@ -227,11 +237,14 @@ int gui_register(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
+static const char* toCString(lua_State* L, int i);
 int state_registersave(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
 	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFORESAVE]);
+	if (!lua_isnoneornil(L,2))
+		SetSaveKey(GetCurrentInfo(), toCString(L,2));
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
@@ -240,6 +253,8 @@ int state_registerload(lua_State* L)
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
 	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTERLOAD]);
+	if (!lua_isnoneornil(L,2))
+		SetLoadKey(GetCurrentInfo(), toCString(L,2));
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 0;
 }
@@ -361,10 +376,15 @@ void worry(lua_State* L, int intensity)
 #define snprintf _snprintf
 #endif
 
+static std::vector<const void*> s_tableAddressStack;
+
 #define APPENDPRINT { int n = snprintf(ptr, remaining,
-#define END ); ptr += n; remaining -= n; }
+#define END ); if(n >= 0) { ptr += n; remaining -= n; } else { remaining = 0; } }
 static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 {
+	if(remaining <= 0)
+		return;
+
 	const char* str = ptr; // for debugging
 
 	switch(lua_type(L, i))
@@ -373,58 +393,87 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TNIL: APPENDPRINT "nil" END break;
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
-		case LUA_TNUMBER: APPENDPRINT "%Lg",lua_tonumber(L,i) END break;
-		default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
+		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
+defau1t:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
 		case LUA_TTABLE:
 		{
-			APPENDPRINT "{" END
-			lua_pushnil(L); // first key
-			int keyIndex = lua_gettop(L);
-			int valueIndex = keyIndex + 1;
-			bool first = true;
-			while(lua_next(L, i))
+			// first make sure there's enough stack space
+			if(!lua_checkstack(L, 4))
 			{
-				bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
-				bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
-				if(first)
-					first = false;
-				else
-					APPENDPRINT ", " END
-				if(invalidLuaIdentifier)
-					if(keyIsString)
-						APPENDPRINT "['" END
-					else
-						APPENDPRINT "[" END
-
-				toCStringConverter(L, keyIndex, ptr, remaining); // key
-
-				if(invalidLuaIdentifier)
-					if(keyIsString)
-						APPENDPRINT "']=" END
-					else
-						APPENDPRINT "]=" END
-				else
-					APPENDPRINT "=" END
-
-				bool valueIsString = (lua_type(L, valueIndex) == LUA_TSTRING);
-				if(valueIsString)
-					APPENDPRINT "'" END
-
-				toCStringConverter(L, valueIndex, ptr, remaining); // value
-
-				if(valueIsString)
-					APPENDPRINT "'" END
-
-				lua_pop(L, 1);
+				// note that even if lua_checkstack never returns false,
+				// that doesn't mean we didn't need to call it,
+				// because calling it retrieves stack space past LUA_MINSTACK
+				goto defau1t;
 			}
-			APPENDPRINT "}" END
+
+			std::vector<const void*>::const_iterator foundCycleIter = std::find(s_tableAddressStack.begin(), s_tableAddressStack.end(), lua_topointer(L,i));
+			if(foundCycleIter != s_tableAddressStack.end())
+			{
+				int parentNum = s_tableAddressStack.end() - foundCycleIter;
+				if(parentNum > 1)
+					APPENDPRINT "%s:parent^%d",luaL_typename(L,i),parentNum END
+				else
+					APPENDPRINT "%s:parent",luaL_typename(L,i) END
+			}
+			else
+			{
+				s_tableAddressStack.push_back(lua_topointer(L,i));
+				struct Scope { ~Scope(){ s_tableAddressStack.pop_back(); } } scope;
+
+				APPENDPRINT "{" END
+
+				lua_pushnil(L); // first key
+				int keyIndex = lua_gettop(L);
+				int valueIndex = keyIndex + 1;
+				bool first = true;
+				while(lua_next(L, i))
+				{
+					bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
+					bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
+					if(first)
+						first = false;
+					else
+						APPENDPRINT ", " END
+					if(invalidLuaIdentifier)
+						if(keyIsString)
+							APPENDPRINT "['" END
+						else
+							APPENDPRINT "[" END
+
+					toCStringConverter(L, keyIndex, ptr, remaining); // key
+
+					if(invalidLuaIdentifier)
+						if(keyIsString)
+							APPENDPRINT "']=" END
+						else
+							APPENDPRINT "]=" END
+					else
+						APPENDPRINT "=" END
+
+					bool valueIsString = (lua_type(L, valueIndex) == LUA_TSTRING);
+					if(valueIsString)
+						APPENDPRINT "'" END
+
+					toCStringConverter(L, valueIndex, ptr, remaining); // value
+
+					if(valueIsString)
+						APPENDPRINT "'" END
+
+					lua_pop(L, 1);
+
+					if(remaining <= 0)
+						break;
+				}
+				APPENDPRINT "}" END
+			}
 		}	break;
 	}
 }
 static const char* toCString(lua_State* L)
 {
-	static const int maxLen = 4096;
+	static const int maxLen = 8192;
 	static char str[maxLen];
+
 	str[0] = 0;
 	char* ptr = str;
 
@@ -436,6 +485,17 @@ static const char* toCString(lua_State* L)
 		if(i != n)
 			APPENDPRINT " " END
 	}
+
+	if(remaining < 3)
+	{
+		while(remaining < 6)
+		{
+			remaining++;
+			ptr--;
+		}
+		APPENDPRINT "..." END
+	}
+
 	APPENDPRINT "\r\n" END
 
 	return str;
@@ -443,10 +503,12 @@ static const char* toCString(lua_State* L)
 static const char* toCString(lua_State* L, int i)
 {
 	luaL_checkany(L,i);
-	static const int maxLen = 4096;
+
+	static const int maxLen = 8192;
 	static char str[maxLen];
 	str[0] = 0;
 	char* ptr = str;
+
 	int remaining = maxLen;
 	toCStringConverter(L, i, ptr, remaining);
 	return str;
@@ -483,6 +545,56 @@ static int tostring(lua_State* L)
 {
 	const char* str = toCString(L);
 	lua_pushstring(L, str);
+	return 1;
+}
+
+// provides an easy way to copy a table from Lua
+// (simple assignment only makes an alias, but sometimes an independent table is desired)
+// currently this function only performs a shallow copy,
+// but I think it should be changed to do a deep copy (possibly of configurable depth?)
+// that maintains the internal table reference structure
+static int copytable(lua_State *L)
+{
+	int origIndex = 1; // we only care about the first argument
+	int origType = lua_type(L, origIndex);
+	if(origType == LUA_TNIL)
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+	if(origType != LUA_TTABLE)
+	{
+		luaL_typerror(L, 1, lua_typename(L, LUA_TTABLE));
+		lua_pushnil(L);
+		return 1;
+	}
+
+	lua_newtable(L);
+	int copyIndex = lua_gettop(L);
+
+	lua_pushnil(L); // first key
+	int keyIndex = lua_gettop(L);
+	int valueIndex = keyIndex + 1;
+
+	while(lua_next(L, origIndex))
+	{
+		lua_pushvalue(L, keyIndex);
+		lua_pushvalue(L, valueIndex);
+		lua_rawset(L, copyIndex); // copytable[key] = value
+		lua_pop(L, 1);
+	}
+
+	return 1; // return the new table
+}
+
+// because print traditionally shows the address of tables,
+// and the print function I provide instead shows the contents of tables,
+// I also provide this function
+// (otherwise there would be no way to see a table's address, AFAICT)
+static int addressof(lua_State *L)
+{
+	const void* ptr = lua_topointer(L,-1);
+	lua_pushinteger(L, (lua_Integer)ptr);
 	return 1;
 }
 
@@ -680,6 +792,7 @@ int gens_speedmode(lua_State* L)
 
 	LuaContextInfo& info = GetCurrentInfo();
 	info.speedMode = newSpeedMode;
+	RefreshScriptSpeedStatus();
 	return 0;
 }
 
@@ -874,18 +987,18 @@ int state_save(lua_State* L)
 {
 	int stateNumber = luaL_checkinteger(L,1);
 	Set_Current_State(stateNumber);
-	Str_Tmp[0] = 0;
-	Get_State_File_Name(Str_Tmp);
-	Save_State(Str_Tmp);
+	char Name [1024] = {0};
+	Get_State_File_Name(Name);
+	Save_State(Name);
 	return 0;
 }
 int state_load(lua_State* L)
 {
 	int stateNumber = luaL_checkinteger(L,1);
 	Set_Current_State(stateNumber);
-	Str_Tmp[0] = 0;
-	Get_State_File_Name(Str_Tmp);
-	Load_State(Str_Tmp);
+	char Name [1024] = {0};
+	Get_State_File_Name(Name);
+	Load_State(Name);
 	return 0;
 }
 
@@ -1089,6 +1202,10 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 	int type = lua_type(L,idx);
 	switch(type)
 	{
+		case LUA_TNUMBER:
+		{
+			return lua_tointeger(L,idx);
+		}	break;
 		case LUA_TSTRING:
 		{
 			const char* str = lua_tostring(L,idx);
@@ -1109,10 +1226,6 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 			}
 			if(!strnicmp(str, "rand", 4))
 				return ((rand()*255/RAND_MAX) << 8) | ((rand()*255/RAND_MAX) << 16) | ((rand()*255/RAND_MAX) << 24) | 0xFF;
-		}	break;
-		case LUA_TNUMBER:
-		{
-			return lua_tointeger(L,idx);
 		}	break;
 		case LUA_TTABLE:
 		{
@@ -1296,7 +1409,7 @@ int gui_setopacity(lua_State* L)
 // sets the transparency of subsequent draw calls
 // 0.0 is completely opaque, 4.0 is completely transparent
 // non-integer values are supported and meaningful, as are values less than 0.0
-// this is a legacy funciton, and the range is from 0 to 4 solely for this reason
+// this is a legacy function, and the range is from 0 to 4 solely for this reason
 // it does the exact same thing as gui.opacity() but with a different argument range
 int gui_settransparency(lua_State* L)
 {
@@ -1640,6 +1753,9 @@ static const struct luaL_reg guilib [] =
 	{"drawbox", gui_box},
 	{"drawline", gui_line},
 	{"drawpixel", gui_pixel},
+	{"setpixel", gui_pixel},
+	{"writepixel", gui_pixel},
+	{"readpixel", gui_getpixel},
 	{"rect", gui_box},
 	{"drawrect", gui_box},
 	{NULL, NULL}
@@ -1797,6 +1913,9 @@ void ResetInfo(LuaContextInfo& info)
 	info.transparencyModifier = 255;
 	info.speedMode = SPEEDMODE_NORMAL;
 	info.guiFuncsNeedDeferring = false;
+	info.dataSaveKey = 0;
+	info.dataLoadKey = 0;
+	info.dataSaveLoadKeySet = false;
 }
 
 void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onstart)(int uid), void(*onstop)(int uid, bool statusOK))
@@ -1809,7 +1928,19 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	luaContextInfo[uid] = newInfo;
 }
 
-void RefreshScriptStartedStatus();
+static const char* PathToFilename(const char* path)
+{
+	const char* slash1 = strrchr(path, '\\');
+	const char* slash2 = strrchr(path, '/');
+	if(slash1) slash1++;
+	if(slash2) slash2++;
+	const char* rv = path;
+	rv = max(rv, slash1);
+	rv = max(rv, slash2);
+	if(!rv) rv = "";
+	return rv;
+}
+
 
 void RunLuaScriptFile(int uid, const char* filenameCStr)
 {
@@ -1819,8 +1950,10 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 
 #ifdef USE_INFO_STACK
 	infoStack.insert(infoStack.begin(), &info);
-	struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+	struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope; // doing it like this makes sure that the info stack gets cleaned up even if an exception is thrown
 #endif
+
+	info.nextFilename = filenameCStr;
 
 	if(info.running)
 	{
@@ -1834,10 +1967,10 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		return;
 	}
 
-	std::string filename = filenameCStr;
-
 	do
 	{
+		std::string filename = info.nextFilename;
+
 		lua_State* L = lua_open();
 #ifndef USE_INFO_STACK
 		luaStateToContextMap[L] = &info;
@@ -1848,6 +1981,9 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		info.guiFuncsNeedDeferring = true;
 		info.lastFilename = filename;
 
+		SetSaveKey(info, PathToFilename(filename.c_str()));
+		info.dataSaveLoadKeySet = false;
+
 		luaL_openlibs(L);
 		luaL_register(L, "gens", genslib);
 		luaL_register(L, "gui", guilib);
@@ -1857,8 +1993,12 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		luaL_register(L, "input", inputlib); // for user input
 		luaL_register(L, "movie", movielib);
 		luaL_register(L, "sound", soundlib);
+		
+		// register a few utility functions outside of libraries (in the global namespace)
 		lua_register(L, "print", print);
 		lua_register(L, "tostring", tostring);
+		lua_register(L, "addressof", addressof);
+		lua_register(L, "copytable", copytable);
 		lua_register(L, "AND", bitand);
 		lua_register(L, "OR", bitor);
 		lua_register(L, "XOR", bitxor);
@@ -1877,9 +2017,11 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		if(info.onstart)
 			info.onstart(uid);
 		info.running = true;
+		RefreshScriptSpeedStatus();
 		info.returned = false;
 		int errorcode = luaL_dofile(L,filename.c_str());
 		info.running = false;
+		RefreshScriptSpeedStatus();
 		info.returned = true;
 
 		if (errorcode)
@@ -1981,6 +2123,27 @@ void RequestAbortLuaScript(int uid, const char* message)
 	}
 }
 
+void SetSaveKey(LuaContextInfo& info, const char* key)
+{
+	info.dataSaveKey = crc32(0, (const unsigned char*)key, strlen(key));
+
+	if(!info.dataSaveLoadKeySet)
+	{
+		info.dataLoadKey = info.dataSaveKey;
+		info.dataSaveLoadKeySet = true;
+	}
+}
+void SetLoadKey(LuaContextInfo& info, const char* key)
+{
+	info.dataLoadKey = crc32(0, (const unsigned char*)key, strlen(key));
+
+	if(!info.dataSaveLoadKeySet)
+	{
+		info.dataSaveKey = info.dataLoadKey;
+		info.dataSaveLoadKeySet = true;
+	}
+}
+
 void CallExitFunction(int uid)
 {
 	LuaContextInfo& info = *luaContextInfo[uid];
@@ -2007,8 +2170,10 @@ void CallExitFunction(int uid)
 		{
 			bool wasRunning = info.running;
 			info.running = true;
+			RefreshScriptSpeedStatus();
 			int errorcode = lua_pcall(L, 0, 0, 0);
 			info.running = wasRunning;
+			RefreshScriptSpeedStatus();
 			if (errorcode)
 			{
 				info.crashed = true;
@@ -2100,8 +2265,10 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 			{
 				bool wasRunning = info.running;
 				info.running = true;
+				RefreshScriptSpeedStatus();
 				int errorcode = lua_pcall(L, 0, 0, 0);
 				info.running = wasRunning;
+				RefreshScriptSpeedStatus();
 				if (errorcode)
 				{
 					info.crashed = true;
@@ -2134,9 +2301,9 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 	}
 }
 
-void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
+void CallRegisteredLuaSaveFunctions(int savestateNumber, LuaSaveData& saveData)
 {
-	const char* idstring = luaCallIDStrings[calltype];
+	const char* idstring = luaCallIDStrings[LUACALL_BEFORESAVE];
 
 	std::map<int, LuaContextInfo*>::iterator iter = luaContextInfo.begin();
 	std::map<int, LuaContextInfo*>::iterator end = luaContextInfo.end();
@@ -2159,9 +2326,77 @@ void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
 			{
 				bool wasRunning = info.running;
 				info.running = true;
-				lua_pushinteger(L, arg);
-				int errorcode = lua_pcall(L, 1, 0, 0);
+				RefreshScriptSpeedStatus();
+				lua_pushinteger(L, savestateNumber);
+				int errorcode = lua_pcall(L, 1, LUA_MULTRET, 0);
 				info.running = wasRunning;
+				RefreshScriptSpeedStatus();
+				if (errorcode)
+				{
+					info.crashed = true;
+					if(L->errfunc || L->errorJmp)
+						luaL_error(L, lua_tostring(L,-1));
+					else
+					{
+						if(info.print)
+						{
+							info.print(uid, lua_tostring(L,-1));
+							info.print(uid, "\r\n");
+						}
+						else
+						{
+							fprintf(stderr, "%s\n", lua_tostring(L,-1));
+						}
+						StopLuaScript(uid);
+					}
+				}
+				saveData.SaveRecord(uid, info.dataSaveKey);
+			}
+			else
+			{
+				lua_pop(L, 1);
+			}
+		}
+
+		++iter;
+	}
+}
+
+
+void CallRegisteredLuaLoadFunctions(int savestateNumber, const LuaSaveData& saveData)
+{
+	const char* idstring = luaCallIDStrings[LUACALL_AFTERLOAD];
+
+	std::map<int, LuaContextInfo*>::iterator iter = luaContextInfo.begin();
+	std::map<int, LuaContextInfo*>::iterator end = luaContextInfo.end();
+	while(iter != end)
+	{
+		int uid = iter->first;
+		LuaContextInfo& info = *iter->second;
+		lua_State* L = info.L;
+		if(L)
+		{
+#ifdef USE_INFO_STACK
+			infoStack.insert(infoStack.begin(), &info);
+			struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
+
+			lua_settop(L, 0);
+			lua_getfield(L, LUA_REGISTRYINDEX, idstring);
+			
+			if (lua_isfunction(L, -1))
+			{
+				bool wasRunning = info.running;
+				info.running = true;
+				RefreshScriptSpeedStatus();
+
+				lua_pushinteger(L, savestateNumber);
+				saveData.LoadRecord(uid, info.dataLoadKey);
+				int n = lua_gettop(L) - 1;
+
+				int errorcode = lua_pcall(L, n, 0, 0);
+				info.running = wasRunning;
+				RefreshScriptSpeedStatus();
 				if (errorcode)
 				{
 					info.crashed = true;
@@ -2191,6 +2426,322 @@ void CallRegisteredLuaFunctionsWithArg(LuaCallID calltype, int arg)
 		++iter;
 	}
 }
+/*
+template<typename T>
+void PushIntegerItem(T item, std::vector<unsigned char>& output)
+{
+	unsigned int value = (unsigned int)T;
+	for(int i = sizeof(T); i; i--)
+	{
+		output.push_back(value & 0xFF);
+		value >>= 8;
+	}
+}
+*/
+template<typename T>
+void PushBinaryItem(T item, std::vector<unsigned char>& output)
+{
+	unsigned char* buf = (unsigned char*)&item;
+	for(int i = sizeof(T); i; i--)
+		output.push_back(*buf++);
+}
+
+static void AdvanceByteStream(const unsigned char*& data, unsigned int& remaining, int amount)
+{
+	data += amount;
+	remaining -= amount;
+}
+
+static void LuaStackToBinaryConverter(lua_State* L, int i, std::vector<unsigned char>& output)
+{
+	int type = lua_type(L, i);
+
+	// the first byte of every serialized item says what Lua type it is
+	output.push_back(type & 0xFF);
+
+	switch(type)
+	{
+		default:
+			{
+				LuaContextInfo& info = GetCurrentInfo();
+				if(info.print)
+				{
+					char errmsg [1024];
+					sprintf(errmsg, "values of type \"%s\" are not allowed to be returned from registered save functions.\r\n", luaL_typename(L,i));
+					info.print(luaStateToUIDMap[L], errmsg);
+				}
+				else
+				{
+					fprintf(stderr, "values of type \"%s\" are not allowed to be returned from registered save functions.\n", luaL_typename(L,i));
+				}
+			}
+			break;
+		case LUA_TNIL:
+			// no information necessary beyond the type
+			break;
+		case LUA_TBOOLEAN:
+			// serialize as 0 or 1
+			output.push_back(lua_toboolean(L,i));
+			break;
+		case LUA_TSTRING:
+			// serialize as a 0-terminated string of characters
+			{
+				const char* str = lua_tostring(L,i);
+				while(*str)
+					output.push_back(*str++);
+				output.push_back('\0');
+			}
+			break;
+		case LUA_TNUMBER:
+			// serialize as the binary data of the number as a double
+			// (which should be using the IEEE double precision floating point standard)
+			{
+				double num = (double)lua_tonumber(L,i);
+				PushBinaryItem(num, output);
+			}
+			break;
+		case LUA_TTABLE:
+			// serialize as a "NONE-terminated" sequence of (key,value) Lua values
+			// (should work because "none" and "nil" are not valid table keys in Lua)
+			// note that the structure of table references are not faithfully serialized (yet)
+		{
+			if(lua_checkstack(L, 4) && std::find(s_tableAddressStack.begin(), s_tableAddressStack.end(), lua_topointer(L,i)) == s_tableAddressStack.end())
+			{
+				s_tableAddressStack.push_back(lua_topointer(L,i));
+				struct Scope { ~Scope(){ s_tableAddressStack.pop_back(); } } scope;
+
+				lua_pushnil(L); // first key
+				int keyIndex = lua_gettop(L);
+				int valueIndex = keyIndex + 1;
+				while(lua_next(L, i))
+				{
+					LuaStackToBinaryConverter(L, keyIndex, output);
+					LuaStackToBinaryConverter(L, valueIndex, output);
+					lua_pop(L, 1);
+				}
+			}
+			output.push_back(LUA_TNONE); // terminator (not a valid key)
+		}	break;
+	}
+}
+
+// complements LuaStackToBinaryConverter
+void BinaryToLuaStackConverter(lua_State* L, const unsigned char*& data, unsigned int& remaining)
+{
+	unsigned char type = *data;
+	AdvanceByteStream(data, remaining, 1);
+
+	switch(type)
+	{
+		default:
+			{
+				LuaContextInfo& info = GetCurrentInfo();
+				if(info.print)
+				{
+					char errmsg [1024];
+					if(type < 10)
+						sprintf(errmsg, "values of type \"%s\" are not allowed to be loaded into registered load functions. The save state's Lua save data file might be corrupted.\r\n", lua_typename(L,type));
+					else
+						sprintf(errmsg, "The save state's Lua save data file seems to be corrupted.\r\n");
+					info.print(luaStateToUIDMap[L], errmsg);
+				}
+				else
+				{
+					if(type < 10)
+						fprintf(stderr, "values of type \"%s\" are not allowed to be loaded into registered load functions. The save state's Lua save data file might be corrupted.\n", lua_typename(L,type));
+					else
+						fprintf(stderr, "The save state's Lua save data file seems to be corrupted.\n");
+				}
+			}
+			break;
+		case LUA_TNIL:
+			lua_pushnil(L);
+			break;
+		case LUA_TBOOLEAN:
+			lua_pushboolean(L, *data);
+			AdvanceByteStream(data, remaining, 1);
+			break;
+		case LUA_TSTRING:
+			lua_pushstring(L, (const char*)data);
+			AdvanceByteStream(data, remaining, strlen((const char*)data) + 1);
+			break;
+		case LUA_TNUMBER:
+			lua_pushnumber(L, *(double*)data);
+			AdvanceByteStream(data, remaining, sizeof(double));
+			break;
+		case LUA_TTABLE:
+			lua_newtable(L);
+			while((unsigned char)*data != (unsigned char)LUA_TNONE)
+			{
+				BinaryToLuaStackConverter(L, data, remaining); // push key
+				BinaryToLuaStackConverter(L, data, remaining); // push value
+				lua_rawset(L, -3); // table[key] = value
+			}
+			AdvanceByteStream(data, remaining, 1);
+			break;
+	}
+}
+
+unsigned char* LuaStackToBinary(lua_State* L, unsigned int& size)
+{
+	std::vector<unsigned char> output;
+
+	int n = lua_gettop(L);
+	for(int i = 1; i <= n; i++)
+		LuaStackToBinaryConverter(L, i, output);
+
+	if(output.empty())
+		return NULL;
+
+	unsigned char* rv = new unsigned char [output.size()];
+	memcpy(rv, &output.front(), output.size());
+	size = output.size();
+	return rv;
+}
+
+void BinaryToLuaStack(lua_State* L, const unsigned char* data, unsigned int size)
+{
+	while(size > 0)
+		BinaryToLuaStackConverter(L, data, size);
+}
+
+
+// saves Lua stack into a record and pops it
+void LuaSaveData::SaveRecord(int uid, unsigned int key)
+{
+	LuaContextInfo& info = *luaContextInfo[uid];
+	lua_State* L = info.L;
+
+	Record* cur = new Record();
+	cur->key = key;
+	cur->data = LuaStackToBinary(L, cur->size);
+	cur->next = NULL;
+
+	lua_settop(L,0);
+
+	if(cur->size <= 0)
+	{
+		delete cur;
+		return;
+	}
+
+	Record* last = recordList;
+	while(last && last->next)
+		last = last->next;
+	if(last)
+		last->next = cur;
+	else
+		recordList = cur;
+}
+
+// pushes a record's data onto the Lua stack
+void LuaSaveData::LoadRecord(int uid, unsigned int key) const
+{
+	LuaContextInfo& info = *luaContextInfo[uid];
+	lua_State* L = info.L;
+
+	Record* cur = recordList;
+	while(cur)
+	{
+		if(cur->key == key)
+		{
+			BinaryToLuaStack(L, cur->data, cur->size);
+			return;
+		}
+		cur = cur->next;
+	}
+
+}
+
+void fwriteint(unsigned int value, FILE* file)
+{
+	for(int i=0;i<4;i++)
+	{
+		int w = value & 0xFF;
+		fwrite(&w, 1, 1, file);
+		value >>= 8;
+	}
+}
+void freadint(unsigned int& value, FILE* file)
+{
+	int rv = 0;
+	for(int i=0;i<4;i++)
+	{
+		int r = 0;
+		fread(&r, 1, 1, file);
+		rv |= r << (i*8);
+	}
+	value = rv;
+}
+
+// writes all records to an already-open file
+void LuaSaveData::ExportRecords(void* fileV) const
+{
+	FILE* file = (FILE*)fileV;
+	if(!file)
+		return;
+
+	Record* cur = recordList;
+	while(cur)
+	{
+		fwriteint(cur->key, file);
+		fwriteint(cur->size, file);
+		fwrite(cur->data, cur->size, 1, file);
+		cur = cur->next;
+	}
+}
+
+// reads records from an already-open file
+void LuaSaveData::ImportRecords(void* fileV)
+{
+	FILE* file = (FILE*)fileV;
+	if(!file)
+		return;
+
+	ClearRecords();
+
+	Record rec;
+	Record* cur = &rec;
+	Record* last = NULL;
+	while(1)
+	{
+		freadint(cur->key, file);
+		freadint(cur->size, file);
+
+		if(feof(file) || ferror(file))
+			break;
+
+		cur->data = new unsigned char [cur->size];
+		fread(cur->data, cur->size, 1, file);
+
+		Record* next = new Record();
+		memcpy(next, cur, sizeof(Record));
+		next->next = NULL;
+
+		if(last)
+			last->next = next;
+		else
+			recordList = next;
+		last = next;
+	}
+}
+
+void LuaSaveData::ClearRecords()
+{
+	Record* cur = recordList;
+	while(cur)
+	{
+		Record* del = cur;
+		cur = cur->next;
+
+		delete[] del->data;
+		delete del;
+	}
+
+	recordList = NULL;
+}
+
+
 
 void DontWorryLua() // everything's going to be OK
 {
@@ -2263,5 +2814,22 @@ void RefreshScriptStartedStatus()
 
 	frameadvSkipLagForceDisable = (numScriptsStarted != 0); // disable while scripts are running because currently lag skipping makes lua callbacks get called twice per frame advance
 	g_numScriptsStarted = numScriptsStarted;
+}
+
+// sets anything that needs to depend on speed mode or running status of scripts
+void RefreshScriptSpeedStatus()
+{
+	g_anyScriptsHighSpeed = false;
+
+	std::map<int, LuaContextInfo*>::const_iterator iter = luaContextInfo.begin();
+	std::map<int, LuaContextInfo*>::const_iterator end = luaContextInfo.end();
+	while(iter != end)
+	{
+		LuaContextInfo& info = *iter->second;
+		if(info.running)
+			if(info.speedMode == SPEEDMODE_TURBO || info.speedMode == SPEEDMODE_MAXIMUM)
+				g_anyScriptsHighSpeed = true;
+		++iter;
+	}
 }
 

@@ -253,7 +253,8 @@ void Put_Info(char *Message, int Duration)
 		Put_Info_NonImmediate(Message, Duration);
 
 		// Modif N. - in case game is paused or at extremely low speed, update screen on new message
-		if(!Setting_Render)
+		extern bool g_anyScriptsHighSpeed;
+		if(!Setting_Render && !g_anyScriptsHighSpeed)
 		{
 			extern HWND HWnd;
 
