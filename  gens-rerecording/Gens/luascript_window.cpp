@@ -203,8 +203,9 @@ void PrintToWindowConsole(int hDlgAsInt, const char* str)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
 	HWND hConsole = GetDlgItem(hDlg, IDC_LUACONSOLE);
+
 	int length = GetWindowTextLength(hConsole);
-	if(length > 250000)
+	if(length >= 250000)
 	{
 		// discard first half of text if it's getting too long
 		SendMessage(hConsole, EM_SETSEL, 0, length/2);
@@ -273,6 +274,9 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			HANDLE hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_LUA));
 			SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+
+			// remove the 30000 character limit from the console control
+			SendMessage(GetDlgItem(hDlg, IDC_LUACONSOLE),EM_LIMITTEXT,0,0);
 
 			GetWindowRect(HWnd, &r);
 			dx1 = (r.right - r.left) / 2;

@@ -190,7 +190,7 @@ void Get_State_File_Name(char *name)
 {
 	s_lastStateNumberGotten = Current_State;
 
-	char Ext[6] = ".gsX";
+	char Ext[64] = ".gsX";
 
 	SetCurrentDirectory(Gens_Path);
 
@@ -208,7 +208,7 @@ void Get_State_File_Name(char *name)
 		else
 			slash = MainMovie.FileName;
 		strcat(name,slash);
-		name[strlen(name)-4] = '\0';
+		name[strlen(name)-strlen(Ext)] = '\0';
 	}
 	strcat(name, Ext);
 }
@@ -271,6 +271,7 @@ void TruncateMovieToFrameCount()
 	delete[] tempbuf;
 }
 
+bool g_refreshScreenAfterLoad = true;
 int Load_State(char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;
@@ -467,12 +468,31 @@ int Load_State(char *Name)
 		}
 	}
 	fclose(f);
+
+	{
+		LuaSaveData saveData;
+
+		char luaSaveFilename [512];
+		strncpy(luaSaveFilename, Name, 512);
+		luaSaveFilename[512-(1+7/*strlen(".luasav")*/)] = '\0';
+		strcat(luaSaveFilename, ".luasav");
+		FILE* luaSaveFile = fopen(luaSaveFilename, "rb");
+		if(luaSaveFile)
+		{
+			saveData.ImportRecords(luaSaveFile);
+			fclose(luaSaveFile);
+		}
+
+		CallRegisteredLuaLoadFunctions(stateNumber, saveData);
+	}
+
 	Update_RAM_Search();
 
-	if(stateNumber)
-		CallRegisteredLuaFunctionsWithArg(LUACALL_AFTERLOAD, stateNumber);
+	extern bool g_anyScriptsHighSpeed;
+	if(g_refreshScreenAfterLoad && !g_anyScriptsHighSpeed)
+		Show_Genesis_Screen(HWnd);
 
-	return Show_Genesis_Screen(HWnd);
+	return 1;
 }
 
 int Save_State_To_Buffer (unsigned char *buf)
@@ -503,7 +523,29 @@ int Save_State (char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;
 	s_lastStateNumberGotten = 0;
-	CallRegisteredLuaFunctionsWithArg(LUACALL_BEFORESAVE, stateNumber);
+
+	{
+		LuaSaveData saveData;
+		CallRegisteredLuaSaveFunctions(stateNumber, saveData);
+
+		char luaSaveFilename [512];
+		strncpy(luaSaveFilename, Name, 512);
+		luaSaveFilename[512-(1+7/*strlen(".luasav")*/)] = '\0';
+		strcat(luaSaveFilename, ".luasav");
+		if(saveData.recordList)
+		{
+			FILE* luaSaveFile = fopen(luaSaveFilename, "wb");
+			if(luaSaveFile)
+			{
+				saveData.ExportRecords(luaSaveFile);
+				fclose(luaSaveFile);
+			}
+		}
+		else
+		{
+			unlink(luaSaveFilename);
+		}
+	}
 
 	FILE *f;
 	unsigned char *buf;
