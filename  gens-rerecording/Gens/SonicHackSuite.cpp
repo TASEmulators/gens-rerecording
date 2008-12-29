@@ -350,6 +350,9 @@ unsigned short GetBlockSK(int X,int Y)
 //Num lock enables display of 16x16 tile angles and collision indices
 void DisplaySolid()
 {
+#ifdef SONICNOSOLIDITYDISPLAY
+	return;
+#endif
 //		if (GetKeyState(VK_SCROLL))	return; //scroll lock disables solidity display for compatibility with map-dumping hack
 
 		unsigned int COLARR,COLARR2,BLOCKSTART,CAMMASK,ANGARR;
@@ -1134,6 +1137,9 @@ void DisplaySolid()
 //Num lock enables display of each object's base address in RAM
 void DrawBoxes()
 {
+#ifdef SONICNOHITBOXES
+	return;
+#endif
 //	if (!GetKeyState(VK_SCROLL))
 	{
 		PX = CheatRead<unsigned short>(P1OFFSET + XPo);
