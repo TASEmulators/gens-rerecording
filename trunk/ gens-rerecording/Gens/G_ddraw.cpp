@@ -23,11 +23,6 @@
 #include "hackscommon.h"
 #include "drawutil.h"
 #include "luascript.h"
-//#define SONICSPEEDHACK
-//#define SONICCAMHACK
-//#define SK
-//#define RKABOXHACK
-//#define ECCOBOXHACK
 
 
 LPDIRECTDRAW lpDD_Init;

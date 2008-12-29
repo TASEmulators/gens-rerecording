@@ -440,9 +440,6 @@ VRam_Ind*=2;\
 		}\
 	}
 
-//#define SONICCAMHACK
-//#define SK
-
 int Debug;
 int Frame_Skip;
 int Frame_Number;
