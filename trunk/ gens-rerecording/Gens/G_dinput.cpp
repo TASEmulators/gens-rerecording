@@ -27,6 +27,43 @@ int Cur_Player; //Upth-Add - For the new key-redefinition dialogs
 unsigned int DelayFactor = 5;
 bool BackgroundInput = false;
 
+struct ControlPadData
+{
+	// flags indicating controller type
+	unsigned int& Type;
+
+	// which buttons are pressed
+	// 0 means "pressed" and 1 "not pressed"
+	unsigned int& Up;
+	unsigned int& Down;
+	unsigned int& Left;
+	unsigned int& Right;
+	unsigned int& Start;
+	unsigned int& Mode;
+	unsigned int& A;
+	unsigned int& B;
+	unsigned int& C;
+	unsigned int& X;
+	unsigned int& Y;
+	unsigned int& Z;
+
+	// extra state for L+R/U+D logic
+	unsigned int UpReally;
+	unsigned int DownReally;
+	unsigned int LeftReally;
+	unsigned int RightReally;
+}
+controllerVariables[8] = 
+{
+	{ Controller_1_Type, Controller_1_Up, Controller_1_Down, Controller_1_Left, Controller_1_Right, Controller_1_Start, Controller_1_Mode, Controller_1_A, Controller_1_B, Controller_1_C, Controller_1_X, Controller_1_Y, Controller_1_Z, },
+	{ Controller_2_Type, Controller_2_Up, Controller_2_Down, Controller_2_Left, Controller_2_Right, Controller_2_Start, Controller_2_Mode, Controller_2_A, Controller_2_B, Controller_2_C, Controller_2_X, Controller_2_Y, Controller_2_Z, },
+	{ Controller_1B_Type, Controller_1B_Up, Controller_1B_Down, Controller_1B_Left, Controller_1B_Right, Controller_1B_Start, Controller_1B_Mode, Controller_1B_A, Controller_1B_B, Controller_1B_C, Controller_1B_X, Controller_1B_Y, Controller_1B_Z, },
+	{ Controller_1C_Type, Controller_1C_Up, Controller_1C_Down, Controller_1C_Left, Controller_1C_Right, Controller_1C_Start, Controller_1C_Mode, Controller_1C_A, Controller_1C_B, Controller_1C_C, Controller_1C_X, Controller_1C_Y, Controller_1C_Z, },
+	{ Controller_1D_Type, Controller_1D_Up, Controller_1D_Down, Controller_1D_Left, Controller_1D_Right, Controller_1D_Start, Controller_1D_Mode, Controller_1D_A, Controller_1D_B, Controller_1D_C, Controller_1D_X, Controller_1D_Y, Controller_1D_Z, },
+	{ Controller_2B_Type, Controller_2B_Up, Controller_2B_Down, Controller_2B_Left, Controller_2B_Right, Controller_2B_Start, Controller_2B_Mode, Controller_2B_A, Controller_2B_B, Controller_2B_C, Controller_2B_X, Controller_2B_Y, Controller_2B_Z, },
+	{ Controller_2C_Type, Controller_2C_Up, Controller_2C_Down, Controller_2C_Left, Controller_2C_Right, Controller_2C_Start, Controller_2C_Mode, Controller_2C_A, Controller_2C_B, Controller_2C_C, Controller_2C_X, Controller_2C_Y, Controller_2C_Z, },
+	{ Controller_2D_Type, Controller_2D_Up, Controller_2D_Down, Controller_2D_Left, Controller_2D_Right, Controller_2D_Start, Controller_2D_Mode, Controller_2D_A, Controller_2D_B, Controller_2D_C, Controller_2D_X, Controller_2D_Y, Controller_2D_Z, },
+};
 
 struct K_Def Keys_Def[8] = {
 	{DIK_RETURN, DIK_RSHIFT,
@@ -1581,452 +1618,59 @@ void Update_Controllers()
 {
 	Update_Input();
 
-	if (Check_Key_Pressed(Keys_Def[0].Up))
+	for(int i = 0; i < 8; i++) // for each controller port
 	{
-		Controller_1_Up = 0;
-		if(LeftRightEnabled==0) Controller_1_Down = 1;
-		else {if(Check_Key_Pressed(Keys_Def[0].Down)) Controller_1_Down = 0;
-		else Controller_1_Down = 1;}
-	}
-	else
-	{
-		Controller_1_Up = 1;
-		if (Check_Key_Pressed(Keys_Def[0].Down)) Controller_1_Down = 0;
-		else Controller_1_Down = 1;
-	}
-	
-	if (Check_Key_Pressed(Keys_Def[0].Left))
-	{
-		Controller_1_Left = 0;
-		if(LeftRightEnabled==0) Controller_1_Right = 1;
-		else {if(Check_Key_Pressed(Keys_Def[0].Right)) Controller_1_Right = 0;
-		else Controller_1_Right = 1;}
-	}
-	else
-	{
-		Controller_1_Left = 1;
-		if (Check_Key_Pressed(Keys_Def[0].Right)) Controller_1_Right = 0;
-		else Controller_1_Right = 1;
-	}
+		if((i == 2 || i == 3 || i == 4) && !(Controller_1_Type & 0x10)) // TEAMPLAYER PORT 1
+			continue; // not enabled
+		if((i == 5 || i == 6 || i == 7) && !(Controller_2_Type & 0x10)) // TEAMPLAYER PORT 2
+			continue; // not enabled
 
-	if (Check_Key_Pressed(Keys_Def[0].Start)) Controller_1_Start = 0;
-	else Controller_1_Start = 1;
+		controllerVariables[i].Start = !Check_Key_Pressed(Keys_Def[i].Start);
+		controllerVariables[i].A     = !Check_Key_Pressed(Keys_Def[i].A);
+		controllerVariables[i].B     = !Check_Key_Pressed(Keys_Def[i].B);
+		controllerVariables[i].C     = !Check_Key_Pressed(Keys_Def[i].C);
 
-	if (Check_Key_Pressed(Keys_Def[0].A)) Controller_1_A = 0;
-	else Controller_1_A = 1;
+		int threeButtonController = !(controllerVariables[i].Type & 1);
+		controllerVariables[i].Mode = threeButtonController || !Check_Key_Pressed(Keys_Def[i].Mode);
+		controllerVariables[i].X    = threeButtonController || !Check_Key_Pressed(Keys_Def[i].X);
+		controllerVariables[i].Y    = threeButtonController || !Check_Key_Pressed(Keys_Def[i].Y);
+		controllerVariables[i].Z    = threeButtonController || !Check_Key_Pressed(Keys_Def[i].Z);
 
-	if (Check_Key_Pressed(Keys_Def[0].B)) Controller_1_B = 0;
-	else Controller_1_B = 1;
-
-	if (Check_Key_Pressed(Keys_Def[0].C)) Controller_1_C = 0;
-	else Controller_1_C = 1;
-
-	if (Controller_1_Type & 1)
-	{
-		if (Check_Key_Pressed(Keys_Def[0].Mode)) Controller_1_Mode = 0;
-		else Controller_1_Mode = 1;
-
-		if (Check_Key_Pressed(Keys_Def[0].X)) Controller_1_X = 0;
-		else Controller_1_X = 1;
-
-		if (Check_Key_Pressed(Keys_Def[0].Y)) Controller_1_Y = 0;
-		else Controller_1_Y = 1;
-
-		if (Check_Key_Pressed(Keys_Def[0].Z)) Controller_1_Z = 0;
-		else Controller_1_Z = 1;
-	}
-
-	if (Check_Key_Pressed(Keys_Def[1].Up))
-	{
-		Controller_2_Up = 0;
-		if(LeftRightEnabled==0) Controller_2_Down = 1;
-		else {if(Check_Key_Pressed(Keys_Def[1].Down)) Controller_2_Down = 0;
-		else Controller_1_Down = 1;}
-	}
-	else
-	{
-		Controller_2_Up = 1;
-		if (Check_Key_Pressed(Keys_Def[1].Down)) Controller_2_Down = 0;
-		else Controller_2_Down = 1;
-	}
-
-	
-	if (Check_Key_Pressed(Keys_Def[1].Left))
-	{
-		Controller_2_Left = 0;
-		if(LeftRightEnabled==0) Controller_2_Right = 1;
-		else {if(Check_Key_Pressed(Keys_Def[1].Right)) Controller_2_Right = 0;
-		else Controller_2_Right = 1;}
-	}
-	else
-	{
-		Controller_2_Left = 1;
-		if (Check_Key_Pressed(Keys_Def[1].Right)) Controller_2_Right = 0;
-		else Controller_2_Right = 1;
-	}
-
-	if (Check_Key_Pressed(Keys_Def[1].Start)) Controller_2_Start = 0;
-	else Controller_2_Start = 1;
-
-	if (Check_Key_Pressed(Keys_Def[1].A)) Controller_2_A = 0;
-	else Controller_2_A = 1;
-
-	if (Check_Key_Pressed(Keys_Def[1].B)) Controller_2_B = 0;
-	else Controller_2_B = 1;
-
-	if (Check_Key_Pressed(Keys_Def[1].C)) Controller_2_C = 0;
-	else Controller_2_C = 1;
-
-	if (Controller_2_Type & 1)
-	{
-		if (Check_Key_Pressed(Keys_Def[1].Mode)) Controller_2_Mode = 0;
-		else Controller_2_Mode = 1;
-
-		if (Check_Key_Pressed(Keys_Def[1].X)) Controller_2_X = 0;
-		else Controller_2_X = 1;
-
-		if (Check_Key_Pressed(Keys_Def[1].Y)) Controller_2_Y = 0;
-		else Controller_2_Y = 1;
-
-		if (Check_Key_Pressed(Keys_Def[1].Z)) Controller_2_Z = 0;
-		else Controller_2_Z = 1;
-	}
-
-	if (Controller_1_Type & 0x10)			// TEAMPLAYER PORT 1
-	{
-		if (Check_Key_Pressed(Keys_Def[2].Up))
+		if(LeftRightEnabled)
 		{
-			Controller_1B_Up = 0;
-			if(LeftRightEnabled==0) Controller_1B_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[2].Down)) Controller_1B_Down = 0;
-			else Controller_1_Down = 1;}
+			controllerVariables[i].Up    = !Check_Key_Pressed(Keys_Def[i].Up);
+			controllerVariables[i].Down  = !Check_Key_Pressed(Keys_Def[i].Down);
+			controllerVariables[i].Left  = !Check_Key_Pressed(Keys_Def[i].Left);
+			controllerVariables[i].Right = !Check_Key_Pressed(Keys_Def[i].Right);
 		}
-		else
+		else //if(!LeftRightEnabled)
 		{
-			Controller_1B_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[2].Down)) Controller_1B_Down = 0;
-			else Controller_1B_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[2].Left))
-		{
-			Controller_1B_Left = 0;
-			if(LeftRightEnabled==0) Controller_1B_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[2].Right)) Controller_1B_Right = 0;
-			else Controller_1B_Right = 1;}
-		}
-		else
-		{
-			Controller_1B_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[2].Right)) Controller_1B_Right = 0;
-			else Controller_1B_Right = 1;
-		}
+			// prevent Left+Right or Up+Down from being pressed at the same time,
+			// but make the most-recently-held one stay pressed if conflicting
 
-		if (Check_Key_Pressed(Keys_Def[2].Start)) Controller_1B_Start = 0;
-		else Controller_1B_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[2].A)) Controller_1B_A = 0;
-		else Controller_1B_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[2].B)) Controller_1B_B = 0;
-		else Controller_1B_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[2].C)) Controller_1B_C = 0;
-		else Controller_1B_C = 1;
-
-		if (Controller_1B_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[2].Mode)) Controller_1B_Mode = 0;
-			else Controller_1B_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[2].X)) Controller_1B_X = 0;
-			else Controller_1B_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[2].Y)) Controller_1B_Y = 0;
-			else Controller_1B_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[2].Z)) Controller_1B_Z = 0;
-			else Controller_1B_Z = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[3].Up))
-		{
-			Controller_1C_Up = 0;
-			if(LeftRightEnabled==0) Controller_1C_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[3].Down)) Controller_1C_Down = 0;
-			else Controller_1_Down = 1;}
-		}
-		else
-		{
-			Controller_1C_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[3].Down)) Controller_1C_Down = 0;
-			else Controller_1C_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[3].Left))
-		{
-			Controller_1C_Left = 0;
-			if(LeftRightEnabled==0) Controller_1C_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[3].Right)) Controller_1C_Right = 0;
-			else Controller_1C_Right = 1;}
-		}
-		else
-		{
-			Controller_1C_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[3].Right)) Controller_1C_Right = 0;
-			else Controller_1C_Right = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[3].Start)) Controller_1C_Start = 0;
-		else Controller_1C_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[3].A)) Controller_1C_A = 0;
-		else Controller_1C_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[3].B)) Controller_1C_B = 0;
-		else Controller_1C_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[3].C)) Controller_1C_C = 0;
-		else Controller_1C_C = 1;
-
-		if (Controller_1C_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[3].Mode)) Controller_1C_Mode = 0;
-			else Controller_1C_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[3].X)) Controller_1C_X = 0;
-			else Controller_1C_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[3].Y)) Controller_1C_Y = 0;
-			else Controller_1C_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[3].Z)) Controller_1C_Z = 0;
-			else Controller_1C_Z = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[4].Up))
-		{
-			Controller_1D_Up = 0;
-			if(LeftRightEnabled==0) Controller_1D_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[4].Down)) Controller_1D_Down = 0;
-			else Controller_1_Down = 1;}
-		}
-		else
-		{
-			Controller_1D_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[4].Down)) Controller_1D_Down = 0;
-			else Controller_1D_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[4].Left))
-		{
-			Controller_1D_Left = 0;
-			if(LeftRightEnabled==0) Controller_1D_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[4].Right)) Controller_1D_Right = 0;
-			else Controller_1D_Right = 1;}
-		}
-		else
-		{
-			Controller_1D_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[4].Right)) Controller_1D_Right = 0;
-			else Controller_1D_Right = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[4].Start)) Controller_1D_Start = 0;
-		else Controller_1D_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[4].A)) Controller_1D_A = 0;
-		else Controller_1D_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[4].B)) Controller_1D_B = 0;
-		else Controller_1D_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[4].C)) Controller_1D_C = 0;
-		else Controller_1D_C = 1;
-
-		if (Controller_1D_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[4].Mode)) Controller_1D_Mode = 0;
-			else Controller_1D_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[4].X)) Controller_1D_X = 0;
-			else Controller_1D_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[4].Y)) Controller_1D_Y = 0;
-			else Controller_1D_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[4].Z)) Controller_1D_Z = 0;
-			else Controller_1D_Z = 1;
-		}
-	}
-
-	if (Controller_2_Type & 0x10)			// TEAMPLAYER PORT 2
-	{
-		if (Check_Key_Pressed(Keys_Def[5].Up))
-		{
-			Controller_2B_Up = 0;
-			if(LeftRightEnabled==0) Controller_2B_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[5].Down)) Controller_2B_Down = 0;
-			else Controller_1_Down = 1;}
-		}
-		else
-		{
-			Controller_2B_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[5].Down)) Controller_2B_Down = 0;
-			else Controller_2B_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[5].Left))
-		{
-			Controller_2B_Left = 0;
-			if(LeftRightEnabled==0) Controller_2B_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[5].Right)) Controller_2B_Right = 0;
-			else Controller_2B_Right = 1;}
-		}
-		else
-		{
-			Controller_2B_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[5].Right)) Controller_2B_Right = 0;
-			else Controller_2B_Right = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[5].Start)) Controller_2B_Start = 0;
-		else Controller_2B_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[5].A)) Controller_2B_A = 0;
-		else Controller_2B_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[5].B)) Controller_2B_B = 0;
-		else Controller_2B_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[5].C)) Controller_2B_C = 0;
-		else Controller_2B_C = 1;
-
-		if (Controller_2B_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[5].Mode)) Controller_2B_Mode = 0;
-			else Controller_2B_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[5].X)) Controller_2B_X = 0;
-			else Controller_2B_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[5].Y)) Controller_2B_Y = 0;
-			else Controller_2B_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[5].Z)) Controller_2B_Z = 0;
-			else Controller_2B_Z = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[6].Up))
-		{
-			Controller_2C_Up = 0;
-			if(LeftRightEnabled==0) Controller_2C_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[6].Down)) Controller_2C_Down = 0;
-			else Controller_1_Down = 1;}
-		}
-		else
-		{
-			Controller_2C_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[6].Down)) Controller_2C_Down = 0;
-			else Controller_2C_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[6].Left))
-		{
-			Controller_2C_Left = 0;
-			if(LeftRightEnabled==0) Controller_2C_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[6].Right)) Controller_2C_Right = 0;
-			else Controller_2C_Right = 1;}
-		}
-		else
-		{
-			Controller_2C_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[6].Right)) Controller_2C_Right = 0;
-			else Controller_2C_Right = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[6].Start)) Controller_2C_Start = 0;
-		else Controller_2C_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[6].A)) Controller_2C_A = 0;
-		else Controller_2C_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[6].B)) Controller_2C_B = 0;
-		else Controller_2C_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[6].C)) Controller_2C_C = 0;
-		else Controller_2C_C = 1;
-
-		if (Controller_2C_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[6].Mode)) Controller_2C_Mode = 0;
-			else Controller_2C_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[6].X)) Controller_2C_X = 0;
-			else Controller_2C_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[6].Y)) Controller_2C_Y = 0;
-			else Controller_2C_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[6].Z)) Controller_2C_Z = 0;
-			else Controller_2C_Z = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[7].Up))
-		{
-			Controller_2D_Up = 0;
-			if(LeftRightEnabled==0) Controller_2D_Down = 1;
-			else {if(Check_Key_Pressed(Keys_Def[7].Down)) Controller_2D_Down = 0;
-			else Controller_1_Down = 1;}
-		}
-		else
-		{
-			Controller_2D_Up = 1;
-			if (Check_Key_Pressed(Keys_Def[7].Down)) Controller_2D_Down = 0;
-			else Controller_2D_Down = 1;
-		}
-	
-		if (Check_Key_Pressed(Keys_Def[7].Left))
-		{
-			Controller_2D_Left = 0;
-			if(LeftRightEnabled==0) Controller_2D_Right = 1;
-			else {if(Check_Key_Pressed(Keys_Def[7].Right)) Controller_2D_Right = 0;
-			else Controller_2D_Right = 1;}
-		}
-		else
-		{
-			Controller_2D_Left = 1;
-			if (Check_Key_Pressed(Keys_Def[7].Right)) Controller_2D_Right = 0;
-			else Controller_2D_Right = 1;
-		}
-
-		if (Check_Key_Pressed(Keys_Def[7].Start)) Controller_2D_Start = 0;
-		else Controller_2D_Start = 1;
-
-		if (Check_Key_Pressed(Keys_Def[7].A)) Controller_2D_A = 0;
-		else Controller_2D_A = 1;
-
-		if (Check_Key_Pressed(Keys_Def[7].B)) Controller_2D_B = 0;
-		else Controller_2D_B = 1;
-
-		if (Check_Key_Pressed(Keys_Def[7].C)) Controller_2D_C = 0;
-		else Controller_2D_C = 1;
-
-		if (Controller_2D_Type & 1)
-		{
-			if (Check_Key_Pressed(Keys_Def[7].Mode)) Controller_2D_Mode = 0;
-			else Controller_2D_Mode = 1;
-
-			if (Check_Key_Pressed(Keys_Def[7].X)) Controller_2D_X = 0;
-			else Controller_2D_X = 1;
-
-			if (Check_Key_Pressed(Keys_Def[7].Y)) Controller_2D_Y = 0;
-			else Controller_2D_Y = 1;
-
-			if (Check_Key_Pressed(Keys_Def[7].Z)) Controller_2D_Z = 0;
-			else Controller_2D_Z = 1;
-		}
-	}
+			int up    = !Check_Key_Pressed(Keys_Def[i].Up);
+			int down  = !Check_Key_Pressed(Keys_Def[i].Down);
+			int left  = !Check_Key_Pressed(Keys_Def[i].Left);
+			int right = !Check_Key_Pressed(Keys_Def[i].Right);
+			int upNext = up, downNext = down, leftNext = left, rightNext = right;
+			if(!upNext && !downNext)
+				upNext = controllerVariables[i].DownReally,
+				downNext = controllerVariables[i].UpReally;
+			if(!leftNext && !rightNext)
+				leftNext = controllerVariables[i].RightReally,
+				rightNext = controllerVariables[i].LeftReally;
+			if(upNext || downNext)
+				controllerVariables[i].Up = upNext,
+				controllerVariables[i].Down = downNext;
+			if(leftNext || rightNext)
+				controllerVariables[i].Left = leftNext,
+				controllerVariables[i].Right = rightNext;
+			controllerVariables[i].UpReally    = up;
+			controllerVariables[i].DownReally  = down;
+			controllerVariables[i].LeftReally  = left;
+			controllerVariables[i].RightReally = right;
+		} // (!LeftRightEnabled)
+	} // for loop
 
 
 	// autofire / autohold
@@ -2078,6 +1722,19 @@ void Update_Controllers()
 		s_nextInputCondensedSet = false;
 	}
 	s_lastInputCondensed = GetCurrentInputCondensed();
+}
+
+long long PeekInputCondensed()
+{
+	Update_Input();
+#define IMKEY(n,x) (!Check_Key_Pressed(Keys_Def[n].x))
+	long long a = IMKEY(0,Up)|(IMKEY(0,Down)<<1)|(IMKEY(0,Left)<<2)|(IMKEY(0,Right)<<3)|(IMKEY(0,A)<<4)|(IMKEY(0,B)<<5)|(IMKEY(0,C)<<6)|(IMKEY(0,Start)<<7);
+	long long b = IMKEY(2,Up)|(IMKEY(2,Down)<<1)|(IMKEY(2,Left)<<2)|(IMKEY(2,Right)<<3)|(IMKEY(2,A)<<4)|(IMKEY(2,B)<<5)|(IMKEY(2,C)<<6)|(IMKEY(2,Start)<<7);
+	long long c = IMKEY(3,Up)|(IMKEY(3,Down)<<1)|(IMKEY(3,Left)<<2)|(IMKEY(3,Right)<<3)|(IMKEY(3,A)<<4)|(IMKEY(3,B)<<5)|(IMKEY(3,C)<<6)|(IMKEY(3,Start)<<7);	
+	long long d = IMKEY(1,Up)|(IMKEY(1,Down)<<1)|(IMKEY(1,Left)<<2)|(IMKEY(1,Right)<<3)|(IMKEY(1,A)<<4)|(IMKEY(1,B)<<5)|(IMKEY(1,C)<<6)|(IMKEY(1,Start)<<7);
+	long long e = IMKEY(0,X)|(IMKEY(0,Y)<<1)|(IMKEY(0,Z)<<2)|(IMKEY(0,Mode)<<3)|(IMKEY(1,X)<<4)|(IMKEY(1,Y)<<5)|(IMKEY(1,Z)<<6)|(IMKEY(1,Mode)<<7);
+	return a | (b << 8) | (c << 16) | (d << 24) | (e << 32) | (0xFFFFFF0000000000);
+#undef IMKEY
 }
 
 unsigned int& KeyDialogButtonIDToDIKey(int controlID)

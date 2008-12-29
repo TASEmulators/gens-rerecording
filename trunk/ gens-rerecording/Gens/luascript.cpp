@@ -23,6 +23,7 @@ extern "C" void WriteValueAtHardwareAdress(unsigned int address, unsigned int va
 extern "C" int disableSound2, disableRamSearchUpdate;
 extern "C" int Clear_Sound_Buffer(void);
 extern long long GetCurrentInputCondensed();
+extern long long PeekInputCondensed();
 extern void SetNextInputCondensed(long long input, long long mask);
 extern int Set_Current_State(int Num);
 extern int Update_Emulation_One(HWND hWnd);
@@ -1173,6 +1174,56 @@ int joy_getup(lua_State* L)
 	return joy_get_internal(L, true, false);
 }
 
+// joypad.peek(controllerNum = 1)
+// controllerNum can be 1, 2, '1B', or '1C'
+int joy_peek_internal(lua_State* L, bool reportUp, bool reportDown)
+{
+	int index = 1;
+	int controllerNumber = joy_getArgControllerNum(L, index);
+
+	lua_newtable(L);
+
+	long long input = PeekInputCondensed();
+
+	for(int i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
+	{
+		const ButtonDesc& bd = s_buttonDescs[i];
+		if(bd.controllerNum == controllerNumber)
+		{
+			bool pressed = (input & ((long long)1<<bd.bit)) == 0;
+			if((pressed && reportDown) || (!pressed && reportUp))
+			{
+				lua_pushboolean(L, pressed);
+				lua_setfield(L, -2, bd.name);
+			}
+		}
+	}
+
+	return 1;
+}
+
+// joypad.peek(int controllerNumber = 1)
+// returns a table of every game button,
+// true meaning currently-held and false meaning not-currently-held
+// peek checks which joypad buttons are physically pressed, so it will NOT read input from a playing movie, it CAN read mid-frame input, and it will NOT pay attention to stuff like autofire or autohold or disabled L+R/U+D
+int joy_peek(lua_State* L)
+{
+	return joy_peek_internal(L, true, true);
+}
+// joypad.peekdown(int controllerNumber = 1)
+// returns a table of every game button that is currently held (according to what joypad.peek() would return)
+int joy_peekdown(lua_State* L)
+{
+	return joy_peek_internal(L, false, true);
+}
+// joypad.peekup(int controllerNumber = 1)
+// returns a table of every game button that is not currently held (according to what joypad.peek() would return)
+int joy_peekup(lua_State* L)
+{
+	return joy_peek_internal(L, true, false);
+}
+
+
 static const struct ColorMapping
 {
 	const char* name;
@@ -1850,9 +1901,12 @@ static const struct luaL_reg memorylib [] =
 static const struct luaL_reg joylib [] =
 {
 	{"get", joy_get},
-	{"set", joy_set},
 	{"getdown", joy_getdown},
 	{"getup", joy_getup},
+	{"peek", joy_peek},
+	{"peekdown", joy_peekdown},
+	{"peekup", joy_peekup},
+	{"set", joy_set},
 	// alternative names
 	{"read", joy_get},
 	{"write", joy_set},
