@@ -1025,7 +1025,7 @@ int	Change_Sound(HWND hWnd)
 		YM2612_Enable = 0;
 		PSG_Enable = 0;
 		DAC_Enable = 0;
-		PCM_Enable = 0;
+		//PCM_Enable = 0; // commented out for the same reason that disabling sound doesn't disable the Z80 (affects emulation too much for what's supposed to act like a "mute" option)
 		PWM_Enable = 0;
 		CDDA_Enable = 0;
 
@@ -2456,6 +2456,14 @@ const char* GensPlayMovie(const char* filename, bool silent)
 
 	if(!silent)
 	{
+		if(SegaCD_Started && !PCM_Enable)
+		{
+			DialogsOpen++;
+			int answer = MessageBox(hWnd, "Your \"PCM Audio\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+			DialogsOpen--;
+			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
+			if(answer == IDYES) PCM_Enable = 1;
+		}
 		if(SegaCD_Started && !SegaCD_Accurate)
 		{
 			DialogsOpen++;
@@ -2995,6 +3003,14 @@ dialogAgain: //Nitsuja added this
 					DialogBox(ghInstance, MAKEINTRESOURCE(IDD_RECORD_A_MOVIE), hWnd, (DLGPROC) RecordMovieProc);
 					if(RecordMovieCanceled)
 						return 0;
+					if(SegaCD_Started && !PCM_Enable)
+					{
+						DialogsOpen++;
+						int answer = MessageBox(hWnd, "Your \"PCM Audio\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+						DialogsOpen--;
+						if(answer == IDCANCEL) { MainMovie.Status=0; return 0; }
+						if(answer == IDYES) PCM_Enable = 1;
+					}
 					if(SegaCD_Started && !SegaCD_Accurate)
 					{
 						DialogsOpen++;
