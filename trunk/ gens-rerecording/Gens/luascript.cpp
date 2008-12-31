@@ -1747,8 +1747,8 @@ int input_getcurrentinputstatus(lua_State* L)
 		CalculateDrawArea(Full_Screen ? Render_FS : Render_W, rect, srcRectUnused, xRatioUnused, yRatioUnused, depUnused);
 		int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
 		int yres = ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount) ? 240 : 224;
-		int x = ((point.x - rect.left) * xres) / (rect.right - rect.left);
-		int y = ((point.y - rect.top) * yres) / (rect.bottom - rect.top);
+		int x = ((point.x - rect.left) * xres) / max(1, rect.right - rect.left);
+		int y = ((point.y - rect.top) * yres) / max(1, rect.bottom - rect.top);
 		lua_pushinteger(L, x);
 		lua_setfield(L, -2, "xmouse");
 		lua_pushinteger(L, y);
