@@ -208,7 +208,7 @@ void Get_State_File_Name(char *name)
 		else
 			slash = MainMovie.FileName;
 		strcat(name,slash);
-		name[strlen(name)-strlen(Ext)] = '\0';
+		name[strlen(name)-4] = '\0'; // note: strlen(Ext) instead of 4 would be wrong
 	}
 	strcat(name, Ext);
 }
