@@ -45,6 +45,16 @@ void MoviePlayingStuff()
 		MovieRecordingStuff();
 		return;
 	}
+
+	if(!MainMovie.File) // can't continue if MainMovie.File is NULL (we would crash)
+	{                   // this should never happen, but better safe than sorry
+		DialogsOpen++;
+		MessageBox(HWnd,"Movie is not playing.","Warning",MB_ICONWARNING);
+		DialogsOpen--;
+		MainMovie.Status = 0;
+		return; 
+	}
+
 	char PadData[3]; //Modif
 
 	Check_Misc_Key();
@@ -306,6 +316,15 @@ void ExtractPreloadedTracksFromNote(char* note)
 //Modif
 void MovieRecordingStuff()
 {
+	if(!MainMovie.File) // can't continue if MainMovie.File is NULL (we would crash)
+	{                   // this should never happen... but sometimes it happens anyway
+		DialogsOpen++;
+		MessageBox(HWnd,"Movie is not recording.","Warning",MB_ICONWARNING);
+		DialogsOpen--;
+		MainMovie.Status = 0;
+		return;
+	}
+
 	if (!MainMovie.Recorded) MainMovie.Recorded = true;
 	if (track & TRACK1)
 		if (/*!(GetKeyState(VK_SCROLL) || GetKeyState(VK_NUMLOCK)) || */(FrameCount > Track1_FrameCount)) Track1_FrameCount = FrameCount;
