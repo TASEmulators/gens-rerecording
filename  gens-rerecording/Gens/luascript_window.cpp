@@ -96,13 +96,14 @@ int WINAPI FileSysWatcher (LPVOID arg)
 					PostMessage(hDlg, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
 				}
 			}
+
+			//FindNextChangeNotification(hNotify); // let's not try to reuse it...
+			FindCloseChangeNotification(hNotify); // but let's at least make sure to release it!
 		}
 		else
 		{
 			Sleep(500);
 		}
-
-		//FindNextChangeNotification(hNotify);
 	}
 
 	return 0;
