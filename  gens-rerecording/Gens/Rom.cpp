@@ -309,30 +309,30 @@ void Fill_Infos(void)
 	for(i = 0; i < 16; i++)
 		My_Rom->IO_Support[i] = Rom_Data[i + 400];
 
-	My_Rom->Rom_Start_Adress = Rom_Data[416] << 24;
-	My_Rom->Rom_Start_Adress |= Rom_Data[417] << 16;
-	My_Rom->Rom_Start_Adress |= Rom_Data[418] << 8;
-	My_Rom->Rom_Start_Adress |= Rom_Data[419];
+	My_Rom->Rom_Start_Address = Rom_Data[416] << 24;
+	My_Rom->Rom_Start_Address |= Rom_Data[417] << 16;
+	My_Rom->Rom_Start_Address |= Rom_Data[418] << 8;
+	My_Rom->Rom_Start_Address |= Rom_Data[419];
 
-	My_Rom->Rom_End_Adress = Rom_Data[420] << 24;
-	My_Rom->Rom_End_Adress |= Rom_Data[421] << 16;
-	My_Rom->Rom_End_Adress |= Rom_Data[422] << 8;
-	My_Rom->Rom_End_Adress |= Rom_Data[423];
+	My_Rom->Rom_End_Address = Rom_Data[420] << 24;
+	My_Rom->Rom_End_Address |= Rom_Data[421] << 16;
+	My_Rom->Rom_End_Address |= Rom_Data[422] << 8;
+	My_Rom->Rom_End_Address |= Rom_Data[423];
 
-	My_Rom->R_Size = My_Rom->Rom_End_Adress - My_Rom->Rom_Start_Adress + 1;
+	My_Rom->R_Size = My_Rom->Rom_End_Address - My_Rom->Rom_Start_Address + 1;
 
 	for(i = 0; i < 12; i++)
 		My_Rom->Ram_Infos[i] = Rom_Data[i + 424];
 
-	My_Rom->Ram_Start_Adress = Rom_Data[436] << 24;
-	My_Rom->Ram_Start_Adress |= Rom_Data[437] << 16;
-	My_Rom->Ram_Start_Adress |= Rom_Data[438] << 8;
-	My_Rom->Ram_Start_Adress |= Rom_Data[439];
+	My_Rom->Ram_Start_Address = Rom_Data[436] << 24;
+	My_Rom->Ram_Start_Address |= Rom_Data[437] << 16;
+	My_Rom->Ram_Start_Address |= Rom_Data[438] << 8;
+	My_Rom->Ram_Start_Address |= Rom_Data[439];
 
-	My_Rom->Ram_End_Adress = Rom_Data[440] << 24;
-	My_Rom->Ram_End_Adress |= Rom_Data[441] << 16;
-	My_Rom->Ram_End_Adress |= Rom_Data[442] << 8;
-	My_Rom->Ram_End_Adress |= Rom_Data[443];
+	My_Rom->Ram_End_Address = Rom_Data[440] << 24;
+	My_Rom->Ram_End_Address |= Rom_Data[441] << 16;
+	My_Rom->Ram_End_Address |= Rom_Data[442] << 8;
+	My_Rom->Ram_End_Address |= Rom_Data[443];
 
 	for(i = 0; i < 12; i++)
 		My_Rom->Modem_Infos[i] = Rom_Data[i + 444];

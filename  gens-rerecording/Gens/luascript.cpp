@@ -18,8 +18,13 @@
 // (this interface with the emulator needs cleanup, I know)
 extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
-extern "C" unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
-extern "C" void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsigned int size);
+extern unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
+extern bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size);
+extern bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size);
+extern bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size);
+extern bool IsHardwareAddressValid(unsigned int address);
+extern bool IsHardwareRAMAddressValid(unsigned int address);
+extern bool IsHardwareROMAddressValid(unsigned int address);
 extern "C" int disableSound2, disableRamSearchUpdate;
 extern "C" int Clear_Sound_Buffer(void);
 extern long long GetCurrentInputCondensed();
@@ -395,7 +400,7 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
 		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
-defau1t:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
+defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
 		case LUA_TTABLE:
 		{
 			// first make sure there's enough stack space
@@ -404,7 +409,7 @@ defau1t:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 				// note that even if lua_checkstack never returns false,
 				// that doesn't mean we didn't need to call it,
 				// because calling it retrieves stack space past LUA_MINSTACK
-				goto defau1t;
+				goto defcase;
 			}
 
 			std::vector<const void*>::const_iterator foundCycleIter = std::find(s_tableAddressStack.begin(), s_tableAddressStack.end(), lua_topointer(L,i));
@@ -463,7 +468,10 @@ defau1t:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 					lua_pop(L, 1);
 
 					if(remaining <= 0)
+					{
+						lua_settop(L, keyIndex-1); // stack might not be clean yet if we're breaking early
 						break;
+					}
 				}
 				APPENDPRINT "}" END
 			}
@@ -797,6 +805,10 @@ int gens_speedmode(lua_State* L)
 	return 0;
 }
 
+// tells Gens to wait while the script is doing calculations
+// can call this periodically instead of gens.frameadvance
+// note that the user can use hotkeys at this time
+// (e.g. a savestate could possibly get loaded before gens.wait() returns)
 int gens_wait(lua_State* L)
 {
 	LuaContextInfo& info = GetCurrentInfo();
@@ -805,14 +817,15 @@ int gens_wait(lua_State* L)
 	{
 		default:
 		case SPEEDMODE_NORMAL:
-			while(!Step_Gens_MainLoop(true, false) && !info.panic);
+			Step_Gens_MainLoop(true, false);
 			break;
 		case SPEEDMODE_NOTHROTTLE:
 		case SPEEDMODE_TURBO:
 		case SPEEDMODE_MAXIMUM:
-			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
+			Step_Gens_MainLoop(Paused!=0, false);
 			break;
 	}
+
 	return 0;
 }
 
@@ -931,22 +944,51 @@ int memory_writebyte(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned char value = (unsigned char)(luaL_checkinteger(L,2) & 0xFF);
-	WriteValueAtHardwareAdress(address, value, 1);
+	WriteValueAtHardwareRAMAddress(address, value, 1);
 	return 0;
 }
 int memory_writeword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned short value = (unsigned short)(luaL_checkinteger(L,2) & 0xFFFF);
-	WriteValueAtHardwareAdress(address, value, 2);
+	WriteValueAtHardwareRAMAddress(address, value, 2);
 	return 0;
 }
 int memory_writedword(lua_State* L)
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
-	WriteValueAtHardwareAdress(address, value, 4);
+	WriteValueAtHardwareRAMAddress(address, value, 4);
 	return 0;
+}
+
+int memory_readbyterange(lua_State* L)
+{
+	int address = luaL_checkinteger(L,1);
+	int length = luaL_checkinteger(L,2);
+
+	if(length < 0)
+	{
+		address += length;
+		length = -length;
+	}
+
+	// push the array
+	lua_createtable(L, abs(length), 0);
+
+	// put all the values into the (1-based) array
+	for(int a = address, n = 1; n <= length; a++, n++)
+	{
+		if(IsHardwareAddressValid(a))
+		{
+			unsigned char value = (unsigned char)(ReadValueAtHardwareAddress(a, 1) & 0xFF);
+			lua_pushinteger(L, value);
+			lua_rawseti(L, -2, n);
+		}
+		// else leave the value nil
+	}
+
+	return 1;
 }
 
 int state_create(lua_State* L)
@@ -1833,6 +1875,7 @@ static const struct luaL_reg memorylib [] =
 	{"readdword", memory_readdword},
 	{"readdwordunsigned", memory_readdword},
 	{"readdwordsigned", memory_readdwordsigned},
+	{"readbyterange", memory_readbyterange},
 	{"writebyte", memory_writebyte},
 	{"writeword", memory_writeword},
 	{"writedword", memory_writedword},

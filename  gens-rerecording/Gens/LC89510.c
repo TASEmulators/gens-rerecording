@@ -182,7 +182,7 @@ void Update_CDC_TRansfert(void)
 		while (len--)
 		{
        		unsigned short outrol = *(unsigned short *) src;
-			outrol = (outrol << 8) | (outrol >> 8);
+			outrol = ((outrol << 8) | (outrol >> 8)) & 0xFFFF;
 			*(unsigned short *) dst = outrol;
     		src += 2;
     		dst += add_dest;

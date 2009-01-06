@@ -948,8 +948,8 @@ int Init_Genesis(struct Rom *MD_Rom)
 	{
 		if ((MD_Rom->Ram_Infos[8] == 'R') && (MD_Rom->Ram_Infos[9] == 'A') && (MD_Rom->Ram_Infos[10] & 0x40))
 		{
-			SRAM_Start = MD_Rom->Ram_Start_Adress & 0x0F80000;		// multiple de 0x080000
-			SRAM_End = MD_Rom->Ram_End_Adress;
+			SRAM_Start = MD_Rom->Ram_Start_Address & 0x0F80000;		// multiple de 0x080000
+			SRAM_End = MD_Rom->Ram_End_Address;
 		}
 		else
 		{
@@ -1518,8 +1518,8 @@ int Init_32X(struct Rom *MD_Rom)
 	{
 		if ((MD_Rom->Ram_Infos[8] == 'R') && (MD_Rom->Ram_Infos[9] == 'A') && (MD_Rom->Ram_Infos[10] & 0x40))
 		{
-			SRAM_Start = MD_Rom->Ram_Start_Adress & 0x0F80000;		// multiple de 0x080000
-			SRAM_End = MD_Rom->Ram_End_Adress;
+			SRAM_Start = MD_Rom->Ram_Start_Address & 0x0F80000;		// multiple de 0x080000
+			SRAM_End = MD_Rom->Ram_End_Address;
 		}
 		else
 		{

@@ -1,9 +1,6 @@
 #ifndef RAM_SEARCH_H
 #define RAM_SEARCH_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //64k in Ram_68k[], 8k in Ram_Z80[]   
 #define _68K_RAM_SIZE 64*1024
@@ -40,15 +37,12 @@ void signal_new_size();
 void UpdateRamSearchTitleBar(int percent = 0);
 void SetRamSearchUndoType(HWND hDlg, int type);
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
-void WriteValueAtHardwareAdress(unsigned int address, unsigned int value, unsigned int size);
-bool IsHardwareAddressValid(unsigned int address);
+bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size);
+bool IsHardwareRAMAddressValid(unsigned int address);
 extern int curr_ram_size;
 extern bool noMisalign;
 extern bool littleEndian;
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 
