@@ -995,18 +995,23 @@ int memory_readbyterange(lua_State* L)
 
 int state_create(lua_State* L)
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if(lua_isnumber(L,1))
 	{
-		lua_pushnil(L);
+		// simply return the integer that got passed in
+		// (that's as good a savestate object as any for a numbered savestate slot)
+		lua_settop(L,1);
 		return 1;
 	}
 
 	int len = GENESIS_STATE_LENGTH;
 	if (SegaCD_Started) len += SEGACD_LENGTH_EX;
 	if (_32X_Started) len += G32X_LENGTH_EX;
+	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+		len += max(SEGACD_LENGTH_EX, G32X_LENGTH_EX);
 
-	void* stateBuffer = lua_newuserdata(L, len);
-	memset(stateBuffer, 0, len);
+	// allocate the in-memory/anonymous savestate
+	unsigned char* stateBuffer = (unsigned char*)lua_newuserdata(L, len);
+	stateBuffer[0] = 0;
 
 	return 1;
 }
@@ -1043,9 +1048,9 @@ int state_save(lua_State* L)
 		}	return 0;
 		case LUA_TUSERDATA: // in-memory save slot
 		{
-			void* stateBuffer = lua_touserdata(L,1);
+			unsigned char* stateBuffer = (unsigned char*)lua_touserdata(L,1);
 			if(stateBuffer)
-				Save_State_To_Buffer((unsigned char*)stateBuffer);
+				Save_State_To_Buffer(stateBuffer);
 		}	return 0;
 	}
 }
@@ -1084,9 +1089,14 @@ int state_load(lua_State* L)
 		}	return 0;
 		case LUA_TUSERDATA: // in-memory save slot
 		{
-			void* stateBuffer = lua_touserdata(L,1);
+			unsigned char* stateBuffer = (unsigned char*)lua_touserdata(L,1);
 			if(stateBuffer)
-				Load_State_From_Buffer((unsigned char*)stateBuffer);
+			{
+				if(stateBuffer[0])
+					Load_State_From_Buffer(stateBuffer);
+				else // the first byte of a valid savestate is never 0
+					luaL_error(L, "attempted to load an anonymous savestate before saving it");
+			}
 		}	return 0;
 	}
 }
