@@ -1137,7 +1137,7 @@ void Export_Genesis(unsigned char *Data)
 	unsigned char Reg_1[0x200], *src;
 	int i;
 
-	if(DMAT_Length)
+	//if(DMAT_Length)
 	  //WARNINGBOX("Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning");
 
 	//   while (DMAT_Length) Update_DMA();      // Be sure to finish DMA before save //Modif N.: commented out because it may cause saving to change the current state
