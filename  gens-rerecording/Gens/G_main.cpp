@@ -184,7 +184,7 @@ int ShowInputEnabled=0; //Modif
 int AutoBackupEnabled=0; //Modif
 int LeftRightEnabled=0; //Modif
 int FrameCounterPosition=16*336+32; //Modif
-int MustUpdateMenu=0; // Modif
+int MustUpdateMenu=0; // Modif // menuNeedsBuilding buildMenuNeeded
 bool RamSearchClosed = false;
 bool RamWatchClosed = false;
 
@@ -372,7 +372,7 @@ int IsVideoLatencyCompensationOn()
 }
 
 
-int Set_Current_State(int Num)
+int Set_Current_State(int Num, bool showOccupiedMessage, bool showEmptyMessage)
 {
 	FILE *f;
 	
@@ -381,14 +381,17 @@ int Set_Current_State(int Num)
 	if (f = Get_State_File())
 	{
 		fclose(f);
-		MESSAGE_NUM_L("SLOT %d [OCCUPIED]", "SLOT %d [OCCUPIED]", Current_State, 1500)
+		if(showOccupiedMessage)
+		{
+			MESSAGE_NUM_L("SLOT %d [OCCUPIED]", "SLOT %d [OCCUPIED]", Current_State, 1500)
+		}
 	}
-	else
+	else if(showEmptyMessage)
 	{
 		MESSAGE_NUM_L("SLOT %d [EMPTY]", "SLOT %d [EMPTY]", Current_State, 1500)
 	}
 
-	Build_Main_Menu();
+	MustUpdateMenu = 1;
 	return 1;
 }
 
@@ -3280,11 +3283,11 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_FILES_PREVIOUSSTATE:
-					Set_Current_State((Current_State + 9) % 10);
+					Set_Current_State((Current_State + 9) % 10, true,true);
 					return 0;
 
 				case ID_FILES_NEXTSTATE:
-					Set_Current_State((Current_State + 1) % 10);
+					Set_Current_State((Current_State + 1) % 10, true,true);
 					return 0;
 
 				case ID_GRAPHICS_VSYNC:
@@ -3460,7 +3463,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SAVESTATE_9:
 				case ID_FILES_SAVESTATE_0:
 				{
-					Set_Current_State((command - ID_FILES_SAVESTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_SAVESTATE_1 + 1) % 10, false,false);
 					//if (Check_If_Kaillera_Running()) return 0;
 					char Name [1024] = {0};
 					Get_State_File_Name(Name);
@@ -3469,7 +3472,7 @@ dialogAgain: //Nitsuja added this
 				}
 				case ID_FILES_SAVESTATE_10:
 				{
-					Set_Current_State(10);
+					Set_Current_State(10, false,false);
 					char Name [1024] = {0};
 					Get_State_File_Name(Name);
 					Save_State(Name);
@@ -3486,7 +3489,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_LOADSTATE_9:
 				case ID_FILES_LOADSTATE_0:
 				{
-					Set_Current_State((command - ID_FILES_LOADSTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_LOADSTATE_1 + 1) % 10, false,true);
 					//if (Check_If_Kaillera_Running()) return 0;
 					char Name [1024] = {0};
 					Get_State_File_Name(Name);
@@ -3503,7 +3506,7 @@ dialogAgain: //Nitsuja added this
 				case ID_FILES_SETSTATE_8:
 				case ID_FILES_SETSTATE_9:
 				case ID_FILES_SETSTATE_0:
-					Set_Current_State((command - ID_FILES_SETSTATE_1 + 1) % 10);
+					Set_Current_State((command - ID_FILES_SETSTATE_1 + 1) % 10, true,true);
 					return 0;
 
 				case ID_MOVIE_CHANGETRACK_ALL:

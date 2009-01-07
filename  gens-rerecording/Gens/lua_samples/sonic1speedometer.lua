@@ -16,14 +16,14 @@ gui.register( function ()
 
 	-- look 2 frames into the future, pretending the B button is held,
 	-- and get what the X and Y velocity of the player will be
-	savestate.get(state)
+	savestate.save(state)
 	for n=1,2 do
 		joypad.set(1, {B = true})
 		gens.emulateframeinvisible()
 	end
 	jumpxvel = memory.readwordsigned(0xffd010)
 	jumpyvel = memory.readwordsigned(0xffd012)
-	savestate.set(state)
+	savestate.load(state)
 
 	-- print the velocities onscreen, near the top-left corner,
 	-- in a yellow color with a black outline

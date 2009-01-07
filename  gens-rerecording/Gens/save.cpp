@@ -65,6 +65,9 @@ extern bool skipLagNow, frameadvSkipLag_Rewind_State_Buffer_Valid;
 extern int frameSearchFrames;
 extern bool s_nextInputCondensedSet;
 
+bool g_disableStatestateWarnings = false;
+bool g_onlyCallSavestateCallbacks = false;
+
 #ifdef _WIN32
 	#define MINIMIZE								\
 	{if (Sound_Initialised) Clear_Sound_Buffer();	\
@@ -75,13 +78,13 @@ extern bool s_nextInputCondensedSet;
 	}}
 
 	#define WARNINGBOX(message, title) \
-	do{	MINIMIZE \
+	do{	if(!g_disableStatestateWarnings) { MINIMIZE \
 		DialogsOpen++; \
 		MessageBox(HWnd, message, title, MB_OK | MB_ICONWARNING); \
-		DialogsOpen--; }while(0)
+		DialogsOpen--; } } while(0)
 #else
 	#define WARNINGBOX(message, title) \
-		fprintf(stderr, "%s: %s\n", title, message)
+		if(!g_disableStatestateWarnings) fprintf(stderr, "%s: %s\n", title, message)
 #endif
 
 
@@ -277,6 +280,9 @@ int Load_State(char *Name)
 	int stateNumber = s_lastStateNumberGotten;
 	s_lastStateNumberGotten = 0;
 
+	if(!g_onlyCallSavestateCallbacks)
+	{
+
 	FILE *f;
 	unsigned char *buf;
 	int len;
@@ -468,6 +474,7 @@ int Load_State(char *Name)
 		}
 	}
 	fclose(f);
+	}
 
 	{
 		LuaSaveData saveData;
@@ -546,6 +553,9 @@ int Save_State (char *Name)
 			unlink(luaSaveFilename);
 		}
 	}
+
+	if(g_onlyCallSavestateCallbacks)
+		return 1;
 
 	FILE *f;
 	unsigned char *buf;
