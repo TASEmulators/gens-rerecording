@@ -156,17 +156,13 @@ savestate.registerload( function (statenumber, savedinforecords)
 end)
 
 
--- startup code: temporarily load each savestate to retrieve its ghost info
+-- startup code: retrieve the ghost info stored in each savestate
 do
 	sound.clear() -- as a courtesy, clear the sound before operations like this that can take more than 0.5 seconds or so
-	gens.speedmode("maximum") -- this prevents loading numbered savestates from refreshing the screen
 	savestateframeinforecords = {}
-	local prevstate = savestate.create()
-	savestate.get(prevstate)
-	for x = 0,10 do
-		savestate.load(x) -- load each numbered savestate (1-9, 0, and also the hidden #10 if it's there)
+	for x = 0,10 do -- (1-9, 0, and also the hidden #10 if it's there)
+		savestate.load(x,"userdataonly")
 	end
-	savestate.set(prevstate)
-	gens.speedmode("normal") -- reset mode to normal
+	currentframeinforecords = {}
 end
 

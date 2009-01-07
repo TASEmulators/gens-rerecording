@@ -30,7 +30,7 @@ extern "C" int Clear_Sound_Buffer(void);
 extern long long GetCurrentInputCondensed();
 extern long long PeekInputCondensed();
 extern void SetNextInputCondensed(long long input, long long mask);
-extern int Set_Current_State(int Num);
+extern int Set_Current_State(int Num, bool showOccupiedMessage, bool showEmptyMessage);
 extern int Update_Emulation_One(HWND hWnd);
 extern void Update_Emulation_One_Before(HWND hWnd);
 extern void Update_Emulation_After_Fast(HWND hWnd);
@@ -41,6 +41,8 @@ extern int Update_Frame_Fast_Hook();
 extern void Update_Emulation_After_Controlled(HWND hWnd, bool flip);
 extern void UpdateLagCount();
 extern bool BackgroundInput;
+extern bool g_disableStatestateWarnings;
+extern bool g_onlyCallSavestateCallbacks;
 extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
 extern bool frameadvSkipLagForceDisable;
 extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
@@ -1008,41 +1010,85 @@ int state_create(lua_State* L)
 
 	return 1;
 }
-int state_get(lua_State* L)
-{
-	void* stateBuffer = lua_touserdata(L,1);
 
-	if(stateBuffer)
-		Save_State_To_Buffer((unsigned char*)stateBuffer);
-
-	return 1;
-}
-int state_set(lua_State* L)
-{
-	void* stateBuffer = lua_touserdata(L,1);
-
-	if(stateBuffer)
-		Load_State_From_Buffer((unsigned char*)stateBuffer);
-
-	return 0;
-}
+// savestate.save(location [, option])
+// saves the current emulation state to the given location
+// you can pass in either a savestate file number (an integer),
+// OR you can pass in a savestate object that was returned by savestate.create()
+// if option is "quiet" then any warning messages will be suppressed
+// if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
 int state_save(lua_State* L)
 {
-	int stateNumber = luaL_checkinteger(L,1);
-	Set_Current_State(stateNumber);
-	char Name [1024] = {0};
-	Get_State_File_Name(Name);
-	Save_State(Name);
-	return 0;
+	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
+	if(option)
+	{
+		if(!stricmp(option, "quiet")) // I'm not sure if saving can generate warning messages, but we might as well support suppressing them should they turn out to exist
+			g_disableStatestateWarnings = true;
+		else if(!stricmp(option, "userdataonly"))
+			g_onlyCallSavestateCallbacks = true;
+	}
+	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
+
+	int type = lua_type(L,1);
+	switch(type)
+	{
+		case LUA_TNUMBER: // numbered save file
+		default:
+		{
+			int stateNumber = luaL_checkinteger(L,1);
+			Set_Current_State(stateNumber, false,false);
+			char Name [1024] = {0};
+			Get_State_File_Name(Name);
+			Save_State(Name);
+		}	return 0;
+		case LUA_TUSERDATA: // in-memory save slot
+		{
+			void* stateBuffer = lua_touserdata(L,1);
+			if(stateBuffer)
+				Save_State_To_Buffer((unsigned char*)stateBuffer);
+		}	return 0;
+	}
 }
+
+// savestate.load(location [, option])
+// loads the current emulation state from the given location
+// you can pass in either a savestate file number (an integer),
+// OR you can pass in a savestate object that was returned by savestate.create() and has already saved to with savestate.save()
+// if option is "quiet" then any warning messages will be suppressed
+// if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
 int state_load(lua_State* L)
 {
-	int stateNumber = luaL_checkinteger(L,1);
-	Set_Current_State(stateNumber);
-	char Name [1024] = {0};
-	Get_State_File_Name(Name);
-	Load_State(Name);
-	return 0;
+	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
+	if(option)
+	{
+		if(!stricmp(option, "quiet"))
+			g_disableStatestateWarnings = true;
+		else if(!stricmp(option, "userdataonly"))
+			g_onlyCallSavestateCallbacks = true;
+	}
+	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
+
+	g_disableStatestateWarnings = lua_toboolean(L,2) != 0;
+
+	int type = lua_type(L,1);
+	switch(type)
+	{
+		case LUA_TNUMBER: // numbered save file
+		default:
+		{
+			int stateNumber = luaL_checkinteger(L,1);
+			Set_Current_State(stateNumber, false,!g_disableStatestateWarnings);
+			char Name [1024] = {0};
+			Get_State_File_Name(Name);
+			Load_State(Name);
+		}	return 0;
+		case LUA_TUSERDATA: // in-memory save slot
+		{
+			void* stateBuffer = lua_touserdata(L,1);
+			if(stateBuffer)
+				Load_State_From_Buffer((unsigned char*)stateBuffer);
+		}	return 0;
+	}
 }
 
 static const struct ButtonDesc
@@ -1856,8 +1902,6 @@ static const struct luaL_reg guilib [] =
 static const struct luaL_reg statelib [] =
 {
 	{"create", state_create},
-	{"set", state_set},
-	{"get", state_get},
 	{"save", state_save},
 	{"load", state_load},
 	{"registersave", state_registersave},
