@@ -255,6 +255,23 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_4, 0, NULL, "Latency Compensation 4", "LatencyComp4"},
 	//{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_5, 0, NULL, "Latency Compensation 5", "LatencyComp5"},
 
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_1,        0, NULL, "Lua Custom Hotkey 1", "LuaHotkey1"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_2,        0, NULL, "Lua Custom Hotkey 2", "LuaHotkey2"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_3,        0, NULL, "Lua Custom Hotkey 3", "LuaHotkey3"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_4,        0, NULL, "Lua Custom Hotkey 4", "LuaHotkey4"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_5,        0, NULL, "Lua Custom Hotkey 5", "LuaHotkey5"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_6,        0, NULL, "Lua Custom Hotkey 6", "LuaHotkey6"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_7,        0, NULL, "Lua Custom Hotkey 7", "LuaHotkey7"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_8,        0, NULL, "Lua Custom Hotkey 8", "LuaHotkey8"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_9,        0, NULL, "Lua Custom Hotkey 9", "LuaHotkey9"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_10,       0, NULL, "Lua Custom Hotkey 10", "LuaHotkey10"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_11,       0, NULL, "Lua Custom Hotkey 11", "LuaHotkey11"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_12,       0, NULL, "Lua Custom Hotkey 12", "LuaHotkey12"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_13,       0, NULL, "Lua Custom Hotkey 13", "LuaHotkey13"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_14,       0, NULL, "Lua Custom Hotkey 14", "LuaHotkey14"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_15,       0, NULL, "Lua Custom Hotkey 15", "LuaHotkey15"},
+	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_16,       0, NULL, "Lua Custom Hotkey 16", "LuaHotkey16"},
+
 	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Take Screenshot", "ScreenshotKey"},
 	{MOD_NONE,              VK_F1,     ID_HELP_HELP,             0, NULL, "Get Help", "HelpKey"},
 

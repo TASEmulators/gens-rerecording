@@ -1804,6 +1804,13 @@ void UpdateLagCount()
 }
 
 
+int Dont_Skip_Next_Frame = 0;
+void Prevent_Next_Frame_Skipping()
+{
+	Dont_Skip_Next_Frame = 8;
+}
+
+
 int Update_Emulation(HWND hWnd)
 {
 	int prevFrameCount = FrameCount;
@@ -1901,7 +1908,7 @@ int Update_Emulation(HWND hWnd)
 						FrameCount++; //Modif
 
 						// note: we check for RamSearchHWnd because if it's open then it's likely causing most of any slowdown we get, in which case skipping renders will only make the slowdown appear worse
-						if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !(RamSearchHWnd || RamWatchHWnd))
+						if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !Dont_Skip_Next_Frame && !(RamSearchHWnd || RamWatchHWnd))
 						{
 							Lag_Frame = 1;
 							Update_Frame_Fast_Hook();
@@ -1930,7 +1937,7 @@ int Update_Emulation(HWND hWnd)
 						MovieRecordingStuff();
 					FrameCount++; //Modif
 
-					if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !(RamSearchHWnd || RamWatchHWnd))
+					if (WP != RP && AVIRecording==0 && Never_Skip_Frame==0 && !Dont_Skip_Next_Frame && !(RamSearchHWnd || RamWatchHWnd))
 					{
 						Lag_Frame = 1;
 						Update_Frame_Fast_Hook();
@@ -1947,7 +1954,7 @@ int Update_Emulation(HWND hWnd)
 						Flip(hWnd);
 					}
 				}
-				if (Never_Skip_Frame)
+				if (Never_Skip_Frame || Dont_Skip_Next_Frame)
 					WP=RP;
 			}
 		}
@@ -1966,7 +1973,7 @@ int Update_Emulation(HWND hWnd)
 			Last_Time = New_Time;
 			
 			if (Frame_Number > 8) Frame_Number = 8;
-			if(Never_Skip_Frame!=0 && Frame_Number>0)
+			if((Never_Skip_Frame!=0 || Dont_Skip_Next_Frame) && Frame_Number>0)
 				Frame_Number=1;
 			/*if(SlowDownMode)
 			{
@@ -1988,7 +1995,7 @@ int Update_Emulation(HWND hWnd)
 					MovieRecordingStuff();
 				FrameCount++; //Modif
 
-				if(AVIRecording==0 && Never_Skip_Frame==0)
+				if(AVIRecording==0 && Never_Skip_Frame==0 && !Dont_Skip_Next_Frame)
 				{
 					Lag_Frame = 1;
 					Update_Frame_Fast_Hook();
@@ -2025,6 +2032,9 @@ int Update_Emulation(HWND hWnd)
 			else Sleep(Sleep_Time);
 		}
 	}
+
+	if(Dont_Skip_Next_Frame)
+		Dont_Skip_Next_Frame--;
 
 	return prevFrameCount != FrameCount;
 }
@@ -2107,6 +2117,7 @@ int Update_Emulation_One(HWND hWnd)
 	Update_Emulation_One_After(hWnd);
 	return 1;
 }
+
 
 
 int Update_Emulation_Netplay(HWND hWnd, int player, int num_player)

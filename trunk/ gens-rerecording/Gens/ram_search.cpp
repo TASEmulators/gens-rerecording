@@ -844,6 +844,8 @@ inline bool IsInRange(unsigned int x, unsigned int min, unsigned int size)
 }
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 {
+	if((address & ~0xFFFFFF) == ~0xFFFFFF)
+		address &= 0xFFFFFF;
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
 		return ReadValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, size, true);
 	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
@@ -860,6 +862,8 @@ unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 }
 bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size)
 {
+	if((address & ~0xFFFFFF) == ~0xFFFFFF)
+		address &= 0xFFFFFF;
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
 		WriteValueAtSoftwareAddress(Ram_68k + address - 0xFF0000, value, size, true);
 	else if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))
@@ -887,6 +891,8 @@ bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsig
 }
 bool IsHardwareRAMAddressValid(unsigned int address)
 {
+	if((address & ~0xFFFFFF) == ~0xFFFFFF)
+		address &= 0xFFFFFF;
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
 		return true;
 	if(IsInRange(address, 0xA00000, Z80_RAM_SIZE))

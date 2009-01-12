@@ -2554,11 +2554,12 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (AskSave())
 			{
 			if (Sound_Initialised) Clear_Sound_Buffer(); //Modif N - making sure sound doesn't stutter on exit
+			for(int i=(int)LuaScriptHWnds.size()-1; i>=0; i--)
+				SendMessage(LuaScriptHWnds[i], WM_CLOSE, 0,0);
 			if(MainMovie.File!=NULL)
 				CloseMovieFile(&MainMovie);
 			if ((Check_If_Kaillera_Running())) return 0;
 			Gens_Running = 0;
-			StopAllLuaScripts();
 			}
 			return 0;
 		
@@ -2639,7 +2640,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						char temp [1024];
 						strcpy(temp, Recent_Scripts[command - ID_LUA_OPENRECENTSCRIPT0]);
-						bool IsScriptFileOpen(const char* Path);
+						HWND IsScriptFileOpen(const char* Path);
 						if(!IsScriptFileOpen(temp))
 						{
 							HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), hWnd, (DLGPROC) LuaScriptProc);
@@ -2937,6 +2938,27 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					unsigned int index = command - IDC_LUA_SCRIPT_0;
 					if(LuaScriptHWnds.size() > index)
 						SetForegroundWindow(LuaScriptHWnds[index]);
+				}	break;
+
+				case IDC_LUA_SCRIPT_HOTKEY_1:
+				case IDC_LUA_SCRIPT_HOTKEY_2:
+				case IDC_LUA_SCRIPT_HOTKEY_3:
+				case IDC_LUA_SCRIPT_HOTKEY_4:
+				case IDC_LUA_SCRIPT_HOTKEY_5:
+				case IDC_LUA_SCRIPT_HOTKEY_6:
+				case IDC_LUA_SCRIPT_HOTKEY_7:
+				case IDC_LUA_SCRIPT_HOTKEY_8:
+				case IDC_LUA_SCRIPT_HOTKEY_9:
+				case IDC_LUA_SCRIPT_HOTKEY_10:
+				case IDC_LUA_SCRIPT_HOTKEY_11:
+				case IDC_LUA_SCRIPT_HOTKEY_12:
+				case IDC_LUA_SCRIPT_HOTKEY_13:
+				case IDC_LUA_SCRIPT_HOTKEY_14:
+				case IDC_LUA_SCRIPT_HOTKEY_15:
+				case IDC_LUA_SCRIPT_HOTKEY_16:
+				{
+					unsigned int index = command - IDC_LUA_SCRIPT_HOTKEY_1;
+					CallRegisteredLuaFunctions((LuaCallID)(LUACALL_SCRIPT_HOTKEY_1 + index));
 				}	break;
 
 				case ID_VOLUME_CONTROL:
@@ -5022,7 +5044,7 @@ HMENU Build_Main_Menu(void)
 			if(!*pathPtr)
 				continue;
 
-			bool IsScriptFileOpen(const char* Path);
+			HWND IsScriptFileOpen(const char* Path);
 			if(IsScriptFileOpen(pathPtr))
 				continue;
 
@@ -5906,6 +5928,62 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
 	{
 		sprintf(Str_Tmp, "ERROR: Problem loading savestate.");
 	}
+}
+
+
+const char* GensOpenScript(const char* filename)
+{
+	if(LuaScriptHWnds.size() < 16)
+	{
+		// make the filename absolute before loading
+		char filename2 [1024];
+		if(filename[0] && filename[1] != ':')
+		{
+			char tempFile [1024], curDir [1024];
+			strncpy(tempFile, filename, 1024);
+			tempFile[1023] = 0;
+			const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
+			for(int i=0; i<=3; i++)
+			{
+				if((!*tempFilePtr || tempFilePtr[1] != ':') && i != 2)
+					strcpy(curDir, i!=1 ? Lua_Dir : Gens_Path);
+				else
+					curDir[0] = 0;
+				_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
+				FILE* file = fopen(filename2, "rb");
+				if(file || i==3)
+					filename = filename2;
+				if(file)
+				{
+					fclose(file);
+					break;
+				}
+			}
+		}
+
+		// now check if it's already open and load it if it isn't
+		HWND IsScriptFileOpen(const char* Path);
+		HWND scriptHWnd = IsScriptFileOpen(filename);
+		if(!scriptHWnd)
+		{
+			HWND prevWindow = GetActiveWindow();
+
+			HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), HWnd, (DLGPROC) LuaScriptProc);
+			SendMessage(hDlg,WM_COMMAND,IDC_NOTIFY_SUBSERVIENT,TRUE);
+			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)filename);
+			DialogsOpen++;
+
+			SetActiveWindow(prevWindow);
+		}
+		else
+		{
+			RequestAbortLuaScript((int)scriptHWnd, "terminated to restart because of a call to gens.openscript");
+			SendMessage(scriptHWnd, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
+		}
+	}
+	else return "Too many script windows are already open.";
+
+	return NULL;
 }
 
 
