@@ -684,6 +684,9 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						for(int i = 0; addrstr[i]; i++) {if(toupper(addrstr[i]) == 'O') addrstr[i] = '0';}
 						sscanf(addrstr,"%08X",&(Temp.Address));
 
+						if((Temp.Address & ~0xFFFFFF) == ~0xFFFFFF)
+							Temp.Address &= 0xFFFFFF;
+
 						if(IsHardwareRAMAddressValid(Temp.Address))
 						{
 							GetDlgItemText(hDlg,IDC_PROMPT_EDIT,Str_Tmp,80);

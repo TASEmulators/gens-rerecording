@@ -4,6 +4,7 @@
 #include "g_main.h"
 #include "luascript.h"
 #include <assert.h>
+#include <process.h>
 #include <vector>
 #include <map>
 #include <string>
@@ -46,9 +47,10 @@ struct LuaPerWindowInfo {
 	HANDLE fileWatcherThread;
 	bool started;
 	bool closeOnStop;
+	bool subservient;
 	int width; int height;
 	ControlLayoutState layoutState [numControlLayoutInfos];
-	LuaPerWindowInfo() : fileWatcherThread(NULL), started(false), closeOnStop(false), width(405), height(244) {}
+	LuaPerWindowInfo() : fileWatcherThread(NULL), started(false), closeOnStop(false), subservient(false), width(405), height(244) {}
 };
 std::map<HWND, LuaPerWindowInfo> LuaWindowInfo;
 char Lua_Dir[1024]="";
@@ -129,7 +131,7 @@ void KillWatcherThread (HWND hDlg)
 
 
 
-void Update_Recent_Script(const char* Path)
+void Update_Recent_Script(const char* Path, bool dontPutAtTop)
 {
 	FILE* file = fopen(Path, "rb");
 	if(file)
@@ -138,12 +140,13 @@ void Update_Recent_Script(const char* Path)
 		return;
 
 	int i;
+
 	for(i = 0; i < MAX_RECENT_SCRIPTS; i++)
 	{
 		if (!(strcmp(Recent_Scripts[i], Path)))
 		{
 			// move recent item to the top of the list
-			if(i == 0)
+			if(i == 0 || dontPutAtTop)
 				return;
 			char temp [1024];
 			strcpy(temp, Recent_Scripts[i]);
@@ -155,16 +158,32 @@ void Update_Recent_Script(const char* Path)
 			return;
 		}
 	}
-		
-	for(i = MAX_RECENT_SCRIPTS-1; i > 0; i--)
-		strcpy(Recent_Scripts[i], Recent_Scripts[i - 1]);
+	
+	if(!dontPutAtTop)
+	{
+		// add to start of recent list
+		for(i = MAX_RECENT_SCRIPTS-1; i > 0; i--)
+			strcpy(Recent_Scripts[i], Recent_Scripts[i - 1]);
 
-	strcpy(Recent_Scripts[0], Path);
+		strcpy(Recent_Scripts[0], Path);
+	}
+	else
+	{
+		// add to end of recent list
+		for(i = 0; i < MAX_RECENT_SCRIPTS; i++)
+		{
+			if(!*Recent_Scripts[i])
+			{
+				strcpy(Recent_Scripts[i], Path);
+				break;
+			}
+		}
+	}
 
 	MustUpdateMenu = 1;
 }
 
-bool IsScriptFileOpen(const char* Path)
+HWND IsScriptFileOpen(const char* Path)
 {
 	for(std::map<HWND, LuaPerWindowInfo>::iterator iter = LuaWindowInfo.begin(); iter != LuaWindowInfo.end(); ++iter)
 	{
@@ -194,9 +213,9 @@ bool IsScriptFileOpen(const char* Path)
 		}
 
 		if(same)
-			return true;
+			return iter->first;
 	}
-	return false;
+	return NULL;
 }
 
 
@@ -239,6 +258,11 @@ void OnStop(int hDlgAsInt, bool statusOK)
 {
 	HWND hDlg = (HWND)hDlgAsInt;
 	LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+
+	HWND prevWindow = GetActiveWindow();
+	SetActiveWindow(hDlg); // bring to front among other script/secondary windows, since a stopped script will have some message for the user that would be easier to miss otherwise
+	if(prevWindow == HWnd) SetActiveWindow(prevWindow);
+
 	info.started = false;
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUABROWSE), true);
 	EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUASTOP), false);
@@ -249,6 +273,45 @@ void OnStop(int hDlgAsInt, bool statusOK)
 		PostMessage(hDlg, WM_CLOSE, 0, 0);
 }
 
+void UpdateFileEntered(HWND hDlg)
+{
+	char local_str_tmp [1024];
+	SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)local_str_tmp);
+
+	FILE* ftemp = fopen(local_str_tmp, "rb");
+	bool exists = ftemp != NULL;
+	if(ftemp)
+	{
+		fclose(ftemp);
+
+		LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+		info.filename = local_str_tmp;
+
+		char* slash = strrchr(local_str_tmp, '/');
+		slash = max(slash, strrchr(local_str_tmp, '\\'));
+		if(slash)
+			slash++;
+		else
+			slash = local_str_tmp;
+		SetWindowText(hDlg, slash);
+		Build_Main_Menu();
+
+		PostMessage(hDlg, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
+	}
+
+	const char* ext = strrchr(local_str_tmp, '.');
+	bool isLuaFile = ext && !_stricmp(ext, ".lua");
+	if(exists)
+	{
+		SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile ? "Edit" : "Open");
+		EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), true);
+	}
+	else
+	{
+		SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), "Create");
+		EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile);
+	}
+}
 
 extern "C" int Clear_Sound_Buffer(void);
 
@@ -257,7 +320,6 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	RECT r;
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
-
 
 	switch(uMsg)
 	{
@@ -335,7 +397,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				// enforce a minimum window size
 
 				LPRECT r = (LPRECT) lParam;
-				int minimumWidth = 264;
+				int minimumWidth = 333;
 				int minimumHeight = 117;
 				if(r->right - r->left < minimumWidth)
 					if(wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
@@ -427,6 +489,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_BUTTON_LUABROWSE:
 				{
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+					char Str_Tmp [1024]; // shadow added because the global one is unreliable
 					strcpy(Str_Tmp,info.filename.c_str());
 					SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
 					DialogsOpen++;
@@ -438,43 +501,53 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					DialogsOpen--;
 
 				}	break;
+				case IDC_BUTTON_LUAEDIT:
+				{
+					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+					char Str_Tmp [1024]; // shadow added because the global one is unreliable
+					strcpy(Str_Tmp,info.filename.c_str());
+					SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
+					FILE* file = fopen(Str_Tmp, "r");
+					bool created = false;
+					if(!file)
+					{
+						file = fopen(Str_Tmp, "w");
+						created = file != NULL;
+					}
+					if(file)
+					{
+						fclose(file);
+
+						// tell the OS to open the file with its associated editor,
+						// without blocking on it or leaving a command window open.
+						ShellExecute(NULL, "open", Str_Tmp, NULL, NULL, SW_SHOWNORMAL);
+					}
+					if(created)
+					{
+						UpdateFileEntered(hDlg);
+					}
+				}	break;
 				case IDC_EDIT_LUAPATH:
 				{
 					switch(HIWORD(wParam))
 					{
 						case EN_CHANGE:
 						{
-							char local_str_tmp [1024];
-							SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)local_str_tmp);
-
-							FILE* ftemp = fopen(local_str_tmp, "rb");
-							if(ftemp)
-							{
-								fclose(ftemp);
-
-								LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
-								info.filename = local_str_tmp;
-
-								char* slash = strrchr(local_str_tmp, '/');
-								slash = max(slash, strrchr(local_str_tmp, '\\'));
-								if(slash)
-									slash++;
-								else
-									slash = local_str_tmp;
-								SetWindowText(hDlg, slash);
-								Build_Main_Menu();
-
-								PostMessage(hDlg, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
-							}
+							UpdateFileEntered(hDlg);
 						}	break;
 					}
 				}	break;
 				case IDC_BUTTON_LUARUN:
 				{
-					SetActiveWindow(HWnd);
+					HWND focus = GetFocus();
+					HWND textbox = GetDlgItem(hDlg, IDC_EDIT_LUAPATH);
+					if(focus != textbox)
+						SetActiveWindow(HWnd);
+
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+					char Str_Tmp [1024]; // shadow added because the global one is completely unreliable
 					strcpy(Str_Tmp,info.filename.c_str());
-					Update_Recent_Script(Str_Tmp);
+					Update_Recent_Script(Str_Tmp, info.subservient);
 					RunLuaScriptFile((int)hDlg, Str_Tmp);
 				}	break;
 				case IDC_BUTTON_LUASTOP:
@@ -482,6 +555,11 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					PrintToWindowConsole((int)hDlg, "user clicked stop button\r\n");
 					SetActiveWindow(HWnd);
 					StopLuaScript((int)hDlg);
+				}	break;
+				case IDC_NOTIFY_SUBSERVIENT:
+				{
+					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
+					info.subservient = lParam ? true : false;
 				}	break;
 				//case IDOK:
 				case IDCANCEL:

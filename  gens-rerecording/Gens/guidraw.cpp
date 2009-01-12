@@ -34,6 +34,8 @@
 #include "math.h"
 #include "misc.h"
 
+#define SWAP_INTEGERS(x,y) x^=y, y^=x, x^=y
+
 void PutText (char *string, short x, short y, short xl, short yl, short xh, short yh, int outstyle, int style)
 {
 	xl = max(xl,0);
@@ -241,29 +243,33 @@ void Pixel (short x, short y, unsigned int color32, unsigned short color16, char
 		MD_Screen[off] = color16;
 }
 
-void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigned int color32,unsigned short color16,char wrap, unsigned char Opac)
+void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigned int color32,unsigned short color16,char wrap, unsigned char Opac, char skipFirst=false)
 {
 	bool steep = abs(dy) > abs(dx);
 	if (steep)
 	{
-		x1 ^= y1, y1 ^= x1, x1 ^= y1;
-		x2 ^= y2, y2 ^= x2, x2 ^= y2;
-		dx ^= dy, dy ^= dx, dx ^= dy;
+		SWAP_INTEGERS(x1,y1);
+		SWAP_INTEGERS(x2,y2);
+		SWAP_INTEGERS(dx,dy);
 	}
-	if (x1 > x2)
+	bool swapped = x1 > x2;
+	if (swapped)
 	{
-		x1 ^= x2, x2 ^= x1, x1 ^= x2;
-		y1 ^= y2, y2 ^= y1, y1 ^= y2;
-		dx = 0-dx, dy = 0-dy;
+		SWAP_INTEGERS(x1,x2);
+		SWAP_INTEGERS(y1,y2);
+		dx = -dx, dy = -dy;
 	}
 	short sy = ((dy < 0)? -1 : 1);
 	short thresh = dx;
 	dy = abs(dy);
 	short err = 0;
+	if (skipFirst && swapped)
+		--x2, skipFirst = false;
 	for (short x = x1, y = y1; x <= x2; x++)
 	{
-		if (steep)	Pixel(y,x,color32,color16,wrap, Opac);
-		else		Pixel(x,y,color32,color16,wrap, Opac);
+		if (skipFirst)  skipFirst = false;
+		else if (steep) Pixel(y,x,color32,color16,wrap, Opac);
+		else            Pixel(x,y,color32,color16,wrap, Opac);
 		err += dy << 1;
 		if (err >= thresh)
 		{
@@ -273,29 +279,31 @@ void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigne
 	}	
 }
 
-void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac)
+void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac, char skipFirst)
 {
 	short dx = x2 - x1;
 	short dy = y2 - y1;
 
 	if (!dy)
 	{
-		if (x1 > x2) x1 ^= x2, x2 ^= x1, x1 ^= x2;
+		if(skipFirst) x1>x2 ? --x1 : ++x1;
+		if (x1 > x2) SWAP_INTEGERS(x1,x2);
 		for (int JXQ = x1; JXQ <= x2; JXQ++)
 			Pixel(JXQ,y1,color32,color16,wrap, Opac);
 	}
 	else if (!dx)
 	{
-		if (y1 > y2) y1 ^= y2, y2 ^= y1, y1 ^= y2;
+		if(skipFirst) y1>y2 ? --y1 : ++y1;
+		if (y1 > y2) SWAP_INTEGERS(y1,y2);
 		for (int JXQ = y1; JXQ <= y2; JXQ++)
 			Pixel(x1,JXQ,color32,color16,wrap, Opac);
 	}
-	else DrawLineBress(x1,y1,x2,y2,dx,dy,color32,color16,wrap, Opac);
+	else DrawLineBress(x1,y1,x2,y2,dx,dy,color32,color16,wrap, Opac, skipFirst);
 }
 void DrawBoxPP (short x1, short y1, short x2, short y2, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac, char fill, unsigned char fillOpac)
 {
-	if (x1 > x2) x1^=x2, x2^=x1,x1^=x2;
-	if (y1 > y2) y1^=y2, y2^=y1,y1^=y2;
+	if (x1 > x2) SWAP_INTEGERS(x1,x2);
+	if (y1 > y2) SWAP_INTEGERS(y1,y2);
 	for (short JXQ = x1; JXQ <= x2; JXQ++)
 	{
 		Pixel(JXQ,y1,color32,color16,wrap, Opac);
@@ -330,26 +338,40 @@ void DrawBoxPP2 (short x1, short y1, short x2, short y2, unsigned int fillcolor3
 	int fillcolor16 = DrawUtil::Pix32To16(fillcolor32);
 	int outlinecolor16 = DrawUtil::Pix32To16(outlinecolor32);
 
-	if(!fillOpac && !outlineOpac)
-		return;
+	// require x1,y1 <= x2,y2
+	if (x1 > x2) SWAP_INTEGERS(x1,x2);
+	if (y1 > y2) SWAP_INTEGERS(y1,y2);
 
-	if (x1 > x2) x1^=x2, x2^=x1, x1^=x2;
-	if (y1 > y2) y1^=y2, y2^=y1, y1^=y2;
+	// avoid trying to draw lots of offscreen pixels
+	if (x1 < -1)  x1 = -1;
+	if (x1 > 320) x1 = 320;
+	if (x2 < -1)  x2 = -1;
+	if (x2 > 320) x2 = 320;
+	if (y1 < -1)  y1 = -1;
+	if (y1 > 224) y1 = 224;
+	if (y2 < -1)  y2 = -1;
+	if (y2 > 224) y2 = 224;
 
-	for (short x = x1+1; x < x2; x++)
-		Pixel(x,y1,outlinecolor32,outlinecolor16,0, outlineOpac);
-	for (short y = y1; y <= y2; y++)
-		Pixel(x1,y,outlinecolor32,outlinecolor16,0, outlineOpac);
-	if(y1 != y2)
+	if(outlineOpac)
+	{
 		for (short x = x1+1; x < x2; x++)
-			Pixel(x,y2,outlinecolor32,outlinecolor16,0, outlineOpac);
-	if(x1 != x2)
+			Pixel(x,y1,outlinecolor32,outlinecolor16,0, outlineOpac);
 		for (short y = y1; y <= y2; y++)
-			Pixel(x2,y,outlinecolor32,outlinecolor16,0, outlineOpac);
+			Pixel(x1,y,outlinecolor32,outlinecolor16,0, outlineOpac);
+		if(y1 != y2)
+			for (short x = x1+1; x < x2; x++)
+				Pixel(x,y2,outlinecolor32,outlinecolor16,0, outlineOpac);
+		if(x1 != x2)
+			for (short y = y1; y <= y2; y++)
+				Pixel(x2,y,outlinecolor32,outlinecolor16,0, outlineOpac);
+	}
 
-	for(short y = y1+1; y <= y2-1; y++)
-		for(short x = x1+1; x <= x2-1; x++)
-			Pixel(x,y,fillcolor32,fillcolor16,0, fillOpac);
+	if(fillOpac)
+	{
+		for(short y = y1+1; y <= y2-1; y++)
+			for(short x = x1+1; x <= x2-1; x++)
+				Pixel(x,y,fillcolor32,fillcolor16,0, fillOpac);
+	}
 }
 
 void DrawBoxCWH (short x, short y, short w, short h, unsigned int color32, unsigned short color16, char wrap, unsigned char Opac, char fill, unsigned char fillOpac)
@@ -436,7 +458,7 @@ void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned shor
 	{
 		int d1 = JXQ << 16;
 		int d2 = off << 16;
-		if (d1 < d2) d1 ^= d2, d2 ^= d1, d1 ^= d2;
+		if (d1 < d2) SWAP_INTEGERS(d1,d2);
 		d1 += d2 >> 1;
 		d2 -= d2 >> 3;
 		d1 >>= 16;
@@ -470,7 +492,7 @@ void DrawEccoOct (short x, short y, short r, unsigned int color32, unsigned shor
 			{
 				int d1 = JXQ << 16;
 				int d2 = off << 16;
-				if (d1 < d2) d1 ^= d2, d2 ^= d1, d1 ^= d2;
+				if (d1 < d2) SWAP_INTEGERS(d1,d2);
 				d1 += d2 >> 1;
 				d2 -= d2 >> 3;
 				d1 >>= 16;
