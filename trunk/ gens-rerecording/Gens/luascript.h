@@ -16,6 +16,7 @@ enum LuaCallID
 	LUACALL_BEFOREEXIT,
 	LUACALL_BEFORESAVE,
 	LUACALL_AFTERLOAD,
+	LUACALL_ONSTART,
 
 	LUACALL_SCRIPT_HOTKEY_1,
 	LUACALL_SCRIPT_HOTKEY_2,
@@ -54,7 +55,8 @@ struct LuaSaveData
 	Record* recordList;
 
 	void SaveRecord(int uid, unsigned int key); // saves Lua stack into a record and pops it
-	void LoadRecord(int uid, unsigned int key) const; // pushes a record's data onto the Lua stack
+	void LoadRecord(int uid, unsigned int key, unsigned int itemsToLoad) const; // pushes a record's data onto the Lua stack
+	void SaveRecordPartial(int uid, unsigned int key, int idx); // saves part of the Lua stack (at the given index) into a record and does NOT pop anything
 
 	void ExportRecords(void* file) const; // writes all records to an already-open file
 	void ImportRecords(void* file); // reads records from an already-open file

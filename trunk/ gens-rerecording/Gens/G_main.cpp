@@ -47,6 +47,11 @@
 #include "ParseCmdLine.h"
 #include <errno.h>
 #include <vector>
+#ifdef _DEBUG
+#include <io.h>
+#include <fcntl.h>
+#include <ios>
+#endif
 
 extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
@@ -1986,11 +1991,60 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 	return reachedEmulate;
 }
 
+#ifdef _DEBUG
+void RedirectIOToConsole()
+{
+	// from "Adding Console I/O to a Win32 GUI App", "Windows Developer Journal, December 1997"
+	static const WORD MAX_CONSOLE_LINES = 3000;
+	int hConHandle;
+	long lStdHandle;
+	CONSOLE_SCREEN_BUFFER_INFO coninfo;
+	FILE *fp;
+	// allocate a console for this app
+	AllocConsole();
+	// set the screen buffer to be big enough to let us scroll text
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+	coninfo.dwSize.Y = MAX_CONSOLE_LINES;
+	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
+	// redirect unbuffered STDOUT to the console
+	lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "w" );
+	*stdout = *fp;
+	setvbuf( stdout, NULL, _IONBF, 0 );
+	// redirect unbuffered STDIN to the console
+	lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "r" );
+	*stdin = *fp;
+	setvbuf( stdin, NULL, _IONBF, 0 );
+	// redirect unbuffered STDERR to the console
+	lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "w" );
+	*stderr = *fp;
+	setvbuf( stderr, NULL, _IONBF, 0 );
+	// make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog
+	// point to console as well
+	std::ios::sync_with_stdio();
+}
+#endif
+
+
 int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) //note: nCmdShow is always one indicating that lpCmdLine contains something (even when it doesn't)
 {
 ///////////////////////////////////////////////////
 
 	SetErrorMode(SEM_FAILCRITICALERRORS); // Modif N. -- prevents "There is no disk in the drive." error spam if a file on a removed disk is in the recent ROMs list
+
+#ifdef _DEBUG
+	// make it possible to see stdout/stderr output
+	// so we can do things like use printf to debug,
+	// see the mp3 decoder's error messages, etc.
+	// ...I'd rather redirect stdout/stderr to OutputDebugString() though
+	// but I can't figure out how to do that so this is the next best thing
+	RedirectIOToConsole();
+#endif
 
 	fp1 = fopen( "hook_log.txt", "r" );
 	if( fp1 )
@@ -2401,6 +2455,7 @@ void BeginMoviePlayback()
 		wsprintf(Str_Tmp, "Resuming recording from savestate. Frame %d.",FrameCount);
 	Put_Info(Str_Tmp, 4500);
 	Build_Main_Menu();
+	CallRegisteredLuaFunctions(LUACALL_ONSTART);
 }
 
 void PlaySubMovie();
@@ -3149,6 +3204,7 @@ dialogAgain: //Nitsuja added this
 						MESSAGE_L("Recording from start", "Recording from start", 1500)
 					}
 					Build_Main_Menu();
+					CallRegisteredLuaFunctions(LUACALL_ONSTART);
 					return 0;
 				case ID_PLAY_MOVIE:
 					GensPlayMovie(NULL, false);
@@ -3655,6 +3711,8 @@ dialogAgain: //Nitsuja added this
 						MESSAGE_L("32X reseted", "32X reset", 1500)
 					else if (SegaCD_Started)
 						MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+
+					CallRegisteredLuaFunctions(LUACALL_ONSTART);
 
 					return 0;
 

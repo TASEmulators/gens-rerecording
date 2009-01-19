@@ -286,10 +286,18 @@ void DrawLine(short x1, short y1, short x2, short y2, unsigned int color32, unsi
 
 	if (!dy)
 	{
-		if(skipFirst) x1>x2 ? --x1 : ++x1;
-		if (x1 > x2) SWAP_INTEGERS(x1,x2);
-		for (int JXQ = x1; JXQ <= x2; JXQ++)
-			Pixel(JXQ,y1,color32,color16,wrap, Opac);
+		if(!dx)
+		{
+			// case needed because skip check then swap assumes x1!=x2
+			Pixel(x1,y1,color32,color16,wrap, Opac);
+		}
+		else
+		{
+			if(skipFirst) x1>x2 ? --x1 : ++x1;
+			if (x1 > x2) SWAP_INTEGERS(x1,x2);
+			for (int JXQ = x1; JXQ <= x2; JXQ++)
+				Pixel(JXQ,y1,color32,color16,wrap, Opac);
+		}
 	}
 	else if (!dx)
 	{
