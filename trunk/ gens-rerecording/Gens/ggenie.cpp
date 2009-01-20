@@ -32,6 +32,7 @@
 #include "misc.h"
 
 struct GG_Code Liste_GG[256] = {{"\0", "\0", 0, 0, 0, 0, 0}};
+int List_GG_Max_Active_Index = 0; // fix for Fix_Codes checking all 256 codes every time, which was slowing down emulation significantly because it gets called so often
 static char genie_chars[] = "AaBbCcDdEeFfGgHhJjKkLlMmNnPpRrSsTtVvWwXxYyZz0O1I2233445566778899";
 char Patch_Dir[1024] = "\\";
 int CheatCount=0;
@@ -224,11 +225,12 @@ bad_code:
 }
 void Fix_Codes(unsigned int address, unsigned char size)
 {
-	if (address >= 0xE00000) address |= 0xFF0000;
-	for(int i = 0; i < 256; i ++)
+	int end = List_GG_Max_Active_Index;
+	for(int i = 0; i < end; i++)
 	{
 		if ((Liste_GG[i].active))
 		{
+			if (address >= 0xE00000) address |= 0xFF0000;
 			if (!(((address + size) < Liste_GG[i].addr)||((Liste_GG[i].addr + Liste_GG[i].size) < address)))
 			{
 				for (int j = Liste_GG[i].size -1,addr = Liste_GG[i].addr;j>=0;addr++,j--)
@@ -314,6 +316,7 @@ int Load_Patch_File(void)
 		Liste_GG[i].data = 0;
 		Liste_GG[i].restore = 0xFFFFFFFF;
 	}
+	List_GG_Max_Active_Index = 0;
 	
 	strcpy(Name, Patch_Dir);
 	strcat(Name, Rom_Name);
