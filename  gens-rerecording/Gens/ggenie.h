@@ -23,6 +23,7 @@ struct GG_Code
 };
 
 extern struct GG_Code Liste_GG[256];
+extern int List_GG_Max_Active_Index;
 extern char Patch_Dir[1024];
 extern int CheatCount;
 

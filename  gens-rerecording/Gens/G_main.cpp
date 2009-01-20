@@ -5420,7 +5420,9 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						Liste_GG[i].data = 0;
 						Liste_GG[i].restore = 0xFFFFFFFF;
 					}
+					List_GG_Max_Active_Index = 0;
 
+					if(value > 256) value = 256;
 					for(i = 0; i < value; i++)
 					{
 						if (SendDlgItemMessage(hDlg, IDC_LIST1, LB_GETTEXT, (WPARAM) i, (LONG) (LPTSTR) tmp) != LB_ERR)
@@ -5437,7 +5439,10 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 							strcpy(Liste_GG[i].name, (char *) (tmp + dx1));
 
 							if (SendDlgItemMessage(hDlg, IDC_LIST1, LB_GETSEL, (WPARAM) i, NULL) > 0)
+							{
 								Liste_GG[i].active = 1;
+								List_GG_Max_Active_Index = i+1;
+							}
 							else Liste_GG[i].active = 0;
 						}
 					}
