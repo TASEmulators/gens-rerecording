@@ -2114,6 +2114,10 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "Frame Advance Delay Factor", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", AVISound); //Upth-Add - Make frame advance speed configurable
 	WritePrivateProfileString("General", "AVI Sound", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", AVISplit); //Modif N. - AVI split boundary configurable
+	WritePrivateProfileString("General", "AVI Split MB", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", AVICorrect256AspectRatio); //Modif N.
+	WritePrivateProfileString("General", "AVI Proper Aspect Ratio", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Sleep_Time); //Modif N. - CPU hogging now a real setting
 	WritePrivateProfileString("General", "Allow Idle", Str_Tmp, Conf_File);
 
@@ -2624,6 +2628,8 @@ int Load_Config(char *File_Name, void *Game_Active)
 	SlowDownSpeed = GetPrivateProfileInt("General", "Slow Down Speed", 1, Conf_File); //Upth-Add - Load the slowdown speed from config
 	DelayFactor = GetPrivateProfileInt("General", "Frame Advance Delay Factor", 5, Conf_File); //Upth-Add - Frame advance speed configurable
 	AVISound = GetPrivateProfileInt("General", "AVI Sound", 1, Conf_File); //Upth-Add - Frame advance speed configurable
+	AVISplit = GetPrivateProfileInt("General", "AVI Split MB", 1953, Conf_File); //Modif N. - AVI split boundary configurable
+	AVICorrect256AspectRatio = GetPrivateProfileInt("General", "AVI Proper Aspect Ratio", 1, Conf_File); //Modif N.
 
 	if (GetPrivateProfileInt("Graphics", "Force 555", 0, Conf_File)) Mode_555 = 3;
 	else if (GetPrivateProfileInt("Graphics", "Force 565", 0, Conf_File)) Mode_555 = 2;

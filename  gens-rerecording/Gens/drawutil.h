@@ -5,6 +5,7 @@
 
 typedef unsigned short pix16;
 typedef unsigned int pix32;
+typedef signed short pix15;
 
 class DrawUtil
 {
@@ -25,6 +26,7 @@ public:
 	static inline pix16 Add (pix16 A, pix16 B);
 
 	static inline pix32 Pix16To32 (pix16 Src);
+	static inline pix32 Pix15To32 (pix15 Src);
 	static inline pix16 Pix32To16 (pix32 Src);
 
 	static inline pix16 Make16 (int R, int G, int B);
@@ -46,6 +48,13 @@ public:
 		GMASK_32 = 0x0000FF00,
 		BMASK_32 = 0x000000FF,
 		RBMASK_32 = (RMASK_32|BMASK_32),
+	};
+	enum
+	{
+		RMASK_15 = 0x7C00,
+		GMASK_15 = 0x03E0,
+		BMASK_15 = 0x001F,
+		RBMASK_15 = (RMASK_15|BMASK_15),
 	};
 };
 
@@ -98,8 +107,8 @@ inline pix32 DrawUtil::Add (pix32 A, pix32 B) {
 inline pix16 DrawUtil::Pix32To16 (pix32 Src)
 {
 	int rm = Src & 0xF80000;
-	int gm = Src & 0xFC00;
-	int bm = Src & 0xF8;
+	int gm = Src & 0x00FC00;
+	int bm = Src & 0x0000F8;
 	return (rm >> 8) | (gm >> 5) | (bm >> 3);
 }
 
@@ -108,9 +117,19 @@ inline pix16 DrawUtil::Pix32To16 (pix32 Src)
 inline pix32 DrawUtil::Pix16To32 (pix16 Src)
 {
 	int rm = Src & 0xF800;
-	int gm = Src & 0x7E0;
-	int bm = Src & 0x1F;
+	int gm = Src & 0x07E0;
+	int bm = Src & 0x001F;
 	return (rm << 8) | (gm << 5) | (bm << 3);
+}
+
+// from:                 xRRRRRGGGGGBBBBB
+//   to: 00000000RRRRR000GGGGG000BBBBB000
+inline pix32 DrawUtil::Pix15To32 (pix15 Src)
+{
+	int rm = Src & 0x7C00;
+	int gm = Src & 0x03E0;
+	int bm = Src & 0x001F;
+	return (rm << 9) | (gm << 6) | (bm << 3);
 }
 
 inline pix16 DrawUtil::Make16 (int R, int G, int B)

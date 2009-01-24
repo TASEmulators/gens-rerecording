@@ -300,7 +300,7 @@
 ** mean larger pauses which mean slower collection.) You can also change
 ** this value dynamically.
 */
-#define LUAI_GCPAUSE	200  /* 200% (wait memory to double before next GC) */
+#define LUAI_GCPAUSE	150  /* 200% (wait memory to double before next GC) */
 
 
 /*
@@ -311,7 +311,7 @@
 ** infinity, where each step performs a full collection.) You can also
 ** change this value dynamically.
 */
-#define LUAI_GCMUL	200 /* GC runs 'twice the speed' of memory allocation */
+#define LUAI_GCMUL	150 /* GC runs 'twice the speed' of memory allocation */
 
 
 
