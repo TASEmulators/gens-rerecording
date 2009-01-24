@@ -607,6 +607,8 @@
 #define IDC_CDDAVOL                     43306
 #define ID_CHANGE_CLEANAVI              43310
 #define ID_CHANGE_PALLOCK               43311
+#define ID_CHANGE_AVISPLIT              43312
+#define ID_CHANGE_AVIRATIO              43313
 #define IDC_STATIC_TEXT3                43400
 #define IDC_STATIC_TEXT4                43401
 #define IDC_STATIC_TEXT5                43402

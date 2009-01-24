@@ -247,6 +247,7 @@ LRESULT CALLBACK RamCheatProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK VolumeProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptSpliceFrameProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptSeekFrameProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK PromptAVISplitProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK LuaScriptProc(HWND, UINT, WPARAM, LPARAM);
 
 LRESULT CALLBACK EditWatchProc(HWND, UINT, WPARAM, LPARAM);
@@ -2648,7 +2649,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				hDC = BeginPaint(hWnd, &ps);
 
-				if(PaintsEnabled)
+				if(PaintsEnabled && (!Full_Screen || DialogsOpen <= 0))
 				{
 					Clear_Primary_Screen(HWnd);
 					Flip(hWnd);
@@ -2712,25 +2713,21 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					Build_Main_Menu();
 					return 0;
 				case ID_GRAPHICS_AVI_SOUND:
-					if(AVISound)
+					AVISound = !AVISound;
+					Build_Main_Menu();
+					return 0;
+				case ID_CHANGE_AVISPLIT:
 					{
-						AVISound = 0;
+						DialogsOpen++;
+						DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PROMPT), hWnd, (DLGPROC) PromptAVISplitProc);
 					}
-					else
-					{
-						AVISound = 1;
-					}
+					return 0;
+				case ID_CHANGE_AVIRATIO:
+					AVICorrect256AspectRatio = !AVICorrect256AspectRatio;
 					Build_Main_Menu();
 					return 0;
 				case ID_GRAPHICS_SYNC_AVI_MOVIE:
-					if(AVIWaitMovie)
-					{
-						AVIWaitMovie = 0;
-					}
-					else
-					{
-						AVIWaitMovie = 1;
-					}
+					AVIWaitMovie = !AVIWaitMovie;
 					Build_Main_Menu();
 					return 0;
 				case ID_GRAPHICS_AVI:
@@ -2741,7 +2738,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else
 					{
-						if(InitAVI())
+						if(InitAVI(hWnd))
 							AVIRecording=1;
 						else
 							AVIRecording=0;
@@ -5046,9 +5043,9 @@ HMENU Build_Main_Menu(void)
 
 	//Upth-Add - Menu TAS_Tools 
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Movies, "Movie", "", "&Movie");
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_AVI, "AVI Options", "", "&AVI Options");
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Lua_Script, "Lua Scripting", "", "&Lua Scripting");
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_AVI, "AVI", "", "&AVI");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Lua_Script, "Lua Scripting", "", "&Lua Scripting");
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Trace, "Tracer Tools", "", "&Tracer tools");
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)CPUSlowDownSpeed, "Slow Mode", "", "S&low Mode");
@@ -5058,12 +5055,15 @@ HMENU Build_Main_Menu(void)
 	//Upth-Add - Menu Tools_Movies
 	i = 0;
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
+	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),ID_RECORD_MOVIE,"Record New Movie","","Record &New Movie"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_RESUME_RECORD,"Resume Record from Now","","&Resume Record from Now"); //Modif
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
+	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Tools_Movies,i++,Flags | ((SpliceFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SPLICE,"Input Splice","\tShift-S","&Input Splice"); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((SeekFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),IDC_SEEK_FRAME,"Seek to Frame","","Seek to &Frame"); //Modif
 	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif
+	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
  	//Upth-Add - Menu Movies_Tracks
 	i = 0;
@@ -5073,10 +5073,15 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Movies_Tracks,i++,Flags | (MainMovie.TriplePlayerHack ? MF_ENABLED : MF_DISABLED) | ((track & TRACK3) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_3,"Player 3","\tCtrl-Shift-3","Players &3"); //Modif
  	//Upth-Add - Menu Tools_AVI
 	i = 0;
+	MENU_L(Tools_AVI, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
+	InsertMenu(Tools_AVI, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Tools_AVI, i++, Flags | (AVIWaitMovie ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SYNC_AVI_MOVIE, "Sync AVI with movie", "", "S&ync AVI with movie");
 	MENU_L(Tools_AVI, i++, Flags | (AVISound ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_AVI_SOUND, "Add sound to AVI", "", "&Add sound to AVI");
 	MENU_L(Tools_AVI, i++, Flags | (CleanAvi ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_CLEANAVI, "Clean AVI screen", "", "&Clean AVI screen");
-	MENU_L(Tools_AVI, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump");
+	MENU_L(Tools_AVI, i++, Flags | (AVICorrect256AspectRatio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_AVIRATIO, "Proper aspect ratio", "", "Proper aspect ratio");
+	if(AVISplit > 0) wsprintf(Str_Tmp ,"Split AVI after... (%d MB)", AVISplit);
+	else strcpy(Str_Tmp ,"Split AVI after...");
+	MENU_L(Tools_AVI, i++, Flags | ((AVISplit>0) ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_AVISPLIT, Str_Tmp, "", Str_Tmp);
  	//Upth-Add - Menu Tools_Trace
 	i = 0;
 	MENU_L(Tools_Trace, i++, Flags | (trace_map ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_TRACE, "Log Instructions", "", "&Trace");
@@ -6595,6 +6600,96 @@ LRESULT CALLBACK PromptSeekFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 					sprintf(Str_Tmp,"Seeking to frame %d",SeekFrame);
 					Put_Info(Str_Tmp,2000);
 					MustUpdateMenu = 1;
+					DialogsOpen--;
+					EndDialog(hDlg, true);
+					return true;
+					break;
+				}
+				case ID_CANCEL:
+				case IDCANCEL:
+					if (Full_Screen)
+					{
+						while (ShowCursor(true) < 0);
+						while (ShowCursor(false) >= 0);
+					}
+
+					DialogsOpen--;
+					EndDialog(hDlg, true);
+					return true;
+					break;
+			}
+			break;
+
+		case WM_CLOSE:
+			if (Full_Screen)
+			{
+				while (ShowCursor(true) < 0);
+				while (ShowCursor(false) >= 0);
+			}
+			DialogsOpen--;
+			EndDialog(hDlg, true);
+			return true;
+			break;
+	}
+
+	return false;
+}
+LRESULT CALLBACK PromptAVISplitProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //saves all the input from specified frame to a tempfile, so a prior section can be redone
+{
+	RECT r;
+	RECT r2;
+	int dx1, dy1, dx2, dy2;
+
+	switch(uMsg)
+	{
+		case WM_INITDIALOG:
+			if (Full_Screen)
+			{
+				while (ShowCursor(false) >= 0);
+				while (ShowCursor(true) < 0);
+			}
+
+			GetWindowRect(HWnd, &r);
+			dx1 = (r.right - r.left) / 2;
+			dy1 = (r.bottom - r.top) / 2;
+
+			GetWindowRect(hDlg, &r2);
+			dx2 = (r2.right - r2.left) / 2;
+			dy2 = (r2.bottom - r2.top) / 2;
+
+			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+			strcpy(Str_Tmp,"Enter max size in megabytes. (recommended 1977 or less)");
+			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+			strcpy(Str_Tmp,"AVIs exceeding this size will be split into multiple files.");
+			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT2,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+
+			SetDlgItemInt(hDlg,IDC_PROMPT_EDIT,AVISplit,true);
+
+			return true;
+			break;
+
+		case WM_COMMAND:
+			switch(LOWORD(wParam))
+			{
+				case IDOK:
+				{
+					if (Full_Screen)
+					{
+						while (ShowCursor(true) < 0);
+						while (ShowCursor(false) >= 0);
+					}
+
+					AVISplit = GetDlgItemInt(hDlg,IDC_PROMPT_EDIT,NULL,true);
+					if(AVISplit < 0) AVISplit = 0;
+
+					char cfgFile[1024];
+					strcpy(cfgFile, Gens_Path);
+					strcat(cfgFile, "Gens.cfg");
+					wsprintf(Str_Tmp, "%d", AVISplit);
+					WritePrivateProfileString("General", "AVI Split MB", Str_Tmp, cfgFile);
+
+					Build_Main_Menu();
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;

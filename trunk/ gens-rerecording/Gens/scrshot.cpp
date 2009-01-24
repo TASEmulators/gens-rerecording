@@ -9,9 +9,12 @@
 #include "mem_M68K.h"
 #include <stdio.h>
 #include "g_dsound.h"
+#include "drawutil.h"
 int AVIRecording=0;
 int AVISound=1;
+int AVISplit=1953; // this should be a safe enough amount below 2048 since VFW tends to corrupt AVIs around 2GB
 int AVIWaitMovie=0;
+int AVICorrect256AspectRatio=1;
 AVIWrite *AVIRecorder=NULL;
 int AVIFrame=0;
 char ScrShot_Dir[1024] = "\\";
@@ -184,31 +187,20 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 {
 	unsigned char *Src = NULL, *Dest = NULL;
 	int i, j, tmp, offs, num = -1;
-//	unsigned long FileSize; //Modif N
-	int fnlen;
 
 	SetCurrentDirectory(Gens_Path);
 
 	i = (320 * 240 * 3);
 	
 	if (!Game) return(0);
-	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	
-	if(AVIRecorder)
+	if(AVIRecorder && AVISplit > 0)
 	{
-
-		if(AVIRecorder->GetSize() > 0x7B9ACA00)
+		if((AVIRecorder->GetSize() >> 10) > ((unsigned int)AVISplit << 10))
 		{
-			if(AVIBreakMovie)
-			{
-				Close_AVI();
-				AVIBreakMovie=2;
-			}
-			else
-			{
-				Close_AVI();
-				AVIBreakMovie=1;
-			}
+			int PrevAVIBreakMovie = AVIBreakMovie;
+			Close_AVI();
+			AVIBreakMovie = PrevAVIBreakMovie + 1;
 		}
 	}
 
@@ -230,24 +222,20 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 		bi.biHeight = 240;
 		bi.biSizeImage = 3*320*240;
 		AVIRecorder->SetVideoFormat(&bi);
+
+		char AVIFileName2 [1024];
+		const char* AVIFileNamePtr = AVIFileName;
+
 		if(AVIBreakMovie)
 		{
-			fnlen=strlen(AVIFileName);
-			if(AVIBreakMovie==2)
-			{
-				AVIFileName[fnlen-5]=AVIFileName[fnlen-5]++;
-				if(AVIFileName[fnlen-5]==90)
-					AVIBreakMovie=1;
-			}
+			strcpy(AVIFileName2, AVIFileName);
+			char* dot = strrchr(AVIFileName2, '.');
+			if(dot)
+				*dot = 0;
 			else
-			{
-				AVIFileName[fnlen+1]=AVIFileName[fnlen];
-				AVIFileName[fnlen]=AVIFileName[fnlen-1];
-				AVIFileName[fnlen-1]=AVIFileName[fnlen-2];
-				AVIFileName[fnlen-2]=AVIFileName[fnlen-3];
-				AVIFileName[fnlen-3]=AVIFileName[fnlen-4];
-				AVIFileName[fnlen-4]=65;
-			}
+				dot = AVIFileName2 + strlen(AVIFileName2);
+			_snprintf(dot, 1024 - strlen(AVIFileName2), "%03d%s", AVIBreakMovie + 1, dot - AVIFileName2 + AVIFileName);
+			AVIFileNamePtr = AVIFileName2;
 		}
 		else
 		{
@@ -260,7 +248,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 				return 0;
 			}
 		}
-		if(AVIRecorder->Open(AVIFileName,hWnd,AVIBreakMovie?false:true)==false)
+		if(!AVIRecorder->Open(AVIFileNamePtr,hWnd,AVIBreakMovie==0))
 		{
 			Close_AVI();
 			AVIRecording=0;
@@ -269,66 +257,79 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 		if (CleanAvi)
 			return Update_WAV_Dump_AVI();
     }
-  
+
+	if(VideoBuf == NULL)
+		return 1;
+
+	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
 	Src = (unsigned char *)(VideoBuf);
+	Src += (336 * (Vmode ? 239 : 223) * (mode&2 ? 4 : 2));
 
-	if (mode & 2)
-	{
-		if(Vmode)
-			Src += (336 * 239 * 4);
-		else
-			Src += (336 * 223 * 4);
-//		Dest -= 3;
-		for(offs = Vmode ? 0 : (3*320*8), j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * 4, offs += (3 * (Hmode ? 320 : 288)))
-		{
-			if (Hmode==0) offs+=96;
-			for(i = Hmode ? 319 : 256; i >= 0; i--)
-			{
-				tmp = (unsigned int) (Src[4 * i + 32] + (Src[4 * i + 33] << 8) + (Src[4 * i + 34] << 16));
-				Dest[offs + (3 * i) + 2] = ((tmp >> 16) & 0xFF);
-				Dest[offs + (3 * i) + 1] = ((tmp >> 8) & 0xFF);
-				Dest[offs + (3 * i)    ] = (tmp & 0xFF);
-			}
-		}
+#define WRITE_FRAME_TO_SRC(pixbits) \
+	if(Hmode || !AVICorrect256AspectRatio) \
+	{ \
+		for(offs = Vmode ? 0 : (3*320*8), j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (3 * (Hmode ? 320 : 288))) \
+		{ \
+			if (Hmode==0) offs+=((320-256)/2)*3; \
+			for(i = Hmode ? 319 : 255; i >= 0; i--) \
+			{ \
+				tmp = READ_PIXEL(i); \
+				WRITE_PIXEL(i); \
+			} \
+		} \
+	} \
+	else /* 256 across, but output equally wide as 320 across */ \
+	{ \
+		for(offs = Vmode ? 0 : (3*320*8), j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (3 * 320)) \
+		{ \
+			int iDst, iSrc = 255, err = 0; \
+			unsigned int tmp1 = READ_PIXEL(iSrc); \
+			unsigned int tmp2 = READ_PIXEL(iSrc-1); \
+			for(iDst = 319; iDst > 0; --iDst) \
+			{ \
+				int weight = 255 - err * 256 / 320; \
+				tmp = DrawUtil::Blend((pix32)tmp1, (pix32)tmp2, weight); \
+				WRITE_PIXEL(iDst); \
+				err += 256; \
+				if(err >= 320) \
+				{ \
+					err -= 320; \
+					iSrc--; \
+					tmp1 = tmp2; \
+					tmp2 = READ_PIXEL(iSrc-1); \
+				} \
+			} \
+			tmp = tmp2; \
+			WRITE_PIXEL(iDst); \
+		} \
+	}
+	#define WRITE_PIXEL(i) Dest[offs + (3 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
+	                       Dest[offs + (3 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
+	                       Dest[offs + (3 * (i))    ] = (tmp & 0xFF);
 
-	}
-	else
+	if(mode & 2) // 32-bit:
 	{
-		if(Vmode)
-			Src += (336 * 239 * 2);
-		else
-			Src += (336 * 223 * 2);
-		if (mode)
-		{
-			for(offs = Vmode ? 0 : (3*320*8), j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * 2, offs += (3 * (Hmode ? 320 : 288)))
-			{
-				if (Hmode==0) offs+=96;
-				for(i = Hmode ? 320 : 256; i > 0; i--)
-				{
-					tmp = (unsigned int) (Src[2 * i + 16] + (Src[2 * i + 17] << 8));
-					Dest[offs + (3 * i) + 2] = ((tmp >> 7) & 0xF8);
-					Dest[offs + (3 * i) + 1] = ((tmp >> 2) & 0xF8);
-					Dest[offs + (3 * i)    ] = ((tmp << 3) & 0xF8);
-				}
-			}
-		}
-		else
-		{
-			for(offs = Vmode ? 0 : (3*320*8), j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * 2, offs += (3 * (Hmode ? 320 : 288)))
-			{
-				if (Hmode==0) offs+=96;
-				for(i = Hmode ? 320 : 256; i >0 ;i--)
-				{
-					tmp = (unsigned int) (Src[2 * i + 16] + (Src[2 * i + 17] << 8));
-					Dest[offs + (3 * i) + 2] = ((tmp >> 8) & 0xF8);
-					Dest[offs + (3 * i) + 1] = ((tmp >> 3) & 0xFC);
-					Dest[offs + (3 * i)    ] = ((tmp << 3) & 0xF8);
-				}
-			}
-		}
+		#define READ_PIXEL(i) (Src[4 * (i) + 32] + (Src[4 * (i) + 33] << 8) + (Src[4 * (i) + 34] << 16))
+		WRITE_FRAME_TO_SRC(32);
+		#undef READ_PIXEL
 	}
+	else if(!mode) // 16-bit 565:
+	{
+		#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i) + 16] + (Src[2 * (i) + 17] << 8)))
+		WRITE_FRAME_TO_SRC(16);
+		#undef READ_PIXEL
+	}
+	else // 16-bit 555:
+	{
+		#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i) + 16] + (Src[2 * (i) + 17] << 8)))
+		WRITE_FRAME_TO_SRC(15);
+		#undef READ_PIXEL
+	}
+
+#undef WRITE_PIXEL
+#undef WRITE_FRAME_TO_SRC
 
 	AVIRecorder->AddFrame(AVIFrame, (char*)Dest);
 	AVIFrame++;
@@ -354,10 +355,11 @@ int Close_AVI()
 	return 1;
 }
 
-int InitAVI()
+int InitAVI(HWND hWnd)
 {
 	AVIBreakMovie=0;
-	return 1;
+
+	return Save_Shot_AVI(NULL, 0,0,0, hWnd);
 }
 
 

@@ -3103,6 +3103,8 @@ void CallRegisteredLuaLoadFunctions(int savestateNumber, const LuaSaveData& save
 				int numParamsExpected = (L->top - 1)->value.gc->cl.l.p->numparams;
 				if(numParamsExpected) numParamsExpected--; // minus one for the savestate number we always pass in
 
+				int prevGarbage = lua_gc(L, LUA_GCCOUNT, 0);
+
 				lua_pushinteger(L, savestateNumber);
 				saveData.LoadRecord(uid, info.dataLoadKey, numParamsExpected);
 				int n = lua_gettop(L) - 1;
@@ -3131,8 +3133,13 @@ void CallRegisteredLuaLoadFunctions(int savestateNumber, const LuaSaveData& save
 				}
 				else
 				{
-					// now seems to be a very good time to run the garbage collector
-					lua_gc(L, LUA_GCCOLLECT, 0);
+					int newGarbage = lua_gc(L, LUA_GCCOUNT, 0);
+					if(newGarbage - prevGarbage > 50)
+					{
+						// now seems to be a very good time to run the garbage collector
+						// it might take a while now but that's better than taking 10 whiles 9 loads from now
+						lua_gc(L, LUA_GCCOLLECT, 0);
+					}
 				}
 			}
 			else
