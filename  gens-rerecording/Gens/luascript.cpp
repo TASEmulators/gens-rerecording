@@ -532,7 +532,7 @@ static const char* deferredGUIIDString = "lazygui";
 // for later evaluation
 void DeferFunctionCall(lua_State* L, const char* idstring)
 {
-	// there's probably a cleaner way of doing this using lua_pushcclosure or lua_getfenv
+	// there might be a cleaner way of doing this using lua_pushcclosure and lua_getref
 
 	int num = lua_gettop(L);
 
