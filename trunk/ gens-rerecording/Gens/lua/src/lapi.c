@@ -156,9 +156,6 @@ LUA_API lua_State *lua_newthread (lua_State *L) {
 */
 
 
-LUA_API int lua_gettop (lua_State *L) {
-  return cast_int(L->top - L->base);
-}
 
 
 LUA_API void lua_settop (lua_State *L, int idx) {

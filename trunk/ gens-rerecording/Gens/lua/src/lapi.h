@@ -9,8 +9,13 @@
 
 
 #include "lobject.h"
+#include "lstate.h"
 
 
 LUAI_FUNC void luaA_pushobject (lua_State *L, const TValue *o);
+
+_inline LUA_API int lua_gettop (lua_State *L) {
+  return cast_int(L->top - L->base);
+}
 
 #endif
