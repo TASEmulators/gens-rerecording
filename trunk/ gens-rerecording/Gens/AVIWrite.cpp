@@ -19,6 +19,7 @@
 
 #include <windows.h>
 #include "AVIWrite.h"
+#include <stdio.h>
 
 AVICOMPRESSOPTIONS AVIWrite::m_options;
 AVICOMPRESSOPTIONS* AVIWrite::m_arrayOptions[1];
@@ -90,6 +91,7 @@ bool AVIWrite::Open(const char *filename,HWND hWnd,bool New)
 {
   // create the AVI file
 	AVIFileSize=0;
+	_unlink(filename);
   if(FAILED(AVIFileOpen(&m_file,
                         filename,
                         OF_WRITE | OF_CREATE,

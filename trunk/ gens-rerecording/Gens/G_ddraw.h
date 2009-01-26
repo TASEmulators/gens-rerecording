@@ -20,6 +20,7 @@ extern bool Def_Read_Only; //Upth-Add - This is here because G_ddraw.h has bools
 extern int W_VSync;
 extern int Stretch;
 extern int Blit_Soft;
+extern int Correct_256_Aspect_Ratio;
 extern int Effect_Color;
 extern int FPS_Style;
 extern int Message_Style;

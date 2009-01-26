@@ -2116,8 +2116,8 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("General", "AVI Sound", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", AVISplit); //Modif N. - AVI split boundary configurable
 	WritePrivateProfileString("General", "AVI Split MB", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", AVICorrect256AspectRatio); //Modif N.
-	WritePrivateProfileString("General", "AVI Proper Aspect Ratio", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", AVIHeight224IfNotPAL); //Modif N.
+	WritePrivateProfileString("General", "AVI Fit Height", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Sleep_Time); //Modif N. - CPU hogging now a real setting
 	WritePrivateProfileString("General", "Allow Idle", Str_Tmp, Conf_File);
 
@@ -2163,6 +2163,11 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Graphics", "Frame skip", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", CleanAvi);
 	WritePrivateProfileString("Graphics", "Clean Avi", Str_Tmp, Conf_File);
+
+	wsprintf(Str_Tmp, "%d", Correct_256_Aspect_Ratio); //Modif N.
+	WritePrivateProfileString("Graphics", "Proper Aspect Ratio", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", ShotPNGFormat); //Modif N.
+	WritePrivateProfileString("Graphics", "Screenshot Use PNG", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Sound_Enable & 1);
 	WritePrivateProfileString("Sound", "State", Str_Tmp, Conf_File);
@@ -2629,7 +2634,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	DelayFactor = GetPrivateProfileInt("General", "Frame Advance Delay Factor", 5, Conf_File); //Upth-Add - Frame advance speed configurable
 	AVISound = GetPrivateProfileInt("General", "AVI Sound", 1, Conf_File); //Upth-Add - Frame advance speed configurable
 	AVISplit = GetPrivateProfileInt("General", "AVI Split MB", 1953, Conf_File); //Modif N. - AVI split boundary configurable
-	AVICorrect256AspectRatio = GetPrivateProfileInt("General", "AVI Proper Aspect Ratio", 1, Conf_File); //Modif N.
+	AVIHeight224IfNotPAL = GetPrivateProfileInt("General", "AVI Fit Height", 1, Conf_File); //Modif N.
 
 	if (GetPrivateProfileInt("Graphics", "Force 555", 0, Conf_File)) Mode_555 = 3;
 	else if (GetPrivateProfileInt("Graphics", "Force 565", 0, Conf_File)) Mode_555 = 2;
@@ -2653,7 +2658,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Full_Screen = GetPrivateProfileInt("Graphics", "Full Screen", 0, Conf_File);
 	Render_W = GetPrivateProfileInt("Graphics", "Render Windowed", 0, Conf_File);
 	Render_FS = GetPrivateProfileInt("Graphics", "Render Fullscreen", 1, Conf_File);
-	Never_Skip_Frame = (bool) (GetPrivateProfileInt("Graphics", "Never Skip Frame", 0, Conf_File) > 0); //Modif N. -- added never skip frame to preferences
+	Never_Skip_Frame = (bool) (GetPrivateProfileInt("Graphics", "Never Skip Frame", 1, Conf_File) > 0); //Modif N. -- added never skip frame to preferences
 	VideoLatencyCompensation = GetPrivateProfileInt("Graphics", "Video Latency Compensation", 0, Conf_File);
 	if (Res_X < 320) Res_X = 320; //Upth-Add - Make sure our resolution
 	if (Res_Y < 240) Res_Y = 240; //Upth-Add - is at least 320x240
@@ -2665,6 +2670,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Sprite_Over = GetPrivateProfileInt("Graphics", "Sprite limit", 1, Conf_File);
 	Frame_Skip = GetPrivateProfileInt("Graphics", "Frame skip", -1, Conf_File);
 	CleanAvi = GetPrivateProfileInt("Graphics", "Clean Avi", 1, Conf_File);
+
+	Correct_256_Aspect_Ratio = GetPrivateProfileInt("Graphics", "Proper Aspect Ratio", 1, Conf_File); //Modif N.
+	ShotPNGFormat = GetPrivateProfileInt("Graphics", "Screenshot Use PNG", 1, Conf_File); //Modif N.
 
 	Sound_Rate = GetPrivateProfileInt("Sound", "Rate", 44100, Conf_File);
 	Sound_Stereo = GetPrivateProfileInt("Sound", "Stereo", 1, Conf_File);
