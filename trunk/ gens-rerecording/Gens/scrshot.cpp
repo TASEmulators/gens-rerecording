@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include "g_dsound.h"
 #include "drawutil.h"
+#include "png.h"
+#include <set>
+#include <assert.h>
 int AVIRecording=0;
 int AVISound=1;
 int AVISplit=1953; // this should be a safe enough amount below 2048 since VFW tends to corrupt AVIs around 2GB
@@ -22,7 +25,7 @@ bool AVIFileOk;
 char AVIFileName[1024];
 int AVIHeight224IfNotPAL=1;
 int AVICurrentY=240;
-int ShotPNGFormat=1; // NOT YET IMPLEMENTED
+int ShotPNGFormat=1;
 
 #define WRITE_FRAME_TO_SRC(pixbits) do{ \
 	int topbar = (Y - (Vmode ? 240 : 224)) >> 1; \
@@ -70,26 +73,122 @@ int ShotPNGFormat=1; // NOT YET IMPLEMENTED
                        Dest[offs + (3 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
                        Dest[offs + (3 * (i))    ] = (tmp & 0xFF);
 
+// allocates a png palette, or returns NULL if there are too many colors to put in a palette
+// input data is assumed to be 24-bit color
+png_colorp MakePalette(void* data, int X, int Y, int* numColorsOut, png_structp png_ptr)
+{
+	typedef std::set<std::pair<unsigned char,std::pair<unsigned char,unsigned char> > > RGBSet;
+	RGBSet found;
+	for(unsigned char* pix = (unsigned char*)data+((X*Y)-1)*3; pix >= data; pix -= 3)
+		found.insert(std::make_pair(pix[0],std::make_pair(pix[1],pix[2])));
+	int numColors = found.size();
+
+	png_colorp palette = NULL;
+	if(numColors <= PNG_MAX_PALETTE_LENGTH)
+	{
+		palette = (png_colorp)png_malloc(png_ptr, numColors * sizeof(png_color));
+		if(palette)
+		{
+			int i = 0;
+			for(RGBSet::iterator iter = found.begin(); iter != found.end(); ++iter)
+			{
+				png_color color = {iter->second.second, iter->second.first, iter->first};
+				palette[i++] = color;
+			}
+		}
+	}
+
+	if(numColorsOut)
+		*numColorsOut = numColors;
+
+	return palette;
+}
+
+// write a png file (PNG8 if possible to do so losslessly, PNG24 otherwise)
+// input data is assumed to be 24-bit color
+bool write_png(void* data, int X, int Y, FILE* fp)
+{
+	png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if(!png_ptr)
+		return false;
+
+	png_infop info_ptr = png_create_info_struct(png_ptr);
+	if(!info_ptr)
+	{
+		png_destroy_write_struct(&png_ptr,  NULL);
+		return false;
+	}
+
+	if(setjmp(png_jmpbuf(png_ptr)))
+	{
+		png_destroy_write_struct(&png_ptr, &info_ptr);
+		return false;
+	}
+
+	png_init_io(png_ptr, fp);
+
+	int numColors = 0;
+	png_colorp palette = MakePalette(data, X, Y, &numColors, png_ptr);
+
+	png_set_IHDR(png_ptr, info_ptr, X, Y, 8, palette ? PNG_COLOR_TYPE_PALETTE : PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+	if(palette)
+		png_set_PLTE(png_ptr, info_ptr, palette, numColors);
+
+	png_write_info(png_ptr, info_ptr);
+
+	if(!palette)
+	{
+		assert(Y <= 240);
+		png_bytep row_pointers [240];
+		for(int y = 0; y < Y; y++)
+			row_pointers[y] = (png_bytep)data + ((Y-y)-1) * X * 3;
+		png_set_bgr(png_ptr);
+		png_write_image(png_ptr, row_pointers);
+	}
+	else
+	{
+		assert(X <= 320);
+		png_byte row [320];
+		for(int y = 0; y < Y; y++)
+		{
+			png_bytep src = (png_bytep)data + ((Y-y)-1) * X * 3;
+			for(int x = 0; x < X; x++)
+			{
+				png_byte b = *src++;
+				png_byte g = *src++;
+				png_byte r = *src++;
+				int i;
+				for(i = 0; i < numColors; i++)
+					if(palette[i].red == r && palette[i].green == g && palette[i].blue == b)
+						break;
+				assert(i != numColors);
+				row[x] = i;
+			}
+			png_write_row(png_ptr, row);
+		}
+	}
+
+	png_write_end(png_ptr, info_ptr);
+	png_free(png_ptr, palette);
+	png_destroy_write_struct(&png_ptr, &info_ptr);
+
+	return true;
+}
+
 
 
 int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 {
-	HANDLE ScrShot_File;
+	HANDLE Temp_ScrShot_File_Handle;
+	FILE* ScrShot_File;
 	unsigned char *Src = NULL, *Dest = NULL;
-	int i, j, tmp, offs, num = -1;
-	unsigned long BW;
+	int j, tmp, offs, num = -1;
 	char Name[1024], Message[1024], ext[16];
 
 	SetCurrentDirectory(Gens_Path);
-
-	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
-	int Y = Vmode ? 240 : 224;
-	i = (X * Y * 3) + 54;
 	
 	if (!Game) return(0);
-	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
-
-	memset(Dest, 0, i);
 	
 	do
 	{
@@ -100,9 +199,9 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 		}
 
 		ext[0] = '_';
-		i = 1;
+		int i = 1;
 
-		j = num / 10000;
+		int j = num / 10000;
 		if (j) ext[i++] = '0' + j;
 		j = (num / 1000) % 10;
 		if (j) ext[i++] = '0' + j;
@@ -113,18 +212,37 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 		j = num % 10;
 		ext[i++] = '0' + j;
 		ext[i++] = '.';
-		ext[i++] = 'b';
-		ext[i++] = 'm';
-		ext[i++] = 'p';
+		if(ShotPNGFormat)
+		{
+			ext[i++] = 'p'; // ".png"
+			ext[i++] = 'n';
+			ext[i++] = 'g';
+		}
+		else
+		{
+			ext[i++] = 'b'; // ".bmp"
+			ext[i++] = 'm';
+			ext[i++] = 'p';
+		}
 		ext[i] = 0;
 
 		strcpy(Name, ScrShot_Dir);
 		strcat(Name, Rom_Name);
 		strcat(Name, ext);
 
-		ScrShot_File = CreateFile(Name, GENERIC_WRITE, NULL,
+		Temp_ScrShot_File_Handle = CreateFile(Name, GENERIC_WRITE, NULL,
 		NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-	} while(ScrShot_File == INVALID_HANDLE_VALUE);
+	} while(Temp_ScrShot_File_Handle == INVALID_HANDLE_VALUE);
+
+	CloseHandle(Temp_ScrShot_File_Handle);
+	ScrShot_File = fopen(Name, "wb");
+	if(!ScrShot_File) return 0;
+
+	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
+	int Y = Vmode ? 240 : 224;
+	int i = (X * Y * 3) + 54;
+	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
+	memset(Dest, 0, i);
 
 	Dest[0] = 'B';
 	Dest[1] = 'M';
@@ -197,15 +315,14 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 		#undef READ_PIXEL
 	}
 
-	Dest -= 54;
-	WriteFile(ScrShot_File, Dest, (X * Y * 3) + 54, &BW, NULL);
+	if(!ShotPNGFormat)
+		fwrite(Dest-54, (X * Y * 3) + 54, 1, ScrShot_File); // save BMP
+	else
+		write_png(Dest, X, Y, ScrShot_File); // save PNG
 
-	CloseHandle(ScrShot_File);
-	if (Dest)
-	{
-		free(Dest);
-		Dest = NULL;
-	}
+	fclose(ScrShot_File);
+
+	free(Dest-54);
 
 	wsprintf(Message, "Screen shot %d saved (%s)", num, Name);
 	Put_Info(Message, 1500);
