@@ -94,10 +94,10 @@ if (Full_Screen)								\
 	FS_Minimised = 1;							\
 }}
 
-#define MENU_L(smenu, pos, flags, id, str, suffixe, def)										\
+#define MENU_L(smenu, pos, flags, id, str, suffixe, def)	do{									\
 {GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
 /*strcat(Str_Tmp, (suffixe));*/ AddHotkeySuffix(Str_Tmp, id, suffixe);							\
-InsertMenu((smenu), (pos), (flags), (id), Str_Tmp);}
+InsertMenu((smenu), (pos), (flags), (id), Str_Tmp);} } while(0)
 
 #define WORD_L(id, str, suffixe, def)															\
 {GetPrivateProfileString(language_name[Language], (str), (def), Str_Tmp, 1024, Language_Path);	\
@@ -2650,7 +2650,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				hDC = BeginPaint(hWnd, &ps);
 
-				if(PaintsEnabled && (!Full_Screen || DialogsOpen <= 0))
+				if(PaintsEnabled && (!Full_Screen || DialogsOpen <= 0 || GetActiveWindow()==hWnd))
 				{
 					Clear_Primary_Screen(HWnd);
 					Flip(hWnd);
@@ -2723,8 +2723,13 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PROMPT), hWnd, (DLGPROC) PromptAVISplitProc);
 					}
 					return 0;
-				case ID_CHANGE_AVIRATIO:
-					AVICorrect256AspectRatio = !AVICorrect256AspectRatio;
+				case ID_CHANGE_AVIFITHEIGHT:
+					AVIHeight224IfNotPAL = !AVIHeight224IfNotPAL;
+					Build_Main_Menu();
+					return 0;
+				case ID_CHANGE_256RATIO:
+					Correct_256_Aspect_Ratio = !Correct_256_Aspect_Ratio;
+					InvalidateRect(hWnd, NULL, FALSE);
 					Build_Main_Menu();
 					return 0;
 				case ID_GRAPHICS_SYNC_AVI_MOVIE:
@@ -4740,15 +4745,13 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
 
 	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1))
-	{
 		MENU_L(Graphics, i++, Flags | MF_UNCHECKED | MF_GRAYED, ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
-	}
 	else
-	{
 		MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
-	}
 
-	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd // Modif N: removed reference to VBA
+	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd
+
+	MENU_L(Graphics, i++, Flags | (Correct_256_Aspect_Ratio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_256RATIO, "Proper Aspect Ratio in low-res mode", "", "Proper Aspect Ratio in low-res mode");
 
 	MENU_L(Graphics, i++, Flags, ID_GRAPHICS_COLOR_ADJUST, "Color", "", "&Color Adjust...");
 	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsRender, "Render", "", "&Render");
@@ -5071,7 +5074,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Movies_Tracks,i++,Flags,ID_MOVIE_CHANGETRACK_ALL,"All Players","\tCtrl-Shift-0","&All Players"); //Modif
 	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK1) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_1,"Player 1","\tCtrl-Shift-1","Players &1"); //Modif
 	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK2) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_2,"Player 2","\tCtrl-Shift-2","Players &2"); //Modif
-	MENU_L(Movies_Tracks,i++,Flags | (MainMovie.TriplePlayerHack ? MF_ENABLED : MF_DISABLED) | ((track & TRACK3) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_3,"Player 3","\tCtrl-Shift-3","Players &3"); //Modif
+	MENU_L(Movies_Tracks,i++,Flags | (MainMovie.TriplePlayerHack ? MF_ENABLED : MF_DISABLED|MF_GRAYED) | ((track & TRACK3) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_3,"Player 3","\tCtrl-Shift-3","Players &3"); //Modif
  	//Upth-Add - Menu Tools_AVI
 	i = 0;
 	MENU_L(Tools_AVI, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
@@ -5079,7 +5082,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Tools_AVI, i++, Flags | (AVIWaitMovie ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SYNC_AVI_MOVIE, "Sync AVI with movie", "", "S&ync AVI with movie");
 	MENU_L(Tools_AVI, i++, Flags | (AVISound ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_AVI_SOUND, "Add sound to AVI", "", "&Add sound to AVI");
 	MENU_L(Tools_AVI, i++, Flags | (CleanAvi ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_CLEANAVI, "Clean AVI screen", "", "&Clean AVI screen");
-	MENU_L(Tools_AVI, i++, Flags | (AVICorrect256AspectRatio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_AVIRATIO, "Proper aspect ratio", "", "Proper aspect ratio");
+	MENU_L(Tools_AVI, i++, Flags | (AVIHeight224IfNotPAL ? MF_CHECKED : MF_UNCHECKED) | (!AVIRecording ? MF_ENABLED : MF_DISABLED|MF_GRAYED), ID_CHANGE_AVIFITHEIGHT, "Fit AVI to game height", "", "&Fit AVI to game height");
 	if(AVISplit > 0) wsprintf(Str_Tmp ,"Split AVI after... (%d MB)", AVISplit);
 	else strcpy(Str_Tmp ,"Split AVI after...");
 	MENU_L(Tools_AVI, i++, Flags | ((AVISplit>0) ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_AVISPLIT, Str_Tmp, "", Str_Tmp);

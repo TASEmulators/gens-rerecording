@@ -64,15 +64,8 @@ void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
 int (*Update_Frame)();
 int (*Update_Frame_Fast)();
 
-// Modif N. -- added
-#define CORRECT_256_ASPECT_RATIO
-#ifndef CORRECT_256_ASPECT_RATIO
-	// actually wrong, the genesis image is not supposed to get thinner in this mode
-	#define ALT_X_RATIO_RES 256
-#else
-	// keep same aspect ratio as 320x240
-	#define ALT_X_RATIO_RES 320
-#endif
+int Correct_256_Aspect_Ratio = 1;
+#define ALT_X_RATIO_RES (Correct_256_Aspect_Ratio ? 320 : 256)
 
 #define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
 #define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount)
@@ -1487,10 +1480,10 @@ int Flip(HWND hWnd)
 		else
 		{
 			LPDIRECTDRAWSURFACE4 curBlit = lpDDS_Blit;
-#ifdef CORRECT_256_ASPECT_RATIO
-			if(!IS_FULL_X_RESOLUTION)
-				curBlit = lpDDS_Back; // have to use it or the aspect ratio will be way off
-#endif
+			if(Correct_256_Aspect_Ratio)
+				if(!IS_FULL_X_RESOLUTION)
+					curBlit = lpDDS_Back; // have to use it or the aspect ratio will be way off
+
 			rval = curBlit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
 			if (FAILED(rval)) goto cleanup_flip;
@@ -1499,7 +1492,7 @@ int Flip(HWND hWnd)
 
 			curBlit->Unlock(NULL);
 
-			if (curBlit == lpDDS_Back) // note: this can happen in windowed fullscreen, or if CORRECT_256_ASPECT_RATIO is defined and the current display mode is 256 pixels across
+			if (curBlit == lpDDS_Back) // note: this can happen in windowed fullscreen, or if Correct_256_Aspect_Ratio is defined and the current display mode is 256 pixels across
 			{
 				RectDest.left = 0;
 				RectDest.top = 0;
@@ -2279,15 +2272,7 @@ int Show_Genesis_Screen()
 
 int Take_Shot()
 {
-	int top = (IS_FULL_Y_RESOLUTION) ? 0 : 8;
-	int bottom = (IS_FULL_Y_RESOLUTION) ? 240 : 224+8;
-	int left = (IS_FULL_X_RESOLUTION) ? 0 : 32;
-	int right = (IS_FULL_X_RESOLUTION) ? 320 : 256+32;
-
-	if(Bits32)
-		return Save_Shot((unsigned char *) (MD_Screen32 + 8), 2, right - left, bottom - top, 336 * 4);
-	else
-		return Save_Shot((unsigned char *) (MD_Screen + 8), Mode_555 & 1, right - left, bottom - top, 336 * 2);
+	return Save_Shot(Bits32?(unsigned char*)MD_Screen32:(unsigned char*)MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION);
 }
 
 
