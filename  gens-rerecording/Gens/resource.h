@@ -45,6 +45,8 @@
 #define IDR_ACCELERATOR1                148
 #define IDD_LUA                         149
 #define IDI_LUA                         150
+#define IDD_EDITWATCH1                  150
+#define IDD_ARCHIVEFILECHOOSER          150
 #define IDC_STATIC_WARNING_BITMAP       1000
 #define IDC_JOYINFO1                    1001
 #define IDC_JOYINFO2                    1002

@@ -59,8 +59,8 @@
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="directx"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="directx; 7z\CPP"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;EXTRACT_ONLY;_NO_CRYPTO"
 				StringPooling="true"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -85,7 +85,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
+				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj; /LTCG"
 				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
 				OutputFile=".\Release/gens.exe"
 				LinkIncremental="1"
@@ -163,8 +163,8 @@
 				Optimization="0"
 				InlineFunctionExpansion="0"
 				EnableIntrinsicFunctions="false"
-				AdditionalIncludeDirectories="directx"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="directx; 7z\CPP"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;EXTRACT_ONLY;_NO_CRYPTO"
 				StringPooling="false"
 				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
@@ -237,6 +237,10 @@
 			Name="C/C++ Sources"
 			Filter=".c;.cpp"
 			>
+			<File
+				RelativePath=".\7zip.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\AVIWrite.cpp"
 				>
@@ -604,6 +608,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\OpenArchive.cpp"
+				>
 			</File>
 			<File
 				RelativePath=".\ParseCmdLine.cpp"
@@ -1386,6 +1394,14 @@
 			Filter=".h"
 			>
 			<File
+				RelativePath=".\7zip.h"
+				>
+			</File>
+			<File
+				RelativePath=".\7zipstreams.h"
+				>
+			</File>
+			<File
 				RelativePath=".\AVIWrite.h"
 				>
 			</File>
@@ -1535,6 +1551,10 @@
 			</File>
 			<File
 				RelativePath="net.h"
+				>
+			</File>
+			<File
+				RelativePath=".\OpenArchive.h"
 				>
 			</File>
 			<File
@@ -1771,7 +1791,7 @@
 			</File>
 		</Filter>
 		<Filter
-			Name="Lua"
+			Name="LibLua"
 			>
 			<File
 				RelativePath=".\lua\src\lapi.c"

@@ -32,7 +32,7 @@ struct ControlLayoutState
 	ControlLayoutState() : valid(false) {}
 };
 
-ControlLayoutInfo controlLayoutInfos [] = {
+static ControlLayoutInfo controlLayoutInfos [] = {
 	{IDC_LUACONSOLE, ControlLayoutInfo::RESIZE_END, ControlLayoutInfo::RESIZE_END},
 	{IDC_EDIT_LUAPATH, ControlLayoutInfo::RESIZE_END, ControlLayoutInfo::NONE},
 	{IDC_BUTTON_LUARUN, ControlLayoutInfo::MOVE_START, ControlLayoutInfo::NONE},

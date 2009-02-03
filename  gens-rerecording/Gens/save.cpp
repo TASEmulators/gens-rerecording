@@ -2089,6 +2089,7 @@ int Save_Config(char *File_Name)
 
 	wsprintf(Str_Tmp, "%d", File_Type_Index);
 	WritePrivateProfileString("General", "File type index", Str_Tmp, Conf_File);
+	WritePrivateProfileString("General", "File type index version", "1", Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Current_State);
 	WritePrivateProfileString("General", "State Number", Str_Tmp, Conf_File);
@@ -2618,6 +2619,10 @@ int Load_Config(char *File_Name, void *Game_Active)
 	}
 
 	File_Type_Index = GetPrivateProfileInt("General", "File type index", 1, Conf_File);
+
+	int File_Type_Index_Version = GetPrivateProfileInt("General", "File type index version", 0, Conf_File);
+	if(File_Type_Index_Version == 0 && File_Type_Index == 5)
+		File_Type_Index = 8;
 
 	Current_State = GetPrivateProfileInt("General", "State Number", 0, Conf_File);
 	Language = GetPrivateProfileInt("General", "Language", 0, Conf_File);
