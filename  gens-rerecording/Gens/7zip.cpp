@@ -117,7 +117,6 @@ ArchiveFile::ArchiveFile(const char* filename)
 	assert(!s_formatInfos.empty());
 
 	m_typeIndex = -1;
-	m_offset = 0;
 	m_numItems = 0;
 	m_items = NULL;
 	m_filename = NULL;
@@ -148,35 +147,22 @@ ArchiveFile::ArchiveFile(const char* filename)
 	}
 
 	// if no signature match has been found, detect archive type using filename.
-	// this is mainly to catch signature-less formats
+	// this is only for signature-less formats
 	const char* fileExt = strrchr(filename, '.');
 	if(fileExt++)
 	{
 		for(size_t i = 0; i < s_formatInfos.size() && m_typeIndex < 0; i++)
 		{
-			std::vector<std::string>& formatExts = s_formatInfos[i].extensions;
-			for(size_t j = 0; j < formatExts.size(); j++)
+			if(s_formatInfos[i].signature.empty())
 			{
-				if(!_stricmp(formatExts[j].c_str(), fileExt))
+				std::vector<std::string>& formatExts = s_formatInfos[i].extensions;
+				for(size_t j = 0; j < formatExts.size(); j++)
 				{
-					// extension matched,
-					// but make sure the file contains the signature somewhere in it:
-					fseek(file, 0, SEEK_SET);
-					int curOffset = 0;
-					std::string& formatSig = s_formatInfos[i].signature;
-					const char* formatSigPtr = formatSig.c_str();
-					while(*formatSigPtr && !feof(file) && !ferror(file))
+					if(!_stricmp(formatExts[j].c_str(), fileExt))
 					{
-						curOffset++;
-						if((char)fgetc(file) == *formatSigPtr)
-							formatSigPtr++;
-						else
-							m_offset = curOffset;
+						m_typeIndex = i;
+						break;
 					}
-					if(*formatSigPtr)
-						m_offset = 0;
-					else
-						{m_typeIndex = i; break;}
 				}
 			}
 		}

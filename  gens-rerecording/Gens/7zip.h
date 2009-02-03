@@ -31,7 +31,6 @@ protected:
 	ArchiveItem* m_items;
 	int m_numItems;
 	int m_typeIndex;
-	int m_offset;
 	char* m_filename;
 };
 
