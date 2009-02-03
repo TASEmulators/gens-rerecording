@@ -8,6 +8,7 @@
 #define _32X_ROM         4
 #define SEGACD_IMAGE     6
 #define SEGACD_32X_IMAGE 8
+#define COMPRESSED_IMAGE 10
 
 
 #ifdef __cplusplus
@@ -58,7 +59,7 @@ int Pre_Load_Rom(HWND hWnd, const char *Name);
 int Load_Rom_CC(char *Name, int Size);
 struct Rom *Load_Bios(HWND hWnd, char *Name);
 struct Rom *Load_Rom(HWND hWnd, char *Name, int inter);
-struct Rom *Load_Rom_Zipped(HWND hWnd, char *Name, int inter);
+//struct Rom *Load_Rom_Zipped(HWND hWnd, char *Name, int inter);
 void Fix_Checksum(void);
 unsigned int Calculate_CRC32(void);
 int IPS_Patching();

@@ -44,6 +44,7 @@
 #include "movie.h"
 #include "ramwatch.h"
 #include "luascript.h"
+#include "luascript.h"
 #include "ParseCmdLine.h"
 #include <errno.h>
 #include <vector>
@@ -52,6 +53,8 @@
 #include <fcntl.h>
 #include <ios>
 #endif
+#include "7zip.h"
+#include "OpenArchive.h"
 
 extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
@@ -1713,6 +1716,8 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 
 	timeBeginPeriod(1);
 
+	InitDecoder();
+
 	Net_Play = 0;
 	Full_Screen = -1;
 	VDP_Num_Vis_Lines = 224;
@@ -1877,6 +1882,8 @@ void End_All(void)
 	if(MainMovie.File!=NULL)
 		CloseMovieFile(&MainMovie);
 	Close_AVI();
+
+	CleanupDecoder();
 
 	timeEndPeriod(1);
 }
@@ -3317,6 +3324,8 @@ dialogAgain: //Nitsuja added this
 						if (Full_Screen) Set_Render(hWnd, 0, -1, true);
 					}
 					Free_Rom(Game);
+					ReleaseTempFileCategory("rom"); // delete the old temporary file if any
+					ReleaseTempFileCategory("bios"); // delete the old temporary file if any
 					Build_Main_Menu();
 					FrameCount=0;
 					LagCount = 0;
@@ -4701,25 +4710,36 @@ HMENU Build_Main_Menu(void)
 					strcpy(tmp, "[---]    - "); // does not exist anymore
 					break;
 
-				case 1:
+				case GENESIS_ROM >> 1:
 					strcpy(tmp, "[MD]   - ");
 					break;
 
-				case 2:
+				case _32X_ROM >> 1:
 					strcpy(tmp, "[32X]  - ");
 					break;
 
-				case 3:
+				case SEGACD_IMAGE >> 1:
 					strcpy(tmp, "[SCD] - ");
 					break;
 
-				case 4:
+				case SEGACD_32X_IMAGE >> 1:
 					strcpy(tmp, "[SCDX] - ");
+					break;
+
+				case COMPRESSED_IMAGE >> 1:
+					strcpy(tmp, "[ZIP]  - ");
 					break;
 			}
 
 			Get_Name_From_Path(Recent_Rom[i], Str_Tmp);
 			strcat(tmp, Str_Tmp);
+
+			// & is an escape sequence in windows menu names, so replace & with &&
+			int len = strlen(tmp);
+			for(int j = 0; j < len && len < 1023; j++)
+				if(tmp[j] == '&')
+					memmove(tmp+j+1, tmp+j, strlen(tmp+j)+1), ++len, ++j;
+
 			MENU_L(FilesHistory, i, Flags, ID_FILES_OPENRECENTROM0 + i, tmp, "", tmp);
 
 		}

@@ -21,6 +21,9 @@
 #include "wave.h"
 #include "cd_file.h"
 #include "luascript.h"
+#include "7zip.h"
+#include "OpenArchive.h"
+#include <assert.h>
 
 
 int File_Type_Index;
@@ -44,7 +47,7 @@ void Get_Name_From_Path(char *Full_Path, char *Name)
 
 	i = strlen(Full_Path) - 1;
 
-	while ((i >= 0) && (Full_Path[i] != '\\')) i--;
+	while ((i >= 0) && (Full_Path[i] != '\\') && (Full_Path[i] != '/') && (Full_Path[i] != '|')) i--;
 
 	if (i <= 0)
 	{
@@ -63,7 +66,7 @@ void Get_Dir_From_Path(char *Full_Path, char *Dir)
 
 	i = strlen(Full_Path) - 1;
 
-	while ((i >= 0) && (Full_Path[i] != '\\')) i--;
+	while ((i >= 0) && (Full_Path[i] != '\\') && (Full_Path[i] != '/') && (Full_Path[i] != '|')) i--;
 
 	if (i <= 0)
 	{
@@ -119,7 +122,7 @@ void Update_Rom_Name(char *Name)
 
 	leng = strlen(Name) - 1;
 
-	while ((leng >= 0) && (Name[leng] != '\\')) leng--;
+	while ((leng >= 0) && (Name[leng] != '\\')&& (Name[leng] != '/')&& (Name[leng] != '|')) leng--;
 
 	leng++; i = 0;
 
@@ -161,17 +164,19 @@ void Update_CD_Rom_Name(char *Name)
 }
 
 
-int Detect_Format(char *Name)
+int Detect_Format(char *FileName)
 {
-	FILE *f;
-	unzFile zf;
-	unz_file_info zinf;
 	int i;
-	char buf[1024], zname[256];
 	
+	char Name [1024];
+	strncpy(Name, FileName, 1024);
+	Name[1023] = '\0';
+	char* bar = strchr(Name, '|');
+	if(bar)
+		*bar = '\0';
+
 	SetCurrentDirectory(Gens_Path);
 
-	memset(buf, 0, 1024);
 
 	if (strlen(Name) > 3 && (!stricmp("CUE", &Name[strlen(Name) - 3])))
 	{
@@ -182,46 +187,39 @@ int Detect_Format(char *Name)
 			return Detect_Format(isoname);
 	}
 
-	if (strlen(Name) > 3 && ((!stricmp("ZIP", &Name[strlen(Name) - 3])) || (!stricmp("ZSG", &Name[strlen(Name) - 3]))))
 	{
-		zf = unzOpen(Name);
-	
-		if (!zf) return -1;
-
-		i = unzGoToFirstFile(zf);
-
-		while (i == UNZ_OK)
+		ArchiveFile archive (Name);
+		if(archive.IsCompressed())
 		{
-			unzGetCurrentFileInfo(zf, &zinf, zname, 128, NULL, 0, NULL, 0);
+			// we could find out exactly what type the ROM inside the archive is,
+			// but that potentially involves decompressing many megabytes of data,
+			// which would be bad because Detect_Format gets called very often.
+			// if a completely accurate result is needed, use ObtainFile() before calling Detect_Format().
 
-			if ((!strnicmp("SMD", &zname[strlen(zname) - 3], 3)) || (!strnicmp("BIN", &zname[strlen(zname) - 3], 3))  || (!strnicmp("GEN", &zname[strlen(zname) - 3], 3)) || (!strnicmp("32X", &zname[strlen(zname) - 3], 3)) || (!strnicmp("ISO", &zname[strlen(zname) - 3], 3)))
-			{
-				i = 0;
-				break;
-			}
+			// guess based on filename/extension
+			const char* dot = strrchr(FileName, '.');
+			const char* fname = FileName;
+			if(strrchr(fname, '\\')) fname = strrchr(fname, '\\') + 1;
+			if(strrchr(fname, '/')) fname = strrchr(fname, '/') + 1;
+			if(strrchr(fname, '|')) fname = strrchr(fname, '|') + 1;
+			if(dot && (!stricmp(dot, ".cue") || !stricmp(dot, ".iso") || !stricmp(dot, ".raw")))
+				return SEGACD_IMAGE;
+			if(dot && (!stricmp(dot, ".smd") || !stricmp(dot, ".gen")))
+				return GENESIS_ROM;
+			if((dot && !stricmp(dot, ".32x")) || strstr(fname, "32x") || strstr(fname, "32X"))
+				return _32X_ROM;
+			if(dot && (!stricmp(dot, ".bin")))
+				return GENESIS_ROM;
 
-			i = unzGoToNextFile(zf);
+			return COMPRESSED_IMAGE;
 		}
-
-		if (i) return 0;
-		if (unzLocateFile(zf, zname, 1) != UNZ_OK) return 0;
-		if (unzOpenCurrentFile(zf) != UNZ_OK) return 0;
-
-		unzReadCurrentFile(zf, buf, 1024);
-
-		unzCloseCurrentFile(zf);
-		unzClose(zf);
 	}
-	else
+
+	char buf [1024] = {0};
 	{
-		strcpy(zname, Name);
-
-		f = *zname ? fopen(zname, "rb") : NULL;
-
+		FILE *f = *Name ? fopen(Name, "rb") : NULL;
 		if (f == NULL) return -1;
-
 		fread(buf, 1, 1024, f);
-
 		fclose(f);
 	}
 
@@ -240,12 +238,12 @@ int Detect_Format(char *Name)
 
 	if (i)		// interleaved
 	{
-		if ((!strnicmp("32X", &zname[strlen(zname) - 3], 3)) && (buf[0x200 / 2] == 0x4E)) return _32X_ROM + 1;
+		if ((!strnicmp("32X", &Name[strlen(Name) - 3], 3)) && (buf[0x200 / 2] == 0x4E)) return _32X_ROM + 1;
 		if (!strnicmp("3X", &buf[0x200 + (0x105 / 2)], 2)) return _32X_ROM + 1;
 	}
 	else
 	{
-		if ((!strnicmp("32X", &zname[strlen(zname) - 3], 3)) && (buf[0x200] == 0x4E)) return _32X_ROM;
+		if ((!strnicmp("32X", &Name[strlen(Name) - 3], 3)) && (buf[0x200] == 0x4E)) return _32X_ROM;
 		if (!strnicmp("32X", &buf[0x105], 3)) return _32X_ROM;
 	}
 
@@ -357,6 +355,17 @@ void Fill_Infos(void)
 }
 
 
+
+// some extensions that might commonly be near ROM files that almost certainly aren't ROM files.
+static const char* s_nonRomExtensions [] = {"txt", "nfo", "htm", "html", "jpg", "jpeg", "png", "bmp", "gif", "mp3", "wav", "lnk", "exe", "bat", "gmv", "gm2", "lua", "luasav", "sav", "srm", "brm", "cfg", "wch", "gs*"};
+// question: why use exclusion instead of inclusion?
+// answer: because filename extensions aren't that reliable.
+// if it's one of these extensions then it's probably safe to assume it's not a ROM,
+// but if it isn't one of these then it's best to ask the user or check the file contents,
+// in case it's a valid ROM or a valid ROM-containing archive with an unknown extension.
+
+
+
 int Get_Rom(HWND hWnd)
 {
 	char Name[1024];
@@ -375,7 +384,38 @@ int Get_Rom(HWND hWnd)
 	ofn.nMaxFile = 1023;
 	ofn.lpstrTitle = "Open ROM";
 
-	ofn.lpstrFilter = "Sega CD / 32X / Genesis files\0*.bin;*.smd;*.gen;*.32x;*.cue;*.iso;*.raw;*.zip;*.zsg\0Genesis roms (*.smd *.bin *.gen *.zip *.zsg)\0*.smd;*.bin;*.gen;*.zip;*.zsg\00032X roms (*.32x *.zip)\0*.32x;*.zip\0Sega CD images (*.cue *.iso *.bin *.raw)\0*.cue;*.iso;*.bin;*.raw\0All Files\0*.*\0\0";
+	const char* supportedArchives = GetSupportedFormatsFilter();
+
+	char filterString [2048];
+	char* filterPtr = filterString;
+	#define APPEND_FILTER(x) filterPtr += 1 + sprintf(filterPtr, "%s", x)
+	#define EXTEND_FILTER(x) filterPtr--; APPEND_FILTER(x)
+
+	APPEND_FILTER("Sega CD / 32X / Genesis files");
+	APPEND_FILTER("*.bin;*.smd;*.gen;*.32x;*.cue;*.iso;*.raw");
+	EXTEND_FILTER(supportedArchives);
+	APPEND_FILTER("Genesis roms (*.smd *.bin *.gen)");
+	APPEND_FILTER("*.smd;*.bin;*.gen");
+	EXTEND_FILTER(supportedArchives);
+	APPEND_FILTER("32X roms (*.32x)");
+	APPEND_FILTER("*.32x;*32x*.bin;*32x*.gen;*32x*.smd");
+	EXTEND_FILTER(supportedArchives);
+	APPEND_FILTER("Sega CD images (*.cue *.iso *.bin *.raw)");
+	APPEND_FILTER("*.cue;*.iso;*.bin;*.raw");
+	EXTEND_FILTER(supportedArchives); // not recommended for SegaCD but it should work to some degree...
+	APPEND_FILTER("Compressed only");
+	APPEND_FILTER(supportedArchives + 1);
+	APPEND_FILTER("Uncompressed only");
+	APPEND_FILTER("*.bin;*.smd;*.gen;*.32x;*.cue;*.iso;*.raw");
+	APPEND_FILTER("Tagged with [!]");
+	APPEND_FILTER("*[!]*.bin;*[!]*.smd;*[!]*.gen;*[!]*.32x;*[!]*.cue;*[!]*.iso;*[!]*.raw;*[!]*.zip;*[!]*.rar;*[!]*.7z");
+	APPEND_FILTER("All Files");
+	APPEND_FILTER("*.*");
+	APPEND_FILTER("");
+
+	#undef APPEND_FILTER
+	assert((filterPtr - filterString) < sizeof(filterString));
+	ofn.lpstrFilter = filterString;
 
 	ofn.nFilterIndex = File_Type_Index;
 	ofn.lpstrInitialDir = Rom_Dir;
@@ -384,9 +424,15 @@ int Get_Rom(HWND hWnd)
 
 	if (GetOpenFileName(&ofn) == NULL) return 0;
 
-	Free_Rom(Game);
 
-	sys = Detect_Format(Name);
+	char LogicalName[1024], PhysicalName[1024];
+	if(!ObtainFile(Name, LogicalName, PhysicalName, "rom", s_nonRomExtensions, sizeof(s_nonRomExtensions)/sizeof(*s_nonRomExtensions)))
+		return 0;
+
+	Free_Rom(Game);
+	ReleaseTempFileCategory("rom", PhysicalName); // delete the old temporary file if any
+
+	sys = Detect_Format(PhysicalName);
 
 	if (sys < 1) return -1;
 
@@ -398,19 +444,14 @@ int Get_Rom(HWND hWnd)
 		sys |= (File_Type_Index - 1) << 1;
 	}
 
-	Update_Recent_Rom(Name);
-	Update_Rom_Dir(Name);
+	Update_Recent_Rom(LogicalName);
+	Update_Rom_Dir(LogicalName);
+	Update_Rom_Name(LogicalName);
 
 	if ((sys >> 1) < 3)		// Have to load a rom
 	{
-		if ((!stricmp("ZIP", &Name[strlen(Name) - 3])) || (!stricmp("ZSG", &Name[strlen(Name) - 3])))
-		{
-			Game = Load_Rom_Zipped(hWnd, Name, sys & 1);
-		}
-		else
-		{
-			Game = Load_Rom(hWnd, Name, sys & 1);
-		}
+		Game = Load_Rom(hWnd, PhysicalName, sys & 1);
+		ReleaseTempFileCategory("rom"); // delete the temp file right away since it's fully in memory now
 	}
 
 	switch (sys >> 1)
@@ -429,7 +470,7 @@ int Get_Rom(HWND hWnd)
 			break;
 
 		case 3:		// Sega CD image
-			SegaCD_Started = Init_SegaCD(Name);
+			SegaCD_Started = Init_SegaCD(PhysicalName);
 			Build_Main_Menu();
 			return SegaCD_Started;
 			break;
@@ -447,37 +488,29 @@ int Pre_Load_Rom(HWND hWnd, const char *NameTemp)
 	char Name [1024];
 	strncpy(Name, NameTemp, 1024);
 
-	HANDLE Rom_File;
 	int sys;
 
 	SetCurrentDirectory(Gens_Path);
 
-	Rom_File = CreateFile(Name, GENERIC_READ, FILE_SHARE_READ, 
-		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-	if (Rom_File == INVALID_HANDLE_VALUE) return 0;
-
-	CloseHandle(Rom_File);
+	char LogicalName[1024], PhysicalName[1024];
+	if(!ObtainFile(Name, LogicalName, PhysicalName, "rom", s_nonRomExtensions, sizeof(s_nonRomExtensions)/sizeof(*s_nonRomExtensions)))
+		return 0;
 
 	Free_Rom(Game);
+	ReleaseTempFileCategory("rom", PhysicalName); // delete the old temporary file if any
 
-	sys = Detect_Format(Name);
+	sys = Detect_Format(PhysicalName);
 
 	if (sys < 1) return -1;
 
-	Update_Recent_Rom(Name);
-	Update_Rom_Dir(Name);
+	Update_Recent_Rom(LogicalName);
+	Update_Rom_Dir(LogicalName);
+	Update_Rom_Name(LogicalName);
 
 	if ((sys >> 1) < 3)		// Have to load a rom
 	{
-		if ((!stricmp("ZIP", &Name[strlen(Name) - 3])) || (!stricmp("ZSG", &Name[strlen(Name) - 3])))
-		{
-			Game = Load_Rom_Zipped(hWnd, Name, sys & 1);
-		}
-		else
-		{
-			Game = Load_Rom(hWnd, Name, sys & 1);
-		}
+		Game = Load_Rom(hWnd, PhysicalName, sys & 1);
+		ReleaseTempFileCategory("rom"); // delete the temp file right away since it's fully in memory now
 	}
 
 	switch (sys >> 1)
@@ -496,7 +529,7 @@ int Pre_Load_Rom(HWND hWnd, const char *NameTemp)
 			break;
 
 		case 3:		// Sega CD image
-			SegaCD_Started = Init_SegaCD(Name);
+			SegaCD_Started = Init_SegaCD(PhysicalName);
 			Build_Main_Menu();
 			return SegaCD_Started;
 			break;
@@ -534,71 +567,44 @@ int Load_Rom_CC(char *Name, int Size)
 
 Rom *Load_Bios(HWND hWnd, char *Name)
 {
-	HANDLE Rom_File;
-
 	SetCurrentDirectory(Gens_Path);
 
-	Rom_File = CreateFile(Name, GENERIC_READ, FILE_SHARE_READ, 
-		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-	if (Rom_File == INVALID_HANDLE_VALUE) return NULL;
-	CloseHandle(Rom_File);
+	char LogicalName[1024], PhysicalName[1024];
+	if(!ObtainFile(Name, LogicalName, PhysicalName, "bios", s_nonRomExtensions, sizeof(s_nonRomExtensions)/sizeof(*s_nonRomExtensions)))
+		return 0;
 
 	Free_Rom(Game);
+	ReleaseTempFileCategory("bios", PhysicalName); // delete the old temporary file if any
 
-	if (!stricmp("ZIP", &Name[strlen(Name) - 3]))
-		return(Game = Load_Rom_Zipped(hWnd, Name, 0));
-	else
-		return(Game = Load_Rom(hWnd, Name, 0));
+	Game = Load_Rom(hWnd, PhysicalName, 0);
+	ReleaseTempFileCategory("bios"); // delete the temp file right away since it's fully in memory now
+
+	return Game;
 }
-
 
 Rom *Load_Rom(HWND hWnd, char *Name, int inter)
 {
-	HANDLE Rom_File;
-	BY_HANDLE_FILE_INFORMATION File_Inf;
-	int Size = 0;
-	int bResult;
-	unsigned long Bytes_Read;
-
 	SetCurrentDirectory(Gens_Path);
 
-	Rom_File = CreateFile(Name, GENERIC_READ, FILE_SHARE_READ, 
-		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	memset(Rom_Data, 0, sizeof(Rom_Data));
+	Rom_Size = 0;
 
-	if (Rom_File == INVALID_HANDLE_VALUE)
+	FILE* file = fopen(Name, "rb");
+	if(file)
 	{
-		Game = NULL;
-		return(NULL);
-	}
-	
-	if (GetFileInformationByHandle(Rom_File, &File_Inf))
-		Size = (File_Inf.nFileSizeHigh << 16) + File_Inf.nFileSizeLow + 65536;
-
-	if ((Size - 65536) > ((6 * 1024 * 1024) + 512))
-	{
-		Game = NULL;
-		CloseHandle(Rom_File);
-		return(NULL);
+		fseek(file, 0, SEEK_END);
+		int len = ftell(file);
+		fseek(file, 0, SEEK_SET);
+		if(len <= sizeof(Rom_Data))
+			Rom_Size = fread(Rom_Data, 1, len, file);
+		fclose(file);
 	}
 
 	My_Rom = (Rom*) malloc(sizeof(Rom));
+	// freed later in Free_Rom
 
-	if (!My_Rom)
-	{
-		Game = NULL;
-		CloseHandle(Rom_File);
-		return(NULL);
-	}
-
-	memset(Rom_Data, 0, 6 * 1024 * 1024);
-	bResult = ReadFile(Rom_File, Rom_Data, Size, &Bytes_Read, NULL);
-
-	CloseHandle(Rom_File);
-
-	Update_Rom_Name(Name);
-
-	Rom_Size = Size - 65536;
+	if(!Rom_Size || !My_Rom)
+		return NULL;
 
 	if (inter) De_Interleave();
 
@@ -607,136 +613,6 @@ Rom *Load_Rom(HWND hWnd, char *Name, int inter)
 	return My_Rom;
 }
  
-
-Rom *Load_Rom_Zipped(HWND hWnd, char *Name, int inter)
-{
-	int Size = 0;
-	int bResult;
-	int Current;
-	char Tmp[256];
-	char File_Name[132];
-	unz_file_info Infos;
-	unzFile Rom_File;
-
-	SetCurrentDirectory(Gens_Path);
-
-	Rom_File = unzOpen(Name);
-	
-	if (!Rom_File)
-	{
-		Game = NULL;
-		return(NULL);
-	}
-
-	Current = unzGoToFirstFile(Rom_File);
-
-	while (Current == UNZ_OK)
-	{
-		unzGetCurrentFileInfo(Rom_File, &Infos, File_Name, 128, NULL, 0, NULL, 0);
-
-		if ((!strnicmp(".SMD", File_Name + strlen(File_Name) - 4, 4)) || (!strnicmp(".BIN", File_Name + strlen(File_Name) - 4, 4))  || (!strnicmp(".GEN", File_Name + strlen(File_Name) - 4, 4)) || (!strnicmp(".32X", File_Name + strlen(File_Name) - 4, 4)))
-		{
-			Size = Infos.uncompressed_size;
-			break;
-		}
-
-		Current = unzGoToNextFile(Rom_File);
-	}
-
-	if ((Current != UNZ_END_OF_LIST_OF_FILE) && (Current != UNZ_OK) || (!Size))
-	{
-
-		MessageBox(hWnd, "No genesis or 32X roms file found in zip\n", "Error", MB_OK);
-
-		unzClose(Rom_File);
-		Game = NULL;
-		return(NULL);
-	}
-
-	if (Size > ((6 * 1024 * 1024) + 512))
-	{
-		unzClose(Rom_File);
-		Game = NULL;
-		return(NULL);
-	}
-
-	if (unzLocateFile(Rom_File, File_Name, 1) != UNZ_OK)
-	{
-		unzClose(Rom_File);
-		Game = NULL;
-		return NULL;
-	}
-	
-	if (unzOpenCurrentFile(Rom_File) != UNZ_OK)
-	{
-		unzClose(Rom_File);
-		Game = NULL;
-		return NULL;
-	}
-
-	My_Rom = (Rom*) malloc(sizeof(Rom));
-
-	if (!My_Rom)
-	{
-		unzClose(Rom_File);
-		Game = NULL;
-		return(NULL);
-	}
-
-	memset(Rom_Data, 0, 6 * 1024 * 1024);
-	bResult = unzReadCurrentFile(Rom_File, Rom_Data, Size);
-
-	unzCloseCurrentFile(Rom_File);
-
-	if ((bResult <= 0) || (bResult != Size))
-	{
-		sprintf(Tmp, "Error in zip file : \n");
-
-		switch(bResult)
-		{
-			case UNZ_ERRNO:
-				strcat(Tmp, "Unknow...");
-				break;
-
-			case UNZ_EOF:
-				strcat(Tmp, "Unexpected end of file.");
-				break;
-
-			case UNZ_PARAMERROR:
-				strcat(Tmp, "Parameter error.");
-				break;
-
-			case UNZ_BADZIPFILE:
-				strcat(Tmp, "Wrong zip file.");
-				break;
-
-			case UNZ_INTERNALERROR:
-				strcat(Tmp, "Internal error.");
-				break;
-
-			case UNZ_CRCERROR:
-				strcat(Tmp, "CRC error.");
-				break;
-		}
-
-		MessageBox(hWnd, Tmp, "Error", MB_OK);
-		unzClose(Rom_File);
-		Game = NULL;
-		return(NULL);
-	}	
-    
-	unzClose(Rom_File);
-
-	Update_Rom_Name(File_Name);
-
-	Rom_Size = Size;
-
-	if (inter) De_Interleave();
-
-	Fill_Infos();
-
-	return My_Rom;
-}
 
 
 unsigned short Calculate_Checksum(void)
@@ -891,3 +767,4 @@ void Free_Rom(Rom *Rom_MD)
 	
 	SetWindowText(HWnd, "Gens - Idle");
 }
+

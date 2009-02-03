@@ -2512,11 +2512,11 @@ void Reset_SegaCD()
 	//Paused = 0; //Modif-Upthorn: Commented out the auto-unpause. It can sometimes be useful to input on the first frame.
 	BRAM_Ex_State &= 0x100;
 
-	if (!stricmp("ZIP", &Bios_To_Use[strlen(Bios_To_Use) - 3]))
-	{
-		Game = Load_Rom_Zipped(HWnd, Bios_To_Use, 0);
-	}
-	else
+	//if (!stricmp("ZIP", &Bios_To_Use[strlen(Bios_To_Use) - 3]))
+	//{
+	//	Game = Load_Rom_Zipped(HWnd, Bios_To_Use, 0);
+	//}
+	//else
 	{
 		Game = Load_Rom(HWnd, Bios_To_Use, 0);
 	}
