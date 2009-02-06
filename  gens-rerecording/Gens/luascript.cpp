@@ -150,6 +150,8 @@ void SetLoadKey(LuaContextInfo& info, const char* key);
 void RefreshScriptStartedStatus();
 void RefreshScriptSpeedStatus();
 
+static char* rawToCString(lua_State* L, int idx=0);
+
 int add_memory_proc (int *list, int addr, int &numprocs)
 {
 	if (numprocs >= 16) return 1;
@@ -295,13 +297,12 @@ int gui_register(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-static const char* toCString(lua_State* L, int i);
 int state_registersave(lua_State* L)
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
 	if (!lua_isnoneornil(L,2))
-		SetSaveKey(GetCurrentInfo(), toCString(L,2));
+		SetSaveKey(GetCurrentInfo(), rawToCString(L,2));
 	lua_settop(L,1);
 	lua_getfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_BEFORESAVE]);
 	lua_insert(L,1);
@@ -314,7 +315,7 @@ int state_registerload(lua_State* L)
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
 	if (!lua_isnoneornil(L,2))
-		SetLoadKey(GetCurrentInfo(), toCString(L,2));
+		SetLoadKey(GetCurrentInfo(), rawToCString(L,2));
 	lua_settop(L,1);
 	lua_getfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_AFTERLOAD]);
 	lua_insert(L,1);
@@ -383,7 +384,6 @@ static bool luaValueContentsDiffer(lua_State* L, int idx1, int idx2)
 	return (remaining1 != remaining2) || (strcmp(str1,str2) != 0);
 }
 
-static const char* toCString(lua_State* L);
 
 // fills output with the path
 // also returns a pointer to the first character in the filename (non-directory) part of the path
@@ -636,16 +636,34 @@ void worry(lua_State* L, int intensity)
 	info.worryCount += intensity;
 }
 
-static std::vector<const void*> s_tableAddressStack;
+static std::vector<const void*> s_tableAddressStack; // prevents infinite recursion of a table within a table (when cycle is found, print something like table:parent)
+static std::vector<const void*> s_metacallStack; // prevents infinite recursion if something's __tostring returns another table that contains that something (when cycle is found, print the inner result without using __tostring)
 
-#define APPENDPRINT { int n = snprintf(ptr, remaining,
-#define END ); if(n >= 0) { ptr += n; remaining -= n; } else { remaining = 0; } }
+#define APPENDPRINT { int _n = snprintf(ptr, remaining,
+#define END ); if(_n >= 0) { ptr += _n; remaining -= _n; } else { remaining = 0; } }
 static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 {
 	if(remaining <= 0)
 		return;
 
 	const char* str = ptr; // for debugging
+
+	// if there is a __tostring metamethod then call it
+	int usedMeta = luaL_callmeta(L, i, "__tostring");
+	if(usedMeta)
+	{
+		std::vector<const void*>::const_iterator foundCycleIter = std::find(s_metacallStack.begin(), s_metacallStack.end(), lua_topointer(L,i));
+		if(foundCycleIter != s_metacallStack.end())
+		{
+			lua_pop(L, 1);
+			usedMeta = false;
+		}
+		else
+		{
+			s_metacallStack.push_back(lua_topointer(L,i));
+			i = lua_gettop(L);
+		}
+	}
 
 	switch(lua_type(L, i))
 	{
@@ -654,6 +672,25 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
 		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
+		case LUA_TFUNCTION: 
+			if((L->base + i-1)->value.gc->cl.c.isC)
+				goto defcase;
+			else
+			{
+				APPENDPRINT "function(" END 
+				Proto* p = (L->base + i-1)->value.gc->cl.l.p;
+				int numParams = p->numparams + (p->is_vararg?1:0);
+				for (int n=0; n<p->numparams; n++)
+				{
+					APPENDPRINT "%s", getstr(p->locvars[n].varname) END 
+					if(n != numParams-1)
+						APPENDPRINT "," END
+				}
+				if(p->is_vararg)
+					APPENDPRINT "..." END
+				APPENDPRINT ")" END
+			}
+			break;
 defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END break;
 		case LUA_TTABLE:
 		{
@@ -686,29 +723,40 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 				int keyIndex = lua_gettop(L);
 				int valueIndex = keyIndex + 1;
 				bool first = true;
+				bool skipKey = true; // true if we're still in the "array part" of the table
+				lua_Number arrayIndex = (lua_Number)0;
 				while(lua_next(L, i))
 				{
-					bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
-					bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
 					if(first)
 						first = false;
 					else
 						APPENDPRINT ", " END
-					if(invalidLuaIdentifier)
-						if(keyIsString)
-							APPENDPRINT "['" END
-						else
-							APPENDPRINT "[" END
+					if(skipKey)
+					{
+						arrayIndex += (lua_Number)1;
+						bool keyIsNumber = (lua_type(L, keyIndex) == LUA_TNUMBER);
+						skipKey = keyIsNumber && (lua_tonumber(L, keyIndex) == arrayIndex);
+					}
+					if(!skipKey)
+					{
+						bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
+						bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
+						if(invalidLuaIdentifier)
+							if(keyIsString)
+								APPENDPRINT "['" END
+							else
+								APPENDPRINT "[" END
 
-					toCStringConverter(L, keyIndex, ptr, remaining); // key
+						toCStringConverter(L, keyIndex, ptr, remaining); // key
 
-					if(invalidLuaIdentifier)
-						if(keyIsString)
-							APPENDPRINT "']=" END
+						if(invalidLuaIdentifier)
+							if(keyIsString)
+								APPENDPRINT "']=" END
+							else
+								APPENDPRINT "]=" END
 						else
-							APPENDPRINT "]=" END
-					else
-						APPENDPRINT "=" END
+							APPENDPRINT "=" END
+					}
 
 					bool valueIsString = (lua_type(L, valueIndex) == LUA_TSTRING);
 					if(valueIsString)
@@ -731,18 +779,27 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 			}
 		}	break;
 	}
+
+	if(usedMeta)
+	{
+		s_metacallStack.pop_back();
+		lua_pop(L, 1);
+	}
 }
-static const char* toCString(lua_State* L)
+
+static const int s_tempStrMaxLen = 8192;
+static char s_tempStr [s_tempStrMaxLen];
+
+static char* rawToCString(lua_State* L, int idx)
 {
-	static const int maxLen = 8192;
-	static char str[maxLen];
+	int a = idx>0 ? idx : 1;
+	int n = idx>0 ? idx : lua_gettop(L);
 
-	str[0] = 0;
-	char* ptr = str;
+	char* ptr = s_tempStr;
+	*ptr = 0;
 
-	int remaining = maxLen;
-	int n=lua_gettop(L);
-	for(int i = 1; i <= n; i++)
+	int remaining = s_tempStrMaxLen;
+	for(int i = a; i <= n; i++)
 	{
 		toCStringConverter(L, i, ptr, remaining);
 		if(i != n)
@@ -752,46 +809,71 @@ static const char* toCString(lua_State* L)
 	if(remaining < 3)
 	{
 		while(remaining < 6)
-		{
-			remaining++;
-			ptr--;
-		}
+			remaining++, ptr--;
 		APPENDPRINT "..." END
 	}
-
 	APPENDPRINT "\r\n" END
+	// the trailing newline is so print() can avoid having to do wasteful things to print its newline
+	// (string copying would be wasteful and calling info.print() twice can be extremely slow)
+	// at the cost of functions that don't want the newline needing to trim off the last two characters
+	// (which is a very fast operation and thus acceptable in this case)
 
-	return str;
-}
-static const char* toCString(lua_State* L, int i)
-{
-	luaL_checkany(L,i);
-
-	static const int maxLen = 8192;
-	static char str[maxLen];
-	str[0] = 0;
-	char* ptr = str;
-
-	int remaining = maxLen;
-	toCStringConverter(L, i, ptr, remaining);
-	return str;
+	return s_tempStr;
 }
 #undef APPENDPRINT
 #undef END
 
-static int gens_message(lua_State* L)
+
+// replacement for luaB_tostring() that is able to show the contents of tables (and formats numbers better, and show function prototypes)
+// can be called directly from lua via tostring(), assuming tostring hasn't been reassigned
+static int tostring(lua_State* L)
 {
-	const char* str = toCString(L);
-	Put_Info_NonImmediate((char*)str, 500);
-	return 0;
+	char* str = rawToCString(L);
+	str[strlen(str)-2] = 0; // hack: trim off the \r\n (which is there to simplify the print function's task)
+	lua_pushstring(L, str);
+	return 1;
 }
 
+// like rawToCString, but will check if the global Lua function tostring()
+// has been replaced with a custom function, and call that instead if so
+static const char* toCString(lua_State* L, int idx=0)
+{
+	int a = idx>0 ? idx : 1;
+	int n = idx>0 ? idx : lua_gettop(L);
+	lua_getglobal(L, "tostring");
+	lua_CFunction cf = (L->top - 1)->value.gc->cl.c.f; // it seems Lua's C API is nonexistent when it comes to getting any useful information about functions, such as argument number or names or the C function address...
+	if(cf == tostring) // optimization: if using our own C tostring function, we can bypass the call through Lua and all the string object allocation that would entail
+	{
+		lua_pop(L,1);
+		return rawToCString(L, idx);
+	}
+	else // if the user overrided the tostring function, we have to actually call it and store the temporarily allocated string it returns
+	{
+		lua_pushstring(L, "");
+		for (int i=a; i<=n; i++) {
+			lua_pushvalue(L, -2);  // function to be called
+			lua_pushvalue(L, i);   // value to print
+			lua_call(L, 1, 1);
+			if(lua_tostring(L, -1) == NULL)
+				luaL_error(L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
+			lua_pushstring(L, (i<n) ? " " : "\r\n");
+			lua_concat(L, 3);
+		}
+		const char* str = lua_tostring(L, -1);
+		strncpy(s_tempStr, str, s_tempStrMaxLen);
+		s_tempStr[s_tempStrMaxLen-1] = 0;
+		lua_pop(L, 2);
+		return s_tempStr;
+	}
+}
+
+// replacement for luaB_print() that goes to the appropriate textbox instead of stdout
 static int print(lua_State* L)
 {
-	int uid = luaStateToUIDMap[L];
-	LuaContextInfo& info = *luaContextInfo[uid];
-
 	const char* str = toCString(L);
+
+	int uid = luaStateToUIDMap[L];
+	LuaContextInfo& info = GetCurrentInfo();
 
 	if(info.print)
 		info.print(uid, str);
@@ -802,15 +884,11 @@ static int print(lua_State* L)
 	return 0;
 }
 
-// provides a way to get (from Lua) the string
-// that print() or gens.message() would print
-static int tostring(lua_State* L)
+static int gens_message(lua_State* L)
 {
 	const char* str = toCString(L);
-	char* end = (char*)str + strlen(str) - 1;
-	while(end >= str && (*end == '\n' || *end == '\r')) *end-- = '\0';
-	lua_pushstring(L, str);
-	return 1;
+	Put_Info_NonImmediate((char*)str, 500);
+	return 0;
 }
 
 // provides an easy way to copy a table from Lua
@@ -848,6 +926,10 @@ static int copytable(lua_State *L)
 		lua_rawset(L, copyIndex); // copytable[key] = value
 		lua_pop(L, 1);
 	}
+
+	// copy the reference to the metatable as well, if any
+	if(lua_getmetatable(L, origIndex))
+		lua_setmetatable(L, copyIndex);
 
 	return 1; // return the new table
 }
