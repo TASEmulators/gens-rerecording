@@ -54,6 +54,7 @@ unsigned short FrameBuffer[336 * 240];
 unsigned int FrameBuffer32[336 * 240];
 unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
 bool UseMovieStates;
+bool SkipNextRerecordIncrement = false;
 //extern long x, y, xg, yg; // G_Main.cpp
 extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
 extern "C" int fatal_mp3_error; // cdda_mp3.c
@@ -306,7 +307,10 @@ int Load_State(char *Name)
 
 	if(MainMovie.ReadOnly==0 && MainMovie.File)
 	{
-		MainMovie.NbRerecords++;
+		if(!SkipNextRerecordIncrement)
+			MainMovie.NbRerecords++;
+		else
+			SkipNextRerecordIncrement = false;
 		if(!MainMovie.ReadOnly)
 		{
 			if (MainMovie.TriplePlayerHack)
