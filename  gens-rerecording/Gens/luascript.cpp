@@ -8,6 +8,7 @@
 #include "drawutil.h"
 #include "unzip.h"
 #include "Cpu_68k.h"
+#include "io.h"
 #include <assert.h>
 #include <vector>
 #include <map>
@@ -52,6 +53,7 @@ extern int Show_Genesis_Screen();
 extern const char* GensPlayMovie(const char* filename, bool silent);
 extern const char* GensOpenScript(const char* filename);
 extern void GensReplayMovie();
+extern bool SkipNextRerecordIncrement;
 
 extern "C" {
 	#include "lua/src/lua.h"
@@ -91,6 +93,7 @@ struct LuaContextInfo {
 	unsigned int dataSaveKey; // crc32 of the save data key, used to decide which script should get which data... by default (if no key is specified) it's calculated from the script filename
 	unsigned int dataLoadKey; // same as dataSaveKey but set through registerload instead of registersave if the two differ
 	bool dataSaveLoadKeySet; // false if the data save keys are unset or set to their default value
+	bool rerecordCountingDisabled; // true if this script has disabled rerecord counting for the savestates it loads
 	std::vector<std::string> persistVars; // names of the global variables to persist, kept here so their associated values can be output when the script exits
 	LuaSaveData newDefaultData; // data about the default state of persisted global variables, which we save on script exit so we can detect when the default value has changed to make it easier to reset persisted variables
 	// callbacks into the lua window... these don't need to exist per context the way I'm using them, but whatever
@@ -151,6 +154,7 @@ void RefreshScriptStartedStatus();
 void RefreshScriptSpeedStatus();
 
 static char* rawToCString(lua_State* L, int idx=0);
+static const char* toCString(lua_State* L, int idx=0);
 
 int add_memory_proc (int *list, int addr, int &numprocs)
 {
@@ -344,6 +348,88 @@ int input_registerhotkey(lua_State* L)
 		StopScriptIfFinished(luaStateToUIDMap[L]);
 		return 1;
 	}
+}
+
+static int doPopup(lua_State* L, const char* deftype, const char* deficon)
+{
+	const char* str = toCString(L,1);
+	const char* type = lua_type(L,2) == LUA_TSTRING ? lua_tostring(L,2) : deftype;
+	const char* icon = lua_type(L,3) == LUA_TSTRING ? lua_tostring(L,3) : deficon;
+
+	int itype = -1, iters = 0;
+	while(itype == -1 && iters++ < 2)
+	{
+		if(!stricmp(type, "ok")) itype = 0;
+		else if(!stricmp(type, "yesno")) itype = 1;
+		else if(!stricmp(type, "yesnocancel")) itype = 2;
+		else if(!stricmp(type, "okcancel")) itype = 3;
+		else if(!stricmp(type, "abortretryignore")) itype = 4;
+		else type = deftype;
+	}
+	assert(itype >= 0 && itype <= 4);
+	if(!(itype >= 0 && itype <= 4)) itype = 0;
+
+	int iicon = -1; iters = 0;
+	while(iicon == -1 && iters++ < 2)
+	{
+		if(!stricmp(icon, "message") || !stricmp(icon, "notice")) iicon = 0;
+		else if(!stricmp(icon, "question")) iicon = 1;
+		else if(!stricmp(icon, "warning")) iicon = 2;
+		else if(!stricmp(icon, "error")) iicon = 3;
+		else icon = deficon;
+	}
+	assert(iicon >= 0 && iicon <= 3);
+	if(!(iicon >= 0 && iicon <= 3)) iicon = 0;
+
+	static const char * const titles [] = {"Notice", "Question", "Warning", "Error"};
+	const char* answer = "ok";
+#ifdef _WIN32
+	static const int etypes [] = {MB_OK, MB_YESNO, MB_YESNOCANCEL, MB_OKCANCEL, MB_ABORTRETRYIGNORE};
+	static const int eicons [] = {MB_ICONINFORMATION, MB_ICONQUESTION, MB_ICONWARNING, MB_ICONERROR};
+	DialogsOpen++;
+	int uid = luaStateToUIDMap[L];
+	EnableWindow(HWnd, false);
+	if (Full_Screen)
+	{
+		while (ShowCursor(false) >= 0);
+		while (ShowCursor(true) < 0);
+	}
+	int ianswer = MessageBox((HWND)uid, str, titles[iicon], etypes[itype] | eicons[iicon]);
+	EnableWindow(HWnd, true);
+	DialogsOpen--;
+	switch(ianswer)
+	{
+		case IDOK: answer = "ok"; break;
+		case IDCANCEL: answer = "cancel"; break;
+		case IDABORT: answer = "abort"; break;
+		case IDRETRY: answer = "retry"; break;
+		case IDIGNORE: answer = "ignore"; break;
+		case IDYES: answer = "yes"; break;
+		case IDNO: answer = "no"; break;
+	}
+#else
+	// NYI (assume first answer for now)
+	switch(itype)
+	{
+		case 0: case 3: answer = "ok"; break;
+		case 1: case 2: answer = "yes"; break;
+		case 4: answer = "abort"; break;
+	}
+#endif
+
+	lua_pushstring(L, answer);
+	return 1;
+}
+
+// string gui.popup(string message, string type = "ok", string icon = "message")
+// string input.popup(string message, string type = "yesno", string icon = "question")
+int gui_popup(lua_State* L)
+{
+	return doPopup(L, "ok", "message");
+}
+int input_popup(lua_State* L)
+{
+	return doPopup(L, "yesno", "question");
 }
 
 static const char* FilenameFromPath(const char* path)
@@ -667,7 +753,7 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 
 	switch(lua_type(L, i))
 	{
-		case LUA_TNONE: APPENDPRINT "no value" END break;
+		case LUA_TNONE: break;
 		case LUA_TNIL: APPENDPRINT "nil" END break;
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
@@ -836,7 +922,7 @@ static int tostring(lua_State* L)
 
 // like rawToCString, but will check if the global Lua function tostring()
 // has been replaced with a custom function, and call that instead if so
-static const char* toCString(lua_State* L, int idx=0)
+static const char* toCString(lua_State* L, int idx)
 {
 	int a = idx>0 ? idx : 1;
 	int n = idx>0 ? idx : lua_gettop(L);
@@ -1585,6 +1671,9 @@ int state_load(lua_State* L)
 		case LUA_TNUMBER: // numbered save file
 		default:
 		{
+			LuaContextInfo& info = GetCurrentInfo();
+			if(info.rerecordCountingDisabled)
+				SkipNextRerecordIncrement = true;
 			int stateNumber = luaL_checkinteger(L,1);
 			Set_Current_State(stateNumber, false,!g_disableStatestateWarnings);
 			char Name [1024] = {0};
@@ -1954,28 +2043,17 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 			while(lua_next(L, idx))
 			{
 				bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
-				bool valIsNumber = (lua_type(L, valueIndex) == LUA_TNUMBER);
-				if(keyIsString)
+				bool keyIsNumber = (lua_type(L, keyIndex) == LUA_TNUMBER);
+				int key = keyIsString ? tolower(*lua_tostring(L, keyIndex)) : (keyIsNumber ? lua_tointeger(L, keyIndex) : 0);
+				int value = lua_tointeger(L, valueIndex);
+				if(value < 0) value = 0;
+				if(value > 255) value = 255;
+				switch(key)
 				{
-					const char* key = lua_tostring(L, keyIndex);
-					int value = lua_tointeger(L, valueIndex);
-					if(value < 0) value = 0;
-					if(value > 255) value = 255;
-					switch(tolower(*key))
-					{
-					case 'r':
-						color |= value << 24;
-						break;
-					case 'g':
-						color |= value << 16;
-						break;
-					case 'b':
-						color |= value << 8;
-						break;
-					case 'a':
-						color = (color & ~0xFF) | value;
-						break;
-					}
+				case 1: case 'r': color |= value << 24; break;
+				case 2: case 'g': color |= value << 16; break;
+				case 3: case 'b': color |= value << 8; break;
+				case 4: case 'a': color = (color & ~0xFF) | value; break;
 				}
 				lua_pop(L, 1);
 			}
@@ -2163,6 +2241,11 @@ int gens_getlagcount(lua_State* L)
 	lua_pushinteger(L, LagCountPersistent);
 	return 1;
 }
+int gens_lagged(lua_State* L)
+{
+	lua_pushboolean(L, Lag_Frame);
+	return 1;
+}
 int movie_getlength(lua_State* L)
 {
 	lua_pushinteger(L, MainMovie.LastFrame);
@@ -2177,6 +2260,27 @@ int movie_rerecordcount(lua_State* L)
 {
 	lua_pushinteger(L, MainMovie.NbRerecords);
 	return 1;
+}
+int movie_setrerecordcount(lua_State* L)
+{
+	MainMovie.NbRerecords = luaL_checkinteger(L, 1);
+	return 0;
+}
+int gens_rerecordcounting(lua_State* L)
+{
+	LuaContextInfo& info = GetCurrentInfo();
+	if(lua_gettop(L) == 0)
+	{
+		// if no arguments given, return the current value
+		lua_pushboolean(L, !info.rerecordCountingDisabled);
+		return 1;
+	}
+	else
+	{
+		// set rerecord disabling
+		info.rerecordCountingDisabled = !lua_toboolean(L,1);
+		return 0;
+	}
 }
 int movie_getreadonly(lua_State* L)
 {
@@ -2460,6 +2564,7 @@ static const struct luaL_reg genslib [] =
 	{"redraw", gens_redraw},
 	{"framecount", gens_getframecount},
 	{"lagcount", gens_getlagcount},
+	{"lagged", gens_lagged},
 	{"registerbefore", gens_registerbefore},
 	{"registerafter", gens_registerafter},
 	{"registerstart", gens_registerstart},
@@ -2480,6 +2585,7 @@ static const struct luaL_reg guilib [] =
 	{"getpixel", gui_getpixel},
 	{"opacity", gui_setopacity},
 	{"transparency", gui_settransparency},
+	{"popup", gui_popup},
 	// alternative names
 	{"drawtext", gui_text},
 	{"drawbox", gui_box},
@@ -2603,6 +2709,7 @@ static const struct luaL_reg inputlib [] =
 {
 	{"get", input_getcurrentinputstatus},
 	{"registerhotkey", input_registerhotkey},
+	{"popup", input_popup},
 	// alternative names
 	{"read", input_getcurrentinputstatus},
 	{NULL, NULL}
@@ -2617,6 +2724,8 @@ static const struct luaL_reg movielib [] =
 	{"name", movie_getname},
 	{"getname", movie_getname},
 	{"rerecordcount", movie_rerecordcount},
+	{"rerecordcounting", gens_rerecordcounting},
+	{"setrerecordcount", movie_setrerecordcount},
 	{"readonly", movie_getreadonly},
 	{"getreadonly", movie_getreadonly},
 	{"setreadonly", movie_setreadonly},
@@ -2657,6 +2766,7 @@ void ResetInfo(LuaContextInfo& info)
 	info.dataSaveKey = 0;
 	info.dataLoadKey = 0;
 	info.dataSaveLoadKeySet = false;
+	info.rerecordCountingDisabled = false;
 	info.persistVars.clear();
 	info.newDefaultData.ClearRecords();
 }
