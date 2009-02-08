@@ -350,7 +350,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			dy2 = (r2.bottom - r2.top) / 2;
 
 			int windowIndex = std::find(LuaScriptHWnds.begin(), LuaScriptHWnds.end(), hDlg) - LuaScriptHWnds.begin();
-			int staggerOffset = windowIndex * 16;
+			int staggerOffset = windowIndex * 24;
 			r.left += staggerOffset;
 			r.right += staggerOffset;
 			r.top += staggerOffset;

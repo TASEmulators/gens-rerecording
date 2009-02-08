@@ -2983,6 +2983,12 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						DialogsOpen++;
 					}
 					break;
+
+				case IDC_CLOSE_LUA_SCRIPTS:
+					for(int i=(int)LuaScriptHWnds.size()-1; i>=0; i--)
+						SendMessage(LuaScriptHWnds[i], WM_CLOSE, 0,0);
+					break;
+
 				case IDC_LUA_SCRIPT_0:
 				case IDC_LUA_SCRIPT_1:
 				case IDC_LUA_SCRIPT_2:
@@ -5113,6 +5119,7 @@ HMENU Build_Main_Menu(void)
 
 	i = 0;
 	MENU_L(Lua_Script,i++,Flags,IDC_NEW_LUA_SCRIPT,"New Lua Script Window...","","&New Lua Script Window...");
+	MENU_L(Lua_Script,i++,Flags | (!LuaScriptHWnds.empty() ? MF_ENABLED : MF_DISABLED|MF_GRAYED),IDC_CLOSE_LUA_SCRIPTS,"Close All Lua Windows","","&Close All Lua Windows");
 	if(!LuaScriptHWnds.empty())
 	{
 		InsertMenu(Lua_Script, i++, MF_SEPARATOR, NULL, NULL);
@@ -6023,7 +6030,7 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
 }
 
 
-const char* GensOpenScript(const char* filename)
+const char* GensOpenScript(const char* filename, const char* extraDirToCheck=NULL)
 {
 	if(LuaScriptHWnds.size() < 16)
 	{
@@ -6035,15 +6042,15 @@ const char* GensOpenScript(const char* filename)
 			strncpy(tempFile, filename, 1024);
 			tempFile[1023] = 0;
 			const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
-			for(int i=0; i<=3; i++)
+			for(int i=0; i<=4; i++)
 			{
 				if((!*tempFilePtr || tempFilePtr[1] != ':') && i != 2)
-					strcpy(curDir, i!=1 ? Lua_Dir : Gens_Path);
+					strcpy(curDir, i!=1 ? ((i!=3||!extraDirToCheck) ? Lua_Dir : extraDirToCheck) : Gens_Path);
 				else
 					curDir[0] = 0;
 				_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
 				FILE* file = fopen(filename2, "rb");
-				if(file || i==3)
+				if(file || i==4)
 					filename = filename2;
 				if(file)
 				{

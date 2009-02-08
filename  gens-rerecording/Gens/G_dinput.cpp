@@ -299,6 +299,7 @@ static InputButton s_inputButtons [] =
 	{MOD_SHIFT,         VK_OEM_PERIOD, ID_NEXT_TRACK,            0, NULL, "Next Player Track", "NextTrackKey"},
 
 	{MOD_NONE,              VK_NONE,   IDC_NEW_LUA_SCRIPT,       0, NULL, "New Lua Script Window", "OpenNewLuaScriptWindow"},
+	{MOD_NONE,              VK_NONE,   IDC_CLOSE_LUA_SCRIPTS,    0, NULL, "Close Lua Script Windows", "CloseLuaScriptWindows"},
 	{MOD_NONE,              VK_NONE,   ID_RAM_SEARCH,            0, NULL, "Ram Search", "RamSearchKey"},
 	{MOD_NONE,              VK_NONE,   ID_RAM_WATCH,             0, NULL, "Ram Watch", "RamWatchKey"},
 	{MOD_NONE,              VK_NONE,   ID_PLAY_MOVIE,            0, NULL, "Play Movie", "PlayMovieKey"},

@@ -51,7 +51,7 @@ extern bool frameadvSkipLagForceDisable;
 extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
 extern int Show_Genesis_Screen();
 extern const char* GensPlayMovie(const char* filename, bool silent);
-extern const char* GensOpenScript(const char* filename);
+extern const char* GensOpenScript(const char* filename, const char* extraDirToCheck);
 extern void GensReplayMovie();
 extern bool SkipNextRerecordIncrement;
 
@@ -115,6 +115,8 @@ bool g_stopAllScriptsEnabled = true;
 	std::map<lua_State*, LuaContextInfo*> luaStateToContextMap;
 	#define GetCurrentInfo() *luaStateToContextMap[L] // should always work but might be slower
 #endif
+
+//#define ASK_USER_ON_FREEZE // dialog on freeze is disabled now because it seems to be unnecessary, but this can be re-defined to enable it
 
 
 static const char* luaCallIDStrings [] =
@@ -1086,6 +1088,51 @@ static int bitbit(lua_State *L)
 
 int gens_wait(lua_State* L);
 
+void indicateBusy(lua_State* L, bool busy)
+{
+	if(busy)
+	{
+		const char* fmt = "script became busy (frozen?)";
+		va_list argp;
+		va_start(argp, fmt);
+		luaL_where(L, 0);
+		lua_pushvfstring(L, fmt, argp);
+		va_end(argp);
+		lua_concat(L, 2);
+		LuaContextInfo& info = GetCurrentInfo();
+		int uid = luaStateToUIDMap[L];
+		if(info.print)
+		{
+			info.print(uid, lua_tostring(L,-1));
+			info.print(uid, "\r\n");
+		}
+		else
+		{
+			fprintf(stderr, "%s\n", lua_tostring(L,-1));
+		}
+		lua_pop(L, 1);
+	}
+
+#ifdef _WIN32
+	int uid = luaStateToUIDMap[L];
+	HWND hDlg = (HWND)uid;
+	char str [1024];
+	GetWindowText(hDlg, str, 1000);
+	char* extra = strchr(str, '<');
+	if(busy)
+	{
+		if(!extra)
+			extra = str + strlen(str), *extra++ = ' ';
+		strcpy(extra, "<BUSY>");
+	}
+	else
+	{
+		if(extra)
+			extra[-1] = 0;
+	}
+	SetWindowText(hDlg, str);
+#endif
+}
 
 #define HOOKCOUNT 4096
 #define MAX_WORRY_COUNT 6000
@@ -1102,8 +1149,9 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 			// the user already said they're OK with the script being frozen,
 			// but we don't trust their judgement completely,
 			// so periodically update the main loop so they have a chance to manually stop it
-			gens_wait(L);
 			info.worryCount = 0;
+			gens_wait(L);
+			info.stopWorrying = true;
 		}
 		return;
 	}
@@ -1113,22 +1161,31 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 		info.worryCount = 0;
 		info.stopWorrying = false;
 
-		int answer = IDYES;
+		bool stoprunning = true;
+		bool stopworrying = true;
 		if(!info.panic)
 		{
-#ifdef _WIN32
+			Clear_Sound_Buffer();
+#if defined(ASK_USER_ON_FREEZE) && defined(_WIN32)
 			DialogsOpen++;
-			answer = MessageBox(HWnd, "A Lua script has been running for quite a while. Maybe it is in an infinite loop.\n\nWould you like to stop the script?\n\n(Yes to stop it now,\n No to keep running and not ask again,\n Cancel to keep running but ask again later)", "Lua Alert", MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONASTERISK);
+			int answer = MessageBox(HWnd, "A Lua script has been running for quite a while. Maybe it is in an infinite loop.\n\nWould you like to stop the script?\n\n(Yes to stop it now,\n No to keep running and not ask again,\n Cancel to keep running but ask again later)", "Lua Alert", MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONASTERISK);
 			DialogsOpen--;
+			if(answer == IDNO)
+				stoprunning = false;
+			if(answer == IDCANCEL)
+				stopworrying = false;
 #else
-			// NYI (assume yes for now)
+			stoprunning = false;
 #endif
 		}
 
-		if(answer == IDNO)
+		if(!stoprunning && stopworrying)
+		{
 			info.stopWorrying = true; // don't remove the hook because we need it still running for RequestAbortLuaScript to work
+			indicateBusy(info.L, true);
+		}
 
-		if(answer == IDYES)
+		if(stoprunning)
 		{
 			//lua_sethook(L, NULL, 0, 0);
 			assert(L->errfunc || L->errorJmp);
@@ -2224,8 +2281,17 @@ int gui_settransparency(lua_State* L)
 
 int gens_openscript(lua_State* L)
 {
+	char extraSearchDir [1024];
+	{
+		LuaContextInfo& info = GetCurrentInfo();
+		strncpy(extraSearchDir, info.lastFilename.c_str(), 1024);
+		extraSearchDir[1023] = 0;
+		char* slash = max(strrchr(extraSearchDir, '/'), strrchr(extraSearchDir, '\\'));
+		if(slash)
+			slash[1] = 0;
+	}
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
-	const char* errorMsg = GensOpenScript(filename);
+	const char* errorMsg = GensOpenScript(filename, extraSearchDir);
 	if(errorMsg)
 		luaL_error(L, errorMsg);
     return 0;
@@ -2547,6 +2613,12 @@ int input_getcurrentinputstatus(lua_State* L)
 // resets our "worry" counter of the Lua state
 int dontworry(LuaContextInfo& info)
 {
+	if(info.stopWorrying)
+	{
+		info.stopWorrying = false;
+		if(info.worryCount)
+			indicateBusy(info.L, false);
+	}
 	info.worryCount = 0;
 	return 0;
 }
@@ -3108,7 +3180,10 @@ void StopLuaScript(int uid)
 		CallExitFunction(uid);
 
 		if(info.onstop)
+		{
+			info.stopWorrying = true, info.worryCount++, dontworry(info); // clear "busy" status
 			info.onstop(uid, !info.crashed); // must happen before closing L and after the exit function, otherwise the final GUI state of the script won't be shown properly or at all
+		}
 
 		if(info.started) // this check is necessary
 		{
