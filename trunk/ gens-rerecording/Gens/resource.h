@@ -276,6 +276,7 @@
 #define IDC_EDIT_LUA                    1282
 #define IDC_STATIC_LUA                  1283
 #define ID_CHANGE_LUA                   1284
+#define IDC_CLOSE_LUA_SCRIPTS           1285
 #define IDC_LUA_SCRIPT_HOTKEY_1         1301
 #define IDC_LUA_SCRIPT_HOTKEY_2         1302
 #define IDC_LUA_SCRIPT_HOTKEY_3         1303
