@@ -2116,6 +2116,8 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 			}
 			return color;
 		}	break;
+		case LUA_TFUNCTION:
+			return 0;
 	}
 	return defaultColor;
 }
@@ -2130,6 +2132,24 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 		color = (color & ~0xFF) | alpha;
 	}
 	return color;
+}
+
+// r,g,b,a = gui.getcolor(color)
+// examples:
+// local r,g,b = gui.getcolor("green")
+// local r,g,b,a = gui.getcolor(0x7F3FFF7F)
+int gui_getcolor(lua_State *L)
+{
+	int color = getcolor_unmodified(L, 1, 0);
+	int r = (color & 0xFF000000) >> 24;
+	int g = (color & 0x00FF0000) >> 16;
+	int b = (color & 0x0000FF00) >> 8;
+	int a = (color & 0x000000FF);
+	lua_pushinteger(L, r);
+	lua_pushinteger(L, g);
+	lua_pushinteger(L, b);
+	lua_pushinteger(L, a);
+	return 4;
 }
 
 int gui_text(lua_State* L)
@@ -2151,19 +2171,163 @@ int gui_text(lua_State* L)
 
 	return 0;
 }
+
+static inline void ApplyShaderToPixel(int off, std::map<int,int>& cachedShaderResults, lua_State* L, int idx)
+{
+	int color;
+	if (Bits32)
+		color = MD_Screen32[off];
+	else
+		color = DrawUtil::Pix16To32(MD_Screen[off]);
+
+	int result;
+	std::map<int,int>::const_iterator found = cachedShaderResults.find(color);
+	if(found != cachedShaderResults.end())
+	{
+		result = found->second;
+	}
+	else
+	{
+		int b = (color & 0x000000FF);
+		int g = (color & 0x0000FF00) >> 8;
+		int r = (color & 0x00FF0000) >> 16;
+
+		lua_pushvalue(L, idx);
+		lua_pushinteger(L, r);
+		lua_pushinteger(L, g);
+		lua_pushinteger(L, b);
+
+		lua_call(L, 3, 3);
+
+		int rout = lua_tointeger(L, -3);
+		int gout = lua_tointeger(L, -2);
+		int bout = lua_tointeger(L, -1);
+		lua_pop(L,3);
+		if(rout < 0) rout = 0; if(rout > 255) rout = 255;
+		if(gout < 0) gout = 0; if(gout > 255) gout = 255;
+		if(bout < 0) bout = 0; if(bout > 255) bout = 255;
+
+		result = DrawUtil::Make32(rout,gout,bout);
+		cachedShaderResults[color] = result;
+	}
+	if (Bits32) 
+		MD_Screen32[off] = result;
+	else
+		MD_Screen[off] = DrawUtil::Pix32To16(result);
+}
+
+#define SWAP_INTEGERS(x,y) x^=y, y^=x, x^=y
+
+// performance note: for me, this function is extremely slow in debug builds,
+// but when compiled with full optimizations turned on it becomes very fast.
+void ApplyShaderToBox(int x1, int y1, int x2, int y2, lua_State* L, int idx)
+{
+	if((x1 < 0 && x2 < 0) || (x1 > 319 && x2 > 319) || (y1 < 0 && y2 < 0) || (y1 > 223 && y2 > 223))
+		return;
+
+	// require x1,y1 <= x2,y2
+	if (x1 > x2) SWAP_INTEGERS(x1,x2);
+	if (y1 > y2) SWAP_INTEGERS(y1,y2);
+
+	// avoid trying to draw any offscreen pixels
+	if (x1 < 0)  x1 = 0;
+	if (x1 > 319) x1 = 319;
+	if (x2 < 0)  x2 = 0;
+	if (x2 > 319) x2 = 319;
+	if (y1 < 0)  y1 = 0;
+	if (y1 > 223) y1 = 223;
+	if (y2 < 0)  y2 = 0;
+	if (y2 > 223) y2 = 223;
+
+	std::map<int,int> cachedShaderResults;
+
+	for(short y = y1; y <= y2; y++)
+	{
+		int off = (y * 336) + x1 + 8;
+		for(short x = x1; x <= x2; x++, off++)
+		{
+			ApplyShaderToPixel(off, cachedShaderResults, L, idx);
+		}
+	}
+}
+
+void ApplyShaderToBoxOutline(int x1, int y1, int x2, int y2, lua_State* L, int idx)
+{
+	// require x1,y1 <= x2,y2
+	if (x1 > x2) SWAP_INTEGERS(x1,x2);
+	if (y1 > y2) SWAP_INTEGERS(y1,y2);
+
+	// avoid trying to draw any offscreen pixels
+	if (x1 < -1)  x1 = -1;
+	if (x1 > 320) x1 = 320;
+	if (x2 < -1)  x2 = -1;
+	if (x2 > 320) x2 = 320;
+	if (y1 < -1)  y1 = -1;
+	if (y1 > 224) y1 = 224;
+	if (y2 < -1)  y2 = -1;
+	if (y2 > 224) y2 = 224;
+
+	std::map<int,int> cachedShaderResults;
+
+	if(y1 >= 0 && y1 < 224)
+		for (short x = x1+1; x < x2; x++)
+			ApplyShaderToPixel((y1 * 336) + x + 8, cachedShaderResults, L, idx);
+	if(x1 >= 0 && x1 < 320)
+		for (short y = y1; y <= y2; y++)
+			ApplyShaderToPixel((y * 336) + x1 + 8, cachedShaderResults, L, idx);
+	if(y1 != y2 && y2 >= 0 && y2 < 224)
+		for (short x = x1+1; x < x2; x++)
+			ApplyShaderToPixel((y2 * 336) + x + 8, cachedShaderResults, L, idx);
+	if(x1 != x2 && x2 >= 0 && x2 < 320)
+		for (short y = y1; y <= y2; y++)
+			ApplyShaderToPixel((y * 336) + x2 + 8, cachedShaderResults, L, idx);
+}
+
+int amplifyShader(lua_State* L)
+{
+	int rin = lua_tointeger(L, 1);
+	int gin = lua_tointeger(L, 2);
+	int bin = lua_tointeger(L, 3);
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	lua_call(L, 3, 3);
+	int rout = lua_tointeger(L, 1);
+	int gout = lua_tointeger(L, 2);
+	int bout = lua_tointeger(L, 3);
+	lua_settop(L, 0);
+	lua_pushinteger(L, rout*4 - rin*3);
+	lua_pushinteger(L, gout*4 - gin*3);
+	lua_pushinteger(L, bout*4 - bin*3);
+	return 3;
+}
+
 int gui_box(lua_State* L)
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
 
-	int x1 = luaL_checkinteger(L,1) & 0xFFFF;
-	int y1 = luaL_checkinteger(L,2) & 0xFFFF;
-	int x2 = luaL_checkinteger(L,3) & 0xFFFF;
-	int y2 = luaL_checkinteger(L,4) & 0xFFFF;
+	int x1 = luaL_checkinteger(L,1); // & 0xFFFF removed because it was turning -1 into 65535 which screwed up the out-of-bounds checking in ApplyShaderToBox
+	int y1 = luaL_checkinteger(L,2);
+	int x2 = luaL_checkinteger(L,3);
+	int y2 = luaL_checkinteger(L,4);
 	int fillcolor = getcolor(L,5,0xFFFFFF3F);
-	int outlinecolor = getcolor(L,6,fillcolor&0xFF);
-
-	DrawBoxPP2 (x1, y1, x2, y2, fillcolor, outlinecolor);
+	int outlinecolor = getcolor(L,6,fillcolor|0xFF);
+	if(!lua_isfunction(L,5) || !lua_isnoneornil(L,6))
+	{
+		DrawBoxPP2(x1, y1, x2, y2, fillcolor, outlinecolor);
+		if(lua_isfunction(L,5))
+			ApplyShaderToBox(x1+1,y1+1,x2-1,y2-1, L,5);
+		if(lua_isfunction(L,6))
+			ApplyShaderToBoxOutline(x1,y1,x2,y2, L,6);
+	}
+	else // fill is a shader and outline is not specified, so make the outline a more "opaque" version of the shader to match up with the default color behavior
+	{
+		ApplyShaderToBox(x1+1,y1+1,x2-1,y2-1, L,5);
+		lua_settop(L, 5);
+		lua_pushvalue(L, 5);
+		lua_pushcclosure(L, amplifyShader, 1);
+		ApplyShaderToBoxOutline(x1,y1,x2,y2, L,6);
+	}
 
 	return 0;
 }
@@ -2658,6 +2822,7 @@ static const struct luaL_reg guilib [] =
 	{"opacity", gui_setopacity},
 	{"transparency", gui_settransparency},
 	{"popup", gui_popup},
+	{"getcolor", gui_getcolor},
 	// alternative names
 	{"drawtext", gui_text},
 	{"drawbox", gui_box},

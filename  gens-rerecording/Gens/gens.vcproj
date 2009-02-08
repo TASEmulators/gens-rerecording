@@ -2001,10 +2001,6 @@
 				RelativePath=".\lua\src\lzio.h"
 				>
 			</File>
-			<File
-				RelativePath=".\lua\src\print.c"
-				>
-			</File>
 		</Filter>
 	</Files>
 	<Globals>
