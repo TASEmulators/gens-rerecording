@@ -166,26 +166,25 @@ void Print_Instruction( FILE *trace )
 	fprintf( trace, "\n", String );
 }
 
-void GensTrace()
+static void GensTrace_trace()
 {
 	hook_pc &= 0x00ffffff;
-	// Trace.txt
-	if( trace_map )
+	if(mapped[ hook_pc ] < 0x40)
 	{
-		if(mapped[ hook_pc ] < 0x40)
-		{
-			Print_Instruction( fp_trace );
-			mapped[ hook_pc ] ++;
-		}
+		Print_Instruction( fp_trace );
+		mapped[ hook_pc ] ++;
 	}
 }
+void GensTrace()
+{
+	// Trace.txt
+	if( trace_map )
+		GensTrace_trace();
+}
 
-
-void trace_read_byte()
+static void trace_read_byte_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -240,13 +239,15 @@ void trace_read_byte()
 			hook_value & 0xff, hook_address );
 	}
 }
+void trace_read_byte()
+{
+	if( hook_trace && rd_mode )
+		trace_read_byte_internal();
+}
 
-
-void trace_read_word()
+static void trace_read_word_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -301,13 +302,16 @@ void trace_read_word()
 			hook_value & 0xffff, hook_address );
 	}
 }
+void trace_read_word()
+{
+	if( hook_trace && rd_mode )
+		trace_read_word_internal();
+}
 
 
-void trace_read_dword()
+static void trace_read_dword_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -362,11 +366,15 @@ void trace_read_dword()
 			hook_value & 0xffffffff, hook_address );
 	}
 }
-void trace_write_byte()
+void trace_read_dword()
+{
+	if( hook_trace && rd_mode )
+		trace_read_dword_internal();
+}
+
+static void trace_write_byte_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -428,13 +436,16 @@ void trace_write_byte()
 
 	}
 }
+void trace_write_byte()
+{
+	if( hook_trace && wr_mode )
+		trace_write_byte_internal();
+}
 
 
-void trace_write_word()
+static void trace_write_word_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -489,13 +500,16 @@ void trace_write_word()
 			hook_value & 0xffff, hook_address );
 	}
 }
+void trace_write_word()
+{
+	if( hook_trace && wr_mode )
+		trace_write_word_internal();
+}
 
 
-void trace_write_dword()
+static void trace_write_dword_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !wr_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -550,14 +564,17 @@ void trace_write_dword()
 			hook_value & 0xffffffff, hook_address );
 	}
 }
+void trace_write_dword()
+{
+	if( hook_trace && wr_mode )
+		trace_write_dword_internal();
+}
 
 
-void hook_dma()
+static void hook_dma_internal()
 {
 	unsigned int start, stop;
 	int lcv;
-
-	if( !hook_trace || !rd_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -704,14 +721,17 @@ void hook_dma()
 		fprintf( out, "\n" );
 	}
 }
+void hook_dma()
+{
+	if( hook_trace && rd_mode )
+		hook_dma_internal();
+}
 
 
-void trace_write_vram_byte()
+static void trace_write_vram_byte_internal()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
-
-	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -783,14 +803,17 @@ void trace_write_vram_byte()
 			hook_value & 0xff, Ctrl.Address & 0xffff );
 	}
 }
+void trace_write_vram_byte()
+{
+	if( hook_trace && ppu_mode )
+		trace_write_vram_byte_internal();
+}
 
 
-void trace_write_vram_word()
+static void trace_write_vram_word_internal()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
-
-	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -862,14 +885,17 @@ void trace_write_vram_word()
 			hook_value & 0xffff, Ctrl.Address & 0xffff );
 	}
 }
+void trace_write_vram_word()
+{
+	if( hook_trace && ppu_mode )
+		trace_write_vram_word_internal();
+}
 
 
-void trace_read_vram_byte()
+static void trace_read_vram_byte_internal()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
-
-	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -941,14 +967,17 @@ void trace_read_vram_byte()
 			hook_value & 0xff, Ctrl.Address & 0xffff );
 	}
 }
+void trace_read_vram_byte()
+{
+	if( hook_trace && ppu_mode )
+		trace_read_vram_byte_internal();
+}
 
 
-void trace_read_vram_word()
+static void trace_read_vram_word_internal()
 {
 	unsigned int start, stop;
 	unsigned int start_l, stop_l;
-
-	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -1020,13 +1049,16 @@ void trace_read_vram_word()
 			hook_value & 0xffff, Ctrl.Address & 0xffff );
 	}
 }
+void trace_read_vram_word()
+{
+	if( hook_trace && ppu_mode )
+		trace_read_vram_word_internal();
+}
 
 
-void hook_vdp_reg()
+static void hook_vdp_reg_internal()
 {
 	unsigned int start, stop;
-
-	if( !hook_trace || !ppu_mode ) return;
 
 	hook_pc &= 0x00ffffff;
 	hook_address &= 0x00ffffff;
@@ -1070,4 +1102,9 @@ void hook_vdp_reg()
 			hook_pc >> 16, hook_pc & 0xffff,
 			hook_value & 0xff, hook_address & 0xff );
 	}
+}
+void hook_vdp_reg()
+{
+	if( hook_trace && ppu_mode )
+		hook_vdp_reg_internal();
 }
