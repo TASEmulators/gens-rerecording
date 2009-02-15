@@ -119,6 +119,20 @@ bool g_stopAllScriptsEnabled = true;
 //#define ASK_USER_ON_FREEZE // dialog on freeze is disabled now because it seems to be unnecessary, but this can be re-defined to enable it
 
 
+static std::map<lua_CFunction, const char*> s_cFuncInfoMap;
+
+// using this macro you can define a callable-from-Lua function
+// while associating with it some information about its arguments.
+// that information will show up if the user tries to print the function
+// or otherwise convert it to a string.
+// (for example, "writebyte=function(addr,value)" instead of "writebyte=function:0A403490")
+// note that the user can always use addressof(func) if they want to retrieve the address.
+#define DEFINE_LUA_FUNCTION(name, argstring) \
+	static int name(lua_State* L); \
+	static const char* name##_args = s_cFuncInfoMap[name] = argstring; \
+	static int name(lua_State* L)
+
+
 static const char* luaCallIDStrings [] =
 {
 	"CALL_BEFOREEMULATION",
@@ -196,7 +210,7 @@ int proc##_execlist[16];\
 int proc##_numwritefuncs = 0;\
 int proc##_numreadfuncs = 0;\
 int proc##_numexecfuncs = 0;\
-int memory_register##proc##write (lua_State* L)\
+DEFINE_LUA_FUNCTION(memory_register##proc##write, "address,func")\
 {\
 	unsigned int addr = luaL_checkinteger(L, 1);\
 	char Name[16];\
@@ -211,7 +225,7 @@ int memory_register##proc##write (lua_State* L)\
 			luaL_error(L, #proc "write hook registry is full.");\
 	return 0;\
 }\
-int memory_register##proc##read (lua_State* L)\
+DEFINE_LUA_FUNCTION(memory_register##proc##read, "address,func")\
 {\
 	unsigned int addr = luaL_checkinteger(L, 1);\
 	char Name[16];\
@@ -226,7 +240,7 @@ int memory_register##proc##read (lua_State* L)\
 			luaL_error(L, #proc "read hook registry is full.");\
 	return 0;\
 }\
-int memory_register##proc##exec (lua_State* L)\
+DEFINE_LUA_FUNCTION(memory_register##proc##exec, "address,func")\
 {\
 	unsigned int addr = luaL_checkinteger(L, 1);\
 	char Name[16];\
@@ -245,7 +259,7 @@ memreg(M68K)
 memreg(S68K)
 //memreg(SH2)
 //memreg(Z80)
-int gens_registerbefore(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_registerbefore, "func")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -256,7 +270,7 @@ int gens_registerbefore(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int gens_registerafter(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_registerafter, "func")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -267,7 +281,7 @@ int gens_registerafter(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int gens_registerexit(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_registerexit, "func")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -278,7 +292,7 @@ int gens_registerexit(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int gens_registerstart(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_registerstart, "func")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -292,7 +306,7 @@ int gens_registerstart(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int gui_register(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_register, "func")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -303,7 +317,7 @@ int gui_register(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int state_registersave(lua_State* L)
+DEFINE_LUA_FUNCTION(state_registersave, "func[,savekey]")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -316,7 +330,7 @@ int state_registersave(lua_State* L)
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
 }
-int state_registerload(lua_State* L)
+DEFINE_LUA_FUNCTION(state_registerload, "func[,loadkey]")
 {
 	if (!lua_isnil(L,1))
 		luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -330,7 +344,7 @@ int state_registerload(lua_State* L)
 	return 1;
 }
 
-int input_registerhotkey(lua_State* L)
+DEFINE_LUA_FUNCTION(input_registerhotkey, "keynum,func")
 {
 	int hotkeyNumber = luaL_checkinteger(L,1);
 	if(hotkeyNumber < 1 || hotkeyNumber > 16)
@@ -425,11 +439,11 @@ static int doPopup(lua_State* L, const char* deftype, const char* deficon)
 
 // string gui.popup(string message, string type = "ok", string icon = "message")
 // string input.popup(string message, string type = "yesno", string icon = "question")
-int gui_popup(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_popup, "message,type=\"ok\",icon=\"message\"")
 {
 	return doPopup(L, "ok", "message");
 }
-int input_popup(lua_State* L)
+DEFINE_LUA_FUNCTION(input_popup, "message,type=\"yesno\",icon=\"question\"")
 {
 	return doPopup(L, "yesno", "question");
 }
@@ -505,7 +519,7 @@ static char* ConstructScriptSaveDataPath(char* output, int bufferSize, LuaContex
 // then put the variable name alone in quotes as an entry in the table without saying "= nil".
 // this special case is because tables in lua don't store nil valued entries.
 // also, if you change the default value that will reset the variable to the new default.
-int gens_persistglobalvariables(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_persistglobalvariables, "variabletable")
 {
 	int uid = luaStateToUIDMap[L];
 	LuaContextInfo& info = GetCurrentInfo();
@@ -724,6 +738,11 @@ void worry(lua_State* L, int intensity)
 	info.worryCount += intensity;
 }
 
+static inline bool isalphaorunderscore(char c)
+{
+	return isalpha(c) || c == '_';
+}
+
 static std::vector<const void*> s_tableAddressStack; // prevents infinite recursion of a table within a table (when cycle is found, print something like table:parent)
 static std::vector<const void*> s_metacallStack; // prevents infinite recursion if something's __tostring returns another table that contains that something (when cycle is found, print the inner result without using __tostring)
 
@@ -762,7 +781,13 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
 		case LUA_TFUNCTION: 
 			if((L->base + i-1)->value.gc->cl.c.isC)
-				goto defcase;
+			{
+				lua_CFunction func = lua_tocfunction(L, i);
+				std::map<lua_CFunction, const char*>::iterator iter = s_cFuncInfoMap.find(func);
+				if(iter == s_cFuncInfoMap.end())
+					goto defcase;
+				APPENDPRINT "function(%s)", iter->second END 
+			}
 			else
 			{
 				APPENDPRINT "function(" END 
@@ -828,7 +853,7 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 					if(!skipKey)
 					{
 						bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
-						bool invalidLuaIdentifier = (!keyIsString || !isalpha(*lua_tostring(L, keyIndex)));
+						bool invalidLuaIdentifier = (!keyIsString || !isalphaorunderscore(*lua_tostring(L, keyIndex)));
 						if(invalidLuaIdentifier)
 							if(keyIsString)
 								APPENDPRINT "['" END
@@ -875,7 +900,7 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 	}
 }
 
-static const int s_tempStrMaxLen = 8192;
+static const int s_tempStrMaxLen = 64 * 1024;
 static char s_tempStr [s_tempStrMaxLen];
 
 static char* rawToCString(lua_State* L, int idx)
@@ -914,7 +939,7 @@ static char* rawToCString(lua_State* L, int idx)
 
 // replacement for luaB_tostring() that is able to show the contents of tables (and formats numbers better, and show function prototypes)
 // can be called directly from lua via tostring(), assuming tostring hasn't been reassigned
-static int tostring(lua_State* L)
+DEFINE_LUA_FUNCTION(tostring, "...")
 {
 	char* str = rawToCString(L);
 	str[strlen(str)-2] = 0; // hack: trim off the \r\n (which is there to simplify the print function's task)
@@ -929,7 +954,7 @@ static const char* toCString(lua_State* L, int idx)
 	int a = idx>0 ? idx : 1;
 	int n = idx>0 ? idx : lua_gettop(L);
 	lua_getglobal(L, "tostring");
-	lua_CFunction cf = (L->top - 1)->value.gc->cl.c.f; // it seems Lua's C API is nonexistent when it comes to getting any useful information about functions, such as argument number or names or the C function address...
+	lua_CFunction cf = lua_tocfunction(L,-1);
 	if(cf == tostring) // optimization: if using our own C tostring function, we can bypass the call through Lua and all the string object allocation that would entail
 	{
 		lua_pop(L,1);
@@ -956,7 +981,7 @@ static const char* toCString(lua_State* L, int idx)
 }
 
 // replacement for luaB_print() that goes to the appropriate textbox instead of stdout
-static int print(lua_State* L)
+DEFINE_LUA_FUNCTION(print, "...")
 {
 	const char* str = toCString(L);
 
@@ -972,7 +997,7 @@ static int print(lua_State* L)
 	return 0;
 }
 
-static int gens_message(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_message, "str")
 {
 	const char* str = toCString(L);
 	Put_Info_NonImmediate((char*)str, 500);
@@ -984,7 +1009,7 @@ static int gens_message(lua_State* L)
 // currently this function only performs a shallow copy,
 // but I think it should be changed to do a deep copy (possibly of configurable depth?)
 // that maintains the internal table reference structure
-static int copytable(lua_State *L)
+DEFINE_LUA_FUNCTION(copytable, "origtable")
 {
 	int origIndex = 1; // we only care about the first argument
 	int origType = lua_type(L, origIndex);
@@ -1026,14 +1051,14 @@ static int copytable(lua_State *L)
 // and the print function I provide instead shows the contents of tables,
 // I also provide this function
 // (otherwise there would be no way to see a table's address, AFAICT)
-static int addressof(lua_State *L)
+DEFINE_LUA_FUNCTION(addressof, "table_or_function")
 {
 	const void* ptr = lua_topointer(L,-1);
 	lua_pushinteger(L, (lua_Integer)ptr);
 	return 1;
 }
 
-static int bitand(lua_State *L)
+DEFINE_LUA_FUNCTION(bitand, "...[integers]")
 {
 	int rv = ~0;
 	int numArgs = lua_gettop(L);
@@ -1043,7 +1068,7 @@ static int bitand(lua_State *L)
 	lua_pushinteger(L,rv);
 	return 1;
 }
-static int bitor(lua_State *L)
+DEFINE_LUA_FUNCTION(bitor, "...[integers]")
 {
 	int rv = 0;
 	int numArgs = lua_gettop(L);
@@ -1053,7 +1078,7 @@ static int bitor(lua_State *L)
 	lua_pushinteger(L,rv);
 	return 1;
 }
-static int bitxor(lua_State *L)
+DEFINE_LUA_FUNCTION(bitxor, "...[integers]")
 {
 	int rv = 0;
 	int numArgs = lua_gettop(L);
@@ -1063,7 +1088,7 @@ static int bitxor(lua_State *L)
 	lua_pushinteger(L,rv);
 	return 1;
 }
-static int bitshift(lua_State *L)
+DEFINE_LUA_FUNCTION(bitshift, "num,shift")
 {
 	int num = luaL_checkinteger(L,1);
 	int shift = luaL_checkinteger(L,2);
@@ -1075,7 +1100,7 @@ static int bitshift(lua_State *L)
 	lua_pushinteger(L,num);
 	return 1;
 }
-static int bitbit(lua_State *L)
+DEFINE_LUA_FUNCTION(bitbit, "whichbit")
 {
 	int rv = 0;
 	int numArgs = lua_gettop(L);
@@ -1198,7 +1223,7 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 
 // acts similar to normal emulation update
 // except without the user being able to activate emulator commands
-int gens_emulateframe(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_emulateframe, "")
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -1212,7 +1237,7 @@ int gens_emulateframe(lua_State* L)
 
 // acts as a fast-forward emulation update that still renders every frame
 // and the user is unable to activate emulator commands during it
-int gens_emulateframefastnoskipping(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_emulateframefastnoskipping, "")
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -1228,7 +1253,7 @@ int gens_emulateframefastnoskipping(lua_State* L)
 
 // acts as a (very) fast-forward emulation update
 // where the user is unable to activate emulator commands
-int gens_emulateframefast(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_emulateframefast, "")
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -1263,7 +1288,7 @@ int gens_emulateframefast(lua_State* L)
 // it should leave no trace of having been called,
 // so you can do things like generate future emulation states every frame
 // while the user continues to see and hear normal emulation
-int gens_emulateframeinvisible(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_emulateframeinvisible, "")
 {
 	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
 		return 0;
@@ -1294,7 +1319,7 @@ int gens_emulateframeinvisible(lua_State* L)
 	#define strnicmp strncasecmp
 #endif
 
-int gens_speedmode(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_speedmode, "mode")
 {
 	SpeedMode newSpeedMode = SPEEDMODE_NORMAL;
 	if(lua_isnumber(L,1))
@@ -1322,7 +1347,7 @@ int gens_speedmode(lua_State* L)
 // can call this periodically instead of gens.frameadvance
 // note that the user can use hotkeys at this time
 // (e.g. a savestate could possibly get loaded before gens.wait() returns)
-int gens_wait(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_wait, "")
 {
 	LuaContextInfo& info = GetCurrentInfo();
 
@@ -1342,7 +1367,7 @@ int gens_wait(lua_State* L)
 	return 0;
 }
 
-int gens_frameadvance(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_frameadvance, "")
 {
 	int uid = luaStateToUIDMap[L];
 	LuaContextInfo& info = GetCurrentInfo();
@@ -1380,7 +1405,7 @@ int gens_frameadvance(lua_State* L)
 	return 0;
 }
 
-int gens_pause(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_pause, "")
 {
 	Paused = 1;
 	gens_frameadvance(L);
@@ -1394,7 +1419,7 @@ int gens_pause(lua_State* L)
 	return 0;
 }
 
-int gens_redraw(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_redraw, "")
 {
 	Show_Genesis_Screen();
 	worry(L,250);
@@ -1402,8 +1427,7 @@ int gens_redraw(lua_State* L)
 }
 
 
-
-int memory_readbyte(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readbyte, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned char value = (unsigned char)(ReadValueAtHardwareAddress(address, 1) & 0xFF);
@@ -1411,7 +1435,7 @@ int memory_readbyte(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1; // we return the number of return values
 }
-int memory_readbytesigned(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readbytesigned, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	signed char value = (signed char)(ReadValueAtHardwareAddress(address, 1) & 0xFF);
@@ -1419,7 +1443,7 @@ int memory_readbytesigned(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int memory_readword(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readword, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned short value = (unsigned short)(ReadValueAtHardwareAddress(address, 2) & 0xFFFF);
@@ -1427,7 +1451,7 @@ int memory_readword(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int memory_readwordsigned(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readwordsigned, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	signed short value = (signed short)(ReadValueAtHardwareAddress(address, 2) & 0xFFFF);
@@ -1435,7 +1459,7 @@ int memory_readwordsigned(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int memory_readdword(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readdword, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(ReadValueAtHardwareAddress(address, 4));
@@ -1443,7 +1467,7 @@ int memory_readdword(lua_State* L)
 	lua_pushinteger(L, value);
 	return 1;
 }
-int memory_readdwordsigned(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readdwordsigned, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	signed long value = (signed long)(ReadValueAtHardwareAddress(address, 4));
@@ -1452,21 +1476,21 @@ int memory_readdwordsigned(lua_State* L)
 	return 1;
 }
 
-int memory_writebyte(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_writebyte, "address,value")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned char value = (unsigned char)(luaL_checkinteger(L,2) & 0xFF);
 	WriteValueAtHardwareRAMAddress(address, value, 1);
 	return 0;
 }
-int memory_writeword(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_writeword, "address,value")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned short value = (unsigned short)(luaL_checkinteger(L,2) & 0xFFFF);
 	WriteValueAtHardwareRAMAddress(address, value, 2);
 	return 0;
 }
-int memory_writedword(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_writedword, "address,value")
 {
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
@@ -1474,7 +1498,7 @@ int memory_writedword(lua_State* L)
 	return 0;
 }
 
-int memory_readbyterange(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_readbyterange, "address,length")
 {
 	int address = luaL_checkinteger(L,1);
 	int length = luaL_checkinteger(L,2);
@@ -1503,7 +1527,7 @@ int memory_readbyterange(lua_State* L)
 	return 1;
 }
 
-int memory_isvalid(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_isvalid, "address")
 {
 	int address = luaL_checkinteger(L,1);
 	lua_settop(L,0);
@@ -1575,7 +1599,7 @@ cpuToRegisterMaps [] =
 };
 
 
-int memory_getregister(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_getregister, "cpu_dot_registername_string")
 {
 	const char* qualifiedRegisterName = luaL_checkstring(L,1);
 	lua_settop(L,0);
@@ -1607,7 +1631,7 @@ int memory_getregister(lua_State* L)
 	lua_pushnil(L);
 	return 1;
 }
-int memory_setregister(lua_State* L)
+DEFINE_LUA_FUNCTION(memory_setregister, "cpu_dot_registername_string,value")
 {
 	const char* qualifiedRegisterName = luaL_checkstring(L,1);
 	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
@@ -1640,7 +1664,7 @@ int memory_setregister(lua_State* L)
 }
 
 
-int state_create(lua_State* L)
+DEFINE_LUA_FUNCTION(state_create, "[location]")
 {
 	if(lua_isnumber(L,1))
 	{
@@ -1669,7 +1693,7 @@ int state_create(lua_State* L)
 // OR you can pass in a savestate object that was returned by savestate.create()
 // if option is "quiet" then any warning messages will be suppressed
 // if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
-int state_save(lua_State* L)
+DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 {
 	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
 	if(option)
@@ -1708,7 +1732,7 @@ int state_save(lua_State* L)
 // OR you can pass in a savestate object that was returned by savestate.create() and has already saved to with savestate.save()
 // if option is "quiet" then any warning messages will be suppressed
 // if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
-int state_load(lua_State* L)
+DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 {
 	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
 	if(option)
@@ -1764,7 +1788,7 @@ int state_load(lua_State* L)
 // chooses whether or not to load the userdata instead of always loading it,
 // and also to provide a nicer interface for loading userdata
 // without needing to trigger savestate loading first
-int state_loaduserdata(lua_State* L)
+DEFINE_LUA_FUNCTION(state_loaduserdata, "location")
 {
 	int type = lua_type(L,1);
 	switch(type)
@@ -1807,7 +1831,7 @@ int state_loaduserdata(lua_State* L)
 // savestate.saveuserdata(location)
 // same as savestate.load(location, "userdataonly")
 // only provided for consistency with savestate.loaduserdata(location)
-int state_saveuserdata(lua_State* L)
+DEFINE_LUA_FUNCTION(state_saveuserdata, "location")
 {
 	lua_settop(L, 1);
 	lua_pushstring(L, "userdataonly");
@@ -1903,7 +1927,7 @@ int joy_getArgControllerNum(lua_State* L, int& index)
 
 // joypad.set(controllerNum = 1, inputTable)
 // controllerNum can be 1, 2, '1B', or '1C'
-int joy_set(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_set, "controller=1,inputtable")
 {
 	int index = 1;
 	int controllerNumber = joy_getArgControllerNum(L, index);
@@ -1969,19 +1993,19 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 // returns a table of every game button,
 // true meaning currently-held and false meaning not-currently-held
 // this WILL read input from a currently-playing movie
-int joy_get(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_get, "controller=1")
 {
 	return joy_get_internal(L, true, true);
 }
 // joypad.getdown(int controllerNumber = 1)
 // returns a table of every game button that is currently held
-int joy_getdown(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_getdown, "controller=1")
 {
 	return joy_get_internal(L, false, true);
 }
 // joypad.getup(int controllerNumber = 1)
 // returns a table of every game button that is not currently held
-int joy_getup(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_getup, "controller=1")
 {
 	return joy_get_internal(L, true, false);
 }
@@ -2018,19 +2042,19 @@ int joy_peek_internal(lua_State* L, bool reportUp, bool reportDown)
 // returns a table of every game button,
 // true meaning currently-held and false meaning not-currently-held
 // peek checks which joypad buttons are physically pressed, so it will NOT read input from a playing movie, it CAN read mid-frame input, and it will NOT pay attention to stuff like autofire or autohold or disabled L+R/U+D
-int joy_peek(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_peek, "controller=1")
 {
 	return joy_peek_internal(L, true, true);
 }
 // joypad.peekdown(int controllerNumber = 1)
 // returns a table of every game button that is currently held (according to what joypad.peek() would return)
-int joy_peekdown(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_peekdown, "controller=1")
 {
 	return joy_peek_internal(L, false, true);
 }
 // joypad.peekup(int controllerNumber = 1)
 // returns a table of every game button that is not currently held (according to what joypad.peek() would return)
-int joy_peekup(lua_State* L)
+DEFINE_LUA_FUNCTION(joy_peekup, "controller=1")
 {
 	return joy_peek_internal(L, true, false);
 }
@@ -2138,7 +2162,7 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 // examples:
 // local r,g,b = gui.getcolor("green")
 // local r,g,b,a = gui.getcolor(0x7F3FFF7F)
-int gui_getcolor(lua_State *L)
+DEFINE_LUA_FUNCTION(gui_getcolor, "color")
 {
 	int color = getcolor_unmodified(L, 1, 0);
 	int r = (color & 0xFF000000) >> 24;
@@ -2152,7 +2176,7 @@ int gui_getcolor(lua_State *L)
 	return 4;
 }
 
-int gui_text(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_text, "x,y,str,color=\"white\",outline=\"black\"")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0; // we have to wait until later to call this function because gens hasn't emulated the next frame yet
@@ -2301,7 +2325,7 @@ int amplifyShader(lua_State* L)
 	return 3;
 }
 
-int gui_box(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_box, "x1,y1,x2,y2[,fill[,outline]]")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -2335,7 +2359,7 @@ int gui_box(lua_State* L)
 // color can be a RGB web color like '#ff7030', or with alpha RGBA like '#ff703060'
 //   or it can be an RGBA hex number like 0xFF703060
 //   or it can be a preset color like 'red', 'orange', 'blue', 'white', etc.
-int gui_pixel(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_pixel, "x,y,color=\"white\"")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -2353,7 +2377,7 @@ int gui_pixel(lua_State* L)
 	return 0;
 }
 // r,g,b = gui.getpixel(x,y)
-int gui_getpixel(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_getpixel, "x,y")
 {
 	int x = luaL_checkinteger(L,1);
 	int y = luaL_checkinteger(L,2);
@@ -2382,7 +2406,7 @@ int gui_getpixel(lua_State* L)
 
 	return 3;
 }
-int gui_line(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_line, "x1,y1,x2,y2,color=\"white\"")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -2412,7 +2436,7 @@ int gui_line(lua_State* L)
 // it is not necessary to use this function to get transparency (or the less-recommended gui.transparency() either),
 // because you can provide an alpha value in the color argument of each draw call.
 // however, it can be convenient to be able to globally modify the drawing transparency
-int gui_setopacity(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_setopacity, "alpha_0_to_1")
 {
 	lua_Number opacF = luaL_checknumber(L,1);
 	opacF *= 255.0;
@@ -2430,7 +2454,7 @@ int gui_setopacity(lua_State* L)
 // non-integer values are supported and meaningful, as are values less than 0.0
 // this is a legacy function, and the range is from 0 to 4 solely for this reason
 // it does the exact same thing as gui.opacity() but with a different argument range
-int gui_settransparency(lua_State* L)
+DEFINE_LUA_FUNCTION(gui_settransparency, "transparency_4_to_0")
 {
 	lua_Number transp = luaL_checknumber(L,1);
 	lua_Number opacF = 4 - transp;
@@ -2443,7 +2467,7 @@ int gui_settransparency(lua_State* L)
 	return 0;
 }
 
-int gens_openscript(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 {
 	char extraSearchDir [1024];
 	{
@@ -2461,42 +2485,42 @@ int gens_openscript(lua_State* L)
     return 0;
 }
 
-int gens_getframecount(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_getframecount, "")
 {
 	lua_pushinteger(L, FrameCount);
 	return 1;
 }
-int gens_getlagcount(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_getlagcount, "")
 {
 	lua_pushinteger(L, LagCountPersistent);
 	return 1;
 }
-int gens_lagged(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_lagged, "")
 {
 	lua_pushboolean(L, Lag_Frame);
 	return 1;
 }
-int movie_getlength(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_getlength, "")
 {
 	lua_pushinteger(L, MainMovie.LastFrame);
 	return 1;
 }
-int movie_isactive(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_isactive, "")
 {
 	lua_pushboolean(L, MainMovie.File != NULL);
 	return 1;
 }
-int movie_rerecordcount(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_rerecordcount, "")
 {
 	lua_pushinteger(L, MainMovie.NbRerecords);
 	return 1;
 }
-int movie_setrerecordcount(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_setrerecordcount, "")
 {
 	MainMovie.NbRerecords = luaL_checkinteger(L, 1);
 	return 0;
 }
-int gens_rerecordcounting(lua_State* L)
+DEFINE_LUA_FUNCTION(gens_rerecordcounting, "[enabled]")
 {
 	LuaContextInfo& info = GetCurrentInfo();
 	if(lua_gettop(L) == 0)
@@ -2512,28 +2536,28 @@ int gens_rerecordcounting(lua_State* L)
 		return 0;
 	}
 }
-int movie_getreadonly(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_getreadonly, "")
 {
 	lua_pushboolean(L, MainMovie.ReadOnly);
 	return 1;
 }
-int movie_setreadonly(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_setreadonly, "readonly")
 {
 	bool readonly = lua_toboolean(L,1) != 0;
 	MainMovie.ReadOnly = readonly;
 	return 0;
 }
-int movie_isrecording(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_isrecording, "")
 {
 	lua_pushboolean(L, MainMovie.Status == MOVIE_RECORDING);
 	return 1;
 }
-int movie_isplaying(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_isplaying, "")
 {
 	lua_pushboolean(L, MainMovie.Status == MOVIE_PLAYING);
 	return 1;
 }
-int movie_getmode(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_getmode, "")
 {
 	switch(MainMovie.Status)
 	{
@@ -2552,7 +2576,7 @@ int movie_getmode(lua_State* L)
 	}
 	return 1;
 }
-int movie_getname(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_getname, "")
 {
 	lua_pushstring(L, MainMovie.FileName);
 	return 1;
@@ -2560,7 +2584,7 @@ int movie_getname(lua_State* L)
 // movie.play() -- plays a movie of the user's choice
 // movie.play(filename) -- starts playing a particular movie
 // throws an error (with a description) if for whatever reason the movie couldn't be played
-int movie_play(lua_State *L)
+DEFINE_LUA_FUNCTION(movie_play, "[filename]")
 {
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
 	const char* errorMsg = GensPlayMovie(filename, true);
@@ -2568,7 +2592,7 @@ int movie_play(lua_State *L)
 		luaL_error(L, errorMsg);
     return 0;
 } 
-int movie_replay(lua_State *L)
+DEFINE_LUA_FUNCTION(movie_replay, "")
 {
 	if(MainMovie.File)
 		GensReplayMovie();
@@ -2576,13 +2600,13 @@ int movie_replay(lua_State *L)
 		luaL_error(L, "it is invalid to call movie_replay when no movie open.");
     return 0;
 } 
-int movie_close(lua_State* L)
+DEFINE_LUA_FUNCTION(movie_close, "")
 {
 	CloseMovieFile(&MainMovie);
 	return 0;
 }
 
-int sound_clear(lua_State* L)
+DEFINE_LUA_FUNCTION(sound_clear, "")
 {
 	Clear_Sound_Buffer();
 	return 0;
@@ -2698,7 +2722,7 @@ const char* s_keyToName[256] =
 //   if the user is holding the W key and the left mouse button
 //   and has the mouse at the bottom-right corner of the game screen,
 //   then this would return {W=true, leftclick=true, xmouse=319, ymouse=223}
-int input_getcurrentinputstatus(lua_State* L)
+DEFINE_LUA_FUNCTION(input_getcurrentinputstatus, "")
 {
 	lua_newtable(L);
 
@@ -2982,6 +3006,228 @@ static const struct luaL_reg soundlib [] =
 	{NULL, NULL}
 };
 
+static const struct CFuncInfo
+{
+	const char* library;
+	const char* name;
+	const char* args;
+	bool registry;
+}
+cFuncInfo [] = // this info is stored here to avoid having to change all of Lua's libraries to use something like DEFINE_LUA_FUNCTION
+{
+	{LUA_STRLIBNAME, "byte", "str[,start[,end]]"},
+	{LUA_STRLIBNAME, "char", "...[bytes]"},
+	{LUA_STRLIBNAME, "dump", "func"},
+	{LUA_STRLIBNAME, "find", "str,pattern[,init[,plain]]"},
+	{LUA_STRLIBNAME, "format", "formatstring,..."},
+	{LUA_STRLIBNAME, "gfind", "!deprecated!"},
+	{LUA_STRLIBNAME, "gmatch", "str,pattern"},
+	{LUA_STRLIBNAME, "gsub", "str,pattern,repl[,n]"},
+	{LUA_STRLIBNAME, "len", "str"},
+	{LUA_STRLIBNAME, "lower", "str"},
+	{LUA_STRLIBNAME, "match", "str,pattern[,init]"},
+	{LUA_STRLIBNAME, "rep", "str,n"},
+	{LUA_STRLIBNAME, "reverse", "str"},
+	{LUA_STRLIBNAME, "sub", "str,start[,end]"},
+	{LUA_STRLIBNAME, "upper", "str"},
+	{NULL, "module", "name[,...]"},
+	{NULL, "require", "modname"},
+	{LUA_LOADLIBNAME, "loadlib", "libname,funcname"},
+	{LUA_LOADLIBNAME, "seeall", "module"},
+	{LUA_COLIBNAME, "create", "func"},
+	{LUA_COLIBNAME, "resume", "co[,val1,...]"},
+	{LUA_COLIBNAME, "running", ""},
+	{LUA_COLIBNAME, "status", "co"},
+	{LUA_COLIBNAME, "wrap", "func"},
+	{LUA_COLIBNAME, "yield", "..."},
+	{NULL, "assert", "cond[,message]"},
+	{NULL, "collectgarbage", "opt[,arg]"},
+	{NULL, "gcinfo", ""},
+	{NULL, "dofile", "filename"},
+	{NULL, "error", "message[,level]"},
+	{NULL, "getfenv", "[level_or_func]"},
+	{NULL, "getmetatable", "object"},
+	{NULL, "ipairs", "arraytable"},
+	{NULL, "load", "func[,chunkname]"},
+	{NULL, "loadfile", "[filename]"},
+	{NULL, "loadstring", "str[,chunkname]"},
+	{NULL, "next", "table[,index]"},
+	{NULL, "pairs", "table"},
+	{NULL, "pcall", "func,arg1,..."},
+	{NULL, "rawequal", "v1,v2"},
+	{NULL, "rawget", "table,index"},
+	{NULL, "rawset", "table,index,value"},
+	{NULL, "select", "index,..."},
+	{NULL, "setfenv", "level_or_func,envtable"},
+	{NULL, "setmetatable", "table,metatable"},
+	{NULL, "tonumber", "str_or_num[,base]"},
+	{NULL, "type", "obj"},
+	{NULL, "unpack", "list,i=1,j=#list"},
+	{NULL, "xpcall", "func,errhandler"},
+	{NULL, "newproxy", "hasmeta"},
+	{LUA_MATHLIBNAME, "abs", "x"},
+	{LUA_MATHLIBNAME, "acos", "x"},
+	{LUA_MATHLIBNAME, "asin", "x"},
+	{LUA_MATHLIBNAME, "atan", "x"},
+	{LUA_MATHLIBNAME, "atan2", "y,x"},
+	{LUA_MATHLIBNAME, "ceil", "x"},
+	{LUA_MATHLIBNAME, "cos", "rads"},
+	{LUA_MATHLIBNAME, "cosh", "x"},
+	{LUA_MATHLIBNAME, "deg", "rads"},
+	{LUA_MATHLIBNAME, "exp", "x"},
+	{LUA_MATHLIBNAME, "floor", "x"},
+	{LUA_MATHLIBNAME, "fmod", "x,y"},
+	{LUA_MATHLIBNAME, "frexp", "x"},
+	{LUA_MATHLIBNAME, "ldexp", "m,e"},
+	{LUA_MATHLIBNAME, "log", "x"},
+	{LUA_MATHLIBNAME, "log10", "x"},
+	{LUA_MATHLIBNAME, "max", "x,..."},
+	{LUA_MATHLIBNAME, "min", "x,..."},
+	{LUA_MATHLIBNAME, "modf", "x"},
+	{LUA_MATHLIBNAME, "pow", "x,y"},
+	{LUA_MATHLIBNAME, "rad", "degs"},
+	{LUA_MATHLIBNAME, "random", "[m[,n]]"},
+	{LUA_MATHLIBNAME, "randomseed", "x"},
+	{LUA_MATHLIBNAME, "sin", "rads"},
+	{LUA_MATHLIBNAME, "sinh", "x"},
+	{LUA_MATHLIBNAME, "sqrt", "x"},
+	{LUA_MATHLIBNAME, "tan", "rads"},
+	{LUA_MATHLIBNAME, "tanh", "x"},
+	{LUA_IOLIBNAME, "close", "[file]"},
+	{LUA_IOLIBNAME, "flush", ""},
+	{LUA_IOLIBNAME, "input", "[file]"},
+	{LUA_IOLIBNAME, "lines", "[filename]"},
+	{LUA_IOLIBNAME, "open", "filename,mode=\"r\""},
+	{LUA_IOLIBNAME, "output", "[file]"},
+	{LUA_IOLIBNAME, "popen", "prog,[model]"},
+	{LUA_IOLIBNAME, "read", "..."},
+	{LUA_IOLIBNAME, "tmpfile", ""},
+	{LUA_IOLIBNAME, "type", "obj"},
+	{LUA_IOLIBNAME, "write", "..."},
+	{LUA_OSLIBNAME, "clock", ""},
+	{LUA_OSLIBNAME, "date", "[format[,time]]"},
+	{LUA_OSLIBNAME, "difftime", "t2,t1"},
+	{LUA_OSLIBNAME, "execute", "[command]"},
+	{LUA_OSLIBNAME, "exit", "[code]"},
+	{LUA_OSLIBNAME, "getenv", "varname"},
+	{LUA_OSLIBNAME, "remove", "filename"},
+	{LUA_OSLIBNAME, "rename", "oldname,newname"},
+	{LUA_OSLIBNAME, "setlocale", "locale[,category]"},
+	{LUA_OSLIBNAME, "time", "[timetable]"},
+	{LUA_OSLIBNAME, "tmpname", ""},
+	{LUA_DBLIBNAME, "debug", ""},
+	{LUA_DBLIBNAME, "getfenv", "o"},
+	{LUA_DBLIBNAME, "gethook", "[thread]"},
+	{LUA_DBLIBNAME, "getinfo", "[thread,]function[,what]"},
+	{LUA_DBLIBNAME, "getlocal", "[thread,]level,local"},
+	{LUA_DBLIBNAME, "getmetatable", "[object]"},
+	{LUA_DBLIBNAME, "getregistry", ""},
+	{LUA_DBLIBNAME, "getupvalue", "func,up"},
+	{LUA_DBLIBNAME, "setfenv", "object,table"},
+	{LUA_DBLIBNAME, "sethook", "[thread,]hook,mask[,count]"},
+	{LUA_DBLIBNAME, "setlocal", "[thread,]level,local,value"},
+	{LUA_DBLIBNAME, "setmetatable", "object,table"},
+	{LUA_DBLIBNAME, "setupvalue", "func,up,value"},
+	{LUA_DBLIBNAME, "traceback", "[thread,][message][,level]"},
+	{LUA_TABLIBNAME, "concat", "table[,sep[,i[,j]]]"},
+	{LUA_TABLIBNAME, "insert", "table,[pos,]value"},
+	{LUA_TABLIBNAME, "maxn", "table"},
+	{LUA_TABLIBNAME, "remove", "table[,pos]"},
+	{LUA_TABLIBNAME, "sort", "table[,comp]"},
+	{LUA_TABLIBNAME, "foreach", "table,func"},
+	{LUA_TABLIBNAME, "foreachi", "table,func"},
+	{LUA_TABLIBNAME, "getn", "table"},
+	{LUA_TABLIBNAME, "maxn", "table"},
+	{LUA_TABLIBNAME, "setn", "table,value"}, // I know some of these are obsolete but they should still have argument info if they're exposed to the user
+	{LUA_FILEHANDLE, "setvbuf", "mode[,size]", true},
+	{LUA_FILEHANDLE, "lines", "", true},
+	{LUA_FILEHANDLE, "read", "...", true},
+	{LUA_FILEHANDLE, "flush", "", true},
+	{LUA_FILEHANDLE, "seek", "[whence][,offset]", true},
+	{LUA_FILEHANDLE, "write", "...", true},
+	{LUA_FILEHANDLE, "__tostring", "obj", true},
+	{LUA_FILEHANDLE, "__gc", "", true},
+	{"_LOADLIB", "__gc", "", true},
+};
+
+void registerLibs(lua_State* L)
+{
+	luaL_openlibs(L);
+
+	luaL_register(L, "gens", genslib);
+	luaL_register(L, "gui", guilib);
+	luaL_register(L, "savestate", statelib);
+	luaL_register(L, "memory", memorylib);
+	luaL_register(L, "joypad", joylib); // for game input
+	luaL_register(L, "input", inputlib); // for user input
+	luaL_register(L, "movie", movielib);
+	luaL_register(L, "sound", soundlib);
+	lua_settop(L, 0); // clean the stack, because each call to luaL_register leaves a table on top
+	
+	// register a few utility functions outside of libraries (in the global namespace)
+	lua_register(L, "print", print);
+	lua_register(L, "tostring", tostring);
+	lua_register(L, "addressof", addressof);
+	lua_register(L, "copytable", copytable);
+	lua_register(L, "AND", bitand);
+	lua_register(L, "OR", bitor);
+	lua_register(L, "XOR", bitxor);
+	lua_register(L, "SHIFT", bitshift);
+	lua_register(L, "BIT", bitbit);
+
+	// populate s_cFuncInfoMap the first time
+	static bool once = true;
+	if(once)
+	{
+		once = false;
+
+		for(int i = 0; i < sizeof(cFuncInfo)/sizeof(*cFuncInfo); i++)
+		{
+			const CFuncInfo& cfi = cFuncInfo[i];
+			if(cfi.registry)
+			{
+				lua_getregistry(L);
+				lua_getfield(L, -1, cfi.library);
+				lua_remove(L, -2);
+				lua_getfield(L, -1, cfi.name);
+				lua_remove(L, -2);
+			}
+			else if(cfi.library)
+			{
+				lua_getfield(L, LUA_GLOBALSINDEX, cfi.library);
+				lua_getfield(L, -1, cfi.name);
+				lua_remove(L, -2);
+			}
+			else
+			{
+				lua_getfield(L, LUA_GLOBALSINDEX, cfi.name);
+			}
+
+			lua_CFunction func = lua_tocfunction(L, -1);
+			s_cFuncInfoMap[func] = cfi.args;
+			lua_pop(L, 1);
+		}
+
+		// deal with some stragglers
+		lua_getfield(L, LUA_GLOBALSINDEX, "package");
+		lua_getfield(L, -1, "loaders");
+		lua_remove(L, -2);
+		if(lua_istable(L, -1))
+		{
+			for(int i=1;;i++)
+			{
+				lua_rawgeti(L, -1, i);
+				lua_CFunction func = lua_tocfunction(L, -1);
+				if(!func)
+					break;
+				s_cFuncInfoMap[func] = "name";
+				lua_pop(L,1);
+			}
+		}
+		lua_pop(L,1);
+	}
+}
+
 void ResetInfo(LuaContextInfo& info)
 {
 	info.L = NULL;
@@ -3017,7 +3263,6 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	newInfo->onstop = onstop;
 	luaContextInfo[uid] = newInfo;
 }
-
 
 void RunLuaScriptFile(int uid, const char* filenameCStr)
 {
@@ -3063,26 +3308,7 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 		SetSaveKey(info, FilenameFromPath(filename.c_str()));
 		info.dataSaveLoadKeySet = false;
 
-		luaL_openlibs(L);
-		luaL_register(L, "gens", genslib);
-		luaL_register(L, "gui", guilib);
-		luaL_register(L, "savestate", statelib);
-		luaL_register(L, "memory", memorylib);
-		luaL_register(L, "joypad", joylib); // for game input
-		luaL_register(L, "input", inputlib); // for user input
-		luaL_register(L, "movie", movielib);
-		luaL_register(L, "sound", soundlib);
-		
-		// register a few utility functions outside of libraries (in the global namespace)
-		lua_register(L, "print", print);
-		lua_register(L, "tostring", tostring);
-		lua_register(L, "addressof", addressof);
-		lua_register(L, "copytable", copytable);
-		lua_register(L, "AND", bitand);
-		lua_register(L, "OR", bitor);
-		lua_register(L, "XOR", bitxor);
-		lua_register(L, "SHIFT", bitshift);
-		lua_register(L, "BIT", bitbit);
+		registerLibs(L);
 
 		// register a function to periodically check for inactivity
 		lua_sethook(L, LuaRescueHook, LUA_MASKCOUNT, HOOKCOUNT);
