@@ -68,7 +68,7 @@ int Correct_256_Aspect_Ratio = 1;
 #define ALT_X_RATIO_RES (Correct_256_Aspect_Ratio ? 320 : 256)
 
 #define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
-#define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount)
+#define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount))
 
 
 
