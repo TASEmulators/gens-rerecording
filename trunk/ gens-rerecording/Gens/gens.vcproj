@@ -86,7 +86,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj; /LTCG"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
 				OutputFile=".\Release/gens.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -193,7 +193,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib vfw32.lib"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib vfw32.lib"
 				OutputFile=".\Debug/gens.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
