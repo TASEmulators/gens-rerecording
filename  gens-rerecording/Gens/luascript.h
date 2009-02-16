@@ -39,6 +39,16 @@ enum LuaCallID
 };
 void CallRegisteredLuaFunctions(LuaCallID calltype);
 
+enum LuaMemHookType
+{
+	LUAMEMHOOK_WRITE,
+	LUAMEMHOOK_READ,
+	LUAMEMHOOK_EXEC,
+
+	LUAMEMHOOK_COUNT
+};
+void CallRegisteredLuaMemHook(unsigned int address, int size, unsigned int value, LuaMemHookType hookType);
+
 struct LuaSaveData
 {
 	LuaSaveData() { recordList = 0; }

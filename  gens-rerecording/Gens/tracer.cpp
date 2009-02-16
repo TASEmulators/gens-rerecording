@@ -6,6 +6,7 @@
 #include "Mem_M68k.h"
 #include "Mem_S68k.h"
 #include "vdp_io.h"
+#include "luascript.h"
 
 #define uint32 unsigned int
 
@@ -180,6 +181,7 @@ void GensTrace()
 	// Trace.txt
 	if( trace_map )
 		GensTrace_trace();
+	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 }
 
 static void trace_read_byte_internal()
@@ -239,10 +241,13 @@ static void trace_read_byte_internal()
 			hook_value & 0xff, hook_address );
 	}
 }
+
+
 void trace_read_byte()
 {
 	if( hook_trace && rd_mode )
 		trace_read_byte_internal();
+	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_READ);
 }
 
 static void trace_read_word_internal()
@@ -306,6 +311,7 @@ void trace_read_word()
 {
 	if( hook_trace && rd_mode )
 		trace_read_word_internal();
+	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_READ);
 }
 
 
@@ -370,7 +376,9 @@ void trace_read_dword()
 {
 	if( hook_trace && rd_mode )
 		trace_read_dword_internal();
+	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_READ);
 }
+
 
 static void trace_write_byte_internal()
 {
@@ -440,6 +448,7 @@ void trace_write_byte()
 {
 	if( hook_trace && wr_mode )
 		trace_write_byte_internal();
+	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_WRITE);
 }
 
 
@@ -504,6 +513,7 @@ void trace_write_word()
 {
 	if( hook_trace && wr_mode )
 		trace_write_word_internal();
+	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_WRITE);
 }
 
 
@@ -568,6 +578,7 @@ void trace_write_dword()
 {
 	if( hook_trace && wr_mode )
 		trace_write_dword_internal();
+	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_WRITE);
 }
 
 

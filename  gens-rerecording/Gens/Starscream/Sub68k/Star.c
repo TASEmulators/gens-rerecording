@@ -10,6 +10,8 @@
 
 #define VERSION "S0.26d"
 
+#define HOOKS_ENABLED
+
 /***************************************************************************/
 /*
 ** NOTE
@@ -256,6 +258,7 @@ static void gen_variables(void) {
 
 	emit("\n");
 	emit("\textern Ram_68k\n");
+#ifdef HOOKS_ENABLED
 	emit("\textern _hook_exec_cd\n");
 
 	emit("\textern _hook_read_byte_cd\n");
@@ -267,6 +270,7 @@ static void gen_variables(void) {
 	emit("\textern _hook_pc_cd\n");
 	emit("\textern _hook_address_cd\n");
 	emit("\textern _hook_value_cd\n");	
+#endif
 
 	emit("\textern Rom_Data\n");
 	emit("\textern Rom_Size\n");
@@ -718,12 +722,14 @@ emit("js near execquit\n");
 	emit("mov bx,[esi]\n");
 	emit("add esi,byte 2\n");
 
+#ifdef HOOKS_ENABLED
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
 emit("mov [_hook_pc_cd],esi\n");
 emit("call _hook_exec_cd\n");
 emit("popad\n");
+#endif
 
 	emit("jmp dword[__jmptbl+ebx*4]\n");
 	/* Traditional loop - used when hog mode is off */
@@ -1322,6 +1328,7 @@ static void ret_timing(int n) {
 		emit("mov bx,[esi]\n");
 		emit("add esi,byte 2\n");
 
+#ifdef HOOKS_ENABLED
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
@@ -1337,6 +1344,7 @@ emit("mov [__sr],al\n");
 
 emit("call _hook_exec_cd\n");
 emit("popad\n");
+#endif
 
 		emit("jmp dword[__jmptbl+ebx*4]\n");
 	}
@@ -1583,6 +1591,19 @@ static void supervisor(void){
 	emit("ln%d:\n",myline);
 }
 
+static void emit_hook(const char* hookFuncName){
+#ifdef HOOKS_ENABLED
+	emit("pushad\n");
+	emit("sub esi,ebp\n");
+	emit("sub esi,byte 2\n");
+	emit("mov [_hook_pc_cd],esi\n");
+	emit("mov [_hook_address_cd],edx\n");
+	emit("mov [_hook_value_cd],ecx\n");
+	emit("call %s\n", hookFuncName);
+	emit("popad\n");
+#endif
+}
+
 /***************************************************************************/
 
 static void gen_readbw(int size)
@@ -1610,15 +1631,7 @@ static void gen_readbw(int size)
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-emit("mov [_hook_address_cd],edx\n");
-emit("mov [_hook_value_cd],ecx\n");
-emit("call _hook_read_byte_cd\n");
-emit("popad\n");
-
+		emit_hook("_hook_read_byte_cd");
 		emit("\tret\n");
 	}
 
@@ -1642,15 +1655,7 @@ emit("popad\n");
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc_cd],esi\n");
-	emit("mov [_hook_address_cd],edx\n");
-	emit("mov [_hook_value_cd],ecx\n");
-	emit("call _hook_read_word_cd\n");
-	emit("popad\n");
-
+		emit_hook("_hook_read_word_cd");
 		emit("\tret\n");
 	}
 }
@@ -1681,15 +1686,7 @@ static void gen_readl(void)
 	emit("\tmov edx, [__access_address]\n");
 	emit("\tpop eax\n");
 
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-emit("mov [_hook_address_cd],edx\n");
-emit("mov [_hook_value_cd],ecx\n");
-emit("call _hook_read_dword_cd\n");
-emit("popad\n");
-
+	emit_hook("_hook_read_dword_cd");
 	emit("\tret\n");
 }
 
@@ -1717,15 +1714,7 @@ static void gen_writebw(int size)
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-emit("mov [_hook_address_cd],edx\n");
-emit("mov [_hook_value_cd],ecx\n");
-emit("call _hook_write_byte_cd\n");
-emit("popad\n");
-
+		emit_hook("_hook_write_byte_cd");
 		emit("\tret\n");
 	}
 
@@ -1748,15 +1737,7 @@ emit("popad\n");
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-emit("mov [_hook_address_cd],edx\n");
-emit("mov [_hook_value_cd],ecx\n");
-emit("call _hook_write_word_cd\n");
-emit("popad\n");
-
+		emit_hook("_hook_write_word_cd");
 		emit("\tret\n");
 	}
 }
@@ -1788,15 +1769,7 @@ static void gen_writel(void)
 	emit("\tmov edx, [__access_address]\n");
 	emit("\tpop eax\n");
 
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-emit("mov [_hook_address_cd],edx\n");
-emit("mov [_hook_value_cd],ecx\n");
-emit("call _hook_write_dword_cd\n");
-emit("popad\n");
-
+	emit_hook("_hook_write_dword_cd");
 	emit("\tret\n");
 }
 

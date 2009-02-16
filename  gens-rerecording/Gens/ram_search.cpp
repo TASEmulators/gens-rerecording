@@ -39,6 +39,7 @@
 #include <commctrl.h>
 #include "G_dsound.h"
 #include "ramwatch.h"
+#include "luascript.h"
 #include <list>
 #include <vector>
 #ifdef _WIN32
@@ -860,8 +861,10 @@ unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, false);
 	return 0;
 }
-bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size)
+bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless)
 {
+	if(!hookless) // a script that calls e.g. memory.writebyte() should trigger write hooks
+		CallRegisteredLuaMemHook(address, size, value, LUAMEMHOOK_WRITE);
 	if((address & ~0xFFFFFF) == ~0xFFFFFF)
 		address &= 0xFFFFFF;
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
@@ -884,9 +887,9 @@ bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, un
 	else return false;
 	return true;
 }
-bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size)
+bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false)
 {
-	return WriteValueAtHardwareRAMAddress(address, value, size) ||
+	return WriteValueAtHardwareRAMAddress(address, value, size, hookless) ||
 	       WriteValueAtHardwareROMAddress(address, value, size);
 }
 bool IsHardwareRAMAddressValid(unsigned int address)
