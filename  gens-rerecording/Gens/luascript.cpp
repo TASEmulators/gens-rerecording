@@ -177,6 +177,10 @@ static const char* luaMemHookTypeStrings [] =
 	"MEMHOOK_WRITE",
 	"MEMHOOK_READ",
 	"MEMHOOK_EXEC",
+
+	"MEMHOOK_WRITE_SUB",
+	"MEMHOOK_READ_SUB",
+	"MEMHOOK_EXEC_SUB",
 };
 static const int _makeSureWeHaveTheRightNumberOfStrings2 [sizeof(luaMemHookTypeStrings)/sizeof(*luaMemHookTypeStrings) == LUAMEMHOOK_COUNT ? 1 : 0];
 
@@ -250,17 +254,51 @@ static int memory_registerHook(lua_State* L, LuaMemHookType hookType, int defaul
 	return 0;
 }
 
-DEFINE_LUA_FUNCTION(memory_registerwrite, "address,[size=1,]func")
+LuaMemHookType MatchHookTypeToCPU(lua_State* L, LuaMemHookType hookType)
 {
-	return memory_registerHook(L, LUAMEMHOOK_WRITE, 1);
+	int cpuID = 0;
+
+	int cpunameIndex = 0;
+	if(lua_type(L,2) == LUA_TSTRING)
+		cpunameIndex = 2;
+	else if(lua_type(L,3) == LUA_TSTRING)
+		cpunameIndex = 3;
+
+	if(cpunameIndex)
+	{
+		const char* cpuName = lua_tostring(L, cpunameIndex);
+		if(!stricmp(cpuName, "sub") || !stricmp(cpuName, "s68k"))
+			cpuID = 1;
+		lua_remove(L, cpunameIndex);
+	}
+
+	switch(cpuID)
+	{
+	case 0: // m68k:
+		return hookType;
+
+	case 1: // s68k:
+		switch(hookType)
+		{
+		case LUAMEMHOOK_WRITE: return LUAMEMHOOK_WRITE_SUB;
+		case LUAMEMHOOK_READ: return LUAMEMHOOK_READ_SUB;
+		case LUAMEMHOOK_EXEC: return LUAMEMHOOK_EXEC_SUB;
+		}
+	}
+	return hookType;
 }
-DEFINE_LUA_FUNCTION(memory_registerread, "address,[size=1,]func")
+
+DEFINE_LUA_FUNCTION(memory_registerwrite, "address,[size=1,][cpuname=\"main\",]func")
 {
-	return memory_registerHook(L, LUAMEMHOOK_READ, 1);
+	return memory_registerHook(L, MatchHookTypeToCPU(L,LUAMEMHOOK_WRITE), 1);
 }
-DEFINE_LUA_FUNCTION(memory_registerexec, "address,[size=2,]func")
+DEFINE_LUA_FUNCTION(memory_registerread, "address,[size=1,][cpuname=\"main\",]func")
 {
-	return memory_registerHook(L, LUAMEMHOOK_EXEC, 2);
+	return memory_registerHook(L, MatchHookTypeToCPU(L,LUAMEMHOOK_READ), 1);
+}
+DEFINE_LUA_FUNCTION(memory_registerexec, "address,[size=2,][cpuname=\"main\",]func")
+{
+	return memory_registerHook(L, MatchHookTypeToCPU(L,LUAMEMHOOK_EXEC), 2);
 }
 
 
@@ -1643,7 +1681,9 @@ struct cpuToRegisterMap
 cpuToRegisterMaps [] =
 {
 	{"m68k.", m68kPointerMap},
+	{"main.", m68kPointerMap},
 	{"s68k.", s68kPointerMap},
+	{"sub.",  s68kPointerMap},
 };
 
 
@@ -3253,9 +3293,11 @@ void registerLibs(lua_State* L)
 	}
 
 	// push arrays for storing hook functions in
-	lua_newtable(L); lua_setfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[LUAMEMHOOK_WRITE]);
-	lua_newtable(L); lua_setfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[LUAMEMHOOK_READ]);
-	lua_newtable(L); lua_setfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[LUAMEMHOOK_EXEC]);
+	for(int i = 0; i < LUAMEMHOOK_COUNT; i++)
+	{
+		lua_newtable(L);
+		lua_setfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[i]);
+	}
 }
 
 void ResetInfo(LuaContextInfo& info)

@@ -232,7 +232,7 @@ void GensTrace_cd()
 	if( hook_trace )
 		GensTrace_cd_hook();
 
-	CallRegisteredLuaMemHook(hook_pc_cd, 2, 0, LUAMEMHOOK_EXEC);
+	CallRegisteredLuaMemHook(hook_pc_cd, 2, 0, LUAMEMHOOK_EXEC_SUB);
 }
 
 
@@ -297,7 +297,7 @@ void trace_read_byte_cd()
 {
 	if( hook_trace )
 		trace_read_byte_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 1, hook_value_cd, LUAMEMHOOK_READ);
+	CallRegisteredLuaMemHook(hook_address_cd, 1, hook_value_cd, LUAMEMHOOK_READ_SUB);
 }
 
 
@@ -362,7 +362,7 @@ void trace_read_word_cd()
 {
 	if( hook_trace )
 		trace_read_word_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 2, hook_value_cd, LUAMEMHOOK_READ);
+	CallRegisteredLuaMemHook(hook_address_cd, 2, hook_value_cd, LUAMEMHOOK_READ_SUB);
 }
 
 
@@ -427,7 +427,7 @@ void trace_read_dword_cd()
 {
 	if( hook_trace )
 		trace_read_dword_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 4, hook_value_cd, LUAMEMHOOK_READ);
+	CallRegisteredLuaMemHook(hook_address_cd, 4, hook_value_cd, LUAMEMHOOK_READ_SUB);
 }
 
 
@@ -492,7 +492,7 @@ void trace_write_byte_cd()
 {
 	if( hook_trace )
 		trace_write_byte_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 1, hook_value_cd, LUAMEMHOOK_WRITE);
+	CallRegisteredLuaMemHook(hook_address_cd, 1, hook_value_cd, LUAMEMHOOK_WRITE_SUB);
 }
 
 
@@ -557,7 +557,7 @@ void trace_write_word_cd()
 {
 	if( hook_trace )
 		trace_write_word_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 2, hook_value_cd, LUAMEMHOOK_WRITE);
+	CallRegisteredLuaMemHook(hook_address_cd, 2, hook_value_cd, LUAMEMHOOK_WRITE_SUB);
 }
 
 
@@ -622,7 +622,7 @@ void trace_write_dword_cd()
 {
 	if( hook_trace )
 		trace_write_dword_cd_internal();
-	CallRegisteredLuaMemHook(hook_address_cd, 4, hook_value_cd, LUAMEMHOOK_WRITE);
+	CallRegisteredLuaMemHook(hook_address_cd, 4, hook_value_cd, LUAMEMHOOK_WRITE_SUB);
 }
 
 #if 0
