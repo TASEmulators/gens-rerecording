@@ -339,6 +339,7 @@ int Load_State(char *Name)
 		fread(&yg,4,1,f);
 #endif
 		int switched = 0; //Modif N - switched is for displaying "switched to playback" message
+		bool truncate = false;
 
 		// Modif N. -- I don't know why MainMovie.LastFrame gets calculated like it does above,
 		// but it makes the movie length invalid whenever I load a savestate while recording and in non-readonly mode,
@@ -350,7 +351,7 @@ int Load_State(char *Name)
 			if (MainMovie.TriplePlayerHack) maxtrack |= TRACK3;
 			if((track & maxtrack) == maxtrack) // only do this if all tracks are on
 				if ((MainMovie.File) && FrameCount != MainMovie.LastFrame)
-					TruncateMovieToFrameCount();
+					truncate = true;
 		}
 
 		if ((MainMovie.File) && !(FrameCount < MainMovie.LastFrame))
@@ -389,6 +390,8 @@ int Load_State(char *Name)
 			switched = 3;
 		}
 
+		if (truncate)
+			TruncateMovieToFrameCount();
 		if (!(switched)) 
 			sprintf(Str_Tmp, "STATE %d LOADED", Current_State);
 		else if(switched == 1)
