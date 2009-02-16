@@ -3706,7 +3706,8 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 			lua_rawgeti(L, -1, i);
 			if (lua_isfunction(L, -1))
 			{
-				unsigned long mask, oldValue, newValue;
+				//I changed the write hook to occur after the write - U
+/*				unsigned long mask, oldValue, newValue;
 				if(hookType == LUAMEMHOOK_WRITE)
 				{
 					// unfortunately, the write hook gets called before the write actually happens,
@@ -3721,7 +3722,7 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 					newValue = value & mask;
 					if(oldValue != newValue)
 						WriteValueAtHardwareRAMAddress(address, newValue, size, true);
-				}
+				}*/
 				bool wasRunning = info.running;
 				info.running = true;
 				RefreshScriptSpeedStatus();
@@ -3730,8 +3731,8 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 				int errorcode = lua_pcall(L, 2, 0, 0);
 				info.running = wasRunning;
 				RefreshScriptSpeedStatus();
-				if(hookType == LUAMEMHOOK_WRITE && oldValue != newValue)
-					WriteValueAtHardwareRAMAddress(address, oldValue, size, true); // revert the value in case it matters
+/*				if(hookType == LUAMEMHOOK_WRITE && oldValue != newValue)
+					WriteValueAtHardwareRAMAddress(address, oldValue, size, true); // revert the value in case it matters*/
 				if (errorcode)
 					HandleCallbackError(L,info,uid,true);
 				break;
