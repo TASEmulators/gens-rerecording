@@ -3678,6 +3678,7 @@ static void CalculateMemHookRegions(LuaMemHookType hookType)
 					}
 					lua_pop(L, 1);
 				}
+				lua_settop(L, 0);
 			}
 		}
 		++iter;
@@ -3724,7 +3725,9 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 				bool wasRunning = info.running;
 				info.running = true;
 				RefreshScriptSpeedStatus();
-				int errorcode = lua_pcall(L, 0, 0, 0);
+				lua_pushinteger(L, address);
+				lua_pushinteger(L, size);
+				int errorcode = lua_pcall(L, 2, 0, 0);
 				info.running = wasRunning;
 				RefreshScriptSpeedStatus();
 				if(hookType == LUAMEMHOOK_WRITE && oldValue != newValue)
