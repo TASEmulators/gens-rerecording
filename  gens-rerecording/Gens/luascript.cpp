@@ -135,6 +135,7 @@ static std::map<lua_CFunction, const char*> s_cFuncInfoMap;
 
 #ifdef _MSC_VER
 	#define snprintf _snprintf
+	#define vscprintf _vscprintf
 #else
 	#define stricmp strcasecmp
 	#define strnicmp strncasecmp
@@ -654,7 +655,7 @@ void DeferFunctionCall(lua_State* L, const char* idstring)
 	// put the list into a global array
 	lua_getfield(L, LUA_REGISTRYINDEX, idstring);
 	lua_insert(L, 1);
-	int curSize = luaL_getn(L, 1);
+	int curSize = lua_objlen(L, 1);
 	lua_rawseti(L, 1, curSize+1);
 
 	// clean the stack
@@ -664,11 +665,11 @@ void CallDeferredFunctions(lua_State* L, const char* idstring)
 {
 	lua_settop(L, 0);
 	lua_getfield(L, LUA_REGISTRYINDEX, idstring);
-	int numCalls = luaL_getn(L, 1);
+	int numCalls = lua_objlen(L, 1);
 	for(int i = 1; i <= numCalls; i++)
 	{
         lua_rawgeti(L, 1, i);  // get the function+arguments list
-		int listSize = luaL_getn(L, 2);
+		int listSize = lua_objlen(L, 2);
 
 		// push the arguments and the function
 		for(int j = 1; j <= listSize; j++)
@@ -678,18 +679,14 @@ void CallDeferredFunctions(lua_State* L, const char* idstring)
 		lua_CFunction cf = lua_tocfunction(L, -1);
 		lua_pop(L, 1);
 
-		// swap the arguments on the stack with the list we're iterating through
-		// before calling the function, because C functions assume argument 1 is at 1 on the stack
-		lua_pushvalue(L, 1);
+		// shift first argument to slot 1 and call the function
 		lua_remove(L, 2);
 		lua_remove(L, 1);
-
-		// call the function
 		cf(L);
- 
-		// put the list back where it was
-		lua_replace(L, 1);
-		lua_settop(L, 1);
+
+		// prepare for next iteration
+		lua_settop(L, 0);
+		lua_getfield(L, LUA_REGISTRYINDEX, idstring);
 	}
 
 	// clear the list of deferred functions
@@ -1025,8 +1022,8 @@ DEFINE_LUA_FUNCTION(copytable, "origtable")
 		lua_pushnil(L);
 		return 1;
 	}
-
-	lua_newtable(L);
+	
+	lua_createtable(L, lua_objlen(L,1), 0);
 	int copyIndex = lua_gettop(L);
 
 	lua_pushnil(L); // first key
@@ -1222,11 +1219,62 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 	}
 }
 
+void printfToOutput(const char* fmt, ...)
+{
+	va_list list;
+	va_start(list, fmt);
+	int len = vscprintf(fmt, list);
+	char* str = new char[len+1];
+	vsprintf(str, fmt, list);
+	va_end(list);
+	LuaContextInfo& info = GetCurrentInfo();
+	if(info.print)
+	{
+		lua_State* L = info.L;
+		int uid = luaStateToUIDMap[L];
+		info.print(uid, str);
+		info.print(uid, "\r\n");
+		worry(L,300);
+	}
+	else
+	{
+		fprintf(stdout, "%s\n", str);
+	}
+	delete[] str;
+}
+
+bool FailVerifyAtFrameBoundary(lua_State* L, const char* funcName, int unstartedSeverity=2, int inframeSeverity=2)
+{
+	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	{
+		static const char* msg = "cannot call %s() when emulation has not started.";
+		switch(unstartedSeverity)
+		{
+		case 0: break;
+		case 1: printfToOutput(msg, funcName); break;
+		default: case 2: luaL_error(L, msg, funcName); break;
+		}
+		return true;
+	}
+	if(Inside_Frame)
+	{
+		static const char* msg = "cannot call %s() inside an emulation frame.";
+		switch(inframeSeverity)
+		{
+		case 0: break;
+		case 1: printfToOutput(msg, funcName); break;
+		default: case 2: luaL_error(L, msg, funcName); break;
+		}
+		return true;
+	}
+	return false;
+}
+
 // acts similar to normal emulation update
 // except without the user being able to activate emulator commands
 DEFINE_LUA_FUNCTION(gens_emulateframe, "")
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if(FailVerifyAtFrameBoundary(L, "gens.emulateframe", 0,1))
 		return 0;
 
 	Update_Emulation_One(HWnd);
@@ -1240,7 +1288,7 @@ DEFINE_LUA_FUNCTION(gens_emulateframe, "")
 // and the user is unable to activate emulator commands during it
 DEFINE_LUA_FUNCTION(gens_emulateframefastnoskipping, "")
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if(FailVerifyAtFrameBoundary(L, "gens.emulateframefastnoskipping", 0,1))
 		return 0;
 
 	Update_Emulation_One_Before(HWnd);
@@ -1256,7 +1304,7 @@ DEFINE_LUA_FUNCTION(gens_emulateframefastnoskipping, "")
 // where the user is unable to activate emulator commands
 DEFINE_LUA_FUNCTION(gens_emulateframefast, "")
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if(FailVerifyAtFrameBoundary(L, "gens.emulateframefast", 0,1))
 		return 0;
 
 	disableVideoLatencyCompensationCount = VideoLatencyCompensation + 1;
@@ -1291,7 +1339,7 @@ DEFINE_LUA_FUNCTION(gens_emulateframefast, "")
 // while the user continues to see and hear normal emulation
 DEFINE_LUA_FUNCTION(gens_emulateframeinvisible, "")
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if(FailVerifyAtFrameBoundary(L, "gens.emulateframeinvisible", 0,1))
 		return 0;
 
 	int oldDisableSound2 = disableSound2;
@@ -1365,6 +1413,9 @@ DEFINE_LUA_FUNCTION(gens_wait, "")
 
 DEFINE_LUA_FUNCTION(gens_frameadvance, "")
 {
+	if(FailVerifyAtFrameBoundary(L, "gens.frameadvance", 0,1))
+		return gens_wait(L);
+
 	int uid = luaStateToUIDMap[L];
 	LuaContextInfo& info = GetCurrentInfo();
 
@@ -1403,12 +1454,13 @@ DEFINE_LUA_FUNCTION(gens_frameadvance, "")
 
 DEFINE_LUA_FUNCTION(gens_pause, "")
 {
+	LuaContextInfo& info = GetCurrentInfo();
+
 	Paused = 1;
-	gens_frameadvance(L);
+	while(!Step_Gens_MainLoop(true, false) && !info.panic);
 
 	// allow the user to not have to manually unpause
 	// after restarting a script that used gens.pause()
-	LuaContextInfo& info = GetCurrentInfo();
 	if(info.panic)
 		Paused = 0;
 
@@ -1701,6 +1753,9 @@ DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 	}
 	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
 
+	if(!g_onlyCallSavestateCallbacks && FailVerifyAtFrameBoundary(L, "savestate.save", 2,2))
+		return 0;
+
 	int type = lua_type(L,1);
 	switch(type)
 	{
@@ -1739,6 +1794,9 @@ DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 			g_onlyCallSavestateCallbacks = true;
 	}
 	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
+
+	if(!g_onlyCallSavestateCallbacks && FailVerifyAtFrameBoundary(L, "savestate.load", 2,2))
+		return 0;
 
 	g_disableStatestateWarnings = lua_toboolean(L,2) != 0;
 
@@ -2379,7 +2437,7 @@ DEFINE_LUA_FUNCTION(gui_getpixel, "x,y")
 	int y = luaL_checkinteger(L,2);
 
 	int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-	int yres = ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount) ? 240 : 224;
+	int yres = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
 
 	x = max(0,min(xres,x));
 	y = max(0,min(yres,y));
@@ -2494,6 +2552,16 @@ DEFINE_LUA_FUNCTION(gens_getlagcount, "")
 DEFINE_LUA_FUNCTION(gens_lagged, "")
 {
 	lua_pushboolean(L, Lag_Frame);
+	return 1;
+}
+DEFINE_LUA_FUNCTION(gens_emulating, "")
+{
+	lua_pushboolean(L, Genesis_Started||SegaCD_Started||_32X_Started);
+	return 1;
+}
+DEFINE_LUA_FUNCTION(gens_atframeboundary, "")
+{
+	lua_pushboolean(L, !Inside_Frame);
 	return 1;
 }
 DEFINE_LUA_FUNCTION(movie_getlength, "")
@@ -2778,7 +2846,7 @@ DEFINE_LUA_FUNCTION(input_getcurrentinputstatus, "")
 		void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ratio_X, float& Ratio_Y, int& Dep);
 		CalculateDrawArea(Full_Screen ? Render_FS : Render_W, rect, srcRectUnused, xRatioUnused, yRatioUnused, depUnused);
 		int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-		int yres = ((VDP_Reg.Set2 & 0x8) || Debug || !Game || !FrameCount) ? 240 : 224;
+		int yres = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
 		int x = ((point.x - rect.left) * xres) / max(1, rect.right - rect.left);
 		int y = ((point.y - rect.top) * yres) / max(1, rect.bottom - rect.top);
 		lua_pushinteger(L, x);
@@ -2814,13 +2882,15 @@ static const struct luaL_reg genslib [] =
 	{"wait", gens_wait},
 	{"pause", gens_pause},
 	{"emulateframe", gens_emulateframe},
-	{"emulateframefastnoskipping", gens_emulateframefastnoskipping},
+	//{"emulateframefastnoskipping", gens_emulateframefastnoskipping}, // removed from library because probably nobody would notice the difference from gens_emulateframe
 	{"emulateframefast", gens_emulateframefast},
 	{"emulateframeinvisible", gens_emulateframeinvisible},
 	{"redraw", gens_redraw},
 	{"framecount", gens_getframecount},
 	{"lagcount", gens_getlagcount},
 	{"lagged", gens_lagged},
+	{"emulating", gens_emulating},
+	{"atframeboundary", gens_atframeboundary},
 	{"registerbefore", gens_registerbefore},
 	{"registerafter", gens_registerafter},
 	{"registerstart", gens_registerstart},
@@ -3173,10 +3243,10 @@ void registerLibs(lua_State* L)
 			{
 				lua_rawgeti(L, -1, i);
 				lua_CFunction func = lua_tocfunction(L, -1);
+				lua_pop(L,1);
 				if(!func)
 					break;
 				s_cFuncInfoMap[func] = "name";
-				lua_pop(L,1);
 			}
 		}
 		lua_pop(L,1);
@@ -3521,7 +3591,11 @@ void CallExitFunction(int uid)
 
 void StopLuaScript(int uid)
 {
-	LuaContextInfo& info = *luaContextInfo[uid];
+	LuaContextInfo* infoPtr = luaContextInfo[uid];
+	if(!infoPtr)
+		return;
+
+	LuaContextInfo& info = *infoPtr;
 
 	if(info.running)
 	{
@@ -4095,7 +4169,7 @@ static void LuaStackToBinaryConverter(lua_State* L, int i, std::vector<unsigned 
 
 				bool wasnil = false;
 				int nilcount = 0;
-				arraySize = luaL_getn(L, i);
+				arraySize = lua_objlen(L, i);
 				int arrayValIndex = lua_gettop(L) + 1;
 				for(int j = 1; j <= arraySize; j++)
 				{

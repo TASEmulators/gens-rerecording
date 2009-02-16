@@ -443,6 +443,7 @@ VRam_Ind*=2;\
 int Debug;
 int Frame_Skip;
 int Frame_Number;
+int Inside_Frame = 0;
 int DAC_Improv;
 int RMax_Level;
 int GMax_Level;
@@ -1133,6 +1134,8 @@ inline static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;
 
 DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2];
 	int HInt_Counter;
 
@@ -1295,11 +1298,19 @@ int Do_VDP_Only()
 
 	if(!_32X_Started)
 	{
-		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+		if(Genesis_Started || SegaCD_Started)
 		{
-			//UPDATE_PALETTE32
-			Render_Line();
-			//POST_LINE
+			for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+			{
+				//UPDATE_PALETTE32
+				Render_Line();
+				//POST_LINE
+			}
+		}
+		else // emulation hasn't started so just set all pixels to black
+		{
+			memset(MD_Screen, 0, sizeof(MD_Screen));
+			memset(MD_Screen32, 0, sizeof(MD_Screen32));
 		}
 	}
 	else
@@ -1329,6 +1340,8 @@ int Do_VDP_Only()
 
 DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2];
 	int HInt_Counter;
 
@@ -1724,6 +1737,8 @@ void Reset_32X()
 
 DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int i, j, k, l, p_i, p_j, p_k, p_l, *buf[2];
 	int HInt_Counter, HInt_Counter_32X;
 	int CPL_PWM;
@@ -2005,6 +2020,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 
 DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int i, j, k, l, p_i, p_j, p_k, p_l, *buf[2];
 	int HInt_Counter, HInt_Counter_32X;
 	int CPL_PWM;
@@ -2550,6 +2567,8 @@ void Reset_SegaCD()
 
 DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2];
 	int HInt_Counter;
 
@@ -2710,6 +2729,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 
 DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2], i, j;
 	int HInt_Counter;
 
@@ -2986,6 +3007,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 
 DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2];
 	int HInt_Counter;
  
@@ -3195,6 +3218,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 
 DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
 {
+	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
+
 	int *buf[2], i, j;
 	int HInt_Counter;
  
