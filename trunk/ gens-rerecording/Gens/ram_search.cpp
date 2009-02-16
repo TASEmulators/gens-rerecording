@@ -863,8 +863,6 @@ unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 }
 bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless)
 {
-	if(!hookless) // a script that calls e.g. memory.writebyte() should trigger write hooks
-		CallRegisteredLuaMemHook(address, size, value, LUAMEMHOOK_WRITE);
 	if((address & ~0xFFFFFF) == ~0xFFFFFF)
 		address &= 0xFFFFFF;
 	if(IsInRange(address, 0xFF0000, _68K_RAM_SIZE))
@@ -878,6 +876,8 @@ bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, un
 	else if(_32X_Started && IsInRange(address, 0x06000000, _32X_RAM_SIZE))
 		WriteValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, value, size, false);
 	else return false;
+	if(!hookless) // a script that calls e.g. memory.writebyte() should trigger write hooks
+		CallRegisteredLuaMemHook(address, size, value, LUAMEMHOOK_WRITE);
 	return true;
 }
 bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size)

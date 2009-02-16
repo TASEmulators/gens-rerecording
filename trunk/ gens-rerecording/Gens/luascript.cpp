@@ -3569,7 +3569,8 @@ void CloseLuaContext(int uid)
 
 
 // the purpose of this structure is to provide a way of
-// QUICKLY determining whether a memory address range has a hook associated with it.
+// QUICKLY determining whether a memory address range has a hook associated with it,
+// with a bias toward fast rejection because the majority of addresses will not be hooked.
 // (it must not use any part of Lua or perform any per-script operations,
 //  otherwise it would definitely be too slow.)
 // calculating the regions when a hook is added/removed may be slow,
@@ -3583,7 +3584,7 @@ struct TieredRegion
 		{
 			unsigned int start;
 			unsigned int end;
-			__forceinline bool Contains(unsigned int address, int size) const { return address < end && address+size-1 >= start; }
+			__forceinline bool Contains(unsigned int address, int size) const { return address < end && address+size > start; }
 		};
 		std::vector<Island> islands;
 
@@ -3706,23 +3707,6 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 			lua_rawgeti(L, -1, i);
 			if (lua_isfunction(L, -1))
 			{
-				//I changed the write hook to occur after the write - U
-/*				unsigned long mask, oldValue, newValue;
-				if(hookType == LUAMEMHOOK_WRITE)
-				{
-					// unfortunately, the write hook gets called before the write actually happens,
-					// whereas the Lua callback will want to be able to read the newly-written value.
-					// passing the value as an argument to the callback would not work because
-					// there is no way to tell what size and alignment and signedness the callback expects.
-					// since I don't know how to change the hook to get called after the write,
-					// temporarily write the new value to memory for the callback to use.
-					// (and the callback can use memory.readbyte/word/dword/signed to check the value)
-					mask = (1<<(size<<3))-1;
-					oldValue = ReadValueAtHardwareAddress(address, size) & mask;
-					newValue = value & mask;
-					if(oldValue != newValue)
-						WriteValueAtHardwareRAMAddress(address, newValue, size, true);
-				}*/
 				bool wasRunning = info.running;
 				info.running = true;
 				RefreshScriptSpeedStatus();
@@ -3731,8 +3715,6 @@ static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size,
 				int errorcode = lua_pcall(L, 2, 0, 0);
 				info.running = wasRunning;
 				RefreshScriptSpeedStatus();
-/*				if(hookType == LUAMEMHOOK_WRITE && oldValue != newValue)
-					WriteValueAtHardwareRAMAddress(address, oldValue, size, true); // revert the value in case it matters*/
 				if (errorcode)
 					HandleCallbackError(L,info,uid,true);
 				break;
