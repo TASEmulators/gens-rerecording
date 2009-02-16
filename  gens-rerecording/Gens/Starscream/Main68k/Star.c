@@ -1712,13 +1712,24 @@ static void gen_writebw(int size)
 	{
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
-		emit_hook("_hook_write_byte");
+#ifdef HOOKS_ENABLED
+		emit("mov [_hook_pc],esi\n");
+		emit("mov [_hook_address],edx\n");
+		emit("mov [_hook_value],ecx\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
+#endif
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
 		emit("\txor edx, 1\n");
 		emit("\tand edx, 0xFFFF\n");
 		emit("\tmov [Ram_68k + edx], cl\n");
 		emit("\tmov edx, [__access_address]\n");
+#ifdef HOOKS_ENABLED
+		emit("pushad\n");
+		emit("call _hook_write_byte\n");
+		emit("popad\n");
+#endif
 //		emit("pushad\n");
 //		emit("\tpush dword 1\n");
 //		emit("\tand edx,0xFFFFFF\n");
@@ -1744,7 +1755,12 @@ static void gen_writebw(int size)
 		emit("\tmov esi, [__io_fetchbased_pc]\n");
 		emit("\tpop eax\n");
 		emit("\tmov edx, [__access_address]\n");
-	
+#ifdef HOOKS_ENABLED
+			emit("pushad\n");
+			emit("call _hook_write_byte\n");
+			emit("popad\n");
+#endif
+
 		emit("\tret\n");
 	}
 
@@ -1752,12 +1768,23 @@ static void gen_writebw(int size)
 	{
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
-		emit_hook("_hook_write_word");
+#ifdef HOOKS_ENABLED
+		emit("mov [_hook_pc],esi\n");
+		emit("mov [_hook_address],edx\n");
+		emit("mov [_hook_value],ecx\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
+#endif
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
 		emit("\tand edx, 0xFFFF\n");
 		emit("\tmov [Ram_68k + edx], cx\n");
 		emit("\tmov edx, [__access_address]\n");
+#ifdef HOOKS_ENABLED
+			emit("pushad\n");
+			emit("call _hook_write_word\n");
+			emit("popad\n");
+#endif
 //		emit("pushad\n");
 //		emit("\tpush dword 2\n");
 //		emit("\tand edx,0xFFFFFF\n");
@@ -1783,6 +1810,11 @@ static void gen_writebw(int size)
 		emit("\tmov esi, [__io_fetchbased_pc]\n");
 		emit("\tpop eax\n");
 		emit("\tmov edx, [__access_address]\n");
+#ifdef HOOKS_ENABLED
+			emit("pushad\n");
+			emit("call _hook_write_word\n");
+			emit("popad\n");
+#endif
 		
 		emit("\tret\n");
 	}
@@ -1795,7 +1827,13 @@ static void gen_writel(void)
 
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
-	emit_hook("_hook_write_dword");
+#ifdef HOOKS_ENABLED
+		emit("mov [_hook_pc],esi\n");
+		emit("mov [_hook_address],edx\n");
+		emit("mov [_hook_value],ecx\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
+#endif
 	emit("\trol ecx, 16\n");
 	emit("\tcmp edx, 0xE00000\n");
 	emit("\tjb short .Not_In_Ram\n");
@@ -1803,6 +1841,11 @@ static void gen_writel(void)
 	emit("\tmov [Ram_68k + edx], ecx\n");
 	emit("\tmov edx, [__access_address]\n");
 	emit("\trol ecx, 16\n");
+#ifdef HOOKS_ENABLED
+		emit("pushad\n");
+		emit("call _hook_write_dword\n");
+		emit("popad\n");
+#endif
 //	emit("pushad\n");
 //	emit("\tpush dword 4\n");
 //	emit("\tand edx,0xFFFFFF\n");
@@ -1833,6 +1876,11 @@ static void gen_writel(void)
 	emit("\tpop eax\n");
 	emit("\tmov edx, [__access_address]\n");
 	
+#ifdef HOOKS_ENABLED
+		emit("pushad\n");
+		emit("call _hook_write_dword\n");
+		emit("popad\n");
+#endif
 	emit("\tret\n");
 }
 
@@ -1843,7 +1891,13 @@ static void gen_writedecl(void)
 
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
-	emit_hook("_hook_write_dword");
+#ifdef HOOKS_ENABLED
+		emit("mov [_hook_pc],esi\n");
+		emit("mov [_hook_address],edx\n");
+		emit("mov [_hook_value],ecx\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
+#endif
 	emit("\tcmp edx, 0xE00000\n");
 	emit("\tjb short .Not_In_Ram\n");
 	emit("\trol ecx, 16\n");
@@ -1851,6 +1905,11 @@ static void gen_writedecl(void)
 	emit("\tmov [Ram_68k + edx], ecx\n");
 	emit("\tmov edx, [__access_address]\n");
 	emit("\trol ecx, 16\n");
+#ifdef HOOKS_ENABLED
+		emit("pushad\n");
+		emit("call _hook_write_dword\n");
+		emit("popad\n");
+#endif
 //	emit("pushad\n");
 //	emit("\tpush dword 4\n");
 //	emit("\tand edx,0xFFFFFF\n");
@@ -1881,6 +1940,11 @@ static void gen_writedecl(void)
 	emit("\tmov esi, [__io_fetchbased_pc]\n");
 	emit("\tpop eax\n");
 	emit("\tmov edx, [__access_address]\n");
+#ifdef HOOKS_ENABLED
+	emit("pushad\n");
+	emit("call _hook_write_dword\n");
+	emit("popad\n");
+#endif
 	
 	emit("\tret\n");
 }
