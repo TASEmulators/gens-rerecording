@@ -10,6 +10,8 @@
 
 #define VERSION "M0.26d"
 
+#define HOOKS_ENABLED
+
 /***************************************************************************/
 /*
 ** NOTE
@@ -256,6 +258,7 @@ static void gen_variables(void) {
 
 	emit("\n");
 	emit("\textern Ram_68k\n");
+#ifdef HOOKS_ENABLED
 	emit("\textern _hook_exec\n");
 
 	emit("\textern _hook_read_byte\n");
@@ -267,7 +270,7 @@ static void gen_variables(void) {
 	emit("\textern _hook_pc\n");
 	emit("\textern _hook_address\n");
 	emit("\textern _hook_value\n");
-//	emit("\textern _Fix_Codes\n");
+#endif
 	
 	emit("\textern Rom_Data\n");
 	emit("\textern Rom_Size\n");
@@ -699,13 +702,15 @@ emit("js near execquit\n");
 	emit("mov bx,[esi]\n");
 	emit("add esi,byte 2\n");
 	
+#ifdef HOOKS_ENABLED
 	emit("pushad\n");
 	emit("sub esi,ebp\n");
 	emit("sub esi,byte 2\n");
 	emit("mov [_hook_pc],esi\n");
 	emit("call _hook_exec\n");
 	emit("popad\n");
-	
+#endif
+
 	emit("jmp dword[__jmptbl+ebx*4]\n");
 	/* Traditional loop - used when hog mode is off */
 	if(!hog) {
@@ -1246,6 +1251,7 @@ static void ret_timing(int n) {
 		emit("mov bx,[esi]\n");
 		emit("add esi,byte 2\n");
 		
+#ifdef HOOKS_ENABLED
 		emit("pushad\n");
 		emit("sub esi,ebp\n");
 		emit("sub esi,byte 2\n");
@@ -1261,6 +1267,7 @@ static void ret_timing(int n) {
 		
 		emit("call _hook_exec\n");
 		emit("popad\n");
+#endif
 		
 		emit("jmp dword[__jmptbl+ebx*4]\n");
 	}
@@ -1507,6 +1514,18 @@ static void supervisor(void){
 	emit("ln%d:\n",myline);
 }
 
+static void emit_hook(const char* hookFuncName){
+#ifdef HOOKS_ENABLED
+	emit("pushad\n");
+	emit("sub esi,ebp\n");
+	emit("sub esi,byte 2\n");
+	emit("mov [_hook_pc],esi\n");
+	emit("mov [_hook_address],edx\n");
+	emit("mov [_hook_value],ecx\n");
+	emit("call %s\n", hookFuncName);
+	emit("popad\n");
+#endif
+}
 /***************************************************************************/
 
 static void gen_readbw(int size)
@@ -1528,15 +1547,7 @@ static void gen_readbw(int size)
 		emit("\tmov cl, [Ram_68k + edx]\n");
 		emit("\tmov edx, [__access_address]\n");
 
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_read_byte\n");
-		emit("popad\n");
-		
+		emit_hook("_hook_read_byte");
 	    emit("\tret\n");
 
 		emit("align 4\n");
@@ -1564,15 +1575,7 @@ static void gen_readbw(int size)
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 	
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_read_byte\n");
-		emit("popad\n");
-	
+		emit_hook("_hook_read_byte");
 		emit("\tret\n");
 	}
 
@@ -1588,15 +1591,7 @@ static void gen_readbw(int size)
 		emit("\tmov cx, [Ram_68k + edx]\n");
 		emit("\tmov edx,[__access_address]\n");
 		
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_read_word\n");
-		emit("popad\n");
-	
+		emit_hook("_hook_read_word");
 		emit("\tret\n");
 
 		emit("align 4\n");
@@ -1615,15 +1610,7 @@ static void gen_readbw(int size)
 		emit("\tmov edx, [__access_address]\n");
 		emit("\tpop eax\n");
 	
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_read_word\n");
-		emit("popad\n");
-	
+		emit_hook("_hook_read_word");
 		emit("\tret\n");
 	}
 }
@@ -1643,15 +1630,7 @@ static void gen_readl(void)
 	emit("\trol ecx, 16\n");
 	emit("\tmov edx, [__access_address]\n");
 	
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_read_dword\n");
-	emit("popad\n");
-	
+	emit_hook("_hook_read_dword");
 	emit("\tret\n");
 
 	emit("align 4\n");
@@ -1674,15 +1653,7 @@ static void gen_readl(void)
 	emit("\tpop eax\n");
 	emit("\tmov edx, [__access_address]\n");
 	
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_read_dword\n");
-	emit("popad\n");
-	
+	emit_hook("_hook_read_dword");
 	emit("\tret\n");
 }
 
@@ -1701,15 +1672,7 @@ static void gen_readdecl(void)
 	emit("\trol ecx, 16\n");
 	emit("\tmov edx, [__access_address]\n");
 	
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_read_dword\n");
-	emit("popad\n");
-	
+	emit_hook("_hook_read_dword");
 	emit("\tret\n");
 
 	emit("align 4\n");
@@ -1735,15 +1698,7 @@ static void gen_readdecl(void)
 	emit("\tpop eax\n");
 	emit("\tmov edx, [__access_address]\n");
 	
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_read_dword\n");
-	emit("popad\n");
-	
+	emit_hook("_hook_read_dword");
 	emit("\tret\n");
 }
 
@@ -1757,14 +1712,7 @@ static void gen_writebw(int size)
 	{
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_write_byte\n");
-		emit("popad\n");
+		emit_hook("_hook_write_byte");
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
 		emit("\txor edx, 1\n");
@@ -1804,14 +1752,7 @@ static void gen_writebw(int size)
 	{
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
-		emit("pushad\n");
-		emit("sub esi,ebp\n");
-		emit("sub esi,byte 2\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("call _hook_write_word\n");
-		emit("popad\n");
+		emit_hook("_hook_write_word");
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
 		emit("\tand edx, 0xFFFF\n");
@@ -1854,14 +1795,7 @@ static void gen_writel(void)
 
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_write_dword\n");
-	emit("popad\n");
+	emit_hook("_hook_write_dword");
 	emit("\trol ecx, 16\n");
 	emit("\tcmp edx, 0xE00000\n");
 	emit("\tjb short .Not_In_Ram\n");
@@ -1909,14 +1843,7 @@ static void gen_writedecl(void)
 
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
-	emit("pushad\n");
-	emit("sub esi,ebp\n");
-	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("call _hook_write_dword\n");
-	emit("popad\n");
+	emit_hook("_hook_write_dword");
 	emit("\tcmp edx, 0xE00000\n");
 	emit("\tjb short .Not_In_Ram\n");
 	emit("\trol ecx, 16\n");
