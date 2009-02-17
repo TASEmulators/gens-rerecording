@@ -3857,8 +3857,14 @@ static void CallRegisteredLuaMemHook_MidMatch(unsigned int address, int size, un
 }
 static inline void CallRegisteredLuaMemHook_BroadMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
 {
-	if((address & ~0xFFFFFF) == ~0xFFFFFF)
+	switch(hookType)
+	{
+	case LUAMEMHOOK_WRITE: case LUAMEMHOOK_READ: case LUAMEMHOOK_EXEC:
+		if (address >= 0xE00000) address |= 0xFF0000; // Account for mirroring of RAM
+		// fallthrough
+	case LUAMEMHOOK_WRITE_SUB: case LUAMEMHOOK_READ_SUB: case LUAMEMHOOK_EXEC_SUB:
 		address &= 0xFFFFFF;
+	}
 	if(hookedRegions[hookType].Contains(address, size))
 		CallRegisteredLuaMemHook_MidMatch(address, size, value, hookType);
 }
