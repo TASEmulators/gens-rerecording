@@ -1684,6 +1684,7 @@ cpuToRegisterMaps [] =
 	{"main.", m68kPointerMap},
 	{"s68k.", s68kPointerMap},
 	{"sub.",  s68kPointerMap},
+	{"", m68kPointerMap},
 };
 
 
@@ -2979,13 +2980,10 @@ static const struct luaL_reg statelib [] =
 static const struct luaL_reg memorylib [] =
 {
 	{"readbyte", memory_readbyte},
-	{"readbyteunsigned", memory_readbyte},
 	{"readbytesigned", memory_readbytesigned},
 	{"readword", memory_readword},
-	{"readwordunsigned", memory_readword},
 	{"readwordsigned", memory_readwordsigned},
 	{"readdword", memory_readdword},
-	{"readdwordunsigned", memory_readdword},
 	{"readdwordsigned", memory_readdwordsigned},
 	{"readbyterange", memory_readbyterange},
 	{"writebyte", memory_writebyte},
@@ -2994,7 +2992,10 @@ static const struct luaL_reg memorylib [] =
 	{"isvalid", memory_isvalid},
 	{"getregister", memory_getregister},
 	{"setregister", memory_setregister},
-	// alternate naming scheme for word and double-word
+	// alternate naming scheme for word and double-word and unsigned
+	{"readbyteunsigned", memory_readbyte},
+	{"readwordunsigned", memory_readword},
+	{"readdwordunsigned", memory_readdword},
 	{"readshort", memory_readword},
 	{"readshortunsigned", memory_readword},
 	{"readshortsigned", memory_readwordsigned},
