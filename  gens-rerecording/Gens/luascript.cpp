@@ -3807,43 +3807,7 @@ static void CalculateMemHookRegions(LuaMemHookType hookType)
 
 
 
-static void CallRegisteredLuaMemHook_NarrowMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType, LuaContextInfo& info, int uid)
-{
-	lua_State* L = info.L;
-	if(L && !info.panic)
-	{
-#ifdef USE_INFO_STACK
-		infoStack.insert(infoStack.begin(), &info);
-		struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
-#endif
-		lua_settop(L, 0);
-		lua_getfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[hookType]);
-		for(int i = address; i != address+size; i++)
-		{
-			lua_rawgeti(L, -1, i);
-			if (lua_isfunction(L, -1))
-			{
-				bool wasRunning = info.running;
-				info.running = true;
-				RefreshScriptSpeedStatus();
-				lua_pushinteger(L, address);
-				lua_pushinteger(L, size);
-				int errorcode = lua_pcall(L, 2, 0, 0);
-				info.running = wasRunning;
-				RefreshScriptSpeedStatus();
-				if (errorcode)
-					HandleCallbackError(L,info,uid,true);
-				break;
-			}
-			else
-			{
-				lua_pop(L,1);
-			}
-		}
-		lua_settop(L, 0);
-	}
-}
-static void CallRegisteredLuaMemHook_MidMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
+static void CallRegisteredLuaMemHook_LuaMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
 {
 	std::map<int, LuaContextInfo*>::iterator iter = luaContextInfo.begin();
 	std::map<int, LuaContextInfo*>::iterator end = luaContextInfo.end();
@@ -3851,30 +3815,61 @@ static void CallRegisteredLuaMemHook_MidMatch(unsigned int address, int size, un
 	{
 		LuaContextInfo& info = *iter->second;
 		if(info.numMemHooks)
-			CallRegisteredLuaMemHook_NarrowMatch(address, size, value, hookType, info, iter->first);
+		{
+			lua_State* L = info.L;
+			if(L && !info.panic)
+			{
+#ifdef USE_INFO_STACK
+				infoStack.insert(infoStack.begin(), &info);
+				struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
+#endif
+				lua_settop(L, 0);
+				lua_getfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[hookType]);
+				for(int i = address; i != address+size; i++)
+				{
+					lua_rawgeti(L, -1, i);
+					if (lua_isfunction(L, -1))
+					{
+						bool wasRunning = info.running;
+						info.running = true;
+						RefreshScriptSpeedStatus();
+						lua_pushinteger(L, address);
+						lua_pushinteger(L, size);
+						int errorcode = lua_pcall(L, 2, 0, 0);
+						info.running = wasRunning;
+						RefreshScriptSpeedStatus();
+						if (errorcode)
+						{
+							int uid = iter->first;
+							HandleCallbackError(L,info,uid,true);
+						}
+						break;
+					}
+					else
+					{
+						lua_pop(L,1);
+					}
+				}
+				lua_settop(L, 0);
+			}
+		}
 		++iter;
 	}
-}
-static inline void CallRegisteredLuaMemHook_BroadMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
-{
-	//Address truncation to 24-bits now occurs at the time hook_address is set.
-	//This was already happening in the majority of cases, meaning that duplicating it here was wasted effort  -U
-	if ((hookType <= LUAMEMHOOK_EXEC) && (address >= 0xE00000)) //no need for a switch
-	{
-		address |= 0xFF0000; // Account for mirroring of RAM
-		// no longer 
-	}
-	if(hookedRegions[hookType].Contains(address, size))
-		CallRegisteredLuaMemHook_MidMatch(address, size, value, hookType);
 }
 void CallRegisteredLuaMemHook(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
 {
 	// performance critical! (called VERY frequently)
-	// contents of this function are chosen specifically to be small enough to inline.
-	// if you put a breakpoint in this function and the breakpoint gets hit then
-	// your compiler probably failed to inline it (for, me a breakpoint here never triggers).
-	if(luaContextInfo.size() && hookedRegions[hookType].NotEmpty())
-		CallRegisteredLuaMemHook_BroadMatch(address, size, value, hookType);
+	// I suggest timing a large number of calls to this function in Release if you change anything in here,
+	// before and after, because even the most innocent change can make it become 30% to 400% slower.
+	// a good amount to test is: 100000000 calls with no hook set, and another 100000000 with a hook set.
+	// (on my system that consistently took 200 ms total in the former case and 350 ms total in the latter case)
+	if(hookedRegions[hookType].NotEmpty())
+	{
+		if((hookType <= LUAMEMHOOK_EXEC) && (address >= 0xE00000))
+			address |= 0xFF0000; // account for mirroring of RAM
+		if(hookedRegions[hookType].Contains(address, size))
+			CallRegisteredLuaMemHook_LuaMatch(address, size, value, hookType); // something has hooked this specific address
+	}
 }
 
 
