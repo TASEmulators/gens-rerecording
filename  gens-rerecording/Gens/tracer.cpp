@@ -181,6 +181,7 @@ void GensTrace()
 	// Trace.txt
 	if( trace_map )
 		GensTrace_trace();
+	if (hook_pc >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 }
 
@@ -247,6 +248,7 @@ void trace_read_byte()
 {
 	if( hook_trace && rd_mode )
 		trace_read_byte_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -311,6 +313,7 @@ void trace_read_word()
 {
 	if( hook_trace && rd_mode )
 		trace_read_word_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -376,6 +379,7 @@ void trace_read_dword()
 {
 	if( hook_trace && rd_mode )
 		trace_read_dword_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -448,6 +452,7 @@ void trace_write_byte()
 {
 	if( hook_trace && wr_mode )
 		trace_write_byte_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_WRITE);
 }
 
@@ -513,6 +518,7 @@ void trace_write_word()
 {
 	if( hook_trace && wr_mode )
 		trace_write_word_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_WRITE);
 }
 
@@ -578,6 +584,7 @@ void trace_write_dword()
 {
 	if( hook_trace && wr_mode )
 		trace_write_dword_internal();
+	if (hook_address >= 0xE00000) hook_address |= 0xFF0000; // Account for mirroring of RAM
 	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_WRITE);
 }
 
