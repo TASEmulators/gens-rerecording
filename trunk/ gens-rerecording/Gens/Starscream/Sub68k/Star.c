@@ -726,7 +726,6 @@ emit("js near execquit\n");
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
-emit("and esi,0xFFFFFF\n"); // I'm not sure if esi could ever need truncation at this point... added just in case
 emit("mov [_hook_pc_cd],esi\n");
 emit("call _hook_exec_cd\n");
 emit("popad\n");
@@ -1333,7 +1332,6 @@ static void ret_timing(int n) {
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
-emit("and esi,0xFFFFFF\n"); // I'm not sure if esi could ever need truncation at this point... added just in case
 emit("mov [_hook_pc_cd],esi\n");
 
 emit("shr ah,1\n");
@@ -1600,9 +1598,8 @@ static void emit_hook(const char* hookFuncName){
 	emit("and edx,0xFFFFFF\n");
 	emit("sub esi,byte 2\n");
 	emit("mov [_hook_address_cd],edx\n");
-	emit("and esi,0xFFFFFF\n"); // yes, truncate the program counter to 24 bits, too.
-	emit("mov [_hook_value_cd],ecx\n");
 	emit("mov [_hook_pc_cd],esi\n");
+	emit("mov [_hook_value_cd],ecx\n");
 	emit("call %s\n", hookFuncName);
 	emit("popad\n");
 #endif
