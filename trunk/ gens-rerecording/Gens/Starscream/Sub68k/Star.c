@@ -726,6 +726,7 @@ emit("js near execquit\n");
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
+emit("and esi,0xFFFFFF\n"); // I'm not sure if esi could ever need truncation at this point... added just in case
 emit("mov [_hook_pc_cd],esi\n");
 emit("call _hook_exec_cd\n");
 emit("popad\n");
@@ -1332,6 +1333,7 @@ static void ret_timing(int n) {
 emit("pushad\n");
 emit("sub esi,ebp\n");
 emit("sub esi,byte 2\n");
+emit("and esi,0xFFFFFF\n"); // I'm not sure if esi could ever need truncation at this point... added just in case
 emit("mov [_hook_pc_cd],esi\n");
 
 emit("shr ah,1\n");

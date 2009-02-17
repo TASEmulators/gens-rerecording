@@ -169,7 +169,6 @@ void Print_Instruction( FILE *trace )
 
 static void GensTrace_trace()
 {
-	hook_pc &= 0x00ffffff;
 	if(mapped[ hook_pc ] < 0x40)
 	{
 		Print_Instruction( fp_trace );
@@ -187,9 +186,6 @@ void GensTrace()
 static void trace_read_byte_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
 
 	start = hook_address;
 	stop = start + 0;
@@ -254,9 +250,6 @@ static void trace_read_word_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
-
 	start = hook_address;
 	stop = start + 1;
 
@@ -319,9 +312,6 @@ static void trace_read_dword_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
-
 	start = hook_address;
 	stop = start + 3;
 
@@ -383,9 +373,6 @@ void trace_read_dword()
 static void trace_write_byte_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
 
 	if (hook_address >= 0x00e00000) hook_address |= 0x00ff0000;
 
@@ -456,9 +443,6 @@ static void trace_write_word_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
-
 	start = hook_address;
 	stop = start + 1;
 
@@ -520,9 +504,6 @@ void trace_write_word()
 static void trace_write_dword_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
 
 	start = hook_address;
 	stop = start + 3;
@@ -586,9 +567,6 @@ static void hook_dma_internal()
 {
 	unsigned int start, stop;
 	int lcv;
-
-	hook_pc &= 0x00ffffff;
-	hook_address &= 0x00ffffff;
 
 	// VDP area
 	hook_value &= 3;
