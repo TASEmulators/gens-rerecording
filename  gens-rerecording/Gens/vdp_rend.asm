@@ -1217,7 +1217,7 @@ ALIGN4
 		GET_PATTERN_INFO 0
 		GET_PATTERN_DATA %1, 0
 		
-		test byte [Swap_Scroll_PriorityB], 1
+		test byte [Swap_Scroll_PriorityA], 1
 		jz short %%No_Invert
 		xor ax, 0x8000
 
@@ -1379,7 +1379,7 @@ ALIGN4
 		GET_PATTERN_INFO 1
 		GET_PATTERN_DATA %1, 0
 		
-		test byte [Swap_Scroll_PriorityA], 1
+		test byte [Swap_Scroll_PriorityB], 1
 		jz short %%No_Invert2
 		xor ax, 0x8000
 
@@ -1439,7 +1439,7 @@ ALIGN4
 	GET_PATTERN_INFO 1
 	GET_PATTERN_DATA %1, 0
 
-	test byte [Swap_Scroll_PriorityA], 1
+	test byte [Swap_Scroll_PriorityB], 1
 	jz short %%No_Invert3
 	xor ax, 0x8000
 
