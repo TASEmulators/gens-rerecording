@@ -1595,10 +1595,12 @@ static void emit_hook(const char* hookFuncName){
 #ifdef HOOKS_ENABLED
 	emit("pushad\n");
 	emit("sub esi,ebp\n");
+	emit("and edx,0xFFFFFF\n");
 	emit("sub esi,byte 2\n");
-	emit("mov [_hook_pc_cd],esi\n");
 	emit("mov [_hook_address_cd],edx\n");
+	emit("and esi,0xFFFFFF\n"); // yes, truncate the program counter to 24 bits, too.
 	emit("mov [_hook_value_cd],ecx\n");
+	emit("mov [_hook_pc_cd],esi\n");
 	emit("call %s\n", hookFuncName);
 	emit("popad\n");
 #endif
