@@ -1717,12 +1717,7 @@ static void gen_writebw(int size)
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
 #ifdef HOOKS_ENABLED
-		emit("and esi, 0xFFFFFF\n"); //yes, truncate the program counter to 24-bits, too.
 		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("sub [_hook_pc],ebp\n");
-		emit("sub [_hook_pc],byte 2\n");
 #endif
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
@@ -1732,6 +1727,11 @@ static void gen_writebw(int size)
 		emit("\tmov edx, [__access_address]\n");
 #ifdef HOOKS_ENABLED
 		emit("pushad\n");
+		emit("and esi, 0xFFFFFF\n"); // yes, truncate the program counter to 24-bits, too.
+		emit("mov [_hook_value],ecx\n");
+		emit("mov [_hook_pc],esi\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
 		emit("call _hook_write_byte\n");
 		emit("popad\n");
 #endif
@@ -1774,12 +1774,7 @@ static void gen_writebw(int size)
 		emit("\tmov [__access_address], edx\n");
 		emit("\tand edx, 0xFFFFFF\n");
 #ifdef HOOKS_ENABLED
-		emit("and esi, 0xFFFFFF\n"); //yes, truncate the program counter to 24-bits, too.
 		emit("mov [_hook_address],edx\n");
-		emit("mov [_hook_pc],esi\n");
-		emit("mov [_hook_value],ecx\n");
-		emit("sub [_hook_pc],ebp\n");
-		emit("sub [_hook_pc],byte 2\n");
 #endif
 		emit("\tcmp edx, 0xE00000\n");
 		emit("\tjb short .Not_In_Ram\n");
@@ -1788,6 +1783,11 @@ static void gen_writebw(int size)
 		emit("\tmov edx, [__access_address]\n");
 #ifdef HOOKS_ENABLED
 		emit("pushad\n");
+		emit("and esi, 0xFFFFFF\n"); // yes, truncate the program counter to 24-bits, too.
+		emit("mov [_hook_value],ecx\n");
+		emit("mov [_hook_pc],esi\n");
+		emit("sub [_hook_pc],ebp\n");
+		emit("sub [_hook_pc],byte 2\n");
 		emit("call _hook_write_word\n");
 		emit("popad\n");
 #endif
@@ -1834,12 +1834,7 @@ static void gen_writel(void)
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
 #ifdef HOOKS_ENABLED
-	emit("and esi, 0xFFFFFF\n"); //yes, truncate the program counter to 24-bits, too.
 	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("sub [_hook_pc],ebp\n");
-	emit("sub [_hook_pc],byte 2\n");
 #endif
 	emit("\trol ecx, 16\n");
 	emit("\tcmp edx, 0xE00000\n");
@@ -1850,6 +1845,11 @@ static void gen_writel(void)
 	emit("\trol ecx, 16\n");
 #ifdef HOOKS_ENABLED
 	emit("pushad\n");
+	emit("and esi, 0xFFFFFF\n"); // yes, truncate the program counter to 24-bits, too.
+	emit("mov [_hook_value],ecx\n");
+	emit("mov [_hook_pc],esi\n");
+	emit("sub [_hook_pc],ebp\n");
+	emit("sub [_hook_pc],byte 2\n");
 	emit("call _hook_write_dword\n");
 	emit("popad\n");
 #endif
@@ -1899,12 +1899,7 @@ static void gen_writedecl(void)
 	emit("\tmov [__access_address], edx\n");
 	emit("\tand edx, 0xFFFFFF\n");
 #ifdef HOOKS_ENABLED
-	emit("and esi, 0xFFFFFF\n"); //yes, truncate the program counter to 24-bits, too.
 	emit("mov [_hook_address],edx\n");
-	emit("mov [_hook_pc],esi\n");
-	emit("mov [_hook_value],ecx\n");
-	emit("sub [_hook_pc],ebp\n");
-	emit("sub [_hook_pc],byte 2\n");
 #endif
 	emit("\tcmp edx, 0xE00000\n");
 	emit("\tjb short .Not_In_Ram\n");
@@ -1915,6 +1910,11 @@ static void gen_writedecl(void)
 	emit("\trol ecx, 16\n");
 #ifdef HOOKS_ENABLED
 	emit("pushad\n");
+	emit("and esi, 0xFFFFFF\n"); // yes, truncate the program counter to 24-bits, too.
+	emit("mov [_hook_value],ecx\n");
+	emit("mov [_hook_pc],esi\n");
+	emit("sub [_hook_pc],ebp\n");
+	emit("sub [_hook_pc],byte 2\n");
 	emit("call _hook_write_dword\n");
 	emit("popad\n");
 #endif

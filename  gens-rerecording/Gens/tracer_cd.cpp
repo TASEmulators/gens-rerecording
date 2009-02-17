@@ -160,7 +160,6 @@ void Print_Instruction_cd( FILE *trace )
 
 static void GensTrace_cd_trace()
 {
-	hook_pc_cd &= 0x00ffffff;
 	if(mapped_cd[ hook_pc_cd ] < 0x40)
 	{
 		Print_Instruction_cd( fp_trace_cd );
@@ -170,7 +169,6 @@ static void GensTrace_cd_trace()
 
 static void GensTrace_cd_hook()
 {
-	hook_pc_cd &= 0x00ffffff;
 	for( int lcv = 0; lcv < STATES; lcv++ )
 	{
 		FILE *out;
@@ -240,9 +238,6 @@ static void trace_read_byte_cd_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
-
 	start = hook_address_cd;
 	stop = start + 0;
 
@@ -304,9 +299,6 @@ void trace_read_byte_cd()
 static void trace_read_word_cd_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
 
 	start = hook_address_cd;
 	stop = start + 1;
@@ -370,9 +362,6 @@ static void trace_read_dword_cd_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
-
 	start = hook_address_cd;
 	stop = start + 3;
 
@@ -434,9 +423,6 @@ void trace_read_dword_cd()
 static void trace_write_byte_cd_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
 
 	start = hook_address_cd;
 	stop = start + 0;
@@ -500,9 +486,6 @@ static void trace_write_word_cd_internal()
 {
 	unsigned int start, stop;
 
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
-
 	start = hook_address_cd;
 	stop = start + 1;
 
@@ -564,9 +547,6 @@ void trace_write_word_cd()
 static void trace_write_dword_cd_internal()
 {
 	unsigned int start, stop;
-
-	hook_pc_cd &= 0x00ffffff;
-	hook_address_cd &= 0x00ffffff;
 
 	start = hook_address_cd;
 	stop = start + 3;
