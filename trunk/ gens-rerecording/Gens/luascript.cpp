@@ -3857,13 +3857,12 @@ static void CallRegisteredLuaMemHook_MidMatch(unsigned int address, int size, un
 }
 static inline void CallRegisteredLuaMemHook_BroadMatch(unsigned int address, int size, unsigned int value, LuaMemHookType hookType)
 {
-	switch(hookType)
+	//Address truncation to 24-bits now occurs at the time hook_address is set.
+	//This was already happening in the majority of cases, meaning that duplicating it here was wasted effort  -U
+	if ((hookType <= LUAMEMHOOK_EXEC) && (address >= 0xE00000)) //no need for a switch
 	{
-	case LUAMEMHOOK_WRITE: case LUAMEMHOOK_READ: case LUAMEMHOOK_EXEC:
-		if (address >= 0xE00000) address |= 0xFF0000; // Account for mirroring of RAM
-		// fallthrough
-	case LUAMEMHOOK_WRITE_SUB: case LUAMEMHOOK_READ_SUB: case LUAMEMHOOK_EXEC_SUB:
-		address &= 0xFFFFFF;
+		address |= 0xFF0000; // Account for mirroring of RAM
+		// no longer 
 	}
 	if(hookedRegions[hookType].Contains(address, size))
 		CallRegisteredLuaMemHook_MidMatch(address, size, value, hookType);
