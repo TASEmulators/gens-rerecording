@@ -21,7 +21,7 @@ bool Def_Read_Only = true; //Upth-Add - For the new Default Read Only toggle
 char track = 1 | 2 | 4;
 extern int AVIRecording;
 typeMovie MainMovie;
-extern "C" char preloaded_tracks [100], played_tracks_linear [101]; // Modif N. -- added
+extern "C" char preloaded_tracks [100], played_tracks_linear [105]; // Modif N. -- added
 extern "C" int Clear_Sound_Buffer(void);
 
 //Modif
@@ -259,7 +259,7 @@ void CompressBoolArray(char* output, int outputBytes, const char* input, int inp
 			output[outByte++] = curByte;
 			curByte = 0;
 		}
-		curByte |= input[inByte++] << bit;
+		curByte |= (input[inByte++]?1:0) << bit;
 	}
 	if(outByte < outputBytes)
 		output[outByte] = curByte;
@@ -274,12 +274,33 @@ void DecompressBoolArray(char* output, int outputBytes, const char* input, int i
 			bit = 0;
 			inByte++;
 			if(inByte >= inputBytes)
-				return;
+				break;
 		}
 
 		output[outByte++] = (input[inByte] & (1 << bit)) ? trueValue : 0;
 	}
+	while(outByte < outputBytes)
+		output[outByte++] = 0;
 }
+
+// the BRAM size really has to be saved in movie files to avoid desyncs since different games need different sizes.
+// GMV is not very extensible so the way I do this here is a terrible hack, but it's better than nothing for now.
+void EmbedBRAMSizeInTracks()
+{
+	int size = (BRAM_Ex_State & 0x100) ? (BRAM_Ex_Size + 2) : 1;
+	played_tracks_linear[100] = size & 0x1;
+	played_tracks_linear[101] = size & 0x2;
+	played_tracks_linear[102] = size & 0x4;
+}
+extern "C" int SegaCD_Started;
+void ExtractBRAMSizeFromTracks()
+{
+	int size = (played_tracks_linear[100]?0x1:0) | (played_tracks_linear[101]?0x2:0) | (played_tracks_linear[102]?0x4:0);
+	if(size == 0 || !SegaCD_Started) return;
+	if(size == 1) { BRAM_Ex_State &= 1; return; }
+	BRAM_Ex_State |= 0x100; BRAM_Ex_Size = size - 2;
+}
+
 // kind of a sneaky way of adding this information to the not-really-extendable GMV format
 // it won't always work if the note is really long but that's ok because it's completely non-essential information anyway
 void EmbedPreloadedTracksInNote(char* note)
@@ -290,7 +311,8 @@ void EmbedPreloadedTracksInNote(char* note)
 			break;
 	i++; // after the null
 	char compressed [13];
-	CompressBoolArray(compressed, 13, played_tracks_linear, 100);
+	EmbedBRAMSizeInTracks();
+	CompressBoolArray(compressed, 13, played_tracks_linear, 104);
 	for(int j = 0; i < 40 && j < 13; i++, j++)
 		note[i] = compressed[j];
 }
@@ -304,7 +326,8 @@ void ExtractPreloadedTracksFromNote(char* note)
 	char compressed [13] = {0};
 	for(j = 0; i < 40 && j < 13; i++, j++)
 		compressed[j] = note[i];
-	DecompressBoolArray(played_tracks_linear, min(100, j*8), compressed, j);
+	DecompressBoolArray(played_tracks_linear, min(104, j*8), compressed, j);
+	ExtractBRAMSizeFromTracks();
 	for(i = 0; i < min(100, j*8); i++)
 		if(played_tracks_linear[i])
 			preloaded_tracks[i] = 2; // 2 == "force preload if MP3"

@@ -58,7 +58,7 @@ bool SkipNextRerecordIncrement = false;
 //extern long x, y, xg, yg; // G_Main.cpp
 extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
 extern "C" int fatal_mp3_error; // cdda_mp3.c
-extern "C" char played_tracks_linear [101]; // cd_sys.c
+extern "C" char played_tracks_linear [105]; // cd_sys.c
 extern "C" char Track_Played; // cd_file.c
 extern "C" int FILE_Play_CD_LBA(int async);
 extern int FS_Minimised;

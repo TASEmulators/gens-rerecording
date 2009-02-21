@@ -34,7 +34,7 @@ unsigned int CD_timer_st;	// Used for CD timer
 unsigned int CD_LBA_st;		// Used for CD timer
 unsigned short CDDAVol = 256;
 
-char played_tracks_linear [101] = {0};
+char played_tracks_linear [105] = {0};
 
 _scd SCD;
 

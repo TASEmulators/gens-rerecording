@@ -1781,7 +1781,7 @@ DEFINE_LUA_FUNCTION(state_create, "[location]")
 // you can pass in either a savestate file number (an integer),
 // OR you can pass in a savestate object that was returned by savestate.create()
 // if option is "quiet" then any warning messages will be suppressed
-// if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
+// if option is "userdataonly" then the state will not actually be saved, but any save callbacks will still get called and their results will be saved (see savestate.registerload()/savestate.registersave())
 DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 {
 	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
