@@ -35,7 +35,7 @@ extern BOOL IsAsyncAllowed(void);
 extern void Put_Info(char *Message, int Duration);
 extern void Put_Info_NonImmediate(char *Message, int Duration);
 extern char Gens_Path[1024];
-extern char played_tracks_linear [101];
+extern char played_tracks_linear [105];
 #define PRELOADED_MP3_DIRECTORY "temp"
 #define PRELOADED_MP3_FILENAME "\\track%02d.pcm"
 
