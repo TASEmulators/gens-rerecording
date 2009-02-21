@@ -485,65 +485,68 @@ if (currentWatch[0] == NULL) //If there is no currently loaded file, run to Save
 		return true;
 }
 
-
+bool Load_Watches(bool clear, const char* filename)
+{
+	const char DELIM = '\t';
+	FILE* WatchFile = fopen(filename,"rb");
+	if (!WatchFile)
+	{
+		MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
+		return false;
+	}
+	if(clear)
+	{
+		if(!ResetWatches())
+		{
+			fclose(WatchFile);
+			return false;
+		}
+	}
+	strcpy(currentWatch,filename);
+	RWAddRecentFile(currentWatch);
+	AddressWatcher Temp;
+	char mode;
+	fgets(Str_Tmp,1024,WatchFile);
+	sscanf(Str_Tmp,"%c%*s",&mode);
+	if ((mode == '1' && !(SegaCD_Started)) || (mode == '2' && !(_32X_Started)))
+	{
+		char Device[8];
+		strcpy(Device,(mode > '1')?"32X":"SegaCD");
+		sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
+		MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
+	}
+	int WatchAdd;
+	fgets(Str_Tmp,1024,WatchFile);
+	sscanf(Str_Tmp,"%d%*s",&WatchAdd);
+	WatchAdd+=WatchCount;
+	for (int i = WatchCount; i < WatchAdd; i++)
+	{
+		while (i < 0)
+			i++;
+		do {
+			fgets(Str_Tmp,1024,WatchFile);
+		} while (Str_Tmp[0] == '\n');
+		sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
+		Temp.WrongEndian = 0;
+		char *Comment = strrchr(Str_Tmp,DELIM) + 1;
+		*strrchr(Comment,'\n') = '\0';
+		InsertWatch(Temp,Comment);
+	}
+	
+	fclose(WatchFile);
+	if (RamWatchHWnd)
+		ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+	RWfileChanged=false;
+	return true;
+}
 
 bool Load_Watches(bool clear)
 {
 	strncpy(Str_Tmp,Rom_Name,512);
 	strcat(Str_Tmp,".wch");
-	const char DELIM = '\t';
 	if(Change_File_L(Str_Tmp, Watch_Dir, "Load Watches", "GENs Watchlist\0*.wch\0All Files\0*.*\0\0", "wch", RamWatchHWnd))
 	{
-		FILE* WatchFile = fopen(Str_Tmp,"rb");
-		if (!WatchFile)
-		{
-			MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
-			return false;
-		}
-		if(clear)
-		{
-			if(!ResetWatches())
-			{
-				fclose(WatchFile);
-				return false;
-			}
-		}
-		strcpy(currentWatch,Str_Tmp);
-		RWAddRecentFile(currentWatch);
-		AddressWatcher Temp;
-		char mode;
-		fgets(Str_Tmp,1024,WatchFile);
-		sscanf(Str_Tmp,"%c%*s",&mode);
-		if ((mode == '1' && !(SegaCD_Started)) || (mode == '2' && !(_32X_Started)))
-		{
-			char Device[8];
-			strcpy(Device,(mode > '1')?"32X":"SegaCD");
-			sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-			MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
-		}
-		int WatchAdd;
-		fgets(Str_Tmp,1024,WatchFile);
-		sscanf(Str_Tmp,"%d%*s",&WatchAdd);
-		WatchAdd+=WatchCount;
-		for (int i = WatchCount; i < WatchAdd; i++)
-		{
-			while (i < 0)
-				i++;
-			do {
-				fgets(Str_Tmp,1024,WatchFile);
-			} while (Str_Tmp[0] == '\n');
-			sscanf(Str_Tmp,"%*05X%*c%08X%*c%c%*c%c%*c%d",&(Temp.Address),&(Temp.Size),&(Temp.Type),&(Temp.WrongEndian));
-			Temp.WrongEndian = 0;
-			char *Comment = strrchr(Str_Tmp,DELIM) + 1;
-			*strrchr(Comment,'\n') = '\0';
-			InsertWatch(Temp,Comment);
-		}
-		
-		fclose(WatchFile);
-		if (RamWatchHWnd)
-			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
-		RWfileChanged=false;
-		return true;
+		return Load_Watches(clear, Str_Tmp);
 	}
 	return false;
 }
@@ -833,6 +836,8 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 			Update_RAM_Watch();
 
+			DragAcceptFiles(hDlg, TRUE);
+
 			return true;
 			break;
 		}
@@ -1011,6 +1016,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					}
 					DialogsOpen--;
 					RamWatchHWnd = NULL;
+					DragAcceptFiles(hDlg, FALSE);
 					EndDialog(hDlg, true);
 					return true;
 				default:
@@ -1039,8 +1045,17 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 			}
 			DialogsOpen--;
 			RamWatchHWnd = NULL;
+			DragAcceptFiles(hDlg, FALSE);
 			EndDialog(hDlg, true);
 			return true;
+
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = (HDROP)wParam;
+			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
+			DragFinish(hDrop);
+			return Load_Watches(true, Str_Tmp);
+		}	break;
 	}
 
 	return false;

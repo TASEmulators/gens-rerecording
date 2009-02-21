@@ -384,6 +384,8 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			OpenLuaContext((int)hDlg, PrintToWindowConsole, OnStart, OnStop);
 
+			DragAcceptFiles(hDlg, TRUE);
+
 			return true;
 		}	break;
 
@@ -572,6 +574,7 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							while (ShowCursor(false) >= 0);
 						}
 						DialogsOpen--;
+						DragAcceptFiles(hDlg, FALSE);
 						KillWatcherThread(hDlg);
 						LuaScriptHWnds.erase(remove(LuaScriptHWnds.begin(), LuaScriptHWnds.end(), hDlg), LuaScriptHWnds.end());
 						LuaWindowInfo.erase(hDlg);
@@ -604,12 +607,22 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				while (ShowCursor(false) >= 0);
 			}
 			DialogsOpen--;
+			DragAcceptFiles(hDlg, FALSE);
 			KillWatcherThread(hDlg);
 			LuaScriptHWnds.erase(remove(LuaScriptHWnds.begin(), LuaScriptHWnds.end(), hDlg), LuaScriptHWnds.end());
 			LuaWindowInfo.erase(hDlg);
 			CloseLuaContext((int)hDlg);
 			Build_Main_Menu();
 			EndDialog(hDlg, true);
+		}	return true;
+
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = (HDROP)wParam;
+			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
+			DragFinish(hDrop);
+			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)Str_Tmp );
+			UpdateFileEntered(hDlg);
 		}	return true;
 	}
 
