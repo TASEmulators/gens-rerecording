@@ -148,7 +148,7 @@ gens.registerstart( function ()
 	sound.clear() -- as a courtesy, clear the sound before operations like this that can take more than 0.5 seconds or so
 	frameinforecords = {}
 	for n = 0,10 do -- (1-9, 0, and also the hidden #10 if it's there)
-		frameinforecords[n] = savestate.loaduserdata(n) or {}
+		frameinforecords[n] = savestate.loadscriptdata(n) or {}
 		gens.wait()
 	end
 
@@ -156,7 +156,7 @@ end)
 
 
 -- register a function that gets called when a numbered savestate is saved.
--- the return value(s) becomes the savestate's userdata saved alongside it.
+-- the return value(s) becomes the savestate's scriptdata saved alongside it.
 savestate.registersave( function (statenumber)
 
 	-- if the user switched which state they're saving to,
@@ -187,7 +187,7 @@ end)
 
 -- note about savestate.registerload!
 -- if you add arguments after the statenumber,
--- the savestate's userdata gets automatically passed in to them,
+-- the savestate's scriptdata gets automatically passed in to them,
 -- like so:
 --[[
 		savestate.registerload( function (statenumber, records)
@@ -197,7 +197,7 @@ end)
   ]]
 -- that works great usually, but in our case "records" is a potentially HUGE table,
 -- so it would start taking a long time every time you load a savestate.
--- that's why we use savestate.loaduserdata(n) to load the tables only once
+-- that's why we use savestate.loadscriptdata(n) to load the tables only once
 -- when the script starts up, then we just reuse them in memory after that.
 -- in case you're wondering, the main reason that loading big tables can be slow
 -- is that creating and replacing such tables really strains Lua's garbage collector.
