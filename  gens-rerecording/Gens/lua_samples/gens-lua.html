@@ -710,48 +710,48 @@ Registers a callback function to get called whenever the screen is drawn.
 <p>
 It is recommended that you make this callback the only place that you call GUI drawing functions (such as <a href="#gui.tex"><code>gui.text</code></a>) from, otherwise they will execute 1 frame late and also run slower.
 <hr>
-<a name="#gui.getpixel"><h3>gui.getpixel (x, y)</br>
-<a name="#gui.readpixel"><small>or</small> gui.readpixel (x, y)</h3>
+<a name="gui.getpixel"><h3>gui.getpixel (x, y)</br>
+<a name="gui.readpixel"><small>or</small> gui.readpixel (x, y)</h3>
 Returns the r,g,b color at the given onscreen pixel location. You can say <code>local r,g,b = gui.getpixel(x,y)</code>. r,g,b are the red/green/blue color components of that pixel, each ranging from 0 to 255. If the coordinate you give is offscreen, you will receive the color values of the nearest onscreen pixel instead.
 <p>
 Note that this function can return colors that have already been written to the screen by GUI drawing functions. If for some reason you want to make sure that you only get the clean untampered-with colors the emulation drew onscreen, then you'll have to call this function before any GUI drawing functions have written to the screen for the current frame. Probably the most reliable way to do that is to call <code>gui.getpixel</code> inside of a callback function that you register with <a href="#gens.registerafter"><code>gens.registerafter</code></a>.
 <hr>
-<a name="#gui.text"><h3>gui.text (x, y, str [, color [, outlinecolor]])</br>
-<a name="#gui.drawtext"><small>or</small> gui.drawtext (x, y, str [, color [, outlinecolor]])</h3>
+<a name="gui.text"><h3>gui.text (x, y, str [, color [, outlinecolor]])</br>
+<a name="gui.drawtext"><small>or</small> gui.drawtext (x, y, str [, color [, outlinecolor]])</h3>
 Displays the given string (or <a href="#tostring"><code>tostring</code></a><code>(str)</code>) at the given coordinate of the emulator screen for one frame. The <code>x,y</code> coordinate specifies the top-left corner of where the text should go, but the text may be shifted somewhat from there to ensure it fits onscreen. The string is allowed to contain newlines (which should function as you'd expect), and very long strings will automatically wrap around as well.
 <p>
 The default color for the text is solid white with a solid black outline, but you may optionally override those using <a href="#colors"/>colors of your choice</a> (including separate transparency levels for the two if you wish).
 <hr>
-<a name="#gui.box"><h3>gui.box (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
-<a name="#gui.drawbox"><small>or</small> gui.drawbox (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
-<a name="#gui.rect"><small>or</small> gui.rect (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
-<a name="#gui.drawrect"><small>or</small> gui.drawrect (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</h3>
+<a name="gui.box"><h3>gui.box (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
+<a name="gui.drawbox"><small>or</small> gui.drawbox (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
+<a name="gui.rect"><small>or</small> gui.rect (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</br>
+<a name="gui.drawrect"><small>or</small> gui.drawrect (x1, y1, x2, y2 [, fillcolor [, outlinecolor]])</h3>
 Draws a rectangle between the given coordinates of the emulator screen for one frame. The <code>x1,y1</code> coordinate specifies any corner of the rectangle (preferably the top-left corner), and the <code>x2,y2</code> coordinate specifies the opposite corner.
 <p>
 The default color for the box is transparent white with a solid white outline, but you may optionally override those using <a href="#colors"/>colors of your choice</a>. In addition, you may supply a color transformation function (which takes r,g,b numbers as input and returns a new r,g,b as output) instead of a color for either or both of the colors. This can be used to achieve special blending modes such as additive or subtractive blending or inversion of a large region of pixels. See the "blendmodes.lua" sample for a working example.
 <hr>
-<a name="#gui.line"><h3>gui.line (x1, y1, x2, y2 [, color [, skipfirst]])</br>
-<a name="#gui.drawline"><small>or</small> gui.drawline (x1, y1, x2, y2 [, color [, skipfirst]])</h3>
+<a name="gui.line"><h3>gui.line (x1, y1, x2, y2 [, color [, skipfirst]])</br>
+<a name="gui.drawline"><small>or</small> gui.drawline (x1, y1, x2, y2 [, color [, skipfirst]])</h3>
 Draws a line segment between the given coordinates of the emulator screen for one frame. The <code>x1,y1</code> coordinate specifies one end of the line segment, and the <code>x2,y2</code> coordinate specifies the other end. If <code>skipfirst</code> is <b>true</b> then this function will not draw anything at the pixel <code>x1,y1</code>, otherwise it will. <code>skipfirst</code> is optional and defaults to <b>false</b>. The default color for the line is solid white, but you may optionally override that using a <a href="#colors"/>color of your choice</a>.
 <hr>
-<a name="#gui.pixel"><h3>gui.pixel (x, y [, color])</br>
-<a name="#gui.setpixel"><small>or</small> gui.setpixel (x, y [, color])</br>
-<a name="#gui.drawpixel"><small>or</small> gui.drawpixel (x, y [, color])</br>
-<a name="#gui.writepixel"><small>or</small> gui.writepixel (x, y [, color])</h3>
+<a name="gui.pixel"><h3>gui.pixel (x, y [, color])</br>
+<a name="gui.setpixel"><small>or</small> gui.setpixel (x, y [, color])</br>
+<a name="gui.drawpixel"><small>or</small> gui.drawpixel (x, y [, color])</br>
+<a name="gui.writepixel"><small>or</small> gui.writepixel (x, y [, color])</h3>
 Draws a single pixel at the given <code>x,y</code> coordinate of the emulator screen for one frame. The default color is solid white, but you may optionally override that using a <a href="#colors"/>color of your choice</a>.
 <hr>
-<a name="#gui.parsecolor"><h3>gui.parsecolor (color)</h3>
+<a name="gui.parsecolor"><h3>gui.parsecolor (color)</h3>
 Returns the separate RGBA components of the given color.<br>
 For example, you can say <code>local&nbsp;r,g,b,a&nbsp;=&nbsp;gui.parsecolor('orange')</code> to retrieve the red/green/blue values of the <a href="#colors"/>preset color</a> orange. (You could also omit the <code>a</code> in cases like this.) This uses the same conversion method that Gens uses internally to support <a href="#colors"/>the different representations of colors</a> that the GUI library uses. Overriding this function will not change how Gens interprets color values, however.
 <hr>
-<a name="#gui.opacity"><h3>gui.opacity (alpha)</h3>
+<a name="gui.opacity"><h3>gui.opacity (alpha)</h3>
 Scales the transparency of subsequent draw calls. An <code>alpha</code> of 0.0 means completely transparent, and an <code>alpha</code> of 1.0 means completely unchanged (opaque). Non-integer values are supported and meaningful, as are values greater than 1.0. It is not necessary to use this function (or the less-recommended <code>gui.transparency</code>) to perform drawing with transparency, because you can provide an alpha value in the color argument of each draw call. However, it can sometimes be convenient to be able to globally modify the drawing transparency.
 <hr>
-<a name="#gui.transparency"><h3>gui.transparency (trans)</h3>
+<a name="gui.transparency"><h3>gui.transparency (trans)</h3>
 Scales the transparency of subsequent draw calls. Exactly the same as <a href="#gui.opacity"><code>gui.opacity</code></a>, except the range is different: A <code>trans</code> of 4.0 means completely transparent, and a <code>trans</code> of 0.0 means completely unchanged (opaque).
 <hr>
-<a name="#gui.popup"><h3>gui.popup (msg [, type [, icon]])</br>
-<a name="#input.popup"><small>or</small> input.popup (msg [, type [, icon]])</h3>
+<a name="gui.popup"><h3>gui.popup (msg [, type [, icon]])</br>
+<a name="input.popup"><small>or</small> input.popup (msg [, type [, icon]])</h3>
 Brings up a modal popup dialog box (everything stops until the user dismisses it). The box displays the message <a href="#tostring"><code>tostring</code></a><code>(msg)</code>. This function returns the name of the button the user clicked on (as a string).
 <p>
 <code>type</code> indicates which buttons are on the dialog box, and it can be one of the following: 'ok', 'yesno', 'yesnocancel', 'okcancel', 'abortretryignore'.<br><code>type</code> defaults to <code>'ok'</code> for <code>gui.popup</code>, or to <code>'yesno'</code> for <code>input.popup</code>.
