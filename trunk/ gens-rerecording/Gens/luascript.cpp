@@ -482,11 +482,11 @@ static int doPopup(lua_State* L, const char* deftype, const char* deficon)
 
 // string gui.popup(string message, string type = "ok", string icon = "message")
 // string input.popup(string message, string type = "yesno", string icon = "question")
-DEFINE_LUA_FUNCTION(gui_popup, "message,type=\"ok\",icon=\"message\"")
+DEFINE_LUA_FUNCTION(gui_popup, "message[,type=\"ok\"[,icon=\"message\"]]")
 {
 	return doPopup(L, "ok", "message");
 }
-DEFINE_LUA_FUNCTION(input_popup, "message,type=\"yesno\",icon=\"question\"")
+DEFINE_LUA_FUNCTION(input_popup, "message[,type=\"yesno\"[,icon=\"question\"]]")
 {
 	return doPopup(L, "yesno", "question");
 }
@@ -1781,7 +1781,7 @@ DEFINE_LUA_FUNCTION(state_create, "[location]")
 // you can pass in either a savestate file number (an integer),
 // OR you can pass in a savestate object that was returned by savestate.create()
 // if option is "quiet" then any warning messages will be suppressed
-// if option is "userdataonly" then the state will not actually be saved, but any save callbacks will still get called and their results will be saved (see savestate.registerload()/savestate.registersave())
+// if option is "scriptdataonly" then the state will not actually be saved, but any save callbacks will still get called and their results will be saved (see savestate.registerload()/savestate.registersave())
 DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 {
 	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
@@ -1789,7 +1789,7 @@ DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 	{
 		if(!stricmp(option, "quiet")) // I'm not sure if saving can generate warning messages, but we might as well support suppressing them should they turn out to exist
 			g_disableStatestateWarnings = true;
-		else if(!stricmp(option, "userdataonly"))
+		else if(!stricmp(option, "scriptdataonly"))
 			g_onlyCallSavestateCallbacks = true;
 	}
 	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
@@ -1823,7 +1823,7 @@ DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 // you can pass in either a savestate file number (an integer),
 // OR you can pass in a savestate object that was returned by savestate.create() and has already saved to with savestate.save()
 // if option is "quiet" then any warning messages will be suppressed
-// if option is "userdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
+// if option is "scriptdataonly" then the state will not actually be loaded, but load callbacks will still get called and supplied with the data saved by save callbacks (see savestate.registerload()/savestate.registersave())
 DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 {
 	const char* option = (lua_type(L,2) == LUA_TSTRING) ? lua_tostring(L,2) : NULL;
@@ -1831,7 +1831,7 @@ DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 	{
 		if(!stricmp(option, "quiet"))
 			g_disableStatestateWarnings = true;
-		else if(!stricmp(option, "userdataonly"))
+		else if(!stricmp(option, "scriptdataonly"))
 			g_onlyCallSavestateCallbacks = true;
 	}
 	struct Scope { ~Scope(){ g_disableStatestateWarnings = false; g_onlyCallSavestateCallbacks = false; } } scope; // needs to run even if the following code throws an exception... maybe I should have put this in a "finally" block instead, but this project seems to have something against using the "try" statement
@@ -1870,20 +1870,20 @@ DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 	}
 }
 
-// savestate.loaduserdata(location)
+// savestate.loadscriptdata(location)
 // returns the user data associated with the given savestate
 // without actually loading the rest of that savestate or calling any callbacks.
 // you can pass in either a savestate file number (an integer),
 // OR you can pass in a savestate object that was returned by savestate.create()
-// but note that currently only non-anonymous savestates can have associated userdata
+// but note that currently only non-anonymous savestates can have associated scriptdata
 //
 // also note that this returns the same values
 // that would be passed into a registered load function.
 // the main reason this exists also is so you can register a load function that
-// chooses whether or not to load the userdata instead of always loading it,
-// and also to provide a nicer interface for loading userdata
+// chooses whether or not to load the scriptdata instead of always loading it,
+// and also to provide a nicer interface for loading scriptdata
 // without needing to trigger savestate loading first
-DEFINE_LUA_FUNCTION(state_loaduserdata, "location")
+DEFINE_LUA_FUNCTION(state_loadscriptdata, "location")
 {
 	int type = lua_type(L,1);
 	switch(type)
@@ -1923,13 +1923,13 @@ DEFINE_LUA_FUNCTION(state_loaduserdata, "location")
 	}
 }
 
-// savestate.saveuserdata(location)
-// same as savestate.load(location, "userdataonly")
-// only provided for consistency with savestate.loaduserdata(location)
-DEFINE_LUA_FUNCTION(state_saveuserdata, "location")
+// savestate.savescriptdata(location)
+// same as savestate.save(location, "scriptdataonly")
+// only provided for consistency with savestate.loadscriptdata(location)
+DEFINE_LUA_FUNCTION(state_savescriptdata, "location")
 {
 	lua_settop(L, 1);
-	lua_pushstring(L, "userdataonly");
+	lua_pushstring(L, "scriptdataonly");
 	return state_save(L);
 }
 
@@ -2253,11 +2253,11 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 	return color;
 }
 
-// r,g,b,a = gui.getcolor(color)
+// r,g,b,a = gui.parsecolor(color)
 // examples:
-// local r,g,b = gui.getcolor("green")
-// local r,g,b,a = gui.getcolor(0x7F3FFF7F)
-DEFINE_LUA_FUNCTION(gui_getcolor, "color")
+// local r,g,b = gui.parsecolor("green")
+// local r,g,b,a = gui.parsecolor(0x7F3FFF7F)
+DEFINE_LUA_FUNCTION(gui_parsecolor, "color")
 {
 	int color = getcolor_unmodified(L, 1, 0);
 	int r = (color & 0xFF000000) >> 24;
@@ -2271,7 +2271,7 @@ DEFINE_LUA_FUNCTION(gui_getcolor, "color")
 	return 4;
 }
 
-DEFINE_LUA_FUNCTION(gui_text, "x,y,str,color=\"white\",outline=\"black\"")
+DEFINE_LUA_FUNCTION(gui_text, "x,y,str[,color=\"white\"[,outline=\"black\"]]")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0; // we have to wait until later to call this function because gens hasn't emulated the next frame yet
@@ -2454,7 +2454,7 @@ DEFINE_LUA_FUNCTION(gui_box, "x1,y1,x2,y2[,fill[,outline]]")
 // color can be a RGB web color like '#ff7030', or with alpha RGBA like '#ff703060'
 //   or it can be an RGBA hex number like 0xFF703060
 //   or it can be a preset color like 'red', 'orange', 'blue', 'white', etc.
-DEFINE_LUA_FUNCTION(gui_pixel, "x,y,color=\"white\"")
+DEFINE_LUA_FUNCTION(gui_pixel, "x,y[,color=\"white\"]")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -2501,7 +2501,7 @@ DEFINE_LUA_FUNCTION(gui_getpixel, "x,y")
 
 	return 3;
 }
-DEFINE_LUA_FUNCTION(gui_line, "x1,y1,x2,y2,color=\"white\"")
+DEFINE_LUA_FUNCTION(gui_line, "x1,y1,x2,y2[,color=\"white\"[,skipfirst=false]]")
 {
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
@@ -2953,7 +2953,8 @@ static const struct luaL_reg guilib [] =
 	{"opacity", gui_setopacity},
 	{"transparency", gui_settransparency},
 	{"popup", gui_popup},
-	{"getcolor", gui_getcolor},
+	{"parsecolor", gui_parsecolor},
+	{"redraw", gens_redraw}, // some people might think of this as more of a GUI function
 	// alternative names
 	{"drawtext", gui_text},
 	{"drawbox", gui_box},
@@ -2971,8 +2972,8 @@ static const struct luaL_reg statelib [] =
 	{"create", state_create},
 	{"save", state_save},
 	{"load", state_load},
-	{"loaduserdata", state_loaduserdata},
-	{"saveuserdata", state_saveuserdata},
+	{"loadscriptdata", state_loadscriptdata},
+	{"savescriptdata", state_savescriptdata},
 	{"registersave", state_registersave},
 	{"registerload", state_registerload},
 	{NULL, NULL}
@@ -3997,7 +3998,7 @@ void CallRegisteredLuaLoadFunctions(int savestateNumber, const LuaSaveData& save
 				info.running = true;
 				RefreshScriptSpeedStatus();
 
-				// since the userdata can be very expensive to load
+				// since the scriptdata can be very expensive to load
 				// (e.g. the registered save function returned some huge tables)
 				// check the number of parameters the registered load function expects
 				// and don't bother loading the parameters it wouldn't receive anyway
