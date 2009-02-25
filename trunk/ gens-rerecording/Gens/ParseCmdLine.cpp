@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "G_main.h"
 #include "rom.h"
@@ -12,7 +13,6 @@
 
 using namespace std;
 
-extern const char* GensPlayMovie(const char* filename, bool silent);
 extern int Paused;
 
 //To add additional commandline options
@@ -28,13 +28,14 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause"};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua"};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
 	string RomToLoad = "";		//ROM filename
 	string MovieToLoad = "";	//Movie filename
 	string StateToLoad = "";	//Savestate filename
+	vector<string> ScriptsToLoad;	//Lua script filenames
 	string PauseGame = "";		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
 	string ReadWrite = "";		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
 
@@ -53,6 +54,12 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 			commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + 1;	//Find beginning of new command
 			trunc = argumentList.substr(commandBegin);								//Truncate argumentList
 			commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
+			if(argumentList[commandBegin] == '\"')									//Actually, if it's in quotes, extend to the end quote
+			{
+				commandEnd = trunc.find('\"', 1);
+				if(commandEnd >= 0)
+					commandBegin++, commandEnd--;
+			}
 			if (commandEnd < 0) commandEnd = argLength;								//If no space, new command will end at the end of list
 			newCommand = argumentList.substr(commandBegin, commandEnd);				//assign freshly parsed command to newCommand
 		}
@@ -79,6 +86,9 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 			break;
 		case 5:	//-pause
 			PauseGame = newCommand;
+			break;
+		case 6:	//-lua
+			ScriptsToLoad.push_back(newCommand);
 			break;
 		}
 	}
@@ -114,6 +124,21 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	{
 		x = _strdup(StateToLoad.c_str());
 		Load_State(x);
+	}
+
+	//Lua Scripts
+	for(unsigned int i = 0; i < ScriptsToLoad.size(); i++)
+	{
+		if(ScriptsToLoad[i][0])
+		{
+			const char* error = GensOpenScript(ScriptsToLoad[i].c_str());
+			if(error)
+			{
+				// not sure where to output it, would a messagebox be acceptable?
+				// for now I think we'll only see this in debug:
+				fprintf(stderr, "failed to start script \"%s\" because: %s\n", ScriptsToLoad[i].c_str(), error);
+			}
+		}
 	}
 
 	//Paused

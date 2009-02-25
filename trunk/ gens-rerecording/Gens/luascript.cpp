@@ -50,8 +50,6 @@ extern bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate);
 extern bool frameadvSkipLagForceDisable;
 extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
 extern int Show_Genesis_Screen();
-extern const char* GensPlayMovie(const char* filename, bool silent);
-extern const char* GensOpenScript(const char* filename, const char* extraDirToCheck);
 extern void GensReplayMovie();
 extern bool SkipNextRerecordIncrement;
 

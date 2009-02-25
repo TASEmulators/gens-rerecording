@@ -6030,7 +6030,7 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
 }
 
 
-const char* GensOpenScript(const char* filename, const char* extraDirToCheck=NULL)
+const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
 {
 	if(LuaScriptHWnds.size() < 16)
 	{
