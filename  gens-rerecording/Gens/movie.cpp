@@ -33,8 +33,9 @@ void MoviePlayingStuff()
 		if(AutoBackupEnabled) 
 		{
 			strncpy(Str_Tmp,MainMovie.FileName,512);
+			for(int i = strlen(Str_Tmp); i >= 0; i--) if(Str_Tmp[i] == '|') Str_Tmp[i] = '_';
 			strcat(MainMovie.FileName,".gmv");
-			MainMovie.FileName[strlen(MainMovie.FileName)-7]='b';
+			MainMovie.FileName[strlen(MainMovie.FileName)-7]='b'; // ".bak"
 			MainMovie.FileName[strlen(MainMovie.FileName)-6]='a';
 			MainMovie.FileName[strlen(MainMovie.FileName)-5]='k';
 			BackupMovieFile(&MainMovie);
@@ -458,6 +459,7 @@ void InitMovie(typeMovie * aMovie)
 {
 	aMovie->File = NULL;
 	strcpy(aMovie->FileName,"");
+	strcpy(aMovie->PhysicalFileName,"");
 	aMovie->LastFrame = 0;
 	aMovie->NbRerecords = 0;
 	strcpy(aMovie->Note,"");
@@ -483,6 +485,7 @@ void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
 {
 	MovieDest->File = MovieSrc->File;
 	strncpy(MovieDest->FileName,MovieSrc->FileName,1024);
+	strncpy(MovieDest->PhysicalFileName,MovieSrc->PhysicalFileName,1024);
 	MovieDest->LastFrame = MovieSrc->LastFrame;
 	MovieDest->NbRerecords = MovieSrc->NbRerecords;
 	strncpy(MovieDest->Note,MovieSrc->Note,41);
@@ -577,6 +580,7 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 	aMovie->Ok=1;
 
 	strncpy(aMovie->FileName,LogicalName,1024);
+	strncpy(aMovie->PhysicalFileName,PhysicalName,1024);
 
 	if(aMovie->Version>=9)
 	{
@@ -652,17 +656,17 @@ int OpenMovieFile(typeMovie *aMovie)
 	if(!aMovie->Ok)
 		return 0;
 
-	aMovie->File = fopen(aMovie->FileName,"r+b"); // try this even if readonly was chosen so we can toggle readonly later without re-opening file
-
-	if(!aMovie->File)
+	// use ObtainFile to support loading movies from archives (read-only)
+	char LogicalName[1024], PhysicalName[1024];
+	if(ObtainFile(aMovie->FileName, LogicalName, PhysicalName, "mov", s_nonMovieExtensions, sizeof(s_nonMovieExtensions)/sizeof(*s_nonMovieExtensions)))
 	{
-		// use ObtainFile to support loading movies from archives (read-only)
-		char LogicalName[1024], PhysicalName[1024];
-		if(ObtainFile(aMovie->FileName, LogicalName, PhysicalName, "mov", s_nonMovieExtensions, sizeof(s_nonMovieExtensions)/sizeof(*s_nonMovieExtensions)))
+		aMovie->File = fopen(PhysicalName,"r+b"); // so we can toggle readonly later without re-opening file
+		if(!aMovie->File)
 		{
 			aMovie->File = fopen(PhysicalName,"rb");
-			aMovie->ReadOnly = 2; // really, seriously, untoggleably read-only
+			aMovie->ReadOnly = 2; // really read-only
 		}
+		strncpy(aMovie->PhysicalFileName,PhysicalName,1024);
 	}
 
 	if(!aMovie->File)
@@ -709,7 +713,7 @@ int FlushMovieFile(typeMovie *aMovie)
 {
 	unsigned int MovieFileLastFrame=0;
 	char * movieData = NULL;
-	
+
 	if(aMovie->File==NULL)
 		return 0;
 	if(aMovie->ReadOnly==0 || aMovie->Status==MOVIE_RECORDING)
@@ -731,10 +735,13 @@ int FlushMovieFile(typeMovie *aMovie)
 	// if necessary, truncate the frame data to match the length of the movie
 	if((MovieFileLastFrame>aMovie->LastFrame) && (aMovie->ReadOnly == 0 || aMovie->Status==MOVIE_RECORDING))
 	{
-		aMovie->File=fopen(aMovie->FileName,"wb");
-		fseek(aMovie->File,0,SEEK_SET);
-		fwrite(movieData,aMovie->LastFrame*3+64,1,aMovie->File);
-		fclose(aMovie->File);
+		aMovie->File=fopen(aMovie->PhysicalFileName,"wb");
+		if(aMovie->File)
+		{
+			fseek(aMovie->File,0,SEEK_SET);
+			fwrite(movieData,aMovie->LastFrame*3+64,1,aMovie->File);
+			fclose(aMovie->File);
+		}
 	}
 
 	delete[] movieData;
@@ -770,7 +777,8 @@ int BackupMovieFile(typeMovie *aMovie)
 
 	Put_Info(aMovie->FileName, 2000);
 
-	Backup=fopen(aMovie->FileName,"wb");
+	strncpy(aMovie->PhysicalFileName,aMovie->FileName,1024);
+	Backup=fopen(aMovie->PhysicalFileName,"wb");
 
 	if(Backup==NULL)
 		return 0;

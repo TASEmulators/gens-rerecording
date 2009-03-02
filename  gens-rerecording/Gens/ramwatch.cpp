@@ -29,6 +29,8 @@ int ramw_x, ramw_y;			//Used to store ramwatch dialog window positions
 AddressWatcher rswatches[MAX_WATCH_COUNT];
 int WatchCount=0;
 
+#define MESSAGEBOXPARENT (RamWatchHWnd ? RamWatchHWnd : HWnd)
+
 bool QuickSaveWatches();
 bool ResetWatches();
 extern "C" int Clear_Sound_Buffer(void);
@@ -228,7 +230,7 @@ bool AskSave()
 	//returns false only if a save was attempted but failed or was cancelled
 	if (RWfileChanged)
 	{
-		int answer = MessageBox(RamWatchHWnd, "Save Changes?", "Ram Watch", MB_YESNOCANCEL);
+		int answer = MessageBox(MESSAGEBOXPARENT, "Save Changes?", "Ram Watch", MB_YESNOCANCEL);
 		if(answer == IDYES)
 			if(!QuickSaveWatches())
 				return false;
@@ -382,7 +384,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 	FILE *WatchFile = fopen(Str_Tmp,"rb");
 	if (!WatchFile)
 	{
-		int answer = MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OKCANCEL);
+		int answer = MessageBox(MESSAGEBOXPARENT,"Error opening file.","ERROR",MB_OKCANCEL);
 		if (answer == IDOK)
 		{
 			rw_recent_files[rnum][0] = '\0';	//Clear file from list 
@@ -403,7 +405,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 		char Device[8];
 		strcpy(Device,(mode > '1')?"32X":"SegaCD");
 		sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-		MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
+		MessageBox(MESSAGEBOXPARENT,Str_Tmp,"Possible Device Mismatch",MB_OK);
 	}
 	int WatchAdd;
 	fgets(Str_Tmp,1024,WatchFile);
@@ -491,7 +493,7 @@ bool Load_Watches(bool clear, const char* filename)
 	FILE* WatchFile = fopen(filename,"rb");
 	if (!WatchFile)
 	{
-		MessageBox(RamWatchHWnd,"Error opening file.","ERROR",MB_OK);
+		MessageBox(MESSAGEBOXPARENT,"Error opening file.","ERROR",MB_OK);
 		return false;
 	}
 	if(clear)
@@ -513,7 +515,7 @@ bool Load_Watches(bool clear, const char* filename)
 		char Device[8];
 		strcpy(Device,(mode > '1')?"32X":"SegaCD");
 		sprintf(Str_Tmp,"Warning: %s not started. \nWatches for %s addresses will be ignored.",Device,Device);
-		MessageBox(RamWatchHWnd,Str_Tmp,"Possible Device Mismatch",MB_OK);
+		MessageBox(MESSAGEBOXPARENT,Str_Tmp,"Possible Device Mismatch",MB_OK);
 	}
 	int WatchAdd;
 	fgets(Str_Tmp,1024,WatchFile);

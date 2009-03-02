@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include "OpenArchive.h"
 
 char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
 
@@ -73,6 +74,9 @@ int WINAPI FileSysWatcher (LPVOID arg)
 		if(slash)
 			*slash = 0;
 
+		char* bar = strchr(filename, '|');
+		if(bar) *bar = '\0';
+
 		WIN32_FILE_ATTRIBUTE_DATA origData;
 		GetFileAttributesEx (filename,  GetFileExInfoStandard,  (LPVOID)&origData);
 
@@ -129,14 +133,17 @@ void KillWatcherThread (HWND hDlg)
 }
 
 
+// some extensions that might commonly be near lua files that almost certainly aren't lua files.
+static const char* s_nonLuaExtensions [] = {"txt", "nfo", "htm", "html", "jpg", "jpeg", "png", "bmp", "gif", "mp3", "wav", "lnk", "exe", "bat", "gmv", "gm2", "luasav", "sav", "srm", "brm", "cfg", "wch", "gs*",  "bin","smd","gen","32x","cue","iso","raw"};
 
 
 void Update_Recent_Script(const char* Path, bool dontPutAtTop)
 {
-	FILE* file = fopen(Path, "rb");
-	if(file)
-		fclose(file);
-	else
+	char LogicalName[1024], PhysicalName[1024];
+	bool exists = ObtainFile(Path, LogicalName, PhysicalName, "luacheck", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
+	ReleaseTempFileCategory("luacheck"); // delete the temporary (physical) file if any
+
+	if(!exists)
 		return;
 
 	int i;
@@ -278,38 +285,40 @@ void UpdateFileEntered(HWND hDlg)
 	char local_str_tmp [1024];
 	SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)local_str_tmp);
 
-	FILE* ftemp = fopen(local_str_tmp, "rb");
-	bool exists = ftemp != NULL;
-	if(ftemp)
+	// use ObtainFile to support opening files within archives
+	char LogicalName[1024], PhysicalName[1024];
+	bool exists = ObtainFile(local_str_tmp, LogicalName, PhysicalName, "luacheck", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
+	bool readonly = exists ? ((GetFileAttributes(PhysicalName) & FILE_ATTRIBUTE_READONLY) != 0) : (strchr(LogicalName, '|') != NULL || strchr(local_str_tmp, '|') != NULL);
+	ReleaseTempFileCategory("luacheck"); // delete the temporary (physical) file if any
+
+	if(exists)
 	{
-		fclose(ftemp);
-
 		LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
-		info.filename = local_str_tmp;
+		info.filename = LogicalName;
 
-		char* slash = strrchr(local_str_tmp, '/');
-		slash = max(slash, strrchr(local_str_tmp, '\\'));
+		char* slash = strrchr(LogicalName, '/');
+		slash = max(slash, strrchr(LogicalName, '\\'));
 		if(slash)
 			slash++;
 		else
-			slash = local_str_tmp;
+			slash = LogicalName;
 		SetWindowText(hDlg, slash);
 		Build_Main_Menu();
 
 		PostMessage(hDlg, WM_COMMAND, IDC_BUTTON_LUARUN, 0);
 	}
 
-	const char* ext = strrchr(local_str_tmp, '.');
+	const char* ext = strrchr(LogicalName, '.');
 	bool isLuaFile = ext && !_stricmp(ext, ".lua");
 	if(exists)
 	{
-		SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile ? "Edit" : "Open");
+		SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile ? (readonly ? "View" : "Edit") : "Open");
 		EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), true);
 	}
 	else
 	{
 		SetWindowText(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), "Create");
-		EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile);
+		EnableWindow(GetDlgItem(hDlg, IDC_BUTTON_LUAEDIT), isLuaFile && !readonly);
 	}
 }
 
@@ -494,6 +503,8 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					char Str_Tmp [1024]; // shadow added because the global one is unreliable
 					strcpy(Str_Tmp,info.filename.c_str());
 					SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
+					char* bar = strchr(Str_Tmp, '|');
+					if(bar) *bar = '\0';
 					DialogsOpen++;
 					Clear_Sound_Buffer();
 					if(Change_File_L(Str_Tmp, Lua_Dir, "Load Lua Script", "Gens Lua Script\0*.lua*\0All Files\0*.*\0\0", "lua", hDlg))
@@ -509,20 +520,30 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					char Str_Tmp [1024]; // shadow added because the global one is unreliable
 					strcpy(Str_Tmp,info.filename.c_str());
 					SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);
-					FILE* file = fopen(Str_Tmp, "r");
+					char LogicalName[1024], PhysicalName[1024];
+					bool exists = ObtainFile(Str_Tmp, LogicalName, PhysicalName, "luaview", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
 					bool created = false;
-					if(!file)
+					if(!exists)
 					{
-						file = fopen(Str_Tmp, "w");
-						created = file != NULL;
+						FILE* file = fopen(Str_Tmp, "r");
+						if(!file)
+						{
+							file = fopen(Str_Tmp, "w");
+							if(file)
+							{
+								created = true;
+								exists = true;
+								strcpy(PhysicalName, Str_Tmp);
+							}
+						}
+						if(file)
+							fclose(file);
 					}
-					if(file)
+					if(exists)
 					{
-						fclose(file);
-
 						// tell the OS to open the file with its associated editor,
 						// without blocking on it or leaving a command window open.
-						ShellExecute(NULL, "open", Str_Tmp, NULL, NULL, SW_SHOWNORMAL);
+						ShellExecute(NULL, "open", PhysicalName, NULL, NULL, SW_SHOWNORMAL);
 					}
 					if(created)
 					{
@@ -549,8 +570,10 @@ LRESULT CALLBACK LuaScriptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					LuaPerWindowInfo& info = LuaWindowInfo[hDlg];
 					char Str_Tmp [1024]; // shadow added because the global one is completely unreliable
 					strcpy(Str_Tmp,info.filename.c_str());
-					Update_Recent_Script(Str_Tmp, info.subservient);
-					RunLuaScriptFile((int)hDlg, Str_Tmp);
+					char LogicalName[1024], PhysicalName[1024];
+					bool exists = ObtainFile(Str_Tmp, LogicalName, PhysicalName, "luarun", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
+					Update_Recent_Script(LogicalName, info.subservient);
+					RunLuaScriptFile((int)hDlg, PhysicalName);
 				}	break;
 				case IDC_BUTTON_LUASTOP:
 				{

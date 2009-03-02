@@ -328,12 +328,17 @@ int ArchiveFile::ExtractItem(int index, const char* outFilename) const
 	if(!(index >= 0 && index < m_numItems)) return 0;
 
 	ArchiveItem& item = m_items[index];
+	int rv = item.size;
+
+	DWORD outAttributes = GetFileAttributes(outFilename);
+	if(outAttributes & FILE_ATTRIBUTE_READONLY)
+		SetFileAttributes(outFilename, outAttributes & ~FILE_ATTRIBUTE_READONLY); // temporarily remove read-only attribute so we can decompress to there
 
 	if(m_typeIndex < 0)
 	{
 		// uncompressed
 		if(!CopyFile(m_filename, outFilename, false))
-			return 0;
+			rv = 0;
 	}
 	else
 	{
@@ -352,8 +357,11 @@ int ArchiveFile::ExtractItem(int index, const char* outFilename) const
 			object->Release();
 		}
 		if(FAILED(hr))
-			return 0;
+			rv = 0;
 	}
 
-	return item.size;
+	if(outAttributes & FILE_ATTRIBUTE_READONLY)
+		SetFileAttributes(outFilename, outAttributes); // restore read-only attribute
+
+	return rv;
 }

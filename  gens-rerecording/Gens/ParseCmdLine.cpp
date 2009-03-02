@@ -117,7 +117,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	if (MovieToLoad[0] && RomToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
 
 	//Read+Write
-	if (ReadWrite[0] && MovieToLoad[0] && RomToLoad[0]) MainMovie.ReadOnly = 0;
+	if (ReadWrite[0] && MovieToLoad[0] && RomToLoad[0] && MainMovie.ReadOnly != 2) MainMovie.ReadOnly = 0;
 	
 	//Loadstate
 	if (StateToLoad[0])

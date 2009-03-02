@@ -723,7 +723,7 @@ int Stop_GYM_Dump(void)
 }
 
 
-int Start_Play_GYM(void)
+int Start_Play_GYM(const char* filename)
 {
 	char Name[1024];
 	OPENFILENAME ofn;
@@ -762,7 +762,10 @@ int Start_Play_GYM(void)
 	ofn.lpstrDefExt = "gym";
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
-	if (GetOpenFileName(&ofn))
+	if(filename)
+		strcpy(Name, filename);
+
+	if (filename || GetOpenFileName(&ofn))
 	{
 		GYM_File = CreateFile(Name, GENERIC_READ, FILE_SHARE_READ, 
 		NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);

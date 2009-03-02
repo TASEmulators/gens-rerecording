@@ -1838,6 +1838,8 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	Init_Tab();
 	Build_Main_Menu();
 
+	DragAcceptFiles(HWnd, TRUE);
+
 	SystemParametersInfo(SPI_GETSCREENSAVEACTIVE, 0, &SS_Actived, 0);
 	SystemParametersInfo(SPI_SETSCREENSAVEACTIVE, FALSE, NULL, 0);
 
@@ -1877,6 +1879,8 @@ void End_All(void)
 	End_Sound();
 	End_CD_Driver();
 	End_Network();
+
+	DragAcceptFiles(HWnd, FALSE);
 
 	SystemParametersInfo(SPI_SETSCREENSAVEACTIVE, SS_Actived, NULL, 0);
 	if(MainMovie.File!=NULL)
@@ -2562,6 +2566,76 @@ void GensReplayMovie()
 	}
 }
 
+// some extensions that might commonly be near emulation-related files that we almost certainly can't open, or at least not directly.
+static const char* s_dropIgnoreExtensions [] = {"txt", "nfo", "htm", "html", "jpg", "jpeg", "png", "bmp", "gif", "mp3", "wav", "lnk", "exe", "bat", "luasav", "sav"};
+
+enum GensFileType
+{
+	FILETYPE_UNKNOWN,
+	FILETYPE_MOVIE,
+	FILETYPE_ROM,
+	FILETYPE_SAVESTATE,
+	FILETYPE_SRAM,
+	FILETYPE_BRAM,
+	FILETYPE_GYM,
+	FILETYPE_SCRIPT,
+	FILETYPE_WATCH,
+	FILETYPE_CONFIG,
+};
+GensFileType GuessFileType(const char* filename, const char* extension)
+{
+	GensFileType rv = FILETYPE_UNKNOWN;
+
+	// first decide what we can based on the file contents
+	FILE* file = fopen(filename, "rb");
+	int filesize = 0;
+	if(file)
+	{
+		unsigned char sig [11] = {0};
+		fread(sig, 1,10, file);
+		sig[10] = 0;
+
+		if(/*sig[0] == 'G' &&*/ sig[1] == 'S' && sig[2] == 'T' && sig[3] == 0x40 && sig[4] == 0xE0) // some previous versions of Gens had a problem writing the 'G' in "GST"...
+			rv = FILETYPE_SAVESTATE;
+		else if(!strncmp((const char*)sig, "Gens Movie", 10))
+			rv = FILETYPE_MOVIE;
+		else if(!strncmp((const char*)sig, "\033Lua", 4))
+			rv = FILETYPE_SCRIPT;
+
+		fseek(file, 0, SEEK_END);
+		filesize = ftell(file);
+
+		fclose(file);
+	}
+
+	// now decide what's leftover based on the filename extension
+	if(rv == FILETYPE_UNKNOWN)
+	{
+		if(!stricmp(extension, "wch") || !stricmp(extension, "watch"))
+			rv = FILETYPE_WATCH;
+		else if(!stricmp(extension, "cfg") || !stricmp(extension, "config"))
+			rv = FILETYPE_CONFIG;
+		else if(!stricmp(extension, "gym"))
+			rv = FILETYPE_GYM;
+		else if(!stricmp(extension, "lua"))
+			rv = FILETYPE_SCRIPT;
+		else if(!stricmp(extension, "srm") || !stricmp(extension, "sram"))
+			rv = FILETYPE_SRAM;
+		else if(!stricmp(extension, "brm") || !stricmp(extension, "bram"))
+			rv = FILETYPE_BRAM;
+		else if(!stricmp(extension, "gmv") || !stricmp(extension, "gm2"))
+			rv = FILETYPE_MOVIE;
+		else if(tolower(extension[0]) == 'g' && tolower(extension[1]) == 's' && (extension[2] == 't' || extension[2] == '-' || isdigit(extension[2])))
+			rv = FILETYPE_SAVESTATE;
+		else if(!stricmp(extension, "cue") || !stricmp(extension, "iso") || !stricmp(extension, "raw") || !stricmp(extension, "smd") || !stricmp(extension, "gen") || !stricmp(extension, "32x") || !stricmp(extension, "bin"))
+			rv = FILETYPE_ROM;
+		else if(filesize >= 1024) // we don't have a reliable way to tell the difference between a ROM/image and other junk, do we?
+			rv = FILETYPE_ROM;
+	}
+
+	return rv;
+}
+
 
 long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -2668,6 +2742,93 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		
+		// drag and drop support
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = (HDROP)wParam;
+			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
+			DragFinish(hDrop);
+
+			// use ObtainFile to support opening files within archives
+			char LogicalName[1024], PhysicalName[1024];
+			if(ObtainFile(Str_Tmp, LogicalName, PhysicalName, "drop", s_dropIgnoreExtensions, sizeof(s_dropIgnoreExtensions)/sizeof(*s_dropIgnoreExtensions)))
+			{
+				const char* fileExt = strrchr(LogicalName, '.');
+				if(!fileExt++)
+					fileExt = "";
+
+				// guess what type of file it is
+				GensFileType fileType = GuessFileType(PhysicalName, fileExt);
+
+				// open the file in a way that depends on what type we decided it is
+				switch(fileType)
+				{
+				case FILETYPE_MOVIE:
+					ReleaseTempFileCategory("drop"); // movie playing supports archives directly, and there's currently no way to transfer temporary file ownership, so delete any temporary file first (this makes PhysicalName invalid)
+					GensPlayMovie(LogicalName);
+					break;
+				case FILETYPE_ROM:
+					ReleaseTempFileCategory("drop");
+					Pre_Load_Rom(HWnd, LogicalName);
+					ReopenRamWindows();
+					break;
+				case FILETYPE_SCRIPT:
+					ReleaseTempFileCategory("drop");
+					GensOpenScript(LogicalName);
+					break;
+				case FILETYPE_SAVESTATE:
+					if(Genesis_Started || _32X_Started || SegaCD_Started)
+						Load_State(PhysicalName);
+					break;
+				case FILETYPE_WATCH:
+					Load_Watches(true, PhysicalName);
+					break;
+				case FILETYPE_CONFIG:
+					if(FILE* file = fopen(PhysicalName, "rb"))
+					{
+						fclose(file);
+						Load_Config(PhysicalName, Game);
+						strcpy(Str_Tmp, "config loaded from ");
+						strcat(Str_Tmp, LogicalName);
+						Put_Info(Str_Tmp, 2000);
+					}
+					break;
+				case FILETYPE_SRAM:
+					if(Genesis_Started || _32X_Started || SegaCD_Started)
+					if(FILE* file = fopen(PhysicalName, "rb"))
+					{
+						fread(SRAM, 1, 64 * 1024, file);
+						fclose(file);
+						strcpy(Str_Tmp, "SRAM loaded from ");
+						strcat(Str_Tmp, LogicalName);
+						Put_Info(Str_Tmp, 2000);
+					}
+					break;
+				case FILETYPE_BRAM:
+					if(SegaCD_Started)
+					if(FILE* file = fopen(PhysicalName, "rb"))
+					{
+						fread(Ram_Backup, 1, 8 * 1024, file);
+						if(BRAM_Ex_State & 0x100)
+							fread(Ram_Backup_Ex, 1, (8 << BRAM_Ex_Size) * 1024, file);
+						fclose(file);
+						strcpy(Str_Tmp, "BRAM loaded from ");
+						strcat(Str_Tmp, LogicalName);
+						Put_Info(Str_Tmp, 2000);
+					}
+					break;
+				case FILETYPE_GYM:
+					if(GYM_Dumping)
+						Stop_GYM_Dump();
+					Start_Play_GYM(PhysicalName);
+					break;
+				}
+
+				ReleaseTempFileCategory("drop"); // delete the temporary (physical) file if any was created and hasn't already been deleted and isn't still in use
+			}
+			return true;
+		}	break;
+
 		case WM_COMMAND:
 			if ((LOWORD(wParam) >= ID_HELP_LANG) && (LOWORD(wParam) < ID_HELP_LANG + 50))
 			{
@@ -2863,20 +3024,17 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				case ID_TOGGLE_MOVIE_READONLY: //Modif N - for new toggle readonly key:
 					if(MainMovie.File)
 					{
-						switch(MainMovie.ReadOnly)
+						if(MainMovie.ReadOnly && (GetFileAttributes(MainMovie.PhysicalFileName) & FILE_ATTRIBUTE_READONLY))
 						{
-							default:
-							case 0:
-								MainMovie.ReadOnly = 1;
+							Put_Info("Can't toggle read-only; write permission denied.", 1000);
+						}
+						else
+						{
+							MainMovie.ReadOnly = !MainMovie.ReadOnly;
+							if(MainMovie.ReadOnly)
 								Put_Info("Movie is now read-only.", 1000);
-								break;
-							case 1:
-								MainMovie.ReadOnly = 0;
+							else
 								Put_Info("Movie is now editable.", 1000);
-								break;
-							case 2:
-								Put_Info("Can't toggle read-only; write permission denied.", 1000);
-								break;
 						}
 					}
 					else
@@ -3071,7 +3229,8 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if(AutoBackupEnabled)
 					{
 						strcat(MainMovie.FileName,".gmv");
-						MainMovie.FileName[strlen(MainMovie.FileName)-7]='b';
+						for(int i = strlen(MainMovie.FileName); i >= 0; i--) if(MainMovie.FileName[i] == '|') MainMovie.FileName[i] = '_';
+						MainMovie.FileName[strlen(MainMovie.FileName)-7]='b'; // ".bak"
 						MainMovie.FileName[strlen(MainMovie.FileName)-6]='a';
 						MainMovie.FileName[strlen(MainMovie.FileName)-5]='k';
 						BackupMovieFile(&MainMovie);
@@ -5984,6 +6143,9 @@ void PlaySubMovie()
 		MainMovie.Status=0;
 		CopyMovie(&SubMovie,&MainMovie);
 
+		if(GetFileAttributes(MainMovie.PhysicalFileName) & FILE_ATTRIBUTE_READONLY)
+			MainMovie.ReadOnly = 2;
+
 		//UpthAdd - Load Controller Settings from Movie File
 		if (MainMovie.TriplePlayerHack) {
 			Controller_1_Type |= 0x10;
@@ -6155,6 +6317,8 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			strncat(Str_Tmp,Rom_Name,507);
 			strcat(Str_Tmp,".gmv");
 			SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+
+			DragAcceptFiles(hDlg, TRUE);
 
 			return true;
 			break;
@@ -6404,6 +6568,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					}
 					PlaySubMovie();
 					SetArchiveParentHWND(NULL);
+					DragAcceptFiles(hDlg, FALSE);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6425,6 +6590,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						PlayMovieCanceled=0;
 					}
 					SetArchiveParentHWND(NULL);
+					DragAcceptFiles(hDlg, FALSE);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6437,6 +6603,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					}
 					PlayMovieCanceled=1;
 					SetArchiveParentHWND(NULL);
+					DragAcceptFiles(hDlg, FALSE);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6452,10 +6619,20 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			PlayMovieCanceled=1;
 			SetArchiveParentHWND(NULL);
+			DragAcceptFiles(hDlg, FALSE);
 			DialogsOpen--;
 			EndDialog(hDlg, true);
 			return true;
 			break;
+
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = (HDROP)wParam;
+			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
+			DragFinish(hDrop);
+			SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+			return true;
+		}	break;
 	}
 
 	return false;
@@ -6567,6 +6744,7 @@ LRESULT CALLBACK PromptSpliceFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 					strcpy(cfgFile, Gens_Path);
 					strcat(cfgFile, "Gens.cfg");
 					strcpy(SpliceMovie,MainMovie.FileName);
+					for(int i = strlen(SpliceMovie); i >= 0; i--) if(SpliceMovie[i] == '|') SpliceMovie[i] = '_';
 					WritePrivateProfileString("Splice","SpliceMovie",SpliceMovie,cfgFile);
 					sprintf(Str_Tmp,"%d",SpliceFrame);
 					WritePrivateProfileString("Splice","SpliceFrame",Str_Tmp,cfgFile);
