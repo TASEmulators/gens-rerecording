@@ -2507,7 +2507,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		if(SubMovie.Ok!=0 && (SubMovie.UseState==0 || SubMovie.StateOk!=0) && (SubMovie.StateRequired==0 || SubMovie.StateOk!=0))
 		{
 			SubMovie.ClearSRAM = true;
-			SubMovie.ReadOnly = true;
+			SubMovie.ReadOnly = 1;
 			PlaySubMovie();
 		}
 		else
@@ -2861,13 +2861,23 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					Build_Main_Menu();
 					return 0;
 				case ID_TOGGLE_MOVIE_READONLY: //Modif N - for new toggle readonly key:
-					MainMovie.ReadOnly = !MainMovie.ReadOnly;
-					if(MainMovie.File!=NULL)
+					if(MainMovie.File)
 					{
-						if(MainMovie.ReadOnly)
-							Put_Info("Movie is now read-only.", 1000);
-						else
-							Put_Info("Movie is now editable.", 1000);
+						switch(MainMovie.ReadOnly)
+						{
+							default:
+							case 0:
+								MainMovie.ReadOnly = 1;
+								Put_Info("Movie is now read-only.", 1000);
+								break;
+							case 1:
+								MainMovie.ReadOnly = 0;
+								Put_Info("Movie is now editable.", 1000);
+								break;
+							case 2:
+								Put_Info("Can't toggle read-only; write permission denied.", 1000);
+								break;
+						}
 					}
 					else
 					{
@@ -5952,6 +5962,9 @@ int LoadSubMovie(char* filename)
 
 	int gmiRV = GetMovieInfo(filename,&SubMovie);
 
+	if(gmiRV < 0)
+		SubMovie.Ok = 0;
+
 	if(!SubMovie.Ok)
 	{
 		bool wasClearSRAM = SubMovie.ClearSRAM;
@@ -6001,8 +6014,10 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
 		case -1:
 			{
 				int err = errno;
-				if(err == EMFILE)
-					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s (%d).", filename, strerror(err), _getmaxstdio());
+				if(err == EINVAL)
+					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: user cancelled or denied.", filename);
+				else if(err == EMFILE)
+					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s (%d).", filename, strerror(err), _getmaxstdio()); // can be triggered by a bug in one of the Visual Studio service packs that only happens in Debug configuration
 				else
 					sprintf(Str_Tmp, "ERROR: File \"%s\" failed to load because: %s.", filename, strerror(err));
 			}
@@ -6131,6 +6146,9 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			strcpy(Str_Tmp,"");
 			SendDlgItemMessage(hDlg,IDC_STATIC_SAVESTATEREQ,WM_SETTEXT,0,(LPARAM)Str_Tmp);
 			SendDlgItemMessage(hDlg,IDC_STATIC_3PLAYERS,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+
+			SetArchiveParentHWND(hDlg);
+
 			InitMovie(&SubMovie);
 			
 			strncpy(Str_Tmp,Movie_Dir,512);
@@ -6249,7 +6267,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 						if(SubMovie.Ok)
 						{
-							SubMovie.ReadOnly=(int) (Def_Read_Only) | SubMovie.ReadOnly; //Upth-Add - for the new "Default Read Only" toggle
+							if(Def_Read_Only && SubMovie.ReadOnly==0) SubMovie.ReadOnly = 1; //Upth-Add - for the new "Default Read Only" toggle
 							SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)(SubMovie.ReadOnly ? BST_CHECKED : BST_UNCHECKED), 0); //Upth-Add - And we add a check or not depending on whether the movie is read only
 
 							SendDlgItemMessage(hDlg, IDC_CHECK_CLEAR_SRAM, BM_SETCHECK, (WPARAM)(SubMovie.ClearSRAM ? BST_CHECKED : BST_UNCHECKED), 0);
@@ -6358,12 +6376,12 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_CHECK_READ_ONLY:
 					if(SubMovie.ReadOnly)
 					{
-						SubMovie.ReadOnly=0;
+						SubMovie.ReadOnly = 0;
 						SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)BST_UNCHECKED, 0);
 					}
 					else
 					{
-						SubMovie.ReadOnly=1;
+						SubMovie.ReadOnly = 1;
 						SendDlgItemMessage(hDlg, IDC_CHECK_READ_ONLY, BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
 					}
 					if(SubMovie.ReadOnly==0 && SubMovie.Ok!=0 && SubMovie.UseState!=0 && SubMovie.StateOk!=0)
@@ -6385,6 +6403,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						while (ShowCursor(false) >= 0);
 					}
 					PlaySubMovie();
+					SetArchiveParentHWND(NULL);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6405,6 +6424,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						MainMovie.Status=MOVIE_RECORDING;
 						PlayMovieCanceled=0;
 					}
+					SetArchiveParentHWND(NULL);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6416,6 +6436,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						while (ShowCursor(false) >= 0);
 					}
 					PlayMovieCanceled=1;
+					SetArchiveParentHWND(NULL);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -6430,6 +6451,7 @@ LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				while (ShowCursor(false) >= 0);
 			}
 			PlayMovieCanceled=1;
+			SetArchiveParentHWND(NULL);
 			DialogsOpen--;
 			EndDialog(hDlg, true);
 			return true;
@@ -6846,7 +6868,7 @@ LRESULT CALLBACK RecordMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 					MainMovie.Status=0;
 
 					InitMovie(&MainMovie);
-					MainMovie.ReadOnly=0;
+					MainMovie.ReadOnly = 0;
 					MainMovie.Type = TYPEGMV;
 					MainMovie.Version='A'-'0';
 					SendDlgItemMessage(hDlg,IDC_EDIT_MOVIE_NAME,WM_GETTEXT,(WPARAM)512,(LPARAM)Str_Tmp);

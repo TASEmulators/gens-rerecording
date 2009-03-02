@@ -30,6 +30,10 @@ bool ObtainFile(const char* Name, char *const & LogicalName, char *const & Physi
 // note that any still-open files cannot be deleted yet and will be skipped.
 void ReleaseTempFileCategory(const char* category, const char* exceptionFilename=NULL);
 
+// sets the parent window of subsequent archive selector dialogs
+// NULL resets this to the default (main Gens emulator window)
+void SetArchiveParentHWND(void* hwnd=NULL);
+
 // the rest of these are more internal utility functions,
 // but they could be generally useful outside of that
 const char* GetTempFile(const char* category=NULL, const char* extension=NULL); // creates a temp file and returns a path to it.  extension if any should include the '.'

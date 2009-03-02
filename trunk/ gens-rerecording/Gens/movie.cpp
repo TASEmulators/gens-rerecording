@@ -7,6 +7,7 @@
 #include "movie.h"
 #include "mem_M68K.h"
 #include "luascript.h"
+#include "OpenArchive.h"
 long unsigned int FrameCount=0;
 long unsigned int LagCount=0;
 long unsigned int LagCountPersistent = 0; // same as LagCount but ignores manual resets
@@ -121,8 +122,8 @@ void MoviePlayingStuff()
 		{
 			Clear_Sound_Buffer(); //eliminate stutter
 
-			int result = IDYES;
-			if (MainMovie.ReadOnly)
+			int result = MainMovie.ReadOnly ? IDNO : IDYES;
+			if (MainMovie.ReadOnly == 1)
 			{
 				DialogsOpen++;
 				result = MessageBox(HWnd,"Movie end reached. Resume recording?","Notice",MB_YESNO|MB_DEFBUTTON2|MB_ICONQUESTION);
@@ -455,24 +456,24 @@ void MovieRecordingStuff()
 
 void InitMovie(typeMovie * aMovie)
 {
-	aMovie->File=NULL;
+	aMovie->File = NULL;
 	strcpy(aMovie->FileName,"");
-	aMovie->LastFrame=0;
-	aMovie->NbRerecords=0;
+	aMovie->LastFrame = 0;
+	aMovie->NbRerecords = 0;
 	strcpy(aMovie->Note,"");
-	aMovie->PlayerConfig[0]=6;
-	aMovie->PlayerConfig[1]=3;
-	aMovie->ReadOnly=0;
+	aMovie->PlayerConfig[0] = 6;
+	aMovie->PlayerConfig[1] = 3;
+	aMovie->ReadOnly = 0;
 	strcpy(aMovie->StateName,"");
-	aMovie->Status=0;
-	aMovie->UseState=0;
-	aMovie->Version='A'-'0';
-	aMovie->Ok=0;
-	aMovie->StateFrame=0;
-	aMovie->StateOk=0;
-	aMovie->Vfreq=(CPU_Mode)?1:0;
-	aMovie->StateRequired=0;
-	aMovie->TriplePlayerHack=0;
+	aMovie->Status = 0;
+	aMovie->UseState = 0;
+	aMovie->Version = 'A'-'0';
+	aMovie->Ok = 0;
+	aMovie->StateFrame = 0;
+	aMovie->StateOk = 0;
+	aMovie->Vfreq = (CPU_Mode)?1:0;
+	aMovie->StateRequired = 0;
+	aMovie->TriplePlayerHack = 0;
 	aMovie->Type = TYPEGMV;
 	aMovie->Recorded = false;
 	aMovie->ClearSRAM = true;
@@ -480,29 +481,37 @@ void InitMovie(typeMovie * aMovie)
 
 void CopyMovie(typeMovie * MovieSrc, typeMovie * MovieDest)
 {
-	MovieDest->File=MovieSrc->File;
+	MovieDest->File = MovieSrc->File;
 	strncpy(MovieDest->FileName,MovieSrc->FileName,1024);
-	MovieDest->LastFrame=MovieSrc->LastFrame;
-	MovieDest->NbRerecords=MovieSrc->NbRerecords;
+	MovieDest->LastFrame = MovieSrc->LastFrame;
+	MovieDest->NbRerecords = MovieSrc->NbRerecords;
 	strncpy(MovieDest->Note,MovieSrc->Note,41);
 	memcpy(MovieDest->PlayerConfig,MovieSrc->PlayerConfig,sizeof(MovieSrc->PlayerConfig));
-	MovieDest->ReadOnly=MovieSrc->ReadOnly;
+	MovieDest->ReadOnly = MovieSrc->ReadOnly;
 	strncpy(MovieDest->StateName,MovieSrc->StateName,1024);
-	MovieDest->Status=MovieSrc->Status;
-	MovieDest->UseState=MovieSrc->UseState;
-	MovieDest->Version=MovieSrc->Version;
-	MovieDest->Ok=MovieSrc->Ok;
-	MovieDest->StateOk=MovieSrc->StateOk;
+	MovieDest->Status = MovieSrc->Status;
+	MovieDest->UseState = MovieSrc->UseState;
+	MovieDest->Version = MovieSrc->Version;
+	MovieDest->Ok = MovieSrc->Ok;
+	MovieDest->StateOk = MovieSrc->StateOk;
 	strncpy(MovieDest->Header,MovieSrc->Header,17);
-	MovieDest->StateFrame=MovieSrc->StateFrame;
-	MovieDest->Vfreq=MovieSrc->Vfreq;
-	MovieDest->TriplePlayerHack=MovieSrc->TriplePlayerHack;
-	MovieDest->StateRequired=MovieSrc->StateRequired;
-	MovieDest->ClearSRAM=MovieSrc->ClearSRAM;
+	MovieDest->StateFrame = MovieSrc->StateFrame;
+	MovieDest->Vfreq = MovieSrc->Vfreq;
+	MovieDest->TriplePlayerHack = MovieSrc->TriplePlayerHack;
+	MovieDest->StateRequired = MovieSrc->StateRequired;
+	MovieDest->ClearSRAM = MovieSrc->ClearSRAM;
 
 	if(MovieDest == &MainMovie) // Modif N.
 		ExtractPreloadedTracksFromNote(MovieSrc->Note);
 }
+
+// some extensions that might commonly be near movie files that almost certainly aren't movie files.
+static const char* s_nonMovieExtensions [] = {"txt", "nfo", "htm", "html", "jpg", "jpeg", "png", "bmp", "gif", "mp3", "wav", "lnk", "exe", "bat", "lua", "luasav", "sav", "srm", "brm", "cfg", "wch", "gs*",  "bin","smd","gen","32x","cue","iso","raw"};
+// question: why use exclusion instead of inclusion?
+// answer: because filename extensions aren't that reliable.
+// if it's one of these extensions then it's probably safe to assume it's not a movie (and doing so makes things simpler and more convenient for the user),
+// but if it isn't one of these then it's best to ask the user or check the file contents,
+// in case it's a valid movie or a valid movie-containing archive with an unknown extension.
 
 int GetMovieInfo(char *FileName,typeMovie *aMovie)
 {
@@ -515,7 +524,15 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 	Temp_Controller_Type[3]=Controller_1C_Type;
 	Temp_Controller_Type[1]=Controller_2_Type;
 
-	test=fopen(FileName,"rb");
+	// use ObtainFile to support loading movies from archives
+	char LogicalName[1024], PhysicalName[1024];
+	if(!ObtainFile(FileName, LogicalName, PhysicalName, "submov", s_nonMovieExtensions, sizeof(s_nonMovieExtensions)/sizeof(*s_nonMovieExtensions)))
+	{
+		aMovie->Ok=0;
+		return -1;
+	}
+
+	test=fopen(PhysicalName,"rb");
 	if(test==NULL)
 	{
 		aMovie->Ok=0;
@@ -527,6 +544,7 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 	{
 		aMovie->Ok=0;
 		fclose(test);
+		ReleaseTempFileCategory("submov"); // delete the temporary file if any
 		return -2;
 	}
 
@@ -539,6 +557,7 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 	{
 		aMovie->Ok=0;
 		fclose(test);
+		ReleaseTempFileCategory("submov"); // delete the temporary file if any
 		return -3;
 	}
 
@@ -557,7 +576,7 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 
 	aMovie->Ok=1;
 
-	strncpy(aMovie->FileName,FileName,1024);
+	strncpy(aMovie->FileName,LogicalName,1024);
 
 	if(aMovie->Version>=9)
 	{
@@ -590,6 +609,7 @@ int GetMovieInfo(char *FileName,typeMovie *aMovie)
 		aMovie->Vfreq=(CPU_Mode)?1:0;
 	}
 	fclose(test);
+	ReleaseTempFileCategory("submov"); // delete the temporary file if any
 	return 0;
 }
 
@@ -629,18 +649,23 @@ void GetStateInfo(char * FileName,typeMovie *aMovie)
 
 int OpenMovieFile(typeMovie *aMovie)
 {
-	if(aMovie->Ok==0)
+	if(!aMovie->Ok)
 		return 0;
-	if(aMovie->ReadOnly)
-	{
-		aMovie->File=fopen(aMovie->FileName,"r+b"); //So we can toggle readonly without re-opening file
-		if(!aMovie->File)
-			aMovie->File=fopen(aMovie->FileName,"rb");
-	}
-	else	
-		aMovie->File=fopen(aMovie->FileName,"r+b");
 
-	if(aMovie->File==NULL)
+	aMovie->File = fopen(aMovie->FileName,"r+b"); // try this even if readonly was chosen so we can toggle readonly later without re-opening file
+
+	if(!aMovie->File)
+	{
+		// use ObtainFile to support loading movies from archives (read-only)
+		char LogicalName[1024], PhysicalName[1024];
+		if(ObtainFile(aMovie->FileName, LogicalName, PhysicalName, "mov", s_nonMovieExtensions, sizeof(s_nonMovieExtensions)/sizeof(*s_nonMovieExtensions)))
+		{
+			aMovie->File = fopen(PhysicalName,"rb");
+			aMovie->ReadOnly = 2; // really, seriously, untoggleably read-only
+		}
+	}
+
+	if(!aMovie->File)
 		return 0;
 
 	return 1;
@@ -720,6 +745,8 @@ int CloseMovieFile(typeMovie *aMovie)
 {
 	if(!FlushMovieFile(aMovie))
 		return 0;
+
+	ReleaseTempFileCategory("mov"); // delete the temporary file if any
 
 	char status = aMovie->Status;
 	InitMovie(aMovie);

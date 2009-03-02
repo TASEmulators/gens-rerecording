@@ -2646,8 +2646,12 @@ DEFINE_LUA_FUNCTION(movie_getreadonly, "")
 }
 DEFINE_LUA_FUNCTION(movie_setreadonly, "readonly")
 {
-	bool readonly = lua_toboolean(L,1) != 0;
-	MainMovie.ReadOnly = readonly;
+	int readonly = lua_toboolean(L,1) ? 1 : 0;
+	if(MainMovie.ReadOnly != 2)
+		MainMovie.ReadOnly = readonly;
+	else if(!readonly)
+		luaL_error(L, "movie.setreadonly failed: write permission denied");
+
 	return 0;
 }
 DEFINE_LUA_FUNCTION(movie_isrecording, "")
@@ -2700,7 +2704,7 @@ DEFINE_LUA_FUNCTION(movie_replay, "")
 	if(MainMovie.File)
 		GensReplayMovie();
 	else
-		luaL_error(L, "it is invalid to call movie_replay when no movie open.");
+		luaL_error(L, "it is invalid to call movie.replay when no movie open.");
     return 0;
 } 
 DEFINE_LUA_FUNCTION(movie_close, "")
