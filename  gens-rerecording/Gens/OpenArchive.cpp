@@ -15,6 +15,9 @@
 LRESULT CALLBACK ArchiveFileChooser(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static int s_archiveFileChooserResult = -1;
 
+static HWND s_parentHWND = NULL;
+void SetArchiveParentHWND(void* hwnd) { s_parentHWND = (HWND)hwnd; }
+static HWND GetArchiveParentHWND() { return s_parentHWND ? s_parentHWND : HWnd; }
 
 struct ArchiveFileChooserInfo
 {
@@ -121,7 +124,7 @@ int ChooseItemFromArchive(ArchiveFile& archive, bool autoChooseIfOnly1, const ch
 	if(info.files.size() < 1)
 	{
 		DialogsOpen++;
-		MessageBox(HWnd, "The archive is either empty or encrypted.", "Nothing to load!", MB_OK | MB_ICONWARNING);
+		MessageBox(GetArchiveParentHWND(), "The archive is either empty or encrypted.", "Nothing to load!", MB_OK | MB_ICONWARNING);
 		DialogsOpen--;
 		return -1;
 	}
@@ -131,7 +134,7 @@ int ChooseItemFromArchive(ArchiveFile& archive, bool autoChooseIfOnly1, const ch
 		return info.files[0].itemIndex;
 
 	// bring up a dialog to choose the index if there's more than 1
-	DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_ARCHIVEFILECHOOSER), HWnd, (DLGPROC) ArchiveFileChooser,(LPARAM) &info);
+	DialogBoxParam(ghInstance, MAKEINTRESOURCE(IDD_ARCHIVEFILECHOOSER), GetArchiveParentHWND(), (DLGPROC) ArchiveFileChooser,(LPARAM) &info);
 	return s_archiveFileChooserResult;
 }
 

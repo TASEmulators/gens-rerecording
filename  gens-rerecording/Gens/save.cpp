@@ -207,6 +207,7 @@ void Get_State_File_Name(char *name)
 		strcat(name," - ");
 		char* slash = strrchr(MainMovie.FileName, '/');
 		slash = max(slash, strrchr(MainMovie.FileName, '\\'));
+		slash = max(slash, strrchr(MainMovie.FileName, '|'));
 		if(slash)
 			slash++;
 		else

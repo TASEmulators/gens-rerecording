@@ -1,6 +1,10 @@
 #ifndef _7ZIP_DEC_HEADER
 #define _7ZIP_DEC_HEADER
 
+// 7zip file extraction
+// NOTE: if you want to add support for opening files within archives to some part of Gens,
+// consider using the higher-level interface provided by OpenArchive.h instead
+
 void InitDecoder();
 void CleanupDecoder();
 const char* GetSupportedFormatsFilter();

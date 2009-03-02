@@ -21,7 +21,6 @@
 #include "wave.h"
 #include "cd_file.h"
 #include "luascript.h"
-#include "7zip.h"
 #include "OpenArchive.h"
 #include <assert.h>
 
@@ -360,7 +359,7 @@ void Fill_Infos(void)
 static const char* s_nonRomExtensions [] = {"txt", "nfo", "htm", "html", "jpg", "jpeg", "png", "bmp", "gif", "mp3", "wav", "lnk", "exe", "bat", "gmv", "gm2", "lua", "luasav", "sav", "srm", "brm", "cfg", "wch", "gs*"};
 // question: why use exclusion instead of inclusion?
 // answer: because filename extensions aren't that reliable.
-// if it's one of these extensions then it's probably safe to assume it's not a ROM,
+// if it's one of these extensions then it's probably safe to assume it's not a ROM (and doing so makes things simpler and more convenient for the user),
 // but if it isn't one of these then it's best to ask the user or check the file contents,
 // in case it's a valid ROM or a valid ROM-containing archive with an unknown extension.
 
