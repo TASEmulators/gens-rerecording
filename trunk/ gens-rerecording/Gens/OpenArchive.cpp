@@ -138,6 +138,9 @@ int ChooseItemFromArchive(ArchiveFile& archive, bool autoChooseIfOnly1, const ch
 	return s_archiveFileChooserResult;
 }
 
+
+
+
 #define DEFAULT_EXTENSION ".tmp"
 #define DEFAULT_CATEGORY "gens"
 
@@ -164,7 +167,16 @@ static struct TempFiles
 				FILE* file = fopen(tempPath, "wb");
 				if(file)
 				{
+					// mark the temporary file as read-only and (whatever this does) temporary
+					DWORD attributes = GetFileAttributes(tempPath);
+					attributes |= FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_TEMPORARY;
+					SetFileAttributes(tempPath, attributes);
+
 					fclose(file);
+
+					// add it to our registry of files that need to be deleted, in case we fail to terminate properly
+					TempFiles::AddEntryToGarbageRegistry(tempPath);
+
 					break;
 				}
 				n++;
@@ -176,13 +188,35 @@ static struct TempFiles
 			strcpy(filename, copy.filename);
 			category = copy.category;
 		}
-		bool Delete()
+		TemporaryFile()
 		{
-			if(!*filename || _unlink(filename) == 0 || errno != EACCES)
+			filename[0] = 0;
+			category[0] = 0;
+		}
+		bool Delete(bool returnFalseOnRegistryRemovalFailure=false)
+		{
+			if(!*filename)
+				return true; // guess it already didn't exist
+
+			// remove read-only attribute so Windows will let us delete it
+			// (our temporary files are read-only to discourage other apps from tampering)
+			DWORD attributes = GetFileAttributes(filename);
+			if(attributes & FILE_ATTRIBUTE_READONLY)
+				SetFileAttributes(filename, attributes & ~FILE_ATTRIBUTE_READONLY);
+
+			if(_unlink(filename) == 0 || errno != EACCES)
 			{
+				// remove it from our registry of files that need to be deleted, to reduce accumulation
+				bool removed = TempFiles::RemoveEntryFromGarbageRegistry(filename);
+
 				*filename = '\0';
-				return true; // successfully deleted or already didn't exist
+				return removed || !returnFalseOnRegistryRemovalFailure; // successfully deleted or already didn't exist, return true unless registry removal failure notification was requested and that failed
 			}
+
+			// restore read-only if we couldn't delete it (not sure if this ever succeeds or matters though)
+			if(attributes & FILE_ATTRIBUTE_READONLY)
+				SetFileAttributes(filename, attributes);
+
 			return false; // failed to delete read-only or in-use file
 		}
 		char filename [MAX_PATH];
@@ -223,13 +257,100 @@ static struct TempFiles
 		}
 	}
 
+	// delete all temporary files on shutdown
 	~TempFiles()
 	{
 		for(size_t i = 0; i < tempFiles.size(); i++)
 		{
 			tempFiles[i].Delete();
 		}
+
+		TempFiles::CleanOutGarbageRegistry();
 	}
+
+	// run this on startup to delete any files that we failed to delete last time
+	// in case we crashed or were forcefully terminated
+	TempFiles()
+	{
+		TempFiles::CleanOutGarbageRegistry();
+	}
+
+	static void AddEntryToGarbageRegistry(const char* filename)
+	{
+		char gbgFile[1024];
+		GetTempPath(1024, gbgFile);
+		strcat(gbgFile, "GensTempFileRecords");
+		char key[64];
+		int i = 0;
+		while(true)
+		{
+			sprintf(key, "File%d", i);
+			GetPrivateProfileString("Files", key, "", Str_Tmp, 1024, gbgFile);
+			if(!*Str_Tmp)
+				break;
+			i++;
+		}
+		WritePrivateProfileString("Files", key, filename, gbgFile);
+	}
+	static bool RemoveEntryFromGarbageRegistry(const char* filename)
+	{
+		char gbgFile[1024];
+		GetTempPath(1024, gbgFile);
+		strcat(gbgFile, "GensTempFileRecords");
+		char key[64];
+		int i = 0;
+		int deleteSlot = -1;
+		while(true)
+		{
+			sprintf(key, "File%d", i);
+			GetPrivateProfileString("Files", key, "", Str_Tmp, 1024, gbgFile);
+			if(!*Str_Tmp)
+				break;
+			if(!strcmp(Str_Tmp, filename))
+				deleteSlot = i;
+			i++;
+		}
+		--i;
+		if(i >= 0 && deleteSlot >= 0)
+		{
+			if(i != deleteSlot)
+			{
+				sprintf(key, "File%d", i);
+				GetPrivateProfileString("Files", key, "", Str_Tmp, 1024, gbgFile);
+				sprintf(key, "File%d", deleteSlot);
+				WritePrivateProfileString("Files", key, Str_Tmp, gbgFile);
+			}
+			sprintf(key, "File%d", i);
+			if(0 == WritePrivateProfileString("Files", key, NULL, gbgFile))
+				return false;
+		}
+		if(i <= 0 && deleteSlot == 0)
+			_unlink(gbgFile);
+		return true;
+	}
+
+private:
+	static void CleanOutGarbageRegistry()
+	{
+		char gbgFile[1024];
+		GetTempPath(1024, gbgFile);
+		strcat(gbgFile, "GensTempFileRecords");
+
+		char key[64];
+		int i = 0;
+		while(true)
+		{
+			sprintf(key, "File%d", i);
+			GetPrivateProfileString("Files", key, "", Str_Tmp, 1024, gbgFile);
+			if(!*Str_Tmp)
+				break;
+			TemporaryFile temp;
+			strcpy(temp.filename, Str_Tmp);
+			if(!temp.Delete(true))
+				i++;
+		}
+	}
+
 } s_tempFiles;
 
 
@@ -246,6 +367,7 @@ void ReleaseTempFileCategory(const char* cat, const char* exceptionFilename)
 	if(!cat || !*cat) cat = DEFAULT_CATEGORY;
 	s_tempFiles.ReleaseCategory(cat, exceptionFilename);
 }
+
 
 
 // example input Name:          "C:\games.zip"

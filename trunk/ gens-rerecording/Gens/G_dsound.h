@@ -47,7 +47,9 @@ int Update_WAV_Dump(void);
 int Stop_WAV_Dump(void);
 int Start_GYM_Dump(void);
 int Stop_GYM_Dump(void);
-int Start_Play_GYM(void);
+#ifdef __cplusplus
+int Start_Play_GYM(const char* filename=NULL);
+#endif
 int Play_GYM(void);
 int Stop_Play_GYM(void);
 

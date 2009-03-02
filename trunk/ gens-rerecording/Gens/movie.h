@@ -49,6 +49,7 @@ struct typeMovie
 	unsigned char Type;
 	bool Recorded;
 	bool ClearSRAM;
+	char PhysicalFileName[1024];
 };
 extern bool AutoCloseMovie; //Upth-Add - So these flags
 extern bool Def_Read_Only;  //Upth-Add - are externally accessible

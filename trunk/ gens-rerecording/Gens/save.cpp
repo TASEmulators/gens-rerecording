@@ -188,7 +188,7 @@ int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND
 	return 0;
 }
 
-int s_lastStateNumberGotten = 0;
+int s_lastStateNumberGotten = -1;
 
 void Get_State_File_Name(char *name)
 {
@@ -263,16 +263,18 @@ static const char* standardInconsistencyMessage = "Warning: The state you are lo
 void TruncateMovieToFrameCount()
 {
 	MainMovie.LastFrame=FrameCount;
+	if(GetFileAttributes(MainMovie.PhysicalFileName) & FILE_ATTRIBUTE_READONLY)
+		return;
 	fseek(MainMovie.File,0,SEEK_SET);
 	char *tempbuf = new char[64 + (FrameCount * 3)];
 	fread(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
 	fclose(MainMovie.File);
-	MainMovie.File = fopen(MainMovie.FileName,"wb");
+	MainMovie.File = fopen(MainMovie.PhysicalFileName,"wb");
 	fseek(MainMovie.File,0,SEEK_SET);
 	fwrite(tempbuf,1,64 + (FrameCount * 3),MainMovie.File);
 	WriteMovieHeader(&MainMovie);
 	fclose(MainMovie.File);
-	MainMovie.File = fopen(MainMovie.FileName,"r+b");
+	MainMovie.File = fopen(MainMovie.PhysicalFileName,"r+b");
 	delete[] tempbuf;
 }
 
@@ -280,7 +282,7 @@ bool g_refreshScreenAfterLoad = true;
 int Load_State(char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;
-	s_lastStateNumberGotten = 0;
+	s_lastStateNumberGotten = -1;
 
 	if(!g_onlyCallSavestateCallbacks)
 	{
@@ -380,8 +382,9 @@ int Load_State(char *Name)
 			if(AutoBackupEnabled)
 			{
 				strncpy(Str_Tmp,MainMovie.FileName,512);
+				for(int i = strlen(Str_Tmp); i >= 0; i--) if(Str_Tmp[i] == '|') Str_Tmp[i] = '_';
 				strcat(MainMovie.FileName,".gmv");
-				MainMovie.FileName[strlen(MainMovie.FileName)-7]='b';
+				MainMovie.FileName[strlen(MainMovie.FileName)-7]='b'; // ".bak"
 				MainMovie.FileName[strlen(MainMovie.FileName)-6]='a';
 				MainMovie.FileName[strlen(MainMovie.FileName)-5]='k';
 				BackupMovieFile(&MainMovie);
@@ -537,7 +540,7 @@ int Save_State_To_Buffer (unsigned char *buf)
 int Save_State (char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;
-	s_lastStateNumberGotten = 0;
+	s_lastStateNumberGotten = -1;
 
 	{
 		LuaSaveData saveData;
