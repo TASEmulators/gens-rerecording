@@ -2769,6 +2769,13 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				case FILETYPE_ROM:
 					ReleaseTempFileCategory("drop");
+					if(MainMovie.File!=NULL)
+						CloseMovieFile(&MainMovie);
+					if (GYM_Playing) Stop_Play_GYM();
+					FrameCount=0;
+					LagCount = 0;
+					LagCountPersistent = 0;
+					frameSearchFrames = -1; frameSearchInitialized = false;
 					Pre_Load_Rom(HWnd, LogicalName);
 					ReopenRamWindows();
 					break;
@@ -4233,6 +4240,11 @@ dialogAgain: //Nitsuja added this
 					Change_SegaCD_SRAM_Size(3);
 					return 0;
 
+				case ID_OPTION_SRAMON:
+					SRAM_ON = !SRAM_ON;
+					Build_Main_Menu();
+					return 0;
+
 				case ID_OPTIONS_SAVECONFIG:
 					strcpy(Str_Tmp, Gens_Path);
 					strcat(Str_Tmp, "Gens.cfg");
@@ -5359,6 +5371,8 @@ HMENU Build_Main_Menu(void)
 	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
 	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
+	if(Genesis_Started && Rom_Size <= (2 * 1024 * 1024))
+		MENU_L(Options, i++, Flags | (SRAM_ON ? MF_CHECKED : MF_UNCHECKED), ID_OPTION_SRAMON, "SRAM Enabled", "", "SRAM Enabled");
 	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Options, i++, Flags, ID_OPTIONS_LOADCONFIG, "Load Config...", "", "&Load Config...");
 	MENU_L(Options, i++, Flags, ID_OPTIONS_SAVEASCONFIG, "Save Config As...", "", "&Save Config As...");
@@ -6206,36 +6220,41 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header)
 	}
 }
 
+const char* MakeScriptPathAbsolute(const char* filename, const char* extraDirToCheck)
+{
+	static char filename2 [1024];
+	if(filename[0] && filename[1] != ':')
+	{
+		char tempFile [1024], curDir [1024];
+		strncpy(tempFile, filename, 1024);
+		tempFile[1023] = 0;
+		const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
+		for(int i=0; i<=4; i++)
+		{
+			if((!*tempFilePtr || tempFilePtr[1] != ':') && i != 2)
+				strcpy(curDir, i!=1 ? ((i!=3||!extraDirToCheck) ? Lua_Dir : extraDirToCheck) : Gens_Path);
+			else
+				curDir[0] = 0;
+			_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
+			FILE* file = fopen(filename2, "rb");
+			if(file || i==4)
+				filename = filename2;
+			if(file)
+			{
+				fclose(file);
+				break;
+			}
+		}
+	}
+	return filename;
+}
 
 const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
 {
 	if(LuaScriptHWnds.size() < 16)
 	{
 		// make the filename absolute before loading
-		char filename2 [1024];
-		if(filename[0] && filename[1] != ':')
-		{
-			char tempFile [1024], curDir [1024];
-			strncpy(tempFile, filename, 1024);
-			tempFile[1023] = 0;
-			const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
-			for(int i=0; i<=4; i++)
-			{
-				if((!*tempFilePtr || tempFilePtr[1] != ':') && i != 2)
-					strcpy(curDir, i!=1 ? ((i!=3||!extraDirToCheck) ? Lua_Dir : extraDirToCheck) : Gens_Path);
-				else
-					curDir[0] = 0;
-				_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
-				FILE* file = fopen(filename2, "rb");
-				if(file || i==4)
-					filename = filename2;
-				if(file)
-				{
-					fclose(file);
-					break;
-				}
-			}
-		}
+		filename = MakeScriptPathAbsolute(filename, extraDirToCheck);
 
 		// now check if it's already open and load it if it isn't
 		HWND IsScriptFileOpen(const char* Path);

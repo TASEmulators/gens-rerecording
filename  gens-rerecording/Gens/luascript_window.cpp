@@ -280,15 +280,33 @@ void OnStop(int hDlgAsInt, bool statusOK)
 		PostMessage(hDlg, WM_CLOSE, 0, 0);
 }
 
+const char* MakeScriptPathAbsolute(const char* filename, const char* extraDirToCheck);
+
 void UpdateFileEntered(HWND hDlg)
 {
 	char local_str_tmp [1024];
 	SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_GETTEXT,(WPARAM)512,(LPARAM)local_str_tmp);
 
+	// if it exists, make sure we're using an absolute path to it
+	const char* filename = local_str_tmp;
+	FILE* file = fopen(filename, "rb");
+	if(file)
+	{
+		fclose(file);
+		filename = MakeScriptPathAbsolute(local_str_tmp, NULL);
+		if(filename != local_str_tmp && stricmp(filename, local_str_tmp))
+		{
+			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,(WPARAM)512,(LPARAM)filename);
+			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,EM_SETSEL,0,-1);
+			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,EM_SETSEL,-1,-1);
+			return;
+		}
+	}
+
 	// use ObtainFile to support opening files within archives
 	char LogicalName[1024], PhysicalName[1024];
-	bool exists = ObtainFile(local_str_tmp, LogicalName, PhysicalName, "luacheck", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
-	bool readonly = exists ? ((GetFileAttributes(PhysicalName) & FILE_ATTRIBUTE_READONLY) != 0) : (strchr(LogicalName, '|') != NULL || strchr(local_str_tmp, '|') != NULL);
+	bool exists = ObtainFile(filename, LogicalName, PhysicalName, "luacheck", s_nonLuaExtensions, sizeof(s_nonLuaExtensions)/sizeof(*s_nonLuaExtensions));
+	bool readonly = exists ? ((GetFileAttributes(PhysicalName) & FILE_ATTRIBUTE_READONLY) != 0) : (strchr(LogicalName, '|') != NULL || strchr(filename, '|') != NULL);
 	ReleaseTempFileCategory("luacheck"); // delete the temporary (physical) file if any
 
 	if(exists)

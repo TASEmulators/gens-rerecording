@@ -485,6 +485,7 @@
 #define ID_GRAPHICS_SYNC_AVI_MOVIE      40515
 #define ID_GRAPHICS_AVI_SOUND           40516
 #define ID_GRAPHICS_NEVER_SKIP_FRAME    40517
+#define ID_OPTION_SRAMON                40518
 #define ID_SLOW_SPEED_PLUS              40520
 #define ID_SLOW_SPEED_MINUS             40521
 #define ID_RAM_SEARCH                   40522
