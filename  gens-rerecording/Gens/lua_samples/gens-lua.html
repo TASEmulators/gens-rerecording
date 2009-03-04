@@ -166,6 +166,46 @@ ul { list-style-type: none ; list-style-position: outside ; }
 </UL>
 
 
+<LI><A HREF="#joypad">Joypad Library</A>
+<UL>
+<TABLE WIDTH="49%">
+<TR VALIGN="top">
+<TD>
+<LI><A HREF="#joypad.get">get</A>
+<LI><A HREF="#joypad.getdown">getdown</A>
+<LI><A HREF="#joypad.getup">getup</A>
+</TD>
+<TD>
+<LI><A HREF="#joypad.peek">peek</A>
+<LI><A HREF="#joypad.peekdown">peekdown</A>
+<LI><A HREF="#joypad.peekup">peekup</A>
+</TD>
+<TD>
+<LI><A HREF="#joypad.set">set</A>
+</TD>
+</TR>
+</TABLE>
+</UL>
+
+
+<LI><A HREF="#input">Input Library</A>
+<UL>
+<TABLE WIDTH="80%">
+<TR VALIGN="top">
+<TD>
+<LI><A HREF="#input.get">get</A>
+</TD>
+<TD>
+<LI><A HREF="#input.registerhotkey">registerhotkey</A>
+</TD>
+<TD>
+<LI><A HREF="#input.popup">popup</A>
+</TD>
+</TR>
+</TABLE>
+</UL>
+
+
 </UL>
 
 <a name="intro"/><h2>Introduction</h2>
@@ -176,6 +216,8 @@ Gens allows you to run Lua scripts within it, so you can write scripts to extend
 
 <a name="gettingstarted"/><h3>How to make Gens run a Lua script</h3>
 First choose "Tools > Lua Scripting > New Lua Script Window..." from the menu. In the window that opens up, click Browse and choose a .lua file. That's all! It will automatically start running.
+<p>
+(An even easier way is to simply drag and drop a .lua file onto the main window of Gens.)
 <p>
 Note that Gens keeps a list of your recently loaded scripts in the "Tools > Lua Scripting" menu, so all you have to do is choose it from the menu to bring it back up later, or you can assign a hotkey to load the most recent script. You don't need to choose "New Lua Script Window" except when you're just getting started using a new script.
 <p>
@@ -791,6 +833,122 @@ Try to avoid using this function much if at all, because modal dialog boxes can 
 
 
 
-<h1>The remainder of this documentation has not yet been written. I assure you there are plenty more functions where those came from.</h1>
+
+<a name="joypad"/><h2>Joypad Library</h2>
+Functions for examining or changing the controller input that can be received by the emulation are in the <code>joypad</code> library.
+<hr>
+
+<a name="joypad.get"><h3>joypad.get ([whichcontroller])</br>
+<a name="joypad.read"><small>or</small> joypad.read ([whichcontroller])</h3>
+Returns a table of every game button, where each entry is <b>true</b> if that button is currently held (as of the last time the emulation checked), or <b>false</b> if it is not held. If a movie is playing, this will read the input actually being received from the movie instead of what the user is pressing. By default this only checks controller 1's input, but the optional <code>whichcontroller</code> argument lets you choose (valid choices are <code>1</code>, <code>2</code>, <code>'1B'</code> (or <code>0x1B</code>), or <code>'1C'</code> (or <code>0x1C</code>)).
+<p>
+For example, <code>joypad.get()</code> might return the table <code>{up=false, down=false, left=false, right=true, A=true, B=false, C=false, start=false, X=false, Y=false, Z=false, mode=false}</code>, meaning that player 1's last input sent to the game had the A and Right buttons held and everything else unheld.
+<p>
+You could check whether a particular button is held like so:<br><code>local buttons = joypad.get()<br>if buttons.B then print("the B button is held!") end</code>
+<hr>
+
+<a name="joypad.getdown"><h3>joypad.getdown ([whichcontroller])</br>
+<a name="joypad.readdown"><small>or</small> joypad.readdown ([whichcontroller])</h3>
+Returns a table of only the game buttons that are currently held. Each entry is <b>true</b> if that button is currently held (as of the last time the emulation checked), or <b>nil</b> if it is not held. If a movie is playing, this will read the input actually being received from the movie instead of what the user is pressing. By default this only checks controller 1's input, but the optional <code>whichcontroller</code> argument lets you choose (valid choices are <code>1</code>, <code>2</code>, <code>'1B'</code>, or <code>'1C'</code>).
+<p>
+For example, <code>joypad.getdown()</code> might return the table <code>{right=true, A=true}</code>, meaning that player 1's last input sent to the game had the A and Right buttons held and everything else unheld.
+<hr>
+
+<a name="joypad.getup"><h3>joypad.getup ([whichcontroller])</br>
+<a name="joypad.readup"><small>or</small> joypad.readup ([whichcontroller])</h3>
+Returns a table of only the game buttons that are not currently held. Each entry is <b>nil</b> if that button is currently held (as of the last time the emulation checked), or <b>false</b> if it is not held. If a movie is playing, this will read the input actually being received from the movie instead of what the user is pressing. By default this only checks controller 1's input, but the optional <code>whichcontroller</code> argument lets you choose (valid choices are <code>1</code>, <code>2</code>, <code>'1B'</code>, or <code>'1C'</code>).
+<p>
+For example, <code>joypad.getup()</code> might return the table <code>{up=false, down=false, left=false, B=false, C=false, start=false, X=false, Y=false, Z=false, mode=false}</code>, meaning that player 1's last input sent to the game had the A and Right buttons held and everything else unheld.
+<hr>
+
+
+<a name="joypad.peek"/><h3>joypad.peek ([whichcontroller])</h3>
+Same as <a href="#joypad.get"><code>joypad.get</code></a> except it checks the buttons that are currently being held by the user instead of the buttons that were last received by the game. In other words, this is an asynchronous version of <code>joypad.get</code>, and if a movie is playing, this will ignore the movie's input and look at what the user is trying to press instead.
+<hr>
+
+<a name="joypad.peekdown"/><h3>joypad.peekdown ([whichcontroller])</h3>
+Same as <a href="#joypad.getdown"><code>joypad.getdown</code></a> except it checks the buttons that are currently being held by the user instead of the buttons that were last received by the game. In other words, this is an asynchronous version of <code>joypad.getdown</code>, and if a movie is playing, this will ignore the movie's input and look at what the user is trying to press instead.
+<hr>
+
+<a name="joypad.peekup"/><h3>joypad.peekup ([whichcontroller])</h3>
+Same as <a href="#joypad.getup"><code>joypad.getup</code></a> except it checks the buttons that are currently being held by the user instead of the buttons that were last received by the game. In other words, this is an asynchronous version of <code>joypad.getup</code>, and if a movie is playing, this will ignore the movie's input and look at what the user is trying to press instead.
+<hr>
+
+
+<a name="joypad.set"><h3>joypad.set ([whichcontroller,] input)</br>
+<a name="joypad.write"><small>or</small> joypad.write ([whichcontroller,] input)</h3>
+Modifies the input that the next frame of emulation receives. <code>input</code> must be a table of zero or more buttons (valid buttons are <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>A</code>, <code>B</code>, <code>C</code>, <code>start</code>, <code>X</code>, <code>Y</code>, <code>Z</code>, <code>mode</code>) each with values of <b>true</b>, <b>false</b>, or <b>nil</b>.
+<p>
+A value of <b>true</b> means "force this button to be held next frame". A value of <b>false</b> means "force this button to be unheld next frame". A value of <b>nil</b> (or no entry for the button) means "don't modify this button next frame, let it be whatever it would have been normally".
+<p>
+A consequence of this is that you can call <code>joypad.set</code> multiple times to piece together the next frame's input. For example:
+<code><br>joypad.set({A=true})<br>joypad.set({B=true, up=false})<br></code>
+Running the above code would force the player to press both A and B on the next frame, prevent the player from pressing Up on the next frame, and the other buttons like Left and Right are the user's choice to press or not press (they would be unheld on the next frame unless the user presses them in which case they would be held).
+<p>
+For just one example of how it might be useful to leave buttons <b>nil</b>, consider a script that calls <code>joypad.set</code> each frame to make the player jump in a certain pattern (i.e. a custom macro). If you make the macro only control the jump button, that leaves you free to press the other buttons yourself, so you can do things like guide your character left/right while the macro is handling the jump height and timing. This sort of "partial automation" can be handy, so don't override more buttons than you need to.
+<p>
+By default this function only sets controller 1's input, but the optional <code>whichcontroller</code> argument lets you choose (valid choices are <code>1</code>, <code>2</code>, <code>'1B'</code> (or <code>0x1B</code>), or <code>'1C'</code> (or <code>0x1C</code>)). Also, if an input movie is currently playing then this function will not do anything. It will work fine if a movie is recording, of course, but not if it's playing.
+
+<hr>
+
+
+
+<p><br>
+
+
+
+
+<a name="input"/><h2>Input Library</h2>
+Functions for getting non-game-controller user input are in the <code>input</code> library.
+<hr>
+
+<a name="input.get"><h3>input.get ()</br>
+<a name="input.read"><small>or</small> input.read ()</h3>
+Returns a table that represents the state of the mouse and keyboard.
+<p>
+Entries for the mouse are:
+<UL>
+<LI><code>xmouse</code>: mouse cursor horizontal position in <a href="#coordinates"/>emulator screen coordinates</a> from 0 to 319
+<LI><code>ymouse</code>: mouse cursor vertical position in <a href="#coordinates"/>emulator screen coordinates</a> from 0 to 223
+<LI><code>leftclick</code>: true if the left mouse button is held, nil otherwise
+<LI><code>rightclick</code>: true if the right mouse button is held, nil otherwise
+<LI><code>middleclick</code>: true if the middle mouse button is held, nil otherwise
+</UL>
+<code>xmouse</code> and <code>ymouse</code> will always be numbers in the returned table (never <b>nil</b>). If the cursor is not positioned in the emulator screen then these numbers will be outside of the normal range, for example they will be negative if the cursor is past the top-left corner of the emulator screen.
+<p>
+Entries for the keyboard each represent a key and can be <b>true</b> if the key is held or <b>nil</b> otherwise. Possible keyboard entries are:
+<p>
+<UL>
+<LI><code>shift, control, alt, capslock, numlock, scrolllock,</code>
+<LI><code>0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+<LI><code>A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,</code>
+<LI><code>F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,</code>
+<LI><code>F13, F14, F15, F16, F17, F18, F19, F20, F21, F22, F23, F24,</code>
+<LI><code>backspace, tab, enter, pause, escape, space,</code>
+<LI><code>pageup, pagedown, end, home, insert, delete,</code>
+<LI><code>left, up, right, down,</code>
+<LI><code>numpad0, numpad1, numpad2, numpad3, numpad4, numpad5, numpad6, numpad7, numpad8, numpad9,</code>
+<LI><code>numpad*, numpad+, numpad-, numpad., numpad/,</code>
+<LI><code>tilde, plus, minus, leftbracket, rightbracket,</code>
+<LI><code>semicolon, quote, comma, period, slash, backslash</code>
+<LI><code></code>
+</UL>
+<p>
+It's generally somewhat bad practice to check keyboard keys at all because any user could easily have configured those keys to do some other more important emulator functions. However, it's still useful: Sometimes you just want to check an extra button quickly, for example if you're testing something or if you're writing a little throw-away script and you know it. On the other side of the spectrum, although it seems unlikely for anyone to bother doing this, it would be possible to write a script that checks specific keys but also provides its own key configuration mechanism to prevent it from clashing with the user's other keys.
+<hr>
+
+<a name="input.registerhotkey"><h3>input.registerhotkey (which, func)</h3>
+Registers a callback function to run when a certain hotkey is pressed. <code>which</code> is the hotkey number, and currently must be a number between 1 and 16. This range corresponds with the user-configurable hotkeys "Lua&nbsp;Custom&nbsp;Hotkey&nbsp;1" through "Lua&nbsp;Custom&nbsp;Hotkey&nbsp;16", which will do nothing when pressed except trigger the aforementioned callback. These hotkey must be configured by the user in the input settings beforehand.
+<p>
+The only real advantage this has over other methods of checking input is that it works even if Gens is paused. There is no alternative way of allowing user-controlled activation of script code during a pause except for making Gens enter into a <a HREF="#interactivepause">fake pause</a> instead of really pausing. (Although, depending on the situation, a fake pause might be the better option.)
+<hr>
+
+
+<p><br>
+
+
+
+
+<h1>The remainder of this documentation has not yet been written. I assure you there are <s>plenty more</s> a few more functions where those came from.</h1>
 
 </body></html>
