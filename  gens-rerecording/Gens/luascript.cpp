@@ -2605,7 +2605,7 @@ DEFINE_LUA_FUNCTION(gens_atframeboundary, "")
 }
 DEFINE_LUA_FUNCTION(movie_getlength, "")
 {
-	lua_pushinteger(L, MainMovie.LastFrame);
+	lua_pushinteger(L, MainMovie.File ? MainMovie.LastFrame : 0);
 	return 1;
 }
 DEFINE_LUA_FUNCTION(movie_isactive, "")
@@ -2615,7 +2615,7 @@ DEFINE_LUA_FUNCTION(movie_isactive, "")
 }
 DEFINE_LUA_FUNCTION(movie_rerecordcount, "")
 {
-	lua_pushinteger(L, MainMovie.NbRerecords);
+	lua_pushinteger(L, MainMovie.File ? MainMovie.NbRerecords : 0);
 	return 1;
 }
 DEFINE_LUA_FUNCTION(movie_setrerecordcount, "")
@@ -2641,7 +2641,7 @@ DEFINE_LUA_FUNCTION(gens_rerecordcounting, "[enabled]")
 }
 DEFINE_LUA_FUNCTION(movie_getreadonly, "")
 {
-	lua_pushboolean(L, MainMovie.ReadOnly);
+	lua_pushboolean(L, MainMovie.File ? MainMovie.ReadOnly : 0);
 	return 1;
 }
 DEFINE_LUA_FUNCTION(movie_setreadonly, "readonly")
@@ -3046,27 +3046,31 @@ static const struct luaL_reg inputlib [] =
 };
 static const struct luaL_reg movielib [] =
 {
-	{"length", movie_getlength},
 	{"active", movie_isactive},
 	{"recording", movie_isrecording},
 	{"playing", movie_isplaying},
 	{"mode", movie_getmode},
+
+	{"length", movie_getlength},
 	{"name", movie_getname},
-	{"getname", movie_getname},
 	{"rerecordcount", movie_rerecordcount},
-	{"rerecordcounting", gens_rerecordcounting},
 	{"setrerecordcount", movie_setrerecordcount},
+
+	{"rerecordcounting", gens_rerecordcounting},
 	{"readonly", movie_getreadonly},
-	{"getreadonly", movie_getreadonly},
 	{"setreadonly", movie_setreadonly},
-	{"playback", movie_play},
+	{"framecount", gens_getframecount}, // for those familiar with other emulators that have movie.framecount() instead of emulatorname.framecount()
+
 	{"play", movie_play},
 	{"replay", movie_replay},
 	{"stop", movie_close},
-	{"framecount", gens_getframecount}, // for those familiar with other emulators that have movie.framecount() instead of emulatorname.framecount()
+
 	// alternative names
 	{"open", movie_play},
 	{"close", movie_close},
+	{"getname", movie_getname},
+	{"playback", movie_play},
+	{"getreadonly", movie_getreadonly},
 	{NULL, NULL}
 };
 static const struct luaL_reg soundlib [] =
