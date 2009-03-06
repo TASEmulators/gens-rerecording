@@ -761,6 +761,18 @@ union luai_Cast { double l_d; long l_l; };
 ** without modifying the main part of the file.
 */
 
+// Gens turns off Windows error messages to prevent some annoying not-really-error dialog spam,
+// but here we turn error messages back on temporarily when Lua loads dynamic libraries.
+// The practical upshot of this change is that it lets the user see something like:
+//  "lua5.1.dll was not found."
+// instead of the rather useless message returned by FormatMessage(GetLastError()):
+//  "The specified module could not be found."
+// Unfortunately, the useful error appears in an ugly modal dialog that's impossible to extract text from,
+// but it's better than leaving the user completely clueless.
+#ifdef loadlib_c
+#include <windows.h>
+#define LoadLibraryA(path) (SetErrorMode(0), LoadLibraryA(path)); SetErrorMode(SEM_FAILCRITICALERRORS)
+#endif
 
 
 #endif
