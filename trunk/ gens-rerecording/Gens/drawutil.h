@@ -28,6 +28,7 @@ public:
 	static inline pix32 Pix16To32 (pix16 Src);
 	static inline pix32 Pix15To32 (pix15 Src);
 	static inline pix16 Pix32To16 (pix32 Src);
+	static inline pix15 Pix32To15 (pix32 Src);
 
 	static inline pix16 Make16 (int R, int G, int B);
 	static inline pix32 Make32 (int R, int G, int B);
@@ -130,6 +131,16 @@ inline pix32 DrawUtil::Pix15To32 (pix15 Src)
 	int gm = Src & 0x03E0;
 	int bm = Src & 0x001F;
 	return (rm << 9) | (gm << 6) | (bm << 3);
+}
+
+// from: xxxxxxxxRRRRRxxxGGGGGxxxBBBBBxxx
+//   to:                 xRRRRRGGGGGBBBBB
+inline pix15 DrawUtil::Pix32To15 (pix32 Src)
+{
+	int rm = Src & 0xF80000;
+	int gm = Src & 0x00F800;
+	int bm = Src & 0x0000F8;
+	return (rm >> 9) | (gm >> 6) | (bm >> 3);
 }
 
 inline pix16 DrawUtil::Make16 (int R, int G, int B)
