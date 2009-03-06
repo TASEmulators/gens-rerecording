@@ -168,7 +168,7 @@ void PutText2 (const char* string, short x, short y, int color, int outlineColor
 		return;
 
 	const char* ptr = string;
-	while(*ptr)
+	while(*ptr && y < 240)
 	{
 		int len = strlinelen(ptr);
 		int skip = 0;

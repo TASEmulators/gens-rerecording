@@ -142,17 +142,21 @@ ul { list-style-type: none ; list-style-position: outside ; }
 <LI><A HREF="#gui">GUI Library</A>
 <UL>
 <TABLE WIDTH="56%">
-<TR VALIGN="bottom">
+<TR VALIGN="top">
 <TD>
 <LI><A HREF="#gui.register">register</A>
 <LI><A HREF="#gui.text">text</A>
 <LI><A HREF="#gui.parsecolor">parsecolor</A>
+<LI><A HREF="#gui.gdoverlay">gdoverlay</A>
 </TD>
 <TD>
+<LI>&nbsp;
 <LI><A HREF="#gui.box">box</A>
 <LI><A HREF="#gui.opacity">opacity</A>
+<LI><A HREF="#gui.gdscreenshot">gdscreenshot</A>
 </TD>
 <TD>
+<LI>&nbsp;
 <LI><A HREF="#gui.line">line</A>
 <LI><A HREF="#gui.transparency">transparency</A>
 </TD>
@@ -387,7 +391,11 @@ The only way for separately-running scripts to affect each other is indirectly: 
 A small handful of the additional functions aren't in any library:
 <hr>
 <a name="print"/><h3>print (...)</h3>
-Prints any value or values, mainly to help you debug your script. Unlike the default implementation, this can even print the contents of tables, and the printed values will go to the script's output window instead of stdout. Note that if you want to print a memory address you should use <code>print(</code><a href="http://www.lua.org/manual/5.1/manual.html#pdf-string.format" target="_blank"><code>string.format</code></a><code>("0x%X",address))</code> instead of <code>print(address)</code>. If you want the text to appear on the game screen then this isn't the right function for that (see <code><a href="#gui.text">gui.text</a></code> or <code><a href="#gens.message">gens.message</a></code>).
+Prints any value or values, mainly to help you debug your script. Unlike the default implementation, this can even print the contents of tables. Also, the printed values will go to the script's output window instead of stdout. Note that if you want to print a memory address you should use <code>print(</code><a href="http://www.lua.org/manual/5.1/manual.html#pdf-string.format" target="_blank"><code>string.format</code></a><code>("0x%X",address))</code> instead of <code>print(address)</code>.
+<p>
+If you want the text to appear on the game screen then this isn't the right function for that (see <code><a href="#gui.text">gui.text</a></code> or <code><a href="#gens.message">gens.message</a></code>). <code>print</code> is much slower than <code>gui.text</code> as well, so if you want to show information every frame, then <code>gui.text</code> is the preferred way of doing it.
+<p>
+<code>print</code> makes it easy to inspect the state of Lua, for example, you can print the entire table of global variables (&nbsp;<code>print(_G)</code>&nbsp;), or you can print a specific library (&nbsp;<code>print(<a href="#gens">gens</a>)</code>&nbsp;) to see all the functions it defines. For an even more complete table than <code>_G</code> you can also try <code>print(debug.getregistry())</code>. If you want the old behavior of printing a table's unique ID instead of its contents, you can print <code><a href="#addressof">addressof</a>(table)</code>. If you want to customize <code>print</code> then you should really look at <code><a href="#tostring">tostring</a></code> instead.
 <hr>
 <a name="AND"/><h3>AND (...)</h3>
 Returns the bitwise AND of all the parameters. Zero or more integer arguments are allowed. 
@@ -866,6 +874,44 @@ Brings up a modal popup dialog box (everything stops until the user dismisses it
 <code>icon</code> indicates the purpose of the dialog box (or more specifically it dictates which title and icon is displayed in the box), and it can be one of the following: 'message', 'question', 'warning', 'error'.<br><code>icon</code> defaults to <code>'message'</code> for <code>gui.popup</code>, or to <code>'question'</code> for <code>input.popup</code>.
 <p>
 Try to avoid using this function much if at all, because modal dialog boxes can be irritating.
+<hr>
+<a name="gui.gdscreenshot"/><h3>gui.gdscreenshot ()</h3>
+Takes a screenshot of the current screen and returns it in a string format that can be used by <a href="#aboutgd">gd</a>.
+<p>
+Here is an example that takes a screenshot, creates a gd image from it, and saves it out to a PNG file on the hard drive:<br>
+<code>local gdstr = gui.gdscreenshot()<br>
+gd.createFromGdStr(gdstr):png("outputimage.png")</code>
+<hr>
+<a name="gui.gdoverlay"/><h3>gui.gdoverlay ([x, y,] gdimage[, alphamul])<br>
+<a name="gui.drawimage"/><small>or</small> gui.drawimage ([x, y,] gdimage[, alphamul])<br>
+<a name="gui.image"/><small>or</small> gui.image ([x, y,] gdimage[, alphamul])</h3>
+Draws an image on the screen. <code>gdimage</code> must be in truecolor <a href="#aboutgd">gd</a> string format.
+<p>
+Transparency is fully supported. Also, if <code>alphamul</code> is specified then it will modulate the transparency of the image even if it's originally fully opaque. (<code>alphamul</code>=1.0 is normal, <code>alphamul</code>=0.5 is doubly transparent, <code>alphamul</code>=3.0 is triply opaque, etc.)
+<p>
+<code>x,y</code> determines the top-left corner of where the image should draw. If they are omitted, the image will draw starting at the top-left corner of the screen.
+<p>
+<code>gui.gdoverlay</code> is an actual drawing function (like <a href="#gui.box"><code>gui.box</code></a> and friends) and thus must be called every frame, preferably inside a <a href="#gui.register"><code>gui.register</code></a>'d function, if you want it to appear as a persistent image onscreen.
+<p>
+Here is an example that loads a PNG from file, converts it to gd string format, and draws it once on the screen:<br>
+<code>local gdstr = gd.createFromPng("myimage.png"):gdStr()<br>
+gui.gdoverlay(gdstr)</code>
+<hr>
+<a name="aboutgd"/><h3>What is gd and how can I install it?</h3>
+GD is a library for image manipulation. The library you can use in Gens with Lua is more specifically called <a href="http://lua-gd.luaforge.net/" target="_blank">Lua-GD</a>. With it you can do things like load an image file (which Gens can then draw on the screen), convert between image formats, save image files, or perform relatively advanced drawing operations on images. You can read more about it at its home page.
+<p>
+Listed here are the steps I followed to install Lua-GD for Win32. They worked for me, but they might not exactly match up with your environment, so I'd suggest following the official installation instructions if these don't help:
+<OL>
+<LI>I downloaded a package called <b><a href="http://luaforge.net/frs/download.php/1594/lua-gd-2.0.33r2-win32.zip">lua-gd-2.0.33r2-win32</a></b> at the <a href="http://luaforge.net/projects/lua-gd/" target="_blank">one of the Lua-GD download pages</a>, and extracted it.
+<LI>I copied <b>gd.dll</b> to where my Gens .exe was located.
+<LI>I copied <b>freetype6.dll</b>, <b>jpeg62.dll</b>, <b>libgd2.dll</b>, <b>libiconv2.dll</b>, <b>libpng13.dll</b>, <b>xpm4.dll</b>, and <b>zlib1.dll</b> to C:\WINDOWS\system32
+<LI>I downloaded a package called <b><a href="http://luaforge.net/frs/download.php/3677/lua5_1_4_Win32_bin.zip">lua5_1_4_Win32_bin</a></b> at the <a href="http://luabinaries.luaforge.net/download.html" target="_blank">Lua Binaries download page</a>, and extracted it.
+<LI>I copied both <b>lua51.dll</b> and <b>lua5.1.dll</b> to C:\WINDOWS\system32
+</OL>
+After that I was able to use gd in any Lua script simply by putting the following code at the top:<br>
+<code>require "gd"</code>
+<p>
+It is not necessary to install or use GD. Gens Lua does not use it directly for anything, not even for <a href="#gui.gdscreenshot"><code>gui.gdscreenshot</code></a> or <a href="#gui.gdoverlay"><code>gui.gdoverlay</code></a>. And it is possible to do anything that GD does without using GD. It is a convenient library, however.
 <hr>
 
 

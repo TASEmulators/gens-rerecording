@@ -2560,6 +2560,223 @@ DEFINE_LUA_FUNCTION(gui_settransparency, "transparency_4_to_0")
 	return 0;
 }
 
+// takes a screenshot and returns it in gdstr format
+// example: gd.createFromGdStr(gui.gdscreenshot()):png("outputimage.png")
+DEFINE_LUA_FUNCTION(gui_gdscreenshot, "")
+{
+	int width = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
+	int height = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+	int size = 11 + width * height * 4;
+
+	char* str = new char[size+1];
+	str[size] = 0;
+	unsigned char* ptr = (unsigned char*)str;
+
+	// GD format header for truecolor image (11 bytes)
+	*ptr++ = (65534 >> 8) & 0xFF;
+	*ptr++ = (65534     ) & 0xFF;
+	*ptr++ = (width >> 8) & 0xFF;
+	*ptr++ = (width     ) & 0xFF;
+	*ptr++ = (height >> 8) & 0xFF;
+	*ptr++ = (height     ) & 0xFF;
+	*ptr++ = 1;
+	*ptr++ = 255;
+	*ptr++ = 255;
+	*ptr++ = 255;
+	*ptr++ = 255;
+
+	unsigned char *Src = Bits32 ? (unsigned char*)(MD_Screen32+8) : (unsigned char*)(MD_Screen+8);
+
+	if(Bits32)
+	{
+		for(int y = 0; y < height; y++, Src += 336*4)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				*ptr++ = Src[4*x+3];
+				*ptr++ = Src[4*x+2];
+				*ptr++ = Src[4*x+1];
+				*ptr++ = Src[4*x+0];
+			}
+		}
+	}
+	else if((Mode_555 & 1) == 0)
+	{
+		for(int y = 0; y < height; y++, Src += 336*2)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int pix = DrawUtil::Pix16To32((pix16)(Src[2*x]+(Src[2*x+1]<<8)));
+				*ptr++ = ((unsigned char*)&pix)[3];
+				*ptr++ = ((unsigned char*)&pix)[2];
+				*ptr++ = ((unsigned char*)&pix)[1];
+				*ptr++ = ((unsigned char*)&pix)[0];
+			}
+		}
+	}
+	else
+	{
+		for(int y = 0; y < height; y++, Src += 336*2)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int pix = DrawUtil::Pix15To32((pix15)(Src[2*x]+(Src[2*x+1]<<8)));
+				*ptr++ = ((unsigned char*)&pix)[3];
+				*ptr++ = ((unsigned char*)&pix)[2];
+				*ptr++ = ((unsigned char*)&pix)[1];
+				*ptr++ = ((unsigned char*)&pix)[0];
+			}
+		}
+	}
+
+	lua_pushlstring(L, str, size);
+	delete[] str;
+	return 1;
+}
+
+// draws a gd image that's in gdstr format to the screen
+// example: gui.gdoverlay(gd.createFromPng("myimage.png"):gdStr())
+DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
+{
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
+	int xStart = 0;
+	int yStart = 0;
+
+	int index = 1;
+	if(lua_type(L,index) == LUA_TNUMBER)
+	{
+		xStart = lua_tointeger(L,index++);
+		if(lua_type(L,index) == LUA_TNUMBER)
+			yStart = lua_tointeger(L,index++);
+	}
+
+	luaL_checktype(L,index,LUA_TSTRING);
+	const unsigned char* ptr = (const unsigned char*)lua_tostring(L,index++);
+
+	// GD format header for truecolor image (11 bytes)
+	ptr++;
+	ptr++;
+	int width = *ptr++ << 8;
+	width |= *ptr++;
+	int height = *ptr++ << 8;
+	height |= *ptr++;
+	ptr += 5;
+
+	int maxWidth = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
+	int maxHeight = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+
+	unsigned char *Dst = Bits32 ? (unsigned char*)(MD_Screen32+8) : (unsigned char*)(MD_Screen+8);
+
+	LuaContextInfo& info = GetCurrentInfo();
+	int alphaMul = info.transparencyModifier;
+	if(lua_isnumber(L, index))
+		alphaMul = (int)(alphaMul * lua_tonumber(L, index++));
+	if(alphaMul <= 0)
+		return 0;
+
+	// since there aren't that many possible opacity levels,
+	// do the opacity modification calculations beforehand instead of per pixel
+	int opacMap[256];
+	for(int i = 0; i < 256; i++)
+	{
+		int opac = 255 - (i << 1); // not sure why, but gdstr seems to divide each alpha value by 2
+		opac = (opac * alphaMul) / 255;
+		if(opac < 0) opac = 0;
+		if(opac > 255) opac = 255;
+		opacMap[i] = 255 - opac;
+	}
+
+	if(Bits32)
+	{
+		Dst += yStart * 336*4;
+		for(int y = yStart; y < height+yStart && y < maxHeight; y++, Dst += 336*4)
+		{
+			if(y < 0)
+				ptr += width * 4;
+			else
+			{
+				int xA = (xStart < 0 ? 0 : xStart);
+				int xB = (xStart+width > maxWidth ? maxWidth : xStart+width);
+				ptr += (xA - xStart) * 4;
+				for(int x = xA; x < xB; x++)
+				{
+					//Dst[4*x+3] = *ptr++;
+					//Dst[4*x+2] = *ptr++;
+					//Dst[4*x+1] = *ptr++;
+					//Dst[4*x+0] = *ptr++;
+
+					int opac = opacMap[ptr[0]];
+					pix32 pix = (ptr[3]|(ptr[2]<<8)|(ptr[1]<<16));
+					pix32 prev = Dst[4*x] | (Dst[4*x+1] << 8) | (Dst[4*x+2] << 16);
+					pix = DrawUtil::Blend(prev, pix, opac);
+					Dst[4*x] = pix & 0xFF;
+					Dst[4*x+1] = (pix>>8) & 0xFF;
+					Dst[4*x+2] = (pix>>16) & 0xFF;
+					ptr += 4;
+				}
+				ptr += (xStart+width - xB) * 4;
+			}
+		}
+	}
+	else if((Mode_555 & 1) == 0)
+	{
+		Dst += yStart * 336*2;
+		for(int y = yStart; y < height+yStart && y < maxHeight; y++, Dst += 336*2)
+		{
+			if(y < 0)
+				ptr += width * 4;
+			else
+			{
+				int xA = (xStart < 0 ? 0 : xStart);
+				int xB = (xStart+width > maxWidth ? maxWidth : xStart+width);
+				ptr += (xA - xStart) * 4;
+				for(int x = xA; x < xB; x++)
+				{
+					int opac = opacMap[ptr[0]];
+					pix32 pixh = (ptr[3]|(ptr[2]<<8)|(ptr[1]<<16));
+					pix32 prev = DrawUtil::Pix16To32(Dst[2*x] | (Dst[2*x+1] << 8));
+					pix16 pix = DrawUtil::Pix32To16(DrawUtil::Blend(prev, pixh, opac));
+					Dst[2*x] = pix & 0xFF;
+					Dst[2*x+1] = (pix>>8) & 0xFF;
+					ptr += 4;
+				}
+				ptr += (xStart+width - xB) * 4;
+			}
+		}
+	}
+	else
+	{
+		Dst += yStart * 336*2;
+		for(int y = yStart; y < height+yStart && y < maxHeight; y++, Dst += 336*2)
+		{
+			if(y < 0)
+				ptr += width * 4;
+			else
+			{
+				int xA = (xStart < 0 ? 0 : xStart);
+				int xB = (xStart+width > maxWidth ? maxWidth : xStart+width);
+				ptr += (xA - xStart) * 4;
+				for(int x = xA; x < xB; x++)
+				{
+					int opac = opacMap[ptr[0]];
+					pix32 pixh = (ptr[3]|(ptr[2]<<8)|(ptr[1]<<16));
+					pix32 prev = DrawUtil::Pix15To32(Dst[2*x] | (Dst[2*x+1] << 8));
+					pix15 pix = DrawUtil::Pix32To15(DrawUtil::Blend(prev, pixh, opac));
+					Dst[2*x] = pix & 0xFF;
+					Dst[2*x+1] = (pix>>8) & 0xFF;
+					ptr += 4;
+				}
+				ptr += (xStart+width - xB) * 4;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
 DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 {
 	char extraSearchDir [1024];
@@ -2956,6 +3173,8 @@ static const struct luaL_reg guilib [] =
 	{"transparency", gui_settransparency},
 	{"popup", gui_popup},
 	{"parsecolor", gui_parsecolor},
+	{"gdscreenshot", gui_gdscreenshot},
+	{"gdoverlay", gui_gdoverlay},
 	{"redraw", gens_redraw}, // some people might think of this as more of a GUI function
 	// alternative names
 	{"drawtext", gui_text},
@@ -2967,6 +3186,8 @@ static const struct luaL_reg guilib [] =
 	{"readpixel", gui_getpixel},
 	{"rect", gui_box},
 	{"drawrect", gui_box},
+	{"drawimage", gui_gdoverlay},
+	{"image", gui_gdoverlay},
 	{NULL, NULL}
 };
 static const struct luaL_reg statelib [] =
