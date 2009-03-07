@@ -65,7 +65,7 @@ void Get_Dir_From_Path(char *Full_Path, char *Dir)
 
 	i = strlen(Full_Path) - 1;
 
-	while ((i >= 0) && (Full_Path[i] != '\\') && (Full_Path[i] != '/') && (Full_Path[i] != '|')) i--;
+	while ((i >= 0) && (Full_Path[i] != '\\') && (Full_Path[i] != '/') /*&& (Full_Path[i] != '|')*/) i--;
 
 	if (i <= 0)
 	{

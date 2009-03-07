@@ -2776,20 +2776,21 @@ DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
 	return 0;
 }
 
+static void GetCurrentScriptDir(char* buffer, int bufLen)
+{
+	LuaContextInfo& info = GetCurrentInfo();
+	strncpy(buffer, info.lastFilename.c_str(), bufLen);
+	buffer[bufLen-1] = 0;
+	char* slash = max(strrchr(buffer, '/'), strrchr(buffer, '\\'));
+	if(slash)
+		slash[1] = 0;
+}
 
 DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 {
-	char extraSearchDir [1024]; // extraSearchDir is to make sure we can always find scripts that are in the same directory as the current script
-	{
-		LuaContextInfo& info = GetCurrentInfo();
-		strncpy(extraSearchDir, info.lastFilename.c_str(), 1024);
-		extraSearchDir[1023] = 0;
-		char* slash = max(strrchr(extraSearchDir, '/'), strrchr(extraSearchDir, '\\'));
-		if(slash)
-			slash[1] = 0;
-	}
+	char curScriptDir[1024]; GetCurrentScriptDir(curScriptDir, 1024); // make sure we can always find scripts that are in the same directory as the current script
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
-	const char* errorMsg = GensOpenScript(filename, extraSearchDir);
+	const char* errorMsg = GensOpenScript(filename, curScriptDir);
 	if(errorMsg)
 		luaL_error(L, errorMsg);
     return 0;
@@ -2799,6 +2800,8 @@ DEFINE_LUA_FUNCTION(gens_loadrom, "filename")
 {
 	struct Temp { Temp() {EnableStopAllLuaScripts(false);} ~Temp() {EnableStopAllLuaScripts(true);}} dontStopScriptsHere;
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
+	char curScriptDir[1024]; GetCurrentScriptDir(curScriptDir, 1024);
+	filename = MakeRomPathAbsolute(filename, curScriptDir);
 	int result = GensLoadRom(filename);
 	if(result <= 0)
 		luaL_error(L, "Failed to load ROM \"%s\": %s", filename, result ? "invalid or unsupported" : "cancelled or not found");
