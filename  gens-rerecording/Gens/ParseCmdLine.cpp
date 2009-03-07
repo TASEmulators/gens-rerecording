@@ -109,8 +109,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	//ROM
 	if (RomToLoad[0]) 
 	{
-		Pre_Load_Rom(HWnd, RomToLoad.c_str());
-		ReopenRamWindows();
+		GensLoadRom(RomToLoad.c_str());
 	}
 	
 	//Movie
@@ -133,11 +132,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		{
 			const char* error = GensOpenScript(ScriptsToLoad[i].c_str());
 			if(error)
-			{
-				// not sure where to output it, would a messagebox be acceptable?
-				// for now I think we'll only see this in debug:
 				fprintf(stderr, "failed to start script \"%s\" because: %s\n", ScriptsToLoad[i].c_str(), error);
-			}
 		}
 	}
 

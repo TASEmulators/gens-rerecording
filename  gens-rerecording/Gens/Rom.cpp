@@ -459,19 +459,19 @@ int Get_Rom(HWND hWnd)
 		case 1:		// Genesis rom
 			if (Game) Genesis_Started = Init_Genesis(Game);
 			Build_Main_Menu();
-			return Genesis_Started;
+			return Genesis_Started ? 1 : -1;
 			break;
 
 		case 2:		// 32X rom
 			if (Game) _32X_Started = Init_32X(Game);
 			Build_Main_Menu();
-			return _32X_Started;
+			return _32X_Started ? 1 : -1;
 			break;
 
 		case 3:		// Sega CD image
 			SegaCD_Started = Init_SegaCD(PhysicalName);
 			Build_Main_Menu();
-			return SegaCD_Started;
+			return SegaCD_Started ? 1 : -1;
 			break;
 
 		case 4:		// Sega CD 32X image
@@ -518,19 +518,19 @@ int Pre_Load_Rom(HWND hWnd, const char *NameTemp)
 		case 1:		// Genesis rom
 			if (Game) Genesis_Started = Init_Genesis(Game);
 			Build_Main_Menu();
-			return Genesis_Started;
+			return Genesis_Started ? 1 : -1;
 			break;
 
 		case 2:		// 32X rom
 			if (Game) _32X_Started = Init_32X(Game);
 			Build_Main_Menu();
-			return _32X_Started;
+			return _32X_Started ? 1 : -1;
 			break;
 
 		case 3:		// Sega CD image
 			SegaCD_Started = Init_SegaCD(PhysicalName);
 			Build_Main_Menu();
-			return SegaCD_Started;
+			return SegaCD_Started ? 1 : -1;
 			break;
 
 		case 4:		// Sega CD 32X image

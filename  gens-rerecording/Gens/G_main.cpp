@@ -90,10 +90,10 @@ char *mapped_cd;
 #define GENS_VERSION_H 2 * 65536 + 10
 
 #define MINIMIZE								\
-{if (Sound_Initialised) Clear_Sound_Buffer();	\
+{Clear_Sound_Buffer();							\
 if (Full_Screen)								\
 {												\
-	Set_Render(hWnd, 0, -1, true);				\
+	Set_Render(HWnd, 0, -1, true);				\
 	FS_Minimised = 1;							\
 }}
 
@@ -1424,7 +1424,7 @@ int WINAPI Play_Net_Game(char *game, int player, int maxplayers)
 	if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 	{
 		sprintf(name, "%s%s", Rom_Dir, fd.cFileName);
-		Pre_Load_Rom(HWnd, name);
+		GensLoadRom(name);
 	}
 
 	if ((!Genesis_Started) && (!_32X_Started)) return 1;
@@ -2477,14 +2477,12 @@ void PutSubMovieErrorInStr_Tmp(int gmiRV, const char* filename, char* header);
 
 const char* GensPlayMovie(const char* filename, bool silent)
 {
-	HWND hWnd = HWnd; // case sensitivity at its finest
-
 //	if(MainMovie.Status==MOVIE_RECORDING) //Modif N - disabled; if the user chose playback, they meant it!
 //		return 0;
 //	if(MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED)
 //		CloseMovieFile(&MainMovie);
 	if(!(Game))
-		if(SendMessage(hWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
+		if(SendMessage(HWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
 			return "no game loaded";
 
 	// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
@@ -2497,7 +2495,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		// bring up the movie dialog to choose which movie to play
 		MINIMIZE
 		DialogsOpen++;
-		DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), hWnd, (DLGPROC) PlayMovieProc);
+		DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PLAY_MOVIE), HWnd, (DLGPROC) PlayMovieProc);
 		if (PlayMovieCanceled)
 			return "user cancelled";
 	}
@@ -2530,7 +2528,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		if(SegaCD_Started && !PCM_Enable)
 		{
 			DialogsOpen++;
-			int answer = MessageBox(hWnd, "Your \"PCM Audio\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+			int answer = MessageBox(HWnd, "Your \"PCM Audio\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
 			DialogsOpen--;
 			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
 			if(answer == IDYES) PCM_Enable = 1;
@@ -2538,7 +2536,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		if(SegaCD_Started && !SegaCD_Accurate)
 		{
 			DialogsOpen++;
-			int answer = MessageBox(hWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
+			int answer = MessageBox(HWnd, "Your \"Perfect SegaCD CPU Synchro\" option is off!\nThis could cause desyncs.\nWould you like to turn it on now?", "Alert", MB_YESNOCANCEL | MB_ICONQUESTION);
 			DialogsOpen--;
 			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
 			if(answer == IDYES) SegaCD_Accurate = 1;
@@ -2546,7 +2544,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		if(SegaCD_Started && SCD.TOC.Last_Track == 1)
 		{
 			DialogsOpen++;
-			int answer = MessageBox(hWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
+			int answer = MessageBox(HWnd, "You are missing the audio tracks for this game.\nThis could cause desyncs.\nPlease ignore this message if you know this game does not use any CD audio.", "Warning", MB_OKCANCEL | MB_ICONWARNING);
 			DialogsOpen--;
 			if(answer == IDCANCEL) { MainMovie.Status=0; return "user cancelled"; }
 		}
@@ -2564,6 +2562,41 @@ void GensReplayMovie()
 		MainMovie.Status = MOVIE_PLAYING;
 		BeginMoviePlayback();
 	}
+}
+
+int GensLoadRom(const char* filename)
+{
+	Clear_Sound_Buffer();
+
+	int loaded;
+	if(!filename)
+	{
+		MINIMIZE
+		loaded = Get_Rom(HWnd);
+	}
+	else
+	{
+		loaded = Pre_Load_Rom(HWnd, filename);
+	}
+
+	if(loaded == 0)
+		return loaded; // 0 == cancelled safely, so return before changing anything else
+
+	if(MainMovie.File)
+		CloseMovieFile(&MainMovie);
+	if(GYM_Playing)
+		Stop_Play_GYM();
+	FrameCount = 0;
+	LagCount = 0;
+	LagCountPersistent = 0;
+	frameSearchFrames = -1;
+	frameSearchInitialized = false;
+
+	if(loaded < 0)
+		return loaded; // negative == failed to load, and unloaded previous ROM
+
+	ReopenRamWindows();
+	return loaded; // positive = success
 }
 
 // some extensions that might commonly be near emulation-related files that we almost certainly can't open, or at least not directly.
@@ -2769,15 +2802,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				case FILETYPE_ROM:
 					ReleaseTempFileCategory("drop");
-					if(MainMovie.File!=NULL)
-						CloseMovieFile(&MainMovie);
-					if (GYM_Playing) Stop_Play_GYM();
-					FrameCount=0;
-					LagCount = 0;
-					LagCountPersistent = 0;
-					frameSearchFrames = -1; frameSearchInitialized = false;
-					Pre_Load_Rom(HWnd, LogicalName);
-					ReopenRamWindows();
+					GensLoadRom(LogicalName);
 					break;
 				case FILETYPE_SCRIPT:
 					ReleaseTempFileCategory("drop");
@@ -2851,17 +2876,8 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				   command <= ID_FILES_OPENRECENTROMMAX &&
 				   command-ID_FILES_OPENRECENTROM0 < MAX_RECENT_ROMS)
 				{
-					if(MainMovie.File!=NULL)
-						CloseMovieFile(&MainMovie);
-					if ((Check_If_Kaillera_Running())) return 0;
-					if (GYM_Playing) Stop_Play_GYM();
-					FrameCount=0;
-					LagCount = 0;
-					LagCountPersistent = 0;
-					frameSearchFrames = -1; frameSearchInitialized = false;
-					int retval = Pre_Load_Rom(HWnd, Recent_Rom[command - ID_FILES_OPENRECENTROM0]);
-					ReopenRamWindows();
-					return retval;
+					GensLoadRom(Recent_Rom[command - ID_FILES_OPENRECENTROM0]);
+					return 0;
 				}
 
 				if(command >= ID_LUA_OPENRECENTSCRIPT0 &&
@@ -3438,21 +3454,8 @@ dialogAgain: //Nitsuja added this
 
 				case ID_FILES_OPENROM:
 				{
-					MINIMIZE
-					int retval = Get_Rom(hWnd);
-					if(retval != 0)
-					{
-						if(MainMovie.File!=NULL)
-							CloseMovieFile(&MainMovie);
-						//if ((Check_If_Kaillera_Running())) return 0;
-						if (GYM_Playing) Stop_Play_GYM();
-						FrameCount=0;
-						LagCount = 0;
-						LagCountPersistent = 0;
-						frameSearchFrames = -1; frameSearchInitialized = false;
-						ReopenRamWindows();
-					}
-					return retval;
+					GensLoadRom(NULL);
+					return 0;
 				}
 
 				case ID_FILES_BOOTCD:
@@ -5962,7 +5965,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "genesis.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "Genesis bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5971,7 +5974,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_G_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X M68000 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X M68000 bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5980,7 +5983,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XMBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_M_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Master SH2 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Master SH2 bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XMBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5989,7 +5992,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_32XSBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "32X_S_bios.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Slave SH2 bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "32X Slave SH2 bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_32XSBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -5998,7 +6001,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_USBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "us_scd1_9210.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "USA CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "USA CD bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_USBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -6007,7 +6010,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_EUBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "eu_mcd1_9210.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "EUROPEAN CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "EUROPEAN CD bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_EUBIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
@@ -6016,7 +6019,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					GetDlgItemText(hDlg, IDC_EDIT_JABIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "jp_mcd1_9112.bin"); 
 					DialogsOpen++;
-					if (Change_File_S(Str_Tmp, Str_Tmp2, "JAPAN CD bios file", "bios files\0*.bin\0\0", "bin", hDlg))
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "JAPAN CD bios file", "bios files\0*.bin\0All Files\0*.*\0\0", "bin", hDlg))
 						SetDlgItemText(hDlg, IDC_EDIT_JABIOS, Str_Tmp);
 					DialogsOpen--;
 					break;
