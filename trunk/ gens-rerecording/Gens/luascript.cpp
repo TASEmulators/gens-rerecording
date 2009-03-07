@@ -2779,7 +2779,7 @@ DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
 
 DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 {
-	char extraSearchDir [1024];
+	char extraSearchDir [1024]; // extraSearchDir is to make sure we can always find scripts that are in the same directory as the current script
 	{
 		LuaContextInfo& info = GetCurrentInfo();
 		strncpy(extraSearchDir, info.lastFilename.c_str(), 1024);
@@ -2792,6 +2792,17 @@ DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 	const char* errorMsg = GensOpenScript(filename, extraSearchDir);
 	if(errorMsg)
 		luaL_error(L, errorMsg);
+    return 0;
+}
+
+DEFINE_LUA_FUNCTION(gens_loadrom, "filename")
+{
+	struct Temp { Temp() {EnableStopAllLuaScripts(false);} ~Temp() {EnableStopAllLuaScripts(true);}} dontStopScriptsHere;
+	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
+	int result = GensLoadRom(filename);
+	if(result <= 0)
+		luaL_error(L, "Failed to load ROM \"%s\": %s", filename, result ? "invalid or unsupported" : "cancelled or not found");
+	CallRegisteredLuaFunctions(LUACALL_ONSTART);
     return 0;
 }
 
@@ -3157,8 +3168,11 @@ static const struct luaL_reg genslib [] =
 	{"registerexit", gens_registerexit},
 	{"persistglobalvariables", gens_persistglobalvariables},
 	{"message", gens_message},
+	{"print", print}, // sure, why not
 	{"openscript", gens_openscript},
-	{"print", print},
+	{"loadrom", gens_loadrom},
+	// alternative names
+	{"openrom", gens_loadrom},
 	{NULL, NULL}
 };
 static const struct luaL_reg guilib [] =

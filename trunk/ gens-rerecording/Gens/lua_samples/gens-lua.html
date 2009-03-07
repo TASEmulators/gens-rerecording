@@ -83,6 +83,7 @@ ul { list-style-type: none ; list-style-position: outside ; }
 <LI><A HREF="#gens.emulateframefast">emulateframefast</A>
 <LI><A HREF="#gens.emulateframeinvisible">emulateframeinvisible</A>
 <LI><A HREF="#gens.openscript">openscript</A>
+<LI><A HREF="#gens.loadrom">loadrom</A>
 </TD>
 </TR>
 </TABLE>
@@ -574,12 +575,21 @@ Emulates and renders one frame, with properties similar to the "maximum" speed m
 This acts as an extremely fast emulation update that also doesn't render any graphics or generate any sounds. If you load a savestate after calling this function, it should leave no trace of having been called, so you can do things like generate future emulation states every frame while the user continues to see and hear normal emulation. Note that non-GUI callbacks can still trigger during "invisible" emulation frames, though, and that saving/loading savestates every frame can be quite taxing on the CPU if you choose to do that.
 <hr>
 
-
 <a name="gens.openscript"/><h3>gens.openscript (filename)</h3>
 Opens a new script window and starts it running the given script file. If that file is already running in an existing window, then this function restarts that script instead of opening a new one.
 <p>
 You can use this to create a "hub script" that automates the process of opening multiple other scripts you want to use together. Note that there cannot be more than 16 script windows open simultaneously (although there is no reason this arbitrary limit couldn't be increased).
 <hr>
+
+<a name="gens.loadrom"/><h3>gens.loadrom ([filename])<br>
+<a name="gens.openrom"/><small>or</small> gens.openrom ([filename])</h3>
+Loads a ROM or CD image from the given file location. Currently, <code>filename</code> might need to be a path relative to your Gens directory. Alternatively, if <code>filename</code> is omitted, the user will be asked to choose which ROM file to load.
+<p>
+Unlike when the user loads a ROM normally, this function does not restart any running scripts. It does trigger callbacks that have been registered with <a href="#gens.registerstart"><code>gens.registerstart</code></a>, however.
+<p>
+If this function fails to load a ROM for whatever reason (user cancelled, file not found, etc.), it will <a href="http://www.lua.org/pil/8.4.html" target="_blank">throw an error</a>.
+<hr>
+
 <p><br>
 
 

@@ -110,6 +110,7 @@ int IsVideoLatencyCompensationOn();
 #ifdef __cplusplus
 const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0);
 const char* GensPlayMovie(const char* filename, bool silent=false);
+int GensLoadRom(const char* filename);
 #endif
 
 #endif
