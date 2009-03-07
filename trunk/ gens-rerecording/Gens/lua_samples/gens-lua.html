@@ -583,9 +583,7 @@ You can use this to create a "hub script" that automates the process of opening 
 
 <a name="gens.loadrom"/><h3>gens.loadrom ([filename])<br>
 <a name="gens.openrom"/><small>or</small> gens.openrom ([filename])</h3>
-Loads a ROM or CD image from the given file location. Currently, <code>filename</code> might need to be a path relative to your Gens directory. Alternatively, if <code>filename</code> is omitted, the user will be asked to choose which ROM file to load.
-<p>
-Unlike when the user loads a ROM normally, this function does not restart any running scripts. It does trigger callbacks that have been registered with <a href="#gens.registerstart"><code>gens.registerstart</code></a>, however.
+Loads a ROM or CD image from the given file location. If <code>filename</code> is omitted, the user will be asked to choose which file to load. Unlike when the user loads a ROM normally, this function does not restart any running scripts. It does trigger callbacks that have been registered with <a href="#gens.registerstart"><code>gens.registerstart</code></a>, however.
 <p>
 If this function fails to load a ROM for whatever reason (user cancelled, file not found, etc.), it will <a href="http://www.lua.org/pil/8.4.html" target="_blank">throw an error</a>.
 <hr>

@@ -108,9 +108,10 @@ void LoadFlags(int flags);
 void init_list_box(HWND Box, const char* Strs[], int numColumns, int *columnWidths);
 int IsVideoLatencyCompensationOn();
 #ifdef __cplusplus
-const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0);
-const char* GensPlayMovie(const char* filename, bool silent=false);
-int GensLoadRom(const char* filename);
+const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0); // returns NULL on success, returns error msg on failure
+const char* GensPlayMovie(const char* filename, bool silent=false); // returns NULL on success, returns error msg on failure
+const char* MakeRomPathAbsolute(const char* filename, const char* extraDirToCheck=0);
 #endif
+int GensLoadRom(const char* filename); // returns positive on success, 0 on cancelled/ignorable failure, or negative on failure that clears or corrupts the emulation state
 
 #endif

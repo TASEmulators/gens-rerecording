@@ -2576,7 +2576,7 @@ int GensLoadRom(const char* filename)
 	}
 	else
 	{
-		loaded = Pre_Load_Rom(HWnd, filename);
+		loaded = Pre_Load_Rom(HWnd, MakeRomPathAbsolute(filename));
 	}
 
 	if(loaded == 0)
@@ -6239,7 +6239,10 @@ const char* MakeScriptPathAbsolute(const char* filename, const char* extraDirToC
 			else
 				curDir[0] = 0;
 			_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
+			char* bar = strchr(filename2, '|');
+			if(bar) *bar = 0;
 			FILE* file = fopen(filename2, "rb");
+			if(bar) *bar = '|';
 			if(file || i==4)
 				filename = filename2;
 			if(file)
@@ -6283,6 +6286,55 @@ const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
 
 	return NULL;
 }
+
+
+const char* MakeRomPathAbsolute(const char* filename, const char* extraDirToCheck)
+{
+	static char filename2 [1024];
+	if(filename[0] && filename[1] != ':')
+	{
+		char tempFile [1024], curDir [1024];
+		strncpy(tempFile, filename, 1024);
+		tempFile[1023] = 0;
+		const char* tempFilePtr = PathWithoutPrefixDotOrSlash(tempFile);
+		for(int i=0; i<=3; i++)
+		{
+			switch(i)
+			{
+			case 0:
+			case 3:
+				if(Rom_Dir[1] == ':')
+					strcpy(curDir, Rom_Dir);
+				else
+					_snprintf(curDir, 1024, "%s%s", Gens_Path, PathWithoutPrefixDotOrSlash(Rom_Dir));
+				break;
+			case 1:
+				strcpy(curDir, Gens_Path);
+				break;
+			case 2:
+				if(!extraDirToCheck || !extraDirToCheck[0])
+					continue;
+				strncpy(curDir, extraDirToCheck, 1024);
+				curDir[1023] = 0;
+				break;
+			}
+			_snprintf(filename2, 1024, "%s%s", curDir, tempFilePtr);
+			char* bar = strchr(filename2, '|');
+			if(bar) *bar = 0;
+			FILE* file = fopen(filename2, "rb");
+			if(bar) *bar = '|';
+			if(file || i==3)
+				filename = filename2;
+			if(file)
+			{
+				fclose(file);
+				break;
+			}
+		}
+	}
+	return filename;
+}
+
 
 
 LRESULT CALLBACK PlayMovieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
