@@ -2153,7 +2153,7 @@ int Check_Skip_Key()
 void Check_Misc_Key()
 {
 	// N - checks for enabling/disabling the autofire and autohold toggles
-	if(AutoFireKeyDown || AutoHoldKeyDown || AutoClearKeyDown)
+	// (this first part needs to always run even if no autofire/autohold/autoclear keys are held)
 	{
 		#define TRANSFER_PRESSED(x) {const int now = !Check_Key_Pressed(Keys_Def[0].##x); Controller_1_##x##_Just = Controller_1_##x##_Last && !now; Controller_1_##x##_Last = now;} {const int now = !Check_Key_Pressed(Keys_Def[1].##x); Controller_2_##x##_Just = Controller_2_##x##_Last && !now; Controller_2_##x##_Last = now;}
 		TRANSFER_PRESSED(Up);
