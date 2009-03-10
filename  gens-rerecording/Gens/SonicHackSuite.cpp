@@ -1135,6 +1135,7 @@ void DisplaySolid()
 //Draws bounding boxes around objects in sonic games
 //Scroll lock disables (for compatibility with map-dumping)
 //Num lock enables display of each object's base address in RAM
+	short off = 0;
 void DrawBoxes()
 {
 #ifdef SONICNOHITBOXES
@@ -1279,10 +1280,12 @@ void DrawBoxes()
 	//				Ypos -= 0x8;
 			}
 	#if !(defined S1 || defined GAME_SCD)
-			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)
+			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)	//special case for multiple sprites in a single object	
 			{
+				sprintf(Str_Tmp,"");
 				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
 				{
+					char Str_Dbg[1024];
 					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
 					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
 					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
@@ -1291,7 +1294,10 @@ void DrawBoxes()
 					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
 					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
 					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
+					sprintf(Str_Dbg, "%d: X %04X from %08X, Y %04X from %08X\n",i,x,CardBoard + YPo + 4 + i * 6,y,CardBoard + YPo + 6 + i * 6);
+					strcat(Str_Tmp,Str_Dbg);
 				}
+//				MessageBox(NULL,Str_Tmp,"Multiple Sprite Pos Debug message",MB_OK);
 			}
 			else
 	#endif
@@ -1301,6 +1307,11 @@ void DrawBoxes()
 			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0,-1,1,-1);
 			DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,0,0,0);
 			DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,0,0,0);
+			if (CardBoard == (P1OFFSET + off))
+			{
+				DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,-1,-1,0);
+				DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,-1,-1,0);
+			}
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
@@ -1325,7 +1336,57 @@ void DrawBoxes()
 				if ((Xpos <= -6) || (Xpos >= 326) || (Ypos <= -6) || (Ypos >= 230)) continue;
 				
 				Pixel(Xpos - 8, Ypos, 0xFF, 0x1F, 0);
-				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 1,-1,1);
+				DrawBoxMWH(Xpos - 8, Ypos, Width2, Height2, 0xFF, 0x1F, 0,-1,1);
+			}
+		}
+		if (CheatRead<unsigned char>(0xFFFE10) == 0xC)
+		{
+			unsigned char Bumper_W[6] = {0x20,0x20,0x40,0x40,0x08,0x08};
+			unsigned char Bumper_H[6] = {0x20,0x20,0x08,0x08,0x40,0x40};
+			unsigned int CardBoard = ((* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3)?0x313926:0x1781A);
+			if (CheatRead<unsigned char>(0xFFFE11)) CardBoard = ((* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3)?0x313A70:0x1795E);
+			for (; CheatRead<unsigned short>(CardBoard + 2) != 0xFFFF; CardBoard += 0x6)
+			{
+				unsigned char Type = (CheatRead<unsigned char>(CardBoard + 1) & 0xE) >> 1;
+				Type = (CheatRead<unsigned char>(CardBoard + 1) & 0xE) >> 1;
+				Width2 = Bumper_W[Type] - 2;
+				Height2 = Bumper_H[Type] - 3;
+				Xpos = CheatRead<unsigned short>(CardBoard + 2) - CamX;
+				Ypos = CheatRead<unsigned short>(CardBoard + 4) - CamY;
+//				Xpos +=8;
+				if ((Xpos <= (0 - Width2)) || (Xpos >= (320 + Width2)) || (Ypos <= (0 - Height2)) || (Ypos >= (224 + Height2))) continue;
+					Pixel(Xpos, Ypos, 0xFF7F00, 0xF8F0, 0);
+				if (Type & 6)
+					DrawBoxMWH(Xpos, Ypos, Width2, Height2, 0xFFFF00, 0xFFE0, 0,127,1);
+				else
+				{
+					short X1 = Xpos - Width2;
+					short Y1 = Ypos - Height2;
+					short X2 = Xpos + Width2;
+					short Y2 = Ypos + Height2;
+					if (Type & 1)
+					{
+						do {
+							DrawLine(X1,Y1,X2,Y2, 0xFFFF00, 0xFFE0, 0,127);
+							DrawLine(X1,Y1,X1,Y2, 0xFFFF00, 0xFFE0, 0,127);
+							DrawLine(X1,Y2,X2,Y2, 0xFFFF00, 0xFFE0, 0,127);
+							X1++, Y1++, X2--, Y2--;
+						} while ((X1 < X2) && (Y1 < Y2)); 
+						DrawLine(Xpos,Ypos,Xpos-Width2,Ypos+Height2, 0xFFFF00, 0xFFE0, 0,127);
+					}
+					else
+					{
+						do {
+							DrawLine(X1,Y2,X2,Y1, 0xFFFF00, 0xFFE0, 0,127);
+							DrawLine(X1,Y2,X2,Y2, 0xFFFF00, 0xFFE0, 0,127);
+							DrawLine(X2,Y1,X2,Y2, 0xFFFF00, 0xFFE0, 0,127);
+							X1++, Y1++, X2--, Y2--;
+						} while ((X1 < X2) && (Y1 < Y2));
+						DrawLine(Xpos,Ypos,Xpos+Width2,Ypos+Height2, 0xFFFF00, 0xFFE0, 0,127);
+					}
+				}
+//				sprintf(Str_Tmp,"%08X:%08X",CardBoard,Nitsuja);
+//				MessageBox(NULL,Str_Tmp,Str_Tmp,MB_OK);
 			}
 		}
 	#elif defined SK
@@ -1362,7 +1423,6 @@ int SonicCamHack()
 #ifdef SK
 	LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
 #endif
-	static short off = 0;
 	bool up = (GetAsyncKeyState(VK_PRIOR))?1:0;
 	bool down = (GetAsyncKeyState(VK_NEXT))?1:0;
 	bool home = (GetAsyncKeyState(VK_HOME))?1:0;
@@ -1487,12 +1547,18 @@ int SonicCamHack()
 	origy = (origy > (signed short) yy) ? yy-448 : max(yy-448,origy);	//and always above target, because Sonic doesn't like externally forced upward scrolling
 	int xd = XSCROLLRATE;
 	if (xx < origx) xd = -xd;
+#ifdef S2
+	//Sonic 2 has a special routine to handle redrawing the full screen if a certain RAM flag is set.
+	int numframes = 4;
+	origx = xx, origy = yy;
+#else
 	//this is done because scrolling up seems to be handled very differently from scrolling down
 	//See the Hydrocity 1 boss battle in either S3K TAS for confirmation of this
 
 	int numframesx = abs(xx - origx)/XSCROLLRATE;
 	int numframesy = abs(yy - origy)/YSCROLLRATE;
 	int numframes = max(numframesx,numframesy) + 1;
+#endif
 //	numframes += (int) ((numframes/4.0)+0.5);
 
 	static const int maxFrames = 100; // for safety, it shouldn't get this high but if it does we definitely don't want to emulate more frames than this
@@ -1525,12 +1591,16 @@ int SonicCamHack()
 		#ifndef S2
 			CheatWrite<signed short>(CAMOFFSET2, origx);
 			CheatWrite<signed short>(CAMOFFSET2+4, origy);
+		#else
+			if (i == 1)
+				CheatWrite<unsigned char>(0xFFF72C,1);
 		#endif
 		#ifdef GAME_SCD
 			CheatWrite<signed short>(CAMOFFSET3, origx);
 			CheatWrite<signed short>(CAMOFFSET3+4, origy);
 			CheatWrite<signed int>(0xFF1514,time);
 		#else
+			//Sonic 2 has a special routine to handle redrawing the full screen if a certain RAM flag is set.
 			CheatWrite<signed int>(0xFFFE22,time);
 		#endif
 		#ifdef S1
@@ -1602,6 +1672,8 @@ int SonicCamHack()
 
 	return rv;
 }
+#elif defined SONICMAPHACK
+unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 #endif
 #ifdef SONICMAPHACK
 #include "vdp_io.h"
@@ -1684,45 +1756,32 @@ void Update_RAM_Cheats()
 		}
 #endif
 	static const int ratio = 1 << POWEROFTWO;
+	static bool prevscroll = false;
+	static bool prevcaps = false;
+	static bool autopasscomplete = false;
+	static bool upward = false;
+	static int prevmode = (CheatRead<unsigned char>(0xFFF600) << 16) | (CheatRead<unsigned short> (0xFFFE10));
+	static long prevx = 0, prevy = -112;
 	// XXX: camhack / maphack, sonic 3
 	if(!GetKeyState(VK_SCROLL))
-		return;
-
-	static unsigned int SSTObjID[NumObj];
-	static unsigned int SSTObjXP[NumObj];
-	static unsigned int SSTObjYP[NumObj];
-	int listInd,SSTInd = SPRITESIZE;
-	for (listInd = 0; listInd < NumObj; listInd++, SSTInd += SPRITESIZE)
 	{
-		unsigned int id;
-#ifdef SK
-		id = CheatRead<unsigned int>(P1OFFSET + SSTInd);
-#else
-		id = CheatRead<unsigned char>(P1OFFSET + SSTInd);
-#endif
-		if (id != SSTObjID[listInd])
-		{
-			SSTObjID[listInd] = id;
-			if (id)
-			{
-				SSTObjXP[listInd] = CheatRead<unsigned int>(P1OFFSET + SSTInd + XPo);
-				SSTObjYP[listInd] = CheatRead<unsigned int>(P1OFFSET + SSTInd + YPo);
-			}
-		}
-		else 
-		{
-			CheatWrite<unsigned int>(P1OFFSET + SSTInd + XPo,SSTObjXP[listInd]);
-			CheatWrite<unsigned int>(P1OFFSET + SSTInd + YPo,SSTObjYP[listInd]);
-			CheatWrite<short>(P1OFFSET + SSTInd + XVo,0);
-			CheatWrite<unsigned int>(P1OFFSET + SSTInd + YVo,0);
-			CheatWrite<unsigned char>(P1OFFSET + SSTInd + 0x26,0);
-//			CheatWrite<unsigned short>(P1OFFSET + SSTInd + 0x30,0);
-			CheatWrite<unsigned char>(P1OFFSET + SSTInd + 0x34,0);
-		}
+		prevscroll = false;
+		return;
 	}
-	bool ksU = (GetAsyncKeyState('I')&0x8000)!=0, ksD = (GetAsyncKeyState('K')&0x8000)!=0, ksL = (GetAsyncKeyState('J')&0x8000)!=0, ksR = (GetAsyncKeyState('L')&0x8000)!=0;
+#ifdef S2
+	int mode = (CheatRead<unsigned char>(0xFFF600) << 16) | (CheatRead<unsigned short> (0xFFFE10));
+	if (mode !=prevmode) autopasscomplete = false;
+	if (!prevscroll || (mode != prevmode))
+	{
+		CheatWrite<unsigned char>(0xFFF72C,1);
+		prevmode = mode, prevscroll = true;
+	}
+	if (CheatRead<unsigned char>(0xFFF600) & 0x80)
+		return;
+#endif
+	bool ksU = (GetAsyncKeyState('I'))!=0, ksD = (GetAsyncKeyState('K'))!=0, ksL = (GetAsyncKeyState('J'))!=0, ksR = (GetAsyncKeyState('L'))!=0;
 	static bool ksUPrev = ksU, ksDPrev = ksD, ksLPrev = ksL, ksRPrev = ksR;
-
+	prevx = x, prevy = y;
 	static int snapCount = 0;
 	static bool snapPast = true;
 	static bool sDown = false;
@@ -1731,12 +1790,22 @@ void Update_RAM_Cheats()
 	{
 		if(!snapPast)
 		{
-			snapCount++;
+			if (!Lag_Frame) snapCount++;
+#ifdef S2
+			if (snapCount == 1)	CheatWrite<unsigned char>(0xFFF72C,1);
+#endif
 			if(snapCount > 3)
+//#endif
 			{
 				snapCount = 0;
 				snapPast = true;
 				keepgoing = GetKeyState(VK_CAPITAL) != 0;
+				if (keepgoing && !prevcaps && !autopasscomplete)
+				{
+					xg = 0, yg = -112;
+					Save_State_To_Buffer(State_Buffer);
+				}
+				prevcaps = keepgoing;
 			}
 		}
 	}
@@ -1745,18 +1814,40 @@ void Update_RAM_Cheats()
 		snapCount = 0;
 		snapPast = false;
 	}
-		static const int X = 13824;
-		static const int Y = 2048;
+	static const int X = 13824;
+	static const int Y = 2048;
 
 	if(!GetKeyState(VK_NUMLOCK))
 	{
-
-	// camera movement, IJKL
-	if(ksL && (/*!ksLPrev ||*/ snapPast) && xg >  0) xg -= 320/2, xg -= xg % (320/2), snapPast = false;
-	if(ksR && (/*!ksRPrev ||*/ snapPast) && xg+160<X*ratio) xg += 320/2, xg -= xg % (320/2), snapPast = false;
-	if(ksU && (/*!ksUPrev ||*/ snapPast) && yg >= 0) yg -= 112, yg -= yg % 112, snapPast = false;
-	if(ksD && (/*!ksDPrev ||*/ snapPast) && yg+112<Y*ratio) yg += 112, yg -= yg % 112, snapPast = false;
-	
+		if (snapPast)
+		{
+			if ((autopasscomplete) || !GetKeyState(VK_CAPITAL))
+			{
+				// camera movement, IJKL
+				if(ksL && xg >  0) xg -= 320/2, xg -= xg % (320/2), snapPast = false;
+				if(ksR && xg+160<X*ratio) xg += 320/2, xg -= xg % (320/2), snapPast = false;
+				if(ksU && yg >= 0) yg -= 112, yg -= yg % 112, snapPast = false;
+				if(ksD && yg+112<Y*ratio) yg += 112, yg -= yg % 112, snapPast = false;
+			}
+			else 
+			{
+				if (xg+160<X*ratio)
+				{
+					xg -= (xg % 160);
+					xg += 160;
+					snapPast = false;
+				}
+				else if (yg + 112 < Y * ratio)
+				{
+					Load_State_From_Buffer(State_Buffer);
+					xg = 0;
+					yg += 112;
+					yg -= (yg % 112);
+					snapPast = false;
+				}
+				else autopasscomplete = true;
+			}
+		}
 	}
 
 	ksUPrev = ksU, ksDPrev = ksD, ksLPrev = ksL, ksRPrev = ksR;
@@ -1765,8 +1856,8 @@ void Update_RAM_Cheats()
 	{
 		//xg = CheatRead<unsigned short>(POSOFFX) - 160; // reset camera
 		//yg = CheatRead<unsigned short>(0xD00C) - 112; // reset camera
-		xg = (CheatRead<unsigned short>(P1OFFSET + XPo) & 0xffffff)-160; // reset camera
-		yg = (CheatRead<unsigned short>(P1OFFSET + YPo) & 0xffffff)-120; // reset camera
+		xg = (CheatRead<unsigned short>(P1OFFSET + off + XPo) & 0xffffff)-160; // reset camera
+		yg = (CheatRead<unsigned short>(P1OFFSET + off + YPo) & 0xffffff)-120; // reset camera
 		snapPast = false;
 		snapCount = 0;
 	}
@@ -1782,6 +1873,10 @@ void Update_RAM_Cheats()
 	{
 		if(x != xg)
 		{
+		#ifdef S2
+				x = xg;
+		#endif
+
 			if(abs(x - xg) <= SCROLLSPEED)
 				x = xg;
 			//else if(abs(x - xg) >= 640)
@@ -1797,6 +1892,9 @@ void Update_RAM_Cheats()
 		}
 		if(y != yg)
 		{
+#ifdef S2
+			y = yg;
+#else
 			if(abs(y - yg) <= SCROLLSPEED)
 				y = yg;
 			//else if(abs(y - yg) >= 240)
@@ -1809,6 +1907,7 @@ void Update_RAM_Cheats()
 				if(y < yg) y += SCROLLSPEED;
 				else if(y > yg) y -= SCROLLSPEED;
 			}
+#endif
 		}
 
 		if(x < 0)
@@ -1960,6 +2059,12 @@ void Update_RAM_Cheats()
 		unsigned char *Dest = (unsigned char *)(DestFull) + 54;
 		unsigned short WaterY = CheatRead<unsigned short>(0xFFF64A) >> POWEROFTWO;
 		if (CheatRead<unsigned short>(0xFFF648) > CheatRead<unsigned short>(0xFFF646)) WaterY = CheatRead<unsigned short>(0xFFF646) >> POWEROFTWO;
+#ifdef S1
+		if (CheatRead<unsigned char>(0xFFFE10) != 1) //Water only in Labyrinth
+#else
+		if (!CheatRead<unsigned char>(0xFFF730))	 //"level has water" flag
+#endif
+			WaterY = (Y>>POWEROFTWO)+1;
 
 		if (mode)
 		{
@@ -1991,7 +2096,7 @@ void Update_RAM_Cheats()
 		else
 		{
 //			Src -= 336 * 2 *4;
-			for(offs = (Vmode ? 0 : 3*((X*(8+((Y*ratio-(Vmode ? 240 : 224))-y)))/ratio)) + 3*(x/ratio), j = (Vmode ? 241 : 225) - ratio; j > 0; j-=ratio, Src -= 336 * 2 * ratio * (Bits32?2:1), offs += (3 * X))
+			for(offs = (Vmode ? 0 : 3*((X*((Y*ratio-(Vmode ? 240 : 224))-prevy))/ratio)) + 3*(prevx/ratio), j = (Vmode ? 241 : 225) - ratio; j > 0; j-=ratio, Src -= 336 * ratio * (Bits32?4:2), offs += (3 * X))
 			{
 				if (Hmode==0) offs+=96/4;
 				if(offs > X*Y*3) break;
@@ -2119,6 +2224,235 @@ void Update_RAM_Cheats()
 			CloseHandle(ScrShot_File);
 		}
 	}
+}
+#elif defined SONICROUTEHACK
+short x = 0, y = 0;
+char Str_Clr[1024];
+void MapPixel (unsigned char *Dest, short x, short y, short MaxX, short MaxY, unsigned int color32, bool topdown)
+{
+	unsigned char r,g,b;
+	color32 &= 0xFFFFFF;
+	b =  (color32		 & 0xFF);
+	g = ((color32 >> 8)  & 0xFF);
+	r = ((color32 >> 16) & 0xFF);
+	int maxoff = ((MaxX*MaxY)-1)*3;
+	while (y < 0)
+		y+=MaxY;
+	while (y > MaxY)
+		y-=MaxY;
+	x = max(0,min(MaxX-1,x));
+	if (!topdown) y = (MaxY-y)-1;
+	y = max(0,min(MaxY-1,y));
+	int off = y;
+	off *= MaxX;
+	off += x;
+	off *= 3;
+	while (off > maxoff) off -= (MaxX*3);
+	Dest[off++]	= b & 0xFF;
+	Dest[off++] = g & 0xFF;
+	Dest[off] = r & 0xFF;
+	sprintf(Str_Clr,"%06X:%02X%02X%02X",color32,b,g,r);
+}
+void DrawMapLineBress(unsigned char *Dest,short x1,short y1,short x2,short y2,short dx, short dy,short MaxX,short MaxY,unsigned int Color,bool topdown)
+{
+	bool steep = abs(dy) > abs(dx);
+	if (steep)
+	{
+		x1 ^= y1, y1 ^= x1, x1 ^= y1;
+		x2 ^= y2, y2 ^= x2, x2 ^= y2;
+		dx ^= dy, dy ^= dx, dx ^= dy;
+	}
+	if (x1 > x2)
+	{
+		x1 ^= x2, x2 ^= x1, x1 ^= x2;
+		y1 ^= y2, y2 ^= y1, y1 ^= y2;
+		dx = 0-dx, dy = 0-dy;
+	}
+	short sy = ((dy < 0)? -1 : 1);
+	short thresh = dx;
+	dy = abs(dy);
+	short err = 0;
+	for (short x = x1, y = y1; x <= x2; x++)
+	{
+		if (steep)	MapPixel(Dest, y,x,MaxX,MaxY,Color,topdown);
+		else		MapPixel(Dest, x,y,MaxX,MaxY,Color,topdown);
+		err += dy << 1;
+		if (err >= thresh)
+		{
+			y += sy;
+			err -= dx << 1;
+		}
+	}
+}
+void DrawMapLine(unsigned char *Dest,short x1,short y1,short x2,short y2,short MaxX,short MaxY,unsigned int Color,bool topdown)
+{
+	short dx = x2 - x1;
+	short dy = y2 - y1;
 
+	if (!dy)
+	{
+		if (x1 > x2) x1 ^= x2, x2 ^= x1, x1 ^= x2;
+		for (short JXQ = x1; JXQ <= x2; JXQ++)
+			MapPixel(Dest, JXQ,y1,MaxX,MaxY,Color,topdown);
+	}
+	else if (!dx)
+	{
+		if (y1 > y2) y1 ^= y2, y2 ^= y1, y1 ^= y2;
+		for (short JXQ = y1; JXQ <= y2; JXQ++)
+			MapPixel(Dest,x1,JXQ,MaxX,MaxY,Color,topdown);
+	}
+	else DrawMapLineBress(Dest, x1,y1,x2,y2,dx,dy,MaxX,MaxY,Color,topdown);
+}
+void Update_RAM_Cheats()
+{
+	static bool neednewfile = true;
+	static const int ratio = 1 << POWEROFTWO;
+	static unsigned short prevlev = 0xFFFF;
+	static short prevx = 0, prevy = 0;
+	static short X = 13824;
+	static short Y = 2048;
+	static FILE *ScrShot_File;
+	static char MapFileName[1024];
+	static unsigned char *DestFull = NULL;
+	static unsigned char prevmode = 0;
+	static bool topdown = false;
+	static unsigned int prevsize = 0,size = 0;
+
+	// XXX: route-drawing hack
+	unsigned short lev = CheatRead<unsigned short> (0xFFFE10);
+	char mode = CheatRead<unsigned char>(0xFFF600);
+	if ((mode != prevmode && prevmode == 0xC) || (lev != prevlev))
+	{
+		neednewfile = true;
+		if (DestFull)
+		{
+			ScrShot_File = fopen(MapFileName, "wb");
+			if (fwrite(DestFull, 1, size, ScrShot_File) > size) return;
+			fclose(ScrShot_File);
+			sprintf(Str_Tmp,"Updating route map...");
+			Put_Info(Str_Tmp,1000);
+			free(DestFull);
+			DestFull = NULL;
+		}
+	}
+	else if (GetAsyncKeyState('B') && DestFull)
+	{
+		ScrShot_File = fopen(MapFileName, "wb");
+		if (fwrite(DestFull, 1, size, ScrShot_File) > size) return;
+		fclose(ScrShot_File);
+		sprintf(Str_Tmp,"Updating route map...");
+		Put_Info(Str_Tmp,1000);
+	}
+	prevlev = lev;
+	prevmode = mode;
+	if (mode != 0xC)
+		return;
+	if (neednewfile)
+	{
+		sprintf(Str_Tmp,"agphaoewiah");
+		Put_Info(Str_Tmp,1000);
+		neednewfile = false;
+		OPENFILENAME ofn;	
+		SetCurrentDirectory(Gens_Path);
+
+		memset(MapFileName, 0, 1024);
+		memset(&ofn, 0, sizeof(OPENFILENAME));
+
+		ofn.lStructSize = sizeof(OPENFILENAME);
+		ofn.hwndOwner = HWnd;
+		ofn.hInstance = ghInstance;
+		ofn.lpstrFile = MapFileName;
+		ofn.nMaxFile = 1023;
+		ofn.lpstrTitle = "Open Level Map";
+
+		ofn.lpstrFilter = "Bitmap files\0*.bmp\0";
+
+		ofn.nFilterIndex = 0;
+		ofn.lpstrInitialDir = Gens_Path;
+		ofn.lpstrDefExt = "bmp";
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+
+		if (GetOpenFileName(&ofn) == NULL) return;
+		Put_Info(MapFileName,1000);
+		ScrShot_File = fopen(MapFileName,"r");
+		int blah;
+		fseek(ScrShot_File,0,SEEK_END);
+		prevsize = size = ftell(ScrShot_File);
+		fseek(ScrShot_File,0,SEEK_SET);
+		while (!DestFull) DestFull = (unsigned char *) malloc(size);
+		blah = fread(DestFull,1,size,ScrShot_File);
+		fclose(ScrShot_File);
+		X = (DestFull[21] << 24) | (DestFull[20] << 16) | (DestFull[19] << 8) | DestFull[18];
+		Y =	(DestFull[25] << 24) | (DestFull[24] << 16) | (DestFull[23] << 8) | DestFull[22];
+		sprintf(Str_Tmp,"%08X:%08X,%d,%d",size,blah,X,Y);
+		Put_Info(Str_Tmp,1000);
+		if (Y < 0) topdown = true, Y = -Y;
+		prevx = CheatRead<short>(P1OFFSET + XPo);
+		prevy = CheatRead<short>(P1OFFSET + YPo);
+	}
+	x = CheatRead<short>(P1OFFSET + XPo);
+	y = CheatRead<short>(P1OFFSET + YPo);
+//	sprintf(Str_Tmp,"%08X,%08X:%08X,%08X",prevx,prevy,x,y);
+//	Put_Info(Str_Tmp,1000);
+	// XXX: screenshot, for map capture
+	if ((prevy > y) && (y < 32) && (prevy > (Y-32)))
+		prevy -= Y;
+	else if ((prevy < y) && (prevy < 32) && (y > (Y-32)))
+		y -= Y;
+	//if (y < 0) y+=Y;
+	short speed = abs(CheatRead<short>(P1OFFSET + XVo));
+	short walkthreshhold = 0x600;
+	short spinthreshhold = 0xC00;
+	unsigned char status = CheatRead<unsigned char>(P1OFFSET + 0x22);
+	bool inair = (status & 0x02) ? true : false;
+	if (!inair)
+	{
+		speed = max(speed,abs(CheatRead<short>(P1OFFSET + XVo + 4)));
+	}
+	bool water = (status & 0x40) ? true : false;
+	if (water) walkthreshhold = 0x300;
+	unsigned int color = 0;
+	if (speed < walkthreshhold)
+	{
+		unsigned char red = 0xFF, green = 0x00;
+		unsigned char colblah = (speed/6)&0xE0;
+
+		red -= colblah;
+		green += colblah+0x1F;
+		color = (red << 16) | (green << 8);
+	}
+	else if (speed < spinthreshhold)
+	{
+		unsigned char green = 0xFF, blue = 0x00;
+		unsigned char colblah = (speed/12)&0xE0;
+
+		green -= colblah;
+		blue += colblah+0x1F;
+		color = (green << 8) | blue;
+	}
+	else
+	{
+		unsigned char blue = 0xFF, red = 0x00, green = 0x00;
+		unsigned char colblah = (speed/24)&0xE0;
+
+		green += colblah+0x1F;
+		red += colblah+0x1F;
+		color = (red << 16) | (green << 8) | blue;
+	}
+	sprintf(Str_Clr,"%06X",color);
+	{
+		unsigned char *Dest = (unsigned char *)(DestFull) + 54;
+//		if (prevx != x || prevy != y) 
+			DrawMapLine(Dest,prevx,prevy,x,y,X,Y,color,topdown);
+	}
+	Put_Info(Str_Clr,1000);
+	prevx = CheatRead<short>(P1OFFSET + XPo);
+	prevy = CheatRead<short>(P1OFFSET + YPo);
+	if ((X * Y * 3) + 54 != prevsize)
+	{
+		sprintf(Str_Tmp,"WTF!! %08X,%08X,%08X",size,prevsize,(X * Y * 3) + 54);
+		Put_Info(Str_Tmp,1000);
+	}
+	prevsize=size;
 }
 #endif

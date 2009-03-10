@@ -81,7 +81,7 @@ int Correct_256_Aspect_Ratio = 1;
 
 
 //#define MAPHACK
-#ifndef SONICMAPHACK
+#if ((!defined SONICMAPHACK) && (!defined SONICROUTEHACK)) 
 #define Update_RAM_Cheats(); 
 #else
 #include "SonicHackSuite.h"
