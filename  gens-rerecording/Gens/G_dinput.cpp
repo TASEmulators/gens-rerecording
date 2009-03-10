@@ -1390,21 +1390,6 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 		{
 			Update_Input();
 
-			// current state of modifier keys
-			curMod = 0;
-			prevCtrl = curCtrl;
-			prevSft = curSft;
-			prevAlt = curAlt;
-			prevWin = curWin;
-			if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
-				curMod |= MOD_CONTROL, curCtrl =(KEYDOWN(DIK_LCONTROL) ? 1 : 2);	//"GetKeyState" and "GetAsyncKeyState" go screwy on these modifier keys.
-			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-				curMod |= MOD_SHIFT, curSft =(KEYDOWN(DIK_LSHIFT & 0x8000) ? 1 : 2);
-			if(GetAsyncKeyState(VK_MENU) & 0x8000)
-				curMod |= MOD_ALT, curAlt =(KEYDOWN(DIK_LMENU & 0x8000) ? 1 : 2);
-			if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
-				curMod |= MOD_WIN, curWin =(KEYDOWN(DIK_LWIN & 0x8000) ? 1 : 2);
-
 			// current state of virtual windows keys
 			for(i = 0; i < 256; i++)
 				curVirtKeys[i] = (GetAsyncKeyState(i) & 0x8000);
@@ -1412,6 +1397,21 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 			// current state of direct input keys
 			for(i = 0; i < 256; i++)
 				curDiKeys[i] = KEYDOWN(i);
+
+			// current state of modifier keys
+			curMod = 0;
+			prevCtrl = curCtrl;
+			prevSft = curSft;
+			prevAlt = curAlt;
+			prevWin = curWin;
+			if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+				curMod |= MOD_CONTROL, curCtrl = (curDiKeys[DIK_LCONTROL]?1:0) | (curDiKeys[DIK_RCONTROL]?2:0);
+			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
+				curMod |= MOD_SHIFT, curSft = (curDiKeys[DIK_LSHIFT]?1:0) | (curDiKeys[DIK_RSHIFT]?2:0);
+			if(GetAsyncKeyState(VK_MENU) & 0x8000)
+				curMod |= MOD_ALT, curAlt = (curDiKeys[DIK_LMENU]?1:0) | (curDiKeys[DIK_RMENU]?2:0);
+			if((GetAsyncKeyState(VK_LWIN)|GetAsyncKeyState(VK_RWIN)) & 0x8000)
+				curMod |= MOD_WIN, curWin =  (curDiKeys[DIK_LWIN]?1:0) | (curDiKeys[DIK_RWIN]?2:0);
 
 			// current state of recognized buttons on joypad
 			joyIndex = 0;
@@ -1499,6 +1499,14 @@ void Get_Key_2(InputButton& button, bool allowVirtual)
 				}
 				return;
 			}
+			if(curSft == 3) // both LSHIFT + RSHIFT held = assign them both to the hotkey
+				{ button.SetAsVirt(0, MOD_SHIFT); return; }
+			if(curAlt == 3)
+				{ button.SetAsVirt(0, MOD_ALT); return; }
+			if(curCtrl == 3)
+				{ button.SetAsVirt(0, MOD_CONTROL); return; }
+			if(curWin == 3)
+				{ button.SetAsVirt(0, MOD_WIN); return; }
 
 			// check for new recognized joypad button presses
 			for(int index = 0; index < joyIndex; index++)
