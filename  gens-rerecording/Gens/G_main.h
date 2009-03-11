@@ -113,5 +113,6 @@ const char* GensPlayMovie(const char* filename, bool silent=false); // returns N
 const char* MakeRomPathAbsolute(const char* filename, const char* extraDirToCheck=0);
 #endif
 int GensLoadRom(const char* filename); // returns positive on success, 0 on cancelled/ignorable failure, or negative on failure that clears or corrupts the emulation state
+void GensOpenFile(const char* filename); // tries to open any supported type of file, guessing what it should be
 
 #endif

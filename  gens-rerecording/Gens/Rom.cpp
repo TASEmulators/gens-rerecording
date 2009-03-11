@@ -398,7 +398,8 @@ int Get_Rom(HWND hWnd)
 	EXTEND_FILTER(supportedArchives);
 	APPEND_FILTER("32X roms (*.32x)");
 	APPEND_FILTER("*.32x;*32x*.bin;*32x*.gen;*32x*.smd");
-	EXTEND_FILTER(supportedArchives);
+	//EXTEND_FILTER(supportedArchives); // same as this but replace "*" with "*32x*" :
+	filterPtr--; const char* arcptr = supportedArchives; while(*arcptr) { if(*arcptr == '*') { *filterPtr++ = '*'; *filterPtr++ = '3'; *filterPtr++ = '2'; *filterPtr++ = 'x'; } *filterPtr++ = *arcptr++; } *filterPtr++ = 0;
 	APPEND_FILTER("Sega CD images (*.cue *.iso *.bin *.raw)");
 	APPEND_FILTER("*.cue;*.iso;*.bin;*.raw");
 	EXTEND_FILTER(supportedArchives); // not recommended for SegaCD but it should work to some degree...
@@ -413,6 +414,7 @@ int Get_Rom(HWND hWnd)
 	APPEND_FILTER("");
 
 	#undef APPEND_FILTER
+	#undef EXTEND_FILTER
 	assert((filterPtr - filterString) < sizeof(filterString));
 	ofn.lpstrFilter = filterString;
 
