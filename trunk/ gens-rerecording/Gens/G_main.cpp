@@ -2377,7 +2377,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		if (!GetMessage(&msg, NULL, 0, 0)) return msg.wParam;
 	}
 
-	TerminateProcess(GetCurrentProcess, 0); //Modif N
+	//TerminateProcess(GetCurrentProcess(), 0);
 
 	return 0;
 }
@@ -2781,83 +2781,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HDROP hDrop = (HDROP)wParam;
 			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
 			DragFinish(hDrop);
-
-			// use ObtainFile to support opening files within archives
-			char LogicalName[1024], PhysicalName[1024];
-			if(ObtainFile(Str_Tmp, LogicalName, PhysicalName, "drop", s_dropIgnoreExtensions, sizeof(s_dropIgnoreExtensions)/sizeof(*s_dropIgnoreExtensions)))
-			{
-				const char* fileExt = strrchr(LogicalName, '.');
-				if(!fileExt++)
-					fileExt = "";
-
-				// guess what type of file it is
-				GensFileType fileType = GuessFileType(PhysicalName, fileExt);
-
-				// open the file in a way that depends on what type we decided it is
-				switch(fileType)
-				{
-				case FILETYPE_MOVIE:
-					ReleaseTempFileCategory("drop"); // movie playing supports archives directly, and there's currently no way to transfer temporary file ownership, so delete any temporary file first (this makes PhysicalName invalid)
-					GensPlayMovie(LogicalName);
-					break;
-				case FILETYPE_ROM:
-					ReleaseTempFileCategory("drop");
-					GensLoadRom(LogicalName);
-					break;
-				case FILETYPE_SCRIPT:
-					ReleaseTempFileCategory("drop");
-					GensOpenScript(LogicalName);
-					break;
-				case FILETYPE_SAVESTATE:
-					if(Genesis_Started || _32X_Started || SegaCD_Started)
-						Load_State(PhysicalName);
-					break;
-				case FILETYPE_WATCH:
-					Load_Watches(true, PhysicalName);
-					break;
-				case FILETYPE_CONFIG:
-					if(FILE* file = fopen(PhysicalName, "rb"))
-					{
-						fclose(file);
-						Load_Config(PhysicalName, Game);
-						strcpy(Str_Tmp, "config loaded from ");
-						strcat(Str_Tmp, LogicalName);
-						Put_Info(Str_Tmp, 2000);
-					}
-					break;
-				case FILETYPE_SRAM:
-					if(Genesis_Started || _32X_Started || SegaCD_Started)
-					if(FILE* file = fopen(PhysicalName, "rb"))
-					{
-						fread(SRAM, 1, 64 * 1024, file);
-						fclose(file);
-						strcpy(Str_Tmp, "SRAM loaded from ");
-						strcat(Str_Tmp, LogicalName);
-						Put_Info(Str_Tmp, 2000);
-					}
-					break;
-				case FILETYPE_BRAM:
-					if(SegaCD_Started)
-					if(FILE* file = fopen(PhysicalName, "rb"))
-					{
-						fread(Ram_Backup, 1, 8 * 1024, file);
-						if(BRAM_Ex_State & 0x100)
-							fread(Ram_Backup_Ex, 1, (8 << BRAM_Ex_Size) * 1024, file);
-						fclose(file);
-						strcpy(Str_Tmp, "BRAM loaded from ");
-						strcat(Str_Tmp, LogicalName);
-						Put_Info(Str_Tmp, 2000);
-					}
-					break;
-				case FILETYPE_GYM:
-					if(GYM_Dumping)
-						Stop_GYM_Dump();
-					Start_Play_GYM(PhysicalName);
-					break;
-				}
-
-				ReleaseTempFileCategory("drop"); // delete the temporary (physical) file if any was created and hasn't already been deleted and isn't still in use
-			}
+			GensOpenFile(Str_Tmp);
 			return true;
 		}	break;
 
@@ -5044,7 +4968,7 @@ HMENU Build_Main_Menu(void)
 	// Menu GraphicsLatencyCompensation
 	i = 0;
 	Flags = MF_BYPOSITION | MF_STRING;
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_0, "0", "", "&0 (lightest/cheap)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_0, "0", "", "&0 (lightest/cheap/default)");
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 1) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_1, "1", "", "&1 (best Lua GUI sync in some games)");
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 2) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_2, "2", "", "&2 (responsive, recommended)");
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 3) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_3, "3", "", "&3 (over-responsive)");
@@ -6285,6 +6209,86 @@ const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
 	else return "Too many script windows are already open.";
 
 	return NULL;
+}
+
+void GensOpenFile(const char* filename)
+{
+	// use ObtainFile to support opening files within archives
+	char LogicalName[1024], PhysicalName[1024];
+	if(ObtainFile(filename, LogicalName, PhysicalName, "drop", s_dropIgnoreExtensions, sizeof(s_dropIgnoreExtensions)/sizeof(*s_dropIgnoreExtensions)))
+	{
+		const char* fileExt = strrchr(LogicalName, '.');
+		if(!fileExt++)
+			fileExt = "";
+
+		// guess what type of file it is
+		GensFileType fileType = GuessFileType(PhysicalName, fileExt);
+
+		// open the file in a way that depends on what type we decided it is
+		switch(fileType)
+		{
+		case FILETYPE_MOVIE:
+			ReleaseTempFileCategory("drop"); // movie playing supports archives directly, and there's currently no way to transfer temporary file ownership, so delete any temporary file first (this makes PhysicalName invalid)
+			GensPlayMovie(LogicalName);
+			break;
+		case FILETYPE_ROM:
+			ReleaseTempFileCategory("drop");
+			GensLoadRom(LogicalName);
+			break;
+		case FILETYPE_SCRIPT:
+			ReleaseTempFileCategory("drop");
+			GensOpenScript(LogicalName);
+			break;
+		case FILETYPE_SAVESTATE:
+			if(Genesis_Started || _32X_Started || SegaCD_Started)
+				Load_State(PhysicalName);
+			break;
+		case FILETYPE_WATCH:
+			Load_Watches(true, PhysicalName);
+			break;
+		case FILETYPE_CONFIG:
+			if(FILE* file = fopen(PhysicalName, "rb"))
+			{
+				fclose(file);
+				Load_Config(PhysicalName, Game);
+				strcpy(Str_Tmp, "config loaded from ");
+				strcat(Str_Tmp, LogicalName);
+				Put_Info(Str_Tmp, 2000);
+			}
+			break;
+		case FILETYPE_SRAM:
+			if(Genesis_Started || _32X_Started || SegaCD_Started)
+			if(FILE* file = fopen(PhysicalName, "rb"))
+			{
+				fread(SRAM, 1, 64 * 1024, file);
+				fclose(file);
+				strcpy(Str_Tmp, "SRAM loaded from ");
+				strcat(Str_Tmp, LogicalName);
+				Put_Info(Str_Tmp, 2000);
+			}
+			break;
+		case FILETYPE_BRAM:
+			if(SegaCD_Started)
+			if(FILE* file = fopen(PhysicalName, "rb"))
+			{
+				fread(Ram_Backup, 1, 8 * 1024, file);
+				if(BRAM_Ex_State & 0x100)
+					fread(Ram_Backup_Ex, 1, (8 << BRAM_Ex_Size) * 1024, file);
+				fclose(file);
+				strcpy(Str_Tmp, "BRAM loaded from ");
+				strcat(Str_Tmp, LogicalName);
+				Put_Info(Str_Tmp, 2000);
+			}
+			break;
+		case FILETYPE_GYM:
+			if(GYM_Dumping)
+				Stop_GYM_Dump();
+			Start_Play_GYM(PhysicalName);
+			break;
+		}
+
+		ReleaseTempFileCategory("drop"); // delete the temporary (physical) file if any was created and hasn't already been deleted and isn't still in use
+	}
 }
 
 

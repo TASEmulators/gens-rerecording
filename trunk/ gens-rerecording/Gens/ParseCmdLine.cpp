@@ -28,7 +28,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua"};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -36,6 +36,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string MovieToLoad = "";	//Movie filename
 	string StateToLoad = "";	//Savestate filename
 	vector<string> ScriptsToLoad;	//Lua script filenames
+	string FileToLoad = "";		//Any file
 	string PauseGame = "";		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
 	string ReadWrite = "";		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
 
@@ -51,7 +52,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	{
 		if (argumentList.find(argCmds[x]) != string::npos)
 		{
-			commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + 1;	//Find beginning of new command
+			commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + (argCmds[x].empty()?0:1);	//Find beginning of new command
 			trunc = argumentList.substr(commandBegin);								//Truncate argumentList
 			commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
 			if(argumentList[commandBegin] == '\"')									//Actually, if it's in quotes, extend to the end quote
@@ -90,17 +91,25 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 6:	//-lua
 			ScriptsToLoad.push_back(newCommand);
 			break;
+		case 7: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+			if(newCommand[0] != '-')
+				FileToLoad = newCommand;
+			break;
 		}
 	}
 	//--------------------------------------------------------------------------------------------
 	//Execute commands
 	
-	char *x;	//Temp variable used to convert strings to non const char arrays
+	// anything (rom, movie, cfg, luascript, etc.)
+	if (FileToLoad[0])
+	{
+		GensOpenFile(FileToLoad.c_str());
+	}
+
 	//Cfg
 	if (CfgToLoad[0])
 	{
-		x = _strdup(CfgToLoad.c_str());
-		Load_Config(x, NULL);
+		Load_Config((char*)CfgToLoad.c_str(), NULL);
 		strcpy(Str_Tmp, "config loaded from ");
 		strcat(Str_Tmp, CfgToLoad.c_str());
 		Put_Info(Str_Tmp, 2000);
@@ -113,16 +122,15 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	}
 	
 	//Movie
-	if (MovieToLoad[0] && RomToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
+	if (MovieToLoad[0]) GensPlayMovie(MovieToLoad.c_str(), 1);
 
 	//Read+Write
-	if (ReadWrite[0] && MovieToLoad[0] && RomToLoad[0] && MainMovie.ReadOnly != 2) MainMovie.ReadOnly = 0;
+	if (ReadWrite[0] && MainMovie.ReadOnly != 2) MainMovie.ReadOnly = 0;
 	
 	//Loadstate
 	if (StateToLoad[0])
 	{
-		x = _strdup(StateToLoad.c_str());
-		Load_State(x);
+		Load_State((char*)StateToLoad.c_str());
 	}
 
 	//Lua Scripts
@@ -137,7 +145,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	}
 
 	//Paused
-	if (PauseGame[0] && MovieToLoad[0]) Paused = 1;
+	if (PauseGame[0]) Paused = 1;
 	
 
 
