@@ -899,6 +899,40 @@ void Detect_Country_Genesis(void)
 }
 
 
+// a few things previously uninitialized by one or more systems,
+// causing even savestates made on frame 0 to differ.
+// the init functions should call this first so that the actual initialization
+// can overwrite what this does (in the cases where that system does initialize it).
+// the reset functions shouldn't call this at all,
+// it's correct that those don't fully reset the emulation state.
+static void Misc_Genesis_Init()
+{
+	M_Z80.CycleCnt = 0;
+	Controller_1_Delay = 0;
+	Controller_2_Delay = 0;
+	Ctrl.DMA_Mode = 0;
+	VDP_Reg.DMA_Address = 0;
+	VDP_Current_Line = 0;
+	Cycles_S68K = 0;
+	Cycles_M68K = 0;
+	Cycles_Z80 = 0;
+	S68K_State = 0;
+	CPL_S68K = 0;
+	main68k_context.cycles_leftover = 0;
+	main68k_context.io_cycle_counter = -1;
+	main68k_context.io_fetchbase = 0;
+	main68k_context.io_fetchbased_pc = 0;
+	main68k_context.access_address = 0;
+	main68k_context.odometer = 0;
+	sub68k_context.cycles_leftover = 0;
+	sub68k_context.io_cycle_counter = -1;
+	sub68k_context.io_fetchbase = 0;
+	sub68k_context.io_fetchbased_pc = 0;
+	sub68k_context.access_address = 0;
+	sub68k_context.odometer = 0;
+}
+
+
 
 
 
@@ -909,6 +943,8 @@ void Detect_Country_Genesis(void)
 
 void Init_Genesis_Bios(void)
 {
+	Misc_Genesis_Init();
+
 	FILE *f;
 
 	if (f = fopen(Genesis_Bios, "rb"))
@@ -938,6 +974,8 @@ void Init_Genesis_Bios(void)
 
 int Init_Genesis(struct Rom *MD_Rom)
 {
+	Misc_Genesis_Init();
+
 	char Str_Err[256];
 	
 	Flag_Clr_Scr = 1;
@@ -1522,6 +1560,8 @@ int Init_32X(struct Rom *MD_Rom)
 		return 0;
 	}
 
+	Misc_Genesis_Init();
+
 	Flag_Clr_Scr = 1;
 	Debug = Paused = Frame_Number = 0;
 	SRAM_Start = SRAM_End = SRAM_ON = SRAM_Write = 0;
@@ -1607,6 +1647,29 @@ int Init_32X(struct Rom *MD_Rom)
 
 	memcpy(_32X_Rom, Rom_Data, 4 * 1024 * 1024);	// no byteswapped image (for SH2)
 	Byte_Swap(Rom_Data, Rom_Size);					// byteswapped image (for 68000)
+
+	// a bunch of 32x stuff that was left uninitialized before (most of it, at least)
+	{
+		for(int contextNum=0; contextNum<2; contextNum++)
+		{
+			SH2_CONTEXT* context = (contextNum == 0) ? &M_SH2 : &S_SH2;
+			memset(&context->IO_Reg, 0, sizeof(context->IO_Reg));
+			memset(&context->DVCR, 0, sizeof(context->BCR1) + ((char*)&context->BCR1 - (char*)&context->DVCR));
+		}
+		memset(_32X_Ram, 0, sizeof(_32X_Ram));
+		memset(_MSH2_Reg, 0, sizeof(_MSH2_Reg));
+		memset(_SSH2_Reg, 0, sizeof(_SSH2_Reg));
+		memset(_SH2_VDP_Reg, 0, sizeof(_SH2_VDP_Reg));
+		memset(_32X_VDP_CRam, 0, sizeof(_32X_VDP_CRam));
+		memset(_32X_Comm, 0, sizeof(_32X_Comm));
+		_32X_ADEN = 0;
+		_32X_RES = 0;
+		_32X_FM = 0;
+		_32X_RV = 0;
+		Cycles_MSH2 = 0;
+		Cycles_SSH2 = 0;
+		memset(&PWM_FIFO_R, 0, sizeof(PWM_Out_R_Tmp) + ((char*)&PWM_Out_R_Tmp - (char*)&PWM_FIFO_R));
+	}
 
 	MSH2_Reset();
 	SSH2_Reset();
@@ -2362,6 +2425,8 @@ int Init_SegaCD(char *iso_name)
 		SetWindowText(HWnd, "Gens - Idle");
 		return 0;
 	}
+
+	Misc_Genesis_Init();
 
 	Update_CD_Rom_Name((char *) &CD_Data[32]);
 
