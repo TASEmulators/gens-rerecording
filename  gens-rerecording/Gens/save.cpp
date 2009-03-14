@@ -329,6 +329,11 @@ int Load_State(char *Name)
 	buf = State_Buffer;
 
 	if ((f = fopen(Name, "rb")) == NULL) return 0;
+	fseek(f,0x50,SEEK_SET);
+	char version = fgetc(f);
+	fseek(f,0,SEEK_SET);
+	if (version == 0x6) len += 0x1239;
+	if (version == 0x7) len -= 5;
 
 	memset(buf, 0, len);
 	if (fread(buf, 1, len, f))
@@ -381,14 +386,15 @@ int Load_State(char *Name)
 		{
 			if(AutoBackupEnabled)
 			{
-				strncpy(Str_Tmp,MainMovie.FileName,512);
+				strncpy(Str_Tmp,MainMovie.FileName,1024);
 				for(int i = strlen(Str_Tmp); i >= 0; i--) if(Str_Tmp[i] == '|') Str_Tmp[i] = '_';
 				strcat(MainMovie.FileName,".gmv");
 				MainMovie.FileName[strlen(MainMovie.FileName)-7]='b'; // ".bak"
 				MainMovie.FileName[strlen(MainMovie.FileName)-6]='a';
 				MainMovie.FileName[strlen(MainMovie.FileName)-5]='k';
 				BackupMovieFile(&MainMovie);
-				strncpy(MainMovie.FileName,Str_Tmp,512);
+				strncpy(MainMovie.FileName,Str_Tmp,1024);
+				strncpy(MainMovie.PhysicalFileName,MainMovie.FileName,1024);
 			}
 			MainMovie.Status=MOVIE_RECORDING;
 			switched = 3;
@@ -448,7 +454,13 @@ int Load_State(char *Name)
 			Track3_FrameCount = temp;
 
 		int m = fgetc(f);
-		if(m == 'M' && !feof(f) && !ferror(f))
+		if (m != 'M')
+		{
+			char inconsistencyMessage[1024];
+			sprintf(inconsistencyMessage, "Warning: The state you are loading is inconsistent with the current movie.\nYou should load a different savestate\nReason: Savestate contains no input data.");
+			WARNINGBOX(inconsistencyMessage, "Desync Warning");
+		}
+		else if(!feof(f) && !ferror(f))
 		{
 			int pos = ftell(MainMovie.File);
 			fseek(MainMovie.File,64,SEEK_SET);

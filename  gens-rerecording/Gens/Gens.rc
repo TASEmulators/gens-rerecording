@@ -259,7 +259,7 @@ CAPTION "About Gens"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     PUSHBUTTON      "OK",IDOK,72,115,50,14
-    CTEXT           "Gens Re-Recording v11\n\nSega Genesis / Megadrive,\nSega CD / Mega CD,\nSega 32X emulator\n\nWin 9X / ME / 2000 / XP",IDC_STATIC,87,3,100,58
+    CTEXT           "Gens Re-Recording v11a\n\nSega Genesis / Megadrive,\nSega CD / Mega CD,\nSega 32X emulator\n\nWin 9X / ME / 2000 / XP",IDC_STATIC,87,3,100,58
     CONTROL         142,IDC_STATIC,"Static",SS_BITMAP | WS_BORDER,0,0,87,60
     EDITTEXT        IDC_EDIT1,1,61,188,52,ES_CENTER | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY
 END
