@@ -1031,8 +1031,13 @@ void DrawInformationOnTheScreen()
 		if(strlen(FCTemp)>0)
 		{
 			n=FrameCounterPosition;
-			if (!IS_FULL_X_RESOLUTION && (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT))
-				n-=64;
+			if (FrameCounterPosition==FRAME_COUNTER_TOP_RIGHT || FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT)
+			{
+				if (!IS_FULL_X_RESOLUTION)
+					n-=64;
+				int off = strlen(FCTemp) - 8;
+				if (off > 0) n-=off*6;
+			}
 			BOOL drawRed = Lag_Frame;
 			for(pos=0;(unsigned int)pos<strlen(FCTemp);pos++)
 			{
