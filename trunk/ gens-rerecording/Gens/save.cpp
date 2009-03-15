@@ -41,8 +41,10 @@
 #ifdef SONICMAPHACK
 #include "SonicHackSuite.h"
 #endif
-#ifdef _DEBUG
+#if defined(_DEBUG) && (LATEST_SAVESTATE_VERSION >= 9)
 #include <assert.h>
+#else
+#define assert(x) (void)0
 #endif
 
 int Current_State = 0;
@@ -52,9 +54,12 @@ char BRAM_Dir[1024] = "";
 extern char Lua_Dir [1024];
 unsigned short FrameBuffer[336 * 240];
 unsigned int FrameBuffer32[336 * 240];
-unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
+ALIGN16 unsigned char State_Buffer[MAX_STATE_FILE_LENGTH];
+unsigned char Version;
+
 bool UseMovieStates;
 bool SkipNextRerecordIncrement = false;
+static unsigned char InBaseGenesis = 1;
 //extern long x, y, xg, yg; // G_Main.cpp
 extern "C" unsigned int Current_OUT_Pos, Current_OUT_Size; // cdda_mp3.c
 extern "C" int fatal_mp3_error; // cdda_mp3.c
@@ -243,19 +248,20 @@ int Load_State_From_Buffer(unsigned char *buf)
 	extern bool frameadvSkipLag_Rewind_State_Buffer_Valid;
 	frameadvSkipLag_Rewind_State_Buffer_Valid = false;
 
+	assert((((int)buf)&15) == 0); // want this for alignment performance reasons
+	unsigned char* bufStart = buf;
+
 	buf += Import_Genesis(buf); //upthmodif - fixed for new, additive, length determination
 	if (SegaCD_Started)
 	{
-		Import_SegaCD(buf); // Uncommented - function now exists
-		buf += SEGACD_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
+		buf += Import_SegaCD(buf); // Uncommented - function now exists
 	}
 	if (_32X_Started)
 	{
-		Import_32X(buf);
-		buf += G32X_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
+		buf += Import_32X(buf);
 	}
 
-	return (int) buf;
+	return buf - bufStart;
 }
 
 static const char* standardInconsistencyMessage = "Warning: The state you are loading is inconsistent with the current movie.\nYou should either load a different savestate, or turn off movie read-only mode and load this savestate again.";
@@ -290,7 +296,6 @@ int Load_State(char *Name)
 	FILE *f;
 	unsigned char *buf;
 	int len;
-//	unsigned short *palbuf;
 
 	len = GENESIS_STATE_LENGTH;
 	if (Genesis_Started); //So it doesn't return zero if the SegaCD and 32X aren't running
@@ -527,6 +532,7 @@ int Load_State(char *Name)
 
 int Save_State_To_Buffer (unsigned char *buf)
 {
+	assert((((int)buf)&15) == 0); // want this for alignment performance reasons
 	int len;
 
 	len = GENESIS_STATE_LENGTH; //Upthmodif - tweaked the length determination system;Modif N - used to be GENESIS_STATE_FILE_LENGTH, which I think is a major bug because then the amount written and the amount read are different - this change was necessary to append anything to the save (i.e. for bulletproof re-recording)
@@ -534,6 +540,7 @@ int Save_State_To_Buffer (unsigned char *buf)
 	else if (_32X_Started) len += G32X_LENGTH_EX; //upthmodif - fixed for new, additive, length determination
 
 	memset(buf, 0, len);
+
 	Export_Genesis(buf);
 	buf += GENESIS_STATE_LENGTH; //upthmodif - fixed for new, additive, length determination
 	if (SegaCD_Started)
@@ -627,37 +634,101 @@ int Save_State (char *Name)
 // The main advantage to using these, besides less lines of code, is that
 // you can replace ImportData with ExportData, without changing anything else in the arguments,
 // to go from import code to export code.
-inline void ImportData(void* into, const void* data, unsigned int offset, unsigned int numBytes)
-{
-	unsigned char* dst = (unsigned char *) into;
-	const unsigned char* src = ((const unsigned char*) data) + offset;
-	while(numBytes--) *dst++ = *src++;
-}
-inline void ExportData(const void* from, void* data, unsigned int offset, unsigned int numBytes)
-{
-	const unsigned char* src = (const unsigned char *) from;
-	unsigned char* dst = ((unsigned char*) data) + offset;
-#ifdef _DEBUG
-	while(numBytes--)
+// ImportDataAuto/ExportDataAuto are like ImportData/ExportData except they also auto-increment the offset by the size
+
+#ifdef _DEBUG // slow debug version:
+
+	void ImportDataDebug(void* into, const void* data, unsigned int & offset, unsigned int numBytes, bool autoIncrement)
 	{
-		assert((*dst == 0 || *dst == 0xFF) && "error: saved over the same byte twice");
-		*dst++ = *src++;
+		unsigned char* dst = (unsigned char *) into;
+		const unsigned char* src = ((const unsigned char*) data) + offset;
+
+		// if the assert here fails, add alignment padding of less than 16 bytes to make the condition true,
+		// otherwise the load operation will run slower than it should in release.
+		// (search for "alignment for performance" for examples,
+		//  and note that the underlying buffers should have ALIGN16 prefixed to them)
+		assert((numBytes < 0x100 || (int(src)&15) == (int(dst)&15) || (InBaseGenesis && !autoIncrement) || Version < 9) && "error: source and data are not correctly aligned with each other");
+
+		// loop through copying 1 byte at a time out of the savestate data...
+		for(unsigned int i = offset; i < offset + numBytes; i++)
+		{
+			*dst++ = *src++;
+		}
+
+		// if this is ImportDataAuto, increment the offset
+		if(autoIncrement)
+			offset += numBytes;
 	}
-#else
-	while(numBytes--) *dst++ = *src++;
+	void ExportDataDebug(const void* from, void* data, unsigned int & offset, unsigned int numBytes, bool autoIncrement)
+	{
+		const unsigned char* src = (const unsigned char *) from;
+		unsigned char* dst = ((unsigned char*) data) + offset;
+
+		// if the assert here fails, add alignment padding of less than 16 bytes to make the condition true,
+		// otherwise the save operation will run slower than it should in release.
+		// (search for "alignment for performance" for examples,
+		//  and note that the underlying buffers should have ALIGN16 prefixed to them)
+		assert((numBytes < 0x100 || (int(src)&15) == (int(dst)&15) || (InBaseGenesis && !autoIncrement) || Version < 9) && "error: source and data are not correctly aligned with each other");
+
+		// loop through copying 1 byte at a time into the savestate data...
+		for(unsigned int i = offset; i < offset + numBytes; i++)
+		{
+			assert((*dst == 0 || *dst == 0xFF) && "error: saved over the same byte twice");
+			*dst++ = *src++;
+		}
+
+		// if this is ExportDataAuto, increment the offset
+		if(autoIncrement)
+			offset += numBytes;
+	}
+	void ImportData(void* into, const void* data, unsigned int offset, unsigned int numBytes) {
+		ImportDataDebug(into, data, offset, numBytes, false);
+	}
+	void ExportData(const void* from, void* data, unsigned int offset, unsigned int numBytes) {
+		ExportDataDebug(from, data, offset, numBytes, false);
+	}
+	void ImportDataAuto(void* into, const void* data, unsigned int & offset, unsigned int numBytes) {
+		ImportDataDebug(into, data, offset, numBytes, true);
+	}
+	void ExportDataAuto(const void* from, void* data, unsigned int & offset, unsigned int numBytes) {
+		ExportDataDebug(from, data, offset, numBytes, true);
+	}
+
+#else // fast version:
+
+	#define ImportDataM(into, data, numBytes) memcpy(into, data,       numBytes)
+	#define ExportDataM(from, data, numBytes) memcpy(      data, from, numBytes)
+
+	template<unsigned int numBytes>
+	void ImportDataT(void* dst, const void* src) {
+ 		ImportDataM(dst, src, numBytes);
+	}
+	template<unsigned int numBytes>
+	void ExportDataT(const void* src, void* dst) {
+		ExportDataM(src, dst, numBytes);
+	}
+
+	#ifndef _MSC_VER
+		#define __forceinline __attribute__((always_inline))
+	#endif
+
+	// specializations to avoid the overhead of a memcpy call for really small copies:
+	template<> __forceinline void ImportDataT<1>(void* dst, const void* src) { *(UINT8 *)dst = *(const UINT8 *)src; }
+	template<> __forceinline void ExportDataT<1>(const void* src, void* dst) { *(UINT8 *)dst = *(const UINT8 *)src; }
+	template<> __forceinline void ImportDataT<2>(void* dst, const void* src) { *(UINT16*)dst = *(const UINT16*)src; }
+	template<> __forceinline void ExportDataT<2>(const void* src, void* dst) { *(UINT16*)dst = *(const UINT16*)src; }
+	template<> __forceinline void ImportDataT<4>(void* dst, const void* src) { *(UINT32*)dst = *(const UINT32*)src; }
+	template<> __forceinline void ExportDataT<4>(const void* src, void* dst) { *(UINT32*)dst = *(const UINT32*)src; }
+	template<> __forceinline void ImportDataT<8>(void* dst, const void* src) { *(UINT64*)dst = *(const UINT64*)src; }
+	template<> __forceinline void ExportDataT<8>(const void* src, void* dst) { *(UINT64*)dst = *(const UINT64*)src; }
+
+	#define ImportData(into, data, offset, numBytes)          ImportDataT<numBytes>(into,((const UINT8*)(data))+(offset))
+	#define ExportData(from, data, offset, numBytes)          ExportDataT<numBytes>(from,((      UINT8*)(data))+(offset))
+	#define ImportDataAuto(into, data, offset, numBytes) do { ImportDataT<numBytes>(into,((const UINT8*)(data))+(offset)); offset += numBytes; } while(0)
+	#define ExportDataAuto(from, data, offset, numBytes) do { ExportDataT<numBytes>(from,((      UINT8*)(data))+(offset)); offset += numBytes; } while(0)
+
 #endif
-}
-// versions that auto-increment the offset
-inline void ImportDataAuto(void* into, const void* data, unsigned int & offset, unsigned int numBytes)
-{
-	ImportData(into, data, offset, numBytes);
-	offset += numBytes;
-}
-inline void ExportDataAuto(const void* from, void* data, unsigned int & offset, unsigned int numBytes)
-{
-	ExportData(from, data, offset, numBytes);
-	offset += numBytes;
-}
+
 
 /*
 
@@ -795,11 +866,9 @@ others
 +42A00-829FF : FB1 & FB2
 
 */
-unsigned char Version;
-#define LATEST_SAVESTATE_VERSION 8
-int Import_Genesis(unsigned char *Data)
+int Import_Genesis(unsigned char * Data)
 {
-	unsigned char Reg_1[0x200], *src;
+	unsigned char* src;
 	int i;
 
 //	VDP_Int = 0;
@@ -808,7 +877,9 @@ int Import_Genesis(unsigned char *Data)
 	Version = Data[0x50];
 	if (Version < 6) len -= 0x10000;
 
-	ImportData(CRam, Data, 0x112, 0x80);
+	InBaseGenesis = 1;
+
+	for(i = 0; i < 0x80; i++) CRam[i] = Data[i + 0x112]; // note CRAM is an array of shorts...
 	ImportData(VSRam, Data, 0x192, 0x50);
 	ImportData(Ram_Z80, Data, 0x474, 0x2000);
 	
@@ -824,8 +895,7 @@ int Import_Genesis(unsigned char *Data)
 		VRam[i + 1] = Data[i + 0x12478 + 0];
 	}
 
-	ImportData(Reg_1, Data, 0x1E4, 0x200);
-	YM2612_Restore(Reg_1);
+	YM2612_Restore(Data + 0x1E4);
 
 	if ((Version >= 2) && (Version < 4))
 	{
@@ -928,7 +998,7 @@ int Import_Genesis(unsigned char *Data)
 		}
 	}
 
-	unsigned int offset = GENESIS_LENGTH_EX1;
+	unsigned int offset = 0x2247C; // used to be called GENESIS_LENGTH_EX1
 
 	if(Version == 6)
 	{
@@ -1043,7 +1113,6 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
 	////	ImportDataAuto(VRam, Data, offset, 65536);
 		ImportDataAuto(CRam, Data, offset, 512);
-	////	ImportDataAuto(VSRam, Data, offset, 64);
 		ImportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
 	////	ImportDataAuto(Spr_Link, Data, offset, 4*256);
 	////	extern int DMAT_Tmp, VSRam_Over;
@@ -1056,19 +1125,14 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&VDP_Reg.DMA_Src_Adr_H, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Length, Data, offset, 4);
 		ImportDataAuto(&VDP_Reg.DMA_Address, Data, offset, 4);
-	#ifdef _DEBUG
-		int desiredoffset = GENESIS_V6_STATE_LENGTH;
-		assert(offset == desiredoffset);
-	#endif
 	}
 	else if (Version >= 7)
 	{
-		unsigned char Reg_2[sizeof(ym2612_)];
-		ImportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
-		YM2612_Restore_Full(Reg_2);
+		if(Version >= 9) offset += 4; // alignment for performance
+		YM2612_Restore_Full(Data + offset); // some important parts of this weren't saved above
+		offset += sizeof(ym2612_);
 
-		ImportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg)); // some important parts of this weren't saved above
-		PSG_Restore_State_Full();
+		ImportDataAuto(&PSG, Data, offset, sizeof(struct _psg)); // some important parts of this weren't saved above
 	
 		//PC and BasePC are 32-bit pointers to system memory space. Only the low 16-bits of PC are valid in the emulated system
 		//and BasePC is a pointer to the location (in system memory) of a particular variable
@@ -1084,6 +1148,7 @@ int Import_Genesis(unsigned char *Data)
 
 		ImportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
 
+		if(Version >= 9) offset += 6; // alignment for performance
 		ImportDataAuto(&Controller_1_State, Data, offset, 448); // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
 	
 		// apparently necessary
@@ -1097,15 +1162,26 @@ int Import_Genesis(unsigned char *Data)
 		//ImportDataAuto(&CRam_Flag, Data, offset, 4); //emulator flag which causes Gens not to update its draw palette, but doesn't affect sync state
 		ImportDataAuto(&LagCount, Data, offset, 4);
 		ImportDataAuto(&VRam_Flag, Data, offset, 4);
+		if(Version >= 9) offset += 12; // alignment for performance
 		ImportDataAuto(&CRam, Data, offset, 256 * 2);
 
 		// it's probably safer sync-wise to keep SRAM stuff in the savestate
-		ImportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+		unsigned int preSRAMoffset = offset;
+		offset += sizeof(SRAM);
 		ImportDataAuto(&SRAM_Start, Data, offset, 4);
 		ImportDataAuto(&SRAM_End, Data, offset, 4);
 		ImportDataAuto(&SRAM_ON, Data, offset, 4);
 		ImportDataAuto(&SRAM_Write, Data, offset, 4);
 		ImportDataAuto(&SRAM_Custom, Data, offset, 4);
+		unsigned int postSRAMoffset = offset;
+		if(SRAM_End != SRAM_Start)
+		{
+			offset = preSRAMoffset;
+			ImportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+			offset = postSRAMoffset;
+		}
+
+
 
 		// this group I'm not sure about, they don't seem to be necessary but I'm keeping them around just in case
 		ImportDataAuto(&Bank_M68K, Data, offset, 4);
@@ -1124,6 +1200,7 @@ int Import_Genesis(unsigned char *Data)
 		ImportDataAuto(&Cycles_Z80, Data, offset, 4);
 		ImportDataAuto(&Gen_Mode, Data, offset, 4);
 		ImportDataAuto(&Gen_Version, Data, offset, 4);
+		if(Version >= 9) offset += 12; // alignment for performance
 		ImportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
 		ImportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
 		ImportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
@@ -1135,6 +1212,7 @@ int Import_Genesis(unsigned char *Data)
 			ImportDataAuto(&LagCountPersistent, Data, offset, 4);
 			ImportDataAuto(&Lag_Frame, Data, offset, 1);
 		}
+		if(Version >= 9) offset += 11; // alignment for performance
 	}
 
 	main68k_SetContext(&Context_68K);
@@ -1144,21 +1222,27 @@ int Import_Genesis(unsigned char *Data)
 	{
 		int desiredoffset = GENESIS_STATE_LENGTH;
 		assert(offset == desiredoffset);
+		assert((offset&15) == 0); // also want this for alignment performance reasons
 	}
-	else
 #endif
-	if(Version == 7)
-		len += GENESIS_V7_STATE_LENGTH - GENESIS_STATE_LENGTH;
-	else if(Version == 6)
-		len += GENESIS_V6_STATE_LENGTH - GENESIS_STATE_LENGTH;
+	if(Version == 6)
+		len += GENESIS_V6_LENGTH - GENESIS_STATE_LENGTH;
+	else if(Version == 7)
+		len += GENESIS_V7_LENGTH - GENESIS_STATE_LENGTH;
+	else if(Version == 8)
+		len += GENESIS_V8_LENGTH - GENESIS_STATE_LENGTH;
+	//else if(Version == 9) // in the future...
+	//	len += GENESIS_V9_LENGTH - GENESIS_STATE_LENGTH;
 	return len;
 }
 
-void Export_Genesis(unsigned char *Data)
+void Export_Genesis(unsigned char * Data)
 {
 	S68000CONTEXT Context_68K; // Modif N.: apparently no longer necessary but I'm leaving it here just to be safe: purposely shadows the global Context_68K variable with this local copy to avoid tampering with it while saving
-	unsigned char Reg_1[0x200], *src;
+	unsigned char* src;
 	int i;
+
+	InBaseGenesis = 1;
 
 	//if(DMAT_Length)
 	  //WARNINGBOX("Saving during DMA transfer; savestate may be corrupt. Try advancing the frame and saving again.", "Warning");
@@ -1171,7 +1255,8 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x03] = 0x40;
 	Data[0x04] = 0xE0;
 
-	Data[0x50] = LATEST_SAVESTATE_VERSION;      // Version
+	Version = LATEST_SAVESTATE_VERSION;
+	Data[0x50] = Version;      // Version
 	Data[0x51] = 0;      // Gens
 
 	PSG_Save_State();
@@ -1234,11 +1319,7 @@ void Export_Genesis(unsigned char *Data)
 	  src += 4;
 	}
 
-	for(i = 0; i < 0x80; i++) Data[i + 0x112] = (CRam[i] & 0xFF);
-	for(i = 0; i < 0x50; i++) Data[i + 0x192] = VSRam[i];
-
-	YM2612_Save(Reg_1);
-	for(i = 0; i < 0x200; i++) Data[i + 0x1E4] = Reg_1[i];
+	YM2612_Save(Data + 0x1E4);
 
 	Data[0x404] = (unsigned char) (z80_Get_AF(&M_Z80) & 0xFF);
 	Data[0x405] = (unsigned char) (z80_Get_AF(&M_Z80) >> 8);
@@ -1274,7 +1355,9 @@ void Export_Genesis(unsigned char *Data)
 
 	ExportData(&Bank_Z80, Data, 0x43C, 4);
 
-	for(i = 0; i < 0x2000; i++) Data[i + 0x474] = Ram_Z80[i];
+	for(i = 0; i < 0x80; i++) Data[i + 0x112] = (CRam[i] & 0xFF);
+	ExportData(VSRam, Data, 0x192, 0x50);
+	ExportData(Ram_Z80, Data, 0x474, 0x2000);
 
 	for(i = 0; i < 0x10000; i += 2)
 	{
@@ -1293,18 +1376,18 @@ void Export_Genesis(unsigned char *Data)
 	Data[0x2247B]=unsigned char ((FrameCount>>24)&0xFF);   //Modif
 
 	// everything after this should use this offset variable for ease of extensibility
-	unsigned int offset = GENESIS_LENGTH_EX1; // Modif U. - got rid of about 12 KB of 00 bytes.
+	// Modif U. - got rid of about 12 KB of 00 bytes.
+	unsigned int offset = 0x2247C; // used to be called GENESIS_LENGTH_EX1
 
 	// version 7 additions (version 6 additions deleted)
 	{
 		//Modif N. - saving more stuff (added everything after this)
 
-		unsigned char Reg_2[sizeof(ym2612_)];
-		YM2612_Save_Full(Reg_2);
-		ExportDataAuto(Reg_2, Data, offset, sizeof(ym2612_)); // some important parts of this weren't saved above
+		if(Version >= 9) offset += 4; // alignment for performance
+		YM2612_Save_Full(Data + offset); // some important parts of this weren't saved above
+		offset += sizeof(ym2612_);
 
-		PSG_Save_State_Full();
-		ExportDataAuto(PSG_Save_Full, Data, offset, sizeof(struct _psg));  // some important parts of this weren't saved above
+		ExportDataAuto(&PSG, Data, offset, sizeof(struct _psg));  // some important parts of this weren't saved above
 
 		ExportDataAuto(&M_Z80, Data, offset, 0x5C); // some important parts of this weren't saved above
 		ExportDataAuto(&M_Z80.RetIC, Data, offset, 4); // not sure about the last two variables, might as well save them too
@@ -1312,6 +1395,7 @@ void Export_Genesis(unsigned char *Data)
 
 		ExportDataAuto(&Context_68K.dreg[0], Data, offset, 86); // some important parts of this weren't saved above
 
+		if(Version >= 9) offset += 6; // alignment for performance
 		ExportDataAuto(&Controller_1_State, Data, offset, 448);   // apparently necessary (note: 448 == (((char*)&Controller_2D_Z)+sizeof(Controller_2D_Z) - (char*)&Controller_1_State))
 
 		// apparently necessary
@@ -1325,10 +1409,14 @@ void Export_Genesis(unsigned char *Data)
 		//ExportDataAuto(&CRam_Flag, Data, offset, 4);
 		ExportDataAuto(&LagCount, Data, offset, 4);
 		ExportDataAuto(&VRam_Flag, Data, offset, 4);
+		if(Version >= 9) offset += 12; // alignment for performance
 		ExportDataAuto(&CRam, Data, offset, 256 * 2);
 
 		// it's probably safer sync-wise to keep SRAM stuff in the savestate
-		ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+		if(SRAM_End != SRAM_Start)
+			ExportDataAuto(&SRAM, Data, offset, sizeof(SRAM));
+		else
+			offset += sizeof(SRAM);
 		ExportDataAuto(&SRAM_Start, Data, offset, 4);
 		ExportDataAuto(&SRAM_End, Data, offset, 4);
 		ExportDataAuto(&SRAM_ON, Data, offset, 4);
@@ -1352,6 +1440,7 @@ void Export_Genesis(unsigned char *Data)
 		ExportDataAuto(&Cycles_Z80, Data, offset, 4);
 		ExportDataAuto(&Gen_Mode, Data, offset, 4);
 		ExportDataAuto(&Gen_Version, Data, offset, 4);
+		if(Version >= 9) offset += 12; // alignment for performance
 		ExportDataAuto(H_Counter_Table, Data, offset, 512 * 2);
 		ExportDataAuto(&VDP_Reg, Data, offset, sizeof(VDP_Reg));
 		ExportDataAuto(&Ctrl, Data, offset, sizeof(Ctrl));
@@ -1363,6 +1452,7 @@ void Export_Genesis(unsigned char *Data)
 			ExportDataAuto(&LagCountPersistent, Data, offset, 4);
 			ExportDataAuto(&Lag_Frame, Data, offset, 1);
 		}
+		if(Version >= 9) offset += 11; // alignment for performance
 	}
 
 #ifdef _DEBUG
@@ -1370,14 +1460,17 @@ void Export_Genesis(unsigned char *Data)
 	// if it fails, that probably means you have to add ((int)offset-(int)desiredoffset) to the last GENESIS_LENGTH_EX define
 	int desiredoffset = GENESIS_STATE_LENGTH;
 	assert(offset == desiredoffset);
+	assert((offset&15) == 0); // also want this for alignment performance reasons
 #endif
 }
 
-void Import_SegaCD(unsigned char *Data) 
+int Import_SegaCD(unsigned char * Data) 
 {
 	S68000CONTEXT Context_sub68K;
 	unsigned char *src;
 	int i,j;
+
+	InBaseGenesis = 0;
 
 	sub68k_GetContext(&Context_sub68K);
 
@@ -1477,11 +1570,9 @@ void Import_SegaCD(unsigned char *Data)
 	//Word RAM
 		if (Ram_Word_State >= 2) ImportData(Ram_Word_1M, Data, 0x81000, 0x40000); //1M mode
 		else ImportData(Ram_Word_2M, Data, 0x81000, 0x40000); //2M mode
-		//ImportData(Ram_Word_2M, Data, 0x81000, 0x40000); //2M mode
 	//Word RAM end
 
 	ImportData(Ram_PCM, Data, 0xC1000, 0x10000); //PCM RAM
-	
 
 	//CDD & CDC Data
 		//CDD
@@ -1521,7 +1612,12 @@ void Import_SegaCD(unsigned char *Data)
 			ImportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ImportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ImportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-			ImportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
+
+			unsigned int offset = 0xD1074; // used to be called SEGACD_LENGTH_EX1 - sizeof(CDC.Buffer)
+			
+			if(Version >= 9) offset += 4; // alignment for performance
+
+			ImportDataAuto(CDC.Buffer, Data, offset, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
 		//CDC end
 	//CDD & CDC Data end
 
@@ -1529,7 +1625,8 @@ void Import_SegaCD(unsigned char *Data)
 	{
 		//Modif N. - extra stuff added to save/set for synchronization reasons
 		// I'm not sure how much of this really needs to be saved, should check it sometime
-		unsigned int offset = SEGACD_LENGTH_EX1;
+		if(Version <= 8)
+			assert(offset == 0xE19A4 /*used to be called SEGACD_LENGTH_EX1*/);
 
 		ImportDataAuto(&File_Add_Delay, Data, offset, 4);
 //		ImportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192); // removed, seems to be unnecessary
@@ -1546,13 +1643,25 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(&CD_LBA_st, Data, offset, 4);
 		ImportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
 
+		if(Version >= 9) offset += 8; // alignment for performance
 		ImportDataAuto(&SCD, Data, offset, sizeof(SCD));
 		//ImportDataAuto(&CDC, Data, offset, sizeof(CDC)); // removed, seems unnecessary/redundant
 		ImportDataAuto(&CDD, Data, offset, sizeof(CDD));
 		ImportDataAuto(&COMM, Data, offset, sizeof(COMM));
 
 		ImportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
-		ImportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
+		int preBramExOffset = offset;
+		if(BRAM_Ex_State & 0x100)
+		{
+			switch(BRAM_Ex_Size)
+			{
+			case 0: ImportData(Ram_Backup_Ex, Data, offset, (8<<0)*1024); break;
+			case 1: ImportData(Ram_Backup_Ex, Data, offset, (8<<1)*1024); break;
+			case 2: ImportData(Ram_Backup_Ex, Data, offset, (8<<2)*1024); break;
+   default: case 3: ImportData(Ram_Backup_Ex, Data, offset, (8<<3)*1024); break;
+			}
+		}
+		offset = preBramExOffset + sizeof(Ram_Backup_Ex);
 
 		ImportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
 		ImportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
@@ -1580,9 +1689,15 @@ void Import_SegaCD(unsigned char *Data)
 		ImportDataAuto(played_tracks_linear, Data, offset, 100);
 		//ImportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
 
+		if(Version >= 9) offset += 5; // alignment for performance
+
 #ifdef _DEBUG
-		int desiredoffset = SEGACD_LENGTH_EX;
-		assert(offset == desiredoffset);
+		if(Version == LATEST_SAVESTATE_VERSION)
+		{
+			int desiredoffset = SEGACD_LENGTH_EX;
+			assert(offset == desiredoffset);
+			assert((offset&15) == 0); // also want this for alignment performance reasons
+		}
 #endif
 	}
 
@@ -1590,13 +1705,22 @@ void Import_SegaCD(unsigned char *Data)
 
 	M68K_Set_Prg_Ram();
 	MS68K_Set_Word_Ram();
+
+	int len = SEGACD_LENGTH_EX;
+	if(Version <= 8)
+		len += SEGACD_V8_LENGTH_EX - SEGACD_LENGTH_EX;
+	//else if(Version == 9) // in the future...
+	//	len += SEGACD_V9_LENGTH_EX - SEGACD_LENGTH_EX;
+	return len;
 }
 
-void Export_SegaCD(unsigned char *Data) 
+void Export_SegaCD(unsigned char * Data) 
 {
 	S68000CONTEXT Context_sub68K;
 	unsigned char *src;
 	int i,j;
+
+	InBaseGenesis = 0;
 
 	sub68k_GetContext(&Context_sub68K);
 
@@ -1722,73 +1846,97 @@ void Export_SegaCD(unsigned char *Data)
 			ExportData(&CDC.SBOUT, Data, 0xD1068, 4);
 			ExportData(&CDC.IFCTRL, Data, 0xD106C, 4);
 			ExportData(&CDC.CTRL.N, Data, 0xD1070, 4);
-			ExportData(CDC.Buffer, Data, 0xD1074, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
+
+			unsigned int offset = 0xD1074; // used to be called SEGACD_LENGTH_EX1 - sizeof(CDC.Buffer)
+			
+			if(Version >= 9) offset += 4; // alignment for performance
+
+			ExportDataAuto(CDC.Buffer, Data, offset, ((32 * 1024 * 2) + 2352)); //Modif N. - added the *2 because the buffer appears to be that large
 		//CDC end
 	//CDD & CDC Data end
 
-   //Modif N. - extra stuff added to save/set for synchronization reasons
-   // I'm not sure how much of this really needs to be saved, should check it sometime
+	//if (Version >= 7)
+	//{
+		//Modif N. - extra stuff added to save/set for synchronization reasons
+		// I'm not sure how much of this really needs to be saved, should check it sometime
 
-	unsigned int offset = SEGACD_LENGTH_EX1;
+		ExportDataAuto(&File_Add_Delay, Data, offset, 4);
+	//	ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192); // removed, seems to be unnecessary
+	//	ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192); // removed, seems to be unnecessary
+		ExportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
+		ExportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
+		ExportDataAuto(&CD_Audio_Starting, Data, offset, 4);
+		ExportDataAuto(&CD_Present, Data, offset, 4);
+		ExportDataAuto(&CD_Load_System, Data, offset, 4);
+		ExportDataAuto(&CD_Timer_Counter, Data, offset, 4);
+		ExportDataAuto(&CDD_Complete, Data, offset, 4);
+		ExportDataAuto(&track_number, Data, offset, 4);
+		ExportDataAuto(&CD_timer_st, Data, offset, 4);
+		ExportDataAuto(&CD_LBA_st, Data, offset, 4);
+		ExportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
 
-	ExportDataAuto(&File_Add_Delay, Data, offset, 4);
-//	ExportDataAuto(CD_Audio_Buffer_L, Data, offset, 4*8192); // removed, seems to be unnecessary
-//	ExportDataAuto(CD_Audio_Buffer_R, Data, offset, 4*8192); // removed, seems to be unnecessary
-	ExportDataAuto(&CD_Audio_Buffer_Read_Pos, Data, offset, 4);
-	ExportDataAuto(&CD_Audio_Buffer_Write_Pos, Data, offset, 4);
-	ExportDataAuto(&CD_Audio_Starting, Data, offset, 4);
-	ExportDataAuto(&CD_Present, Data, offset, 4);
-	ExportDataAuto(&CD_Load_System, Data, offset, 4);
-	ExportDataAuto(&CD_Timer_Counter, Data, offset, 4);
-	ExportDataAuto(&CDD_Complete, Data, offset, 4);
-	ExportDataAuto(&track_number, Data, offset, 4);
-	ExportDataAuto(&CD_timer_st, Data, offset, 4);
-	ExportDataAuto(&CD_LBA_st, Data, offset, 4);
-	ExportDataAuto(&CDC_Decode_Reg_Read, Data, offset, 4);
+		if(Version >= 9) offset += 8; // alignment for performance
+		ExportDataAuto(&SCD, Data, offset, sizeof(SCD));
+		//ExportDataAuto(&CDC, Data, offset, sizeof(CDC)); // removed, seems unnecessary/redundant
+		ExportDataAuto(&CDD, Data, offset, sizeof(CDD));
+		ExportDataAuto(&COMM, Data, offset, sizeof(COMM));
 
-	ExportDataAuto(&SCD, Data, offset, sizeof(SCD));
-	//ExportDataAuto(&CDC, Data, offset, sizeof(CDC)); // removed, seems unnecessary/redundant
-	ExportDataAuto(&CDD, Data, offset, sizeof(CDD));
-	ExportDataAuto(&COMM, Data, offset, sizeof(COMM));
+		ExportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
+		int preBramExOffset = offset;
+		if(BRAM_Ex_State & 0x100)
+		{
+			switch(BRAM_Ex_Size)
+			{
+				case 0: ExportData(Ram_Backup_Ex, Data, offset, (8<<0)*1024); break;
+				case 1: ExportData(Ram_Backup_Ex, Data, offset, (8<<1)*1024); break;
+				case 2: ExportData(Ram_Backup_Ex, Data, offset, (8<<2)*1024); break;
+	   default: case 3: ExportData(Ram_Backup_Ex, Data, offset, (8<<3)*1024); break;
+			}
+		}
+		offset = preBramExOffset + sizeof(Ram_Backup_Ex);
 
-	ExportDataAuto(Ram_Backup, Data, offset, sizeof(Ram_Backup));
-	ExportDataAuto(Ram_Backup_Ex, Data, offset, sizeof(Ram_Backup_Ex));
 
-	ExportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
-	ExportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
-	ExportDataAuto(&Buffer_Adr, Data, offset, 4);
-	ExportDataAuto(&Vector_Adr, Data, offset, 4);
-	ExportDataAuto(&Jmp_Adr, Data, offset, 4);
-	ExportDataAuto(&Float_Part, Data, offset, 4);
-	ExportDataAuto(&Draw_Speed, Data, offset, 4);
-	ExportDataAuto(&XS, Data, offset, 4);
-	ExportDataAuto(&YS, Data, offset, 4);
-	ExportDataAuto(&DXS, Data, offset, 4);
-	ExportDataAuto(&DYS, Data, offset, 4);
-	ExportDataAuto(&XD, Data, offset, 4);
-	ExportDataAuto(&YD, Data, offset, 4);
-	ExportDataAuto(&XD_Mul, Data, offset, 4);
-	ExportDataAuto(&H_Dot, Data, offset, 4);
+		ExportDataAuto(&Rot_Comp, Data, offset, sizeof(Rot_Comp));
+		ExportDataAuto(&Stamp_Map_Adr, Data, offset, 4);
+		ExportDataAuto(&Buffer_Adr, Data, offset, 4);
+		ExportDataAuto(&Vector_Adr, Data, offset, 4);
+		ExportDataAuto(&Jmp_Adr, Data, offset, 4);
+		ExportDataAuto(&Float_Part, Data, offset, 4);
+		ExportDataAuto(&Draw_Speed, Data, offset, 4);
+		ExportDataAuto(&XS, Data, offset, 4);
+		ExportDataAuto(&YS, Data, offset, 4);
+		ExportDataAuto(&DXS, Data, offset, 4);
+		ExportDataAuto(&DYS, Data, offset, 4);
+		ExportDataAuto(&XD, Data, offset, 4);
+		ExportDataAuto(&YD, Data, offset, 4);
+		ExportDataAuto(&XD_Mul, Data, offset, 4);
+		ExportDataAuto(&H_Dot, Data, offset, 4);
 
-	ExportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
-	ExportDataAuto(&Rom_Data[0x72], Data, offset, 2);	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
+		ExportDataAuto(&Context_sub68K.cycles_needed, Data, offset, 44);
+		ExportDataAuto(&Rom_Data[0x72], Data, offset, 2);	//Sega CD games can overwrite the low two bytes of the Horizontal Interrupt vector
 
-	ExportDataAuto(&fatal_mp3_error, Data, offset, 4);
-	ExportDataAuto(&Current_OUT_Pos, Data, offset, 4);
-	ExportDataAuto(&Current_OUT_Size, Data, offset, 4);
-	ExportDataAuto(&Track_Played, Data, offset, 1);
-	ExportDataAuto(played_tracks_linear, Data, offset, 100);
-	//ExportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
+		ExportDataAuto(&fatal_mp3_error, Data, offset, 4);
+		ExportDataAuto(&Current_OUT_Pos, Data, offset, 4);
+		ExportDataAuto(&Current_OUT_Size, Data, offset, 4);
+		ExportDataAuto(&Track_Played, Data, offset, 1);
+		ExportDataAuto(played_tracks_linear, Data, offset, 100);
+		//ExportDataAuto(&Current_IN_Pos, Data, offset, 4)? // don't save this; bad things happen
+
+		if(Version >= 9) offset += 5; // alignment for performance
+	//}
 
 #ifdef _DEBUG
 	int desiredoffset = SEGACD_LENGTH_EX;
 	assert(offset == desiredoffset);
+	assert((offset&15) == 0); // also want this for alignment performance reasons
 #endif
 }
 
-void Import_32X(unsigned char *Data)
+int Import_32X(unsigned char *Data)
 {
 	unsigned int offset = 0;
+
+	InBaseGenesis = 0;
 
 	for(int contextNum=0; contextNum<2; contextNum++)
 	{
@@ -1815,6 +1963,7 @@ void Import_32X(unsigned char *Data)
 		ImportDataAuto(&context->Cycle_TD, Data, offset, sizeof(context->Cycle_TD));
 		ImportDataAuto(&context->Cycle_IO, Data, offset, sizeof(context->Cycle_IO));
 		ImportDataAuto(&context->Cycle_Sup, Data, offset, sizeof(context->Cycle_Sup));
+		if(Version >= 9) offset += 8; // alignment for performance
 		ImportDataAuto(context->IO_Reg, Data, offset, sizeof(context->IO_Reg));
 		ImportDataAuto(&context->DVCR, Data, offset, sizeof(context->DVCR));
 		ImportDataAuto(&context->DVSR, Data, offset, sizeof(context->DVSR));
@@ -1889,6 +2038,7 @@ void Import_32X(unsigned char *Data)
 	ImportDataAuto(&Cycles_SSH2, Data, offset, sizeof(Cycles_SSH2));
 
 	ImportDataAuto(&_32X_VDP, Data, offset, sizeof(_32X_VDP));
+	if(Version >= 9) offset += 5; // alignment for performance
 	ImportDataAuto(_32X_VDP_Ram, Data, offset, sizeof(_32X_VDP_Ram));
 	ImportDataAuto(_32X_VDP_CRam, Data, offset, sizeof(_32X_VDP_CRam));
 
@@ -1910,6 +2060,7 @@ void Import_32X(unsigned char *Data)
 	ImportDataAuto(&PWM_Out_R, Data, offset, sizeof(PWM_Out_R));
 	ImportDataAuto(&PWM_Out_L, Data, offset, sizeof(PWM_Out_L));
 
+	if(Version >= 9) offset += 12; // alignment for performance
 	ImportDataAuto(_32X_Rom, Data, offset, 1024); // just in case some of these bytes are not in fact read-only as was apparently the case with Sega CD games (1024 seems acceptably small)
 	ImportDataAuto(_32X_MSH2_Rom, Data, offset, sizeof(_32X_MSH2_Rom));
 	ImportDataAuto(_32X_SSH2_Rom, Data, offset, sizeof(_32X_SSH2_Rom));
@@ -1926,15 +2077,28 @@ void Import_32X(unsigned char *Data)
 	}
 
 #ifdef _DEBUG
-	int desiredoffset = G32X_LENGTH_EX;
-	assert(offset == desiredoffset);
+	if(Version == LATEST_SAVESTATE_VERSION)
+	{
+		int desiredoffset = G32X_LENGTH_EX;
+		assert(offset == desiredoffset);
+		assert((offset&15) == 0); // also want this for alignment performance reasons
+	}
 #endif
+
+	int len = G32X_LENGTH_EX;
+	if(Version <= 8)
+		len += G32X_V8_LENGTH_EX - G32X_LENGTH_EX;
+	//else if(Version == 9) // in the future...
+	//	len += G32X_V9_LENGTH_EX - G32X_LENGTH_EX;
+	return len;
 }
 
 
 void Export_32X(unsigned char *Data)
 {
 	unsigned int offset = 0;
+
+	InBaseGenesis = 0;
 
 	for(int contextNum=0; contextNum<2; contextNum++)
 	{
@@ -1961,6 +2125,7 @@ void Export_32X(unsigned char *Data)
 		ExportDataAuto(&context->Cycle_TD, Data, offset, sizeof(context->Cycle_TD));
 		ExportDataAuto(&context->Cycle_IO, Data, offset, sizeof(context->Cycle_IO));
 		ExportDataAuto(&context->Cycle_Sup, Data, offset, sizeof(context->Cycle_Sup));
+		if(Version >= 9) offset += 8; // alignment for performance
 		ExportDataAuto(context->IO_Reg, Data, offset, sizeof(context->IO_Reg));
 		ExportDataAuto(&context->DVCR, Data, offset, sizeof(context->DVCR));
 		ExportDataAuto(&context->DVSR, Data, offset, sizeof(context->DVSR));
@@ -2035,6 +2200,7 @@ void Export_32X(unsigned char *Data)
 	ExportDataAuto(&Cycles_SSH2, Data, offset, sizeof(Cycles_SSH2));
 
 	ExportDataAuto(&_32X_VDP, Data, offset, sizeof(_32X_VDP));
+	if(Version >= 9) offset += 5; // alignment for performance
 	ExportDataAuto(_32X_VDP_Ram, Data, offset, sizeof(_32X_VDP_Ram));
 	ExportDataAuto(_32X_VDP_CRam, Data, offset, sizeof(_32X_VDP_CRam));
 
@@ -2056,6 +2222,7 @@ void Export_32X(unsigned char *Data)
 	ExportDataAuto(&PWM_Out_R, Data, offset, sizeof(PWM_Out_R));
 	ExportDataAuto(&PWM_Out_L, Data, offset, sizeof(PWM_Out_L));
 
+	if(Version >= 9) offset += 12; // alignment for performance
 	ExportDataAuto(_32X_Rom, Data, offset, 1024); // just in case some of these bytes are not in fact read-only as was apparently the case with Sega CD games (1024 seems acceptably small)
 	ExportDataAuto(_32X_MSH2_Rom, Data, offset, sizeof(_32X_MSH2_Rom));
 	ExportDataAuto(_32X_SSH2_Rom, Data, offset, sizeof(_32X_SSH2_Rom));
@@ -2063,6 +2230,7 @@ void Export_32X(unsigned char *Data)
 #ifdef _DEBUG
 	int desiredoffset = G32X_LENGTH_EX;
 	assert(offset == desiredoffset);
+	assert((offset&15) == 0); // also want this for alignment performance reasons
 #endif
 }
 

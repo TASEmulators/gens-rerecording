@@ -2445,14 +2445,8 @@ int YM2612_Save_Full(unsigned char SAVE[sizeof(ym2612_)])
 
 int YM2612_Save(unsigned char SAVE[0x200])
 {
-	int i;
-
-	for(i = 0; i < 0x100; i++)
-	{
-		SAVE[0x000 + i] = YM2612.REG[0][i];
-		SAVE[0x100 + i] = YM2612.REG[1][i];
-	}
-
+	memcpy(SAVE+0x000, YM2612.REG[0], 0x100);
+	memcpy(SAVE+0x100, YM2612.REG[1], 0x100);
 	return 0;
 }
 

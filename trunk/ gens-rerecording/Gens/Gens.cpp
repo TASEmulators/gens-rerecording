@@ -907,7 +907,10 @@ void Detect_Country_Genesis(void)
 // it's correct that those don't fully reset the emulation state.
 static void Misc_Genesis_Init()
 {
-	M_Z80.CycleCnt = 0;
+	//M_Z80.CycleCnt = 0;
+	memset(&M_Z80.AF, 0, sizeof(M_Z80.CycleSup) + ((char*)&M_Z80.CycleSup - (char*)&M_Z80.AF));
+	M_Z80.RetIC = 0;
+	M_Z80.IntAckC = 0;
 	Controller_1_Delay = 0;
 	Controller_2_Delay = 0;
 	Ctrl.DMA_Mode = 0;
@@ -918,13 +921,17 @@ static void Misc_Genesis_Init()
 	Cycles_Z80 = 0;
 	S68K_State = 0;
 	CPL_S68K = 0;
+	Bank_M68K = 0;
+	Lag_Frame = 0;
 	main68k_context.cycles_leftover = 0;
+	main68k_context.xflag = 0;
 	main68k_context.io_cycle_counter = -1;
 	main68k_context.io_fetchbase = 0;
 	main68k_context.io_fetchbased_pc = 0;
 	main68k_context.access_address = 0;
 	main68k_context.odometer = 0;
 	sub68k_context.cycles_leftover = 0;
+	sub68k_context.xflag = 0;
 	sub68k_context.io_cycle_counter = -1;
 	sub68k_context.io_fetchbase = 0;
 	sub68k_context.io_fetchbased_pc = 0;
@@ -1668,7 +1675,9 @@ int Init_32X(struct Rom *MD_Rom)
 		_32X_RV = 0;
 		Cycles_MSH2 = 0;
 		Cycles_SSH2 = 0;
+		int pwmEnabled = PWM_Enable;
 		memset(&PWM_FIFO_R, 0, sizeof(PWM_Out_R_Tmp) + ((char*)&PWM_Out_R_Tmp - (char*)&PWM_FIFO_R));
+		PWM_Enable = pwmEnabled;
 	}
 
 	MSH2_Reset();

@@ -127,7 +127,7 @@
 		bool Tails = false;
 	#endif
 #ifdef SONICCAMHACK
-unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
+ALIGN16 static unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 //extern "C" int Do_VDP_Only();
 extern "C" int Do_Genesis_Frame_No_VDP();
 extern "C" unsigned char Lag_Frame;
@@ -1673,7 +1673,7 @@ int SonicCamHack()
 	return rv;
 }
 #elif defined SONICMAPHACK
-unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
+ALIGN16 static unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 #endif
 #ifdef SONICMAPHACK
 #include "vdp_io.h"

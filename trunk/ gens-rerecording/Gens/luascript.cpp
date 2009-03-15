@@ -1768,7 +1768,7 @@ DEFINE_LUA_FUNCTION(state_create, "[location]")
 		len += max(SEGACD_LENGTH_EX, G32X_LENGTH_EX);
 
 	// allocate the in-memory/anonymous savestate
-	unsigned char* stateBuffer = (unsigned char*)lua_newuserdata(L, len);
+	unsigned char* stateBuffer = (unsigned char*)lua_newuserdata(L, len + 16); // 16 is for performance alignment reasons
 	stateBuffer[0] = 0;
 
 	return 1;
@@ -1811,7 +1811,10 @@ DEFINE_LUA_FUNCTION(state_save, "location[,option]")
 		{
 			unsigned char* stateBuffer = (unsigned char*)lua_touserdata(L,1);
 			if(stateBuffer)
+			{
+				stateBuffer += ((16 - (int)stateBuffer) & 15); // for performance alignment reasons
 				Save_State_To_Buffer(stateBuffer);
+			}
 		}	return 0;
 	}
 }
@@ -1859,6 +1862,7 @@ DEFINE_LUA_FUNCTION(state_load, "location[,option]")
 			unsigned char* stateBuffer = (unsigned char*)lua_touserdata(L,1);
 			if(stateBuffer)
 			{
+				stateBuffer += ((16 - (int)stateBuffer) & 15); // for performance alignment reasons
 				if(stateBuffer[0])
 					Load_State_From_Buffer(stateBuffer);
 				else // the first byte of a valid savestate is never 0

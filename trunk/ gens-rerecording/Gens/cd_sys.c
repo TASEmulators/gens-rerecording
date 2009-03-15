@@ -36,7 +36,7 @@ unsigned short CDDAVol = 256;
 
 char played_tracks_linear [105] = {0};
 
-_scd SCD;
+ALIGN16 _scd SCD;
 
 
 #ifdef DEBUG_CD
