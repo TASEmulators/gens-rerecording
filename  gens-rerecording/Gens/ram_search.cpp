@@ -61,9 +61,9 @@ struct MemoryRegion
 	unsigned int itemIndex; // index into listbox items, valid when s_itemIndicesInvalid is false
 };
 
-static unsigned char s_prevValues [MAX_RAM_SIZE+4] = {0}; // values at last search or reset
-static unsigned char s_curValues [MAX_RAM_SIZE+4] = {0}; // values at last frame update
-static unsigned short s_numChanges [MAX_RAM_SIZE+4] = {0}; // number of changes of the item starting at this virtual index address
+ALIGN16 static unsigned char s_prevValues [MAX_RAM_SIZE+4] = {0}; // values at last search or reset
+ALIGN16 static unsigned char s_curValues [MAX_RAM_SIZE+4] = {0}; // values at last frame update
+ALIGN16 static unsigned short s_numChanges [MAX_RAM_SIZE+4] = {0}; // number of changes of the item starting at this virtual index address
 static MemoryRegion* s_itemIndexToRegionPointer [MAX_RAM_SIZE+4] = {0}; // used for random access into the memory list (trading memory size to get speed here, too bad it's so much memory), only valid when s_itemIndicesInvalid is false
 static BOOL s_itemIndicesInvalid = true; // if true, the link from listbox items to memory regions (s_itemIndexToRegionPointer) and the link from memory regions to list box items (MemoryRegion::itemIndex) both need to be recalculated
 static BOOL s_prevValuesNeedUpdate = true; // if true, the "prev" values should be updated using the "cur" values on the next frame update signaled

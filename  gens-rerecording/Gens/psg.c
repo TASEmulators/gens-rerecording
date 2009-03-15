@@ -417,18 +417,6 @@ void PSG_Init(int clock, int rate)
 
 
 
-unsigned char PSG_Save_Full[sizeof(struct _psg)];
-
-void PSG_Save_State_Full(void)
-{
-   memcpy(PSG_Save_Full, &PSG, sizeof(PSG));
-}
-
-void PSG_Restore_State_Full(void)
-{
-   memcpy(&PSG, PSG_Save_Full, sizeof(PSG));
-} 
-
 void PSG_Save_State(void)
 {
 	int i;

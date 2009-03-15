@@ -211,7 +211,7 @@ bool frameadvSkipLagForceDisable = false;
 bool frameadvSkipLag = false;
 bool skipLagNow = false;
 bool lastFrameAdvancePaused = false;
-unsigned char frameadvSkipLag_Rewind_State_Buffer[2][MAX_STATE_FILE_LENGTH];
+ALIGN16 static unsigned char frameadvSkipLag_Rewind_State_Buffer[2][MAX_STATE_FILE_LENGTH];
 long long frameadvSkipLag_Rewind_Input_Buffer[2] = {~0,~0};
 int frameadvSkipLag_Rewind_State_Buffer_Index = 0;
 bool frameadvSkipLag_Rewind_State_Buffer_Valid = false;
@@ -225,8 +225,8 @@ int frameSearchFrames = -1;
 bool frameSearchInitialized = false;
 long long frameSearchInitialInput = ~0;
 long long frameSearchFinalInput = ~0;
-unsigned char frameSearch_Start_State_Buffer[MAX_STATE_FILE_LENGTH];
-unsigned char frameSearch_End_State_Buffer[MAX_STATE_FILE_LENGTH];
+ALIGN16 static unsigned char frameSearch_Start_State_Buffer[MAX_STATE_FILE_LENGTH];
+ALIGN16 static unsigned char frameSearch_End_State_Buffer[MAX_STATE_FILE_LENGTH];
 
 // used to manage sound clearing (mainly so frame advance can have sound without looping that sound annoyingly)
 DWORD tgtime = timeGetTime(); // time of last sound generation
