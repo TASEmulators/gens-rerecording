@@ -12,10 +12,7 @@
 #define __AFXRES_H__
 
 #ifdef RC_INVOKED
-#ifndef _INC_WINDOWS
-#define _INC_WINDOWS
-	#include "winres.h"           // extract from windows header
-#endif
+	#include "windows.h"
 #endif
 
 #ifdef _AFX_MINREBUILD
