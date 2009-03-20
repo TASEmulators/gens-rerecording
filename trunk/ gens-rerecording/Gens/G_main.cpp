@@ -5414,13 +5414,13 @@ HMENU Build_Main_Menu(void)
 	// measure the desired width of the menu in pixels,
 	// such that the menu will only be 1 line tall if the surrounding window is at least this wide
 	// (you would think this would be a simple thing to do, but no...)
-	NONCLIENTMETRICS ncm; 
+	NONCLIENTMETRICS ncm = {0};
 	ncm.cbSize = sizeof(NONCLIENTMETRICS); 
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0); 
 	HDC hdc = GetDC(HWnd);
 	HFONT menuFont = CreateFontIndirect( &ncm.lfMenuFont ); 
 	HFONT oldFont = (HFONT)SelectObject(hdc, (HGDIOBJ)menuFont);
-	SIZE size;
+	SIZE size = {0};
 	GetTextExtentPoint32(hdc, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size);
 	int extraSpace = (size.cx/26+1)/2;
 	Gens_Menu_Width = extraSpace;
