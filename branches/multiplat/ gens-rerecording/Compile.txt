@@ -1,0 +1,40 @@
+TODO: update this document (here's a start: open gens.sln in Visual Studio 2005 and choose Build Solution. If it complains about ddraw.h missing you'll need to install a DirectX SDK first.)
+
+
+
+You need Visual C++ 6.0 with the DirectX 7.0 Runtime library and NASM installed
+in the root directory of the drive where you've checked out Gens (\nasm) to
+compile Gens project (NASM in included in the sources package, you just need
+to move it in the root directory).
+
+Gens uses the Starcream 680x0 library emulation for the genesis and Sega CD
+68000 CPU emulation, the core has been customised and optimised for Gens.
+
+Gens project is structured as follow :
+
+- Gens directory contains all gens sources except the CPU cores.
+- Main68k directory contains the sources for the main 68000 (genesis 68000).
+- Sub68k directory contains the sources for the sub 68000 (Sega CD 68000).
+- z80 directory contains the sources for the Z80 cpu (genesis).
+
+I used 2 68000 cores for speed reasons :
+- No context swap required.
+- Each core is optimised for its function.
+
+Here's the step to follow to compile succefully the win32 vesion of Gens :
+
+- Be sure to have VC (Visual C++) 6.0 with the DirectX 7.0 Runtime library installed.
+- Open the Main68k project (DSW file) with VC, build star.exe then close the project.
+- Open the Sub68k project with VC, build star.exe then close the project.
+- Exec the comp_m68k.bat file.
+- Exec the comp_s68k.bat file.
+- Open the Gens project with VC and build gens.exe, that's all :)
+
+Gens.exe file is normally build in the gens\release directory.
+To uses netplay features, Gens requires kailleraclient.dll, the file should be in
+the same directory as gens.exe
+
+
+
+
+
