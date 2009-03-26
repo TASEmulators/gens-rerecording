@@ -1411,7 +1411,7 @@
 				>
 			</File>
 			<File
-				RelativePath="blit.h"
+				RelativePath="..\common\core\gfx\blit.h"
 				>
 			</File>
 			<File
@@ -1419,19 +1419,19 @@
 				>
 			</File>
 			<File
-				RelativePath="cd_aspi.h"
+				RelativePath="..\common\segacd\cd_aspi.h"
 				>
 			</File>
 			<File
-				RelativePath="cd_file.h"
+				RelativePath="..\common\segacd\cd_file.h"
 				>
 			</File>
 			<File
-				RelativePath="Cd_sys.h"
+				RelativePath="..\common\segacd\Cd_sys.h"
 				>
 			</File>
 			<File
-				RelativePath="cdda_mp3.h"
+				RelativePath="..\common\segacd\cdda_mp3.h"
 				>
 			</File>
 			<File
@@ -1495,19 +1495,19 @@
 				>
 			</File>
 			<File
-				RelativePath="htmlhelp.h"
+				RelativePath=".\src\htmlhelp.h"
 				>
 			</File>
 			<File
-				RelativePath="io.h"
+				RelativePath="..\common\core\io\io.h"
 				>
 			</File>
 			<File
-				RelativePath="kailleraclient.h"
+				RelativePath=".\src\netplay\kailleraclient.h"
 				>
 			</File>
 			<File
-				RelativePath="keycode.h"
+				RelativePath=".\src\keycode.h"
 				>
 			</File>
 			<File
@@ -1539,7 +1539,7 @@
 				>
 			</File>
 			<File
-				RelativePath="Misc.h"
+				RelativePath="..\common\core\misc\Misc.h"
 				>
 			</File>
 			<File
@@ -1567,7 +1567,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\png.h"
+				RelativePath="..\common\png.h"
 				>
 			</File>
 			<File
@@ -1591,7 +1591,7 @@
 				>
 			</File>
 			<File
-				RelativePath="save.h"
+				RelativePath="..\common\save.h"
 				>
 			</File>
 			<File
@@ -1607,7 +1607,7 @@
 				>
 			</File>
 			<File
-				RelativePath="Star_68k.h"
+				RelativePath="..\common\core\cpu\68k\Star_68k.h"
 				>
 			</File>
 			<File
@@ -1619,15 +1619,15 @@
 				>
 			</File>
 			<File
-				RelativePath="vdp_32X.h"
+				RelativePath="..\common\core\vdp\vdp_32X.h"
 				>
 			</File>
 			<File
-				RelativePath="vdp_io.h"
+				RelativePath="..\common\core\vdp\vdp_io.h"
 				>
 			</File>
 			<File
-				RelativePath="vdp_rend.h"
+				RelativePath="..\common\core\vdp\vdp_rend.h"
 				>
 			</File>
 			<File
@@ -1647,11 +1647,11 @@
 				>
 			</File>
 			<File
-				RelativePath="zconf.h"
+				RelativePath="..\common\zconf.h"
 				>
 			</File>
 			<File
-				RelativePath="zlib.h"
+				RelativePath="..\common\zlib.h"
 				>
 			</File>
 			<Filter
