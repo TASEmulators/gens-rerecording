@@ -4,9 +4,9 @@
 #include "cd_file.h"
 #include "lc89510.h"
 #include "cdda_mp3.h"
-#include "star_68k.h"
-#include "rom.h"
-#include "mem_S68K.h"
+#include "..\core\cpu\68k\star_68k.h"
+#include "..\rom.h"
+#include "..\core\mem\mem_S68K.h"
 #include <string.h>
 
 struct _file_track Tracks[100];

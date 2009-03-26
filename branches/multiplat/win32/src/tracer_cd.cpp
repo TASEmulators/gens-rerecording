@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include "Cpu_68k.h"
-#include "M68KD.h"
-#include "Mem_M68k.h"
-#include "Mem_S68k.h"
-#include "vdp_io.h"
+#include "..\..\common\core\cpu\68k\Cpu_68k.h"
+#include "..\..\common\debug\M68KD.h"
+#include "..\..\common\core\mem\Mem_M68k.h"
+#include "..\..\common\core\mem\Mem_S68k.h"
+#include "..\..\common\core\vdp\vdp_io.h"
 #include "luascript.h"
 
 #define uint32 unsigned int

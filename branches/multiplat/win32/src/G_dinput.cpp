@@ -2,11 +2,11 @@
 #include <vector>
 #include <map>
 #include "resource.h"
-#include "G_Input.h"
-#include "io.h"
-#include "G_main.h"
-#include "movie.h"
-#include "save.h" //Modif
+#include "..\..\common\G_Input.h"
+#include "..\..\common\core\io\io.h"
+#include "..\..\common\G_main.h"
+#include "..\..\common\movie.h"
+#include "..\..\common\save.h" //Modif
 #include "hackdefs.h"
 #include "luascript.h"
 

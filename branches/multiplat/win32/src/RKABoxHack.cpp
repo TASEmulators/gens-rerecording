@@ -3,8 +3,8 @@
 #include "guidraw.h"
 #include "RKABoxHack.h"
 #include "HacksCommon.h"
-#include "misc.h"
-#include "g_main.h"
+#include "..\..\common\core\misc\misc.h"
+#include "..\..\common\g_main.h"
 #ifdef RKABOXHACK
 void RKADrawBoxes()
 {

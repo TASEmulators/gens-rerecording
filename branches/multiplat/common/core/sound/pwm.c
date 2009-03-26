@@ -1,7 +1,7 @@
 #include "pwm.h"
 
-#include "SH2.h"
-#include "mem_SH2.h"
+#include "..\cpu\sh2\SH2.h"
+#include "..\mem\mem_SH2.h"
 #include <memory.h>
 
 #define PWM_BUF_SIZE 4

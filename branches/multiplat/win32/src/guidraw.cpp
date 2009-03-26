@@ -32,7 +32,7 @@
 #include "guidraw.h"
 #include "drawutil.h"
 #include "math.h"
-#include "misc.h"
+#include "..\..\common\core\misc\misc.h"
 
 #define SWAP_INTEGERS(x,y) x^=y, y^=x, x^=y
 

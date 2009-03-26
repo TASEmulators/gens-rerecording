@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 %define CYCLE_FOR_TAKE_Z80_BUS_GENESIS 16
 %define CYCLE_FOR_TAKE_Z80_BUS_SEGACD 32

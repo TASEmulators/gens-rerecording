@@ -2,15 +2,15 @@
 #include <windows.h>
 #include "cd_aspi.h"		// this include cd_sys.h
 #include "cd_file.h"
-#include "gens.h"
-#include "G_dsound.h"
+#include "..\gens.h"
+#include "..\G_dsound.h"
 #include "cdda_mp3.h"
 #include "lc89510.h"
-#include "Star_68k.h"
-#include "Mem_M68K.h"
-#include "Mem_S68K.h"
-#include "save.h"
-#include "misc.h"
+#include "..\core\cpu\68k\Star_68k.h"
+#include "..\core\mem\Mem_M68K.h"
+#include "..\core\mem\Mem_S68K.h"
+#include "..\save.h"
+#include "..\core\misc\misc.h"
 
 int File_Add_Delay = 0;
 

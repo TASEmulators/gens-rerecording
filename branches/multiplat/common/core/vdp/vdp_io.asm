@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 IN_VRAM		equ 0
 IN_CRAM		equ 1

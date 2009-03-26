@@ -8,11 +8,11 @@
 #include "drawutil.h"
 #include "SonicHackSuite.h"
 #include "HacksCommon.h"
-#include "misc.h"
-#include "g_main.h"
-#include "g_ddraw.h"
-#include "save.h"
-#include "ym2612.h"
+#include "..\..\common\core\misc\misc.h"
+#include "..\..\common\g_main.h"
+#include "..\..\common\g_ddraw.h"
+#include "..\..\common\save.h"
+#include "..\..\common\core\sound\ym2612.h"
 
 	// Sonic camera hack
 	#ifdef SK

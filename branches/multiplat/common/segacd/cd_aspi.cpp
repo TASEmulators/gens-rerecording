@@ -1,13 +1,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <windows.h>
-#include "G_main.h"
-#include "rom.h"
-#include "star_68k.h"
+#include "..\G_main.h"
+#include "..\rom.h"
+#include "..\core\cpu\68k\star_68k.h"
 #include "LC89510.h"
 #include "cd_aspi.h"
-#include "mem_S68K.h"
-#include "movie.h"
+#include "..\core\mem\mem_S68K.h"
+#include "..\movie.h"
 
 HINSTANCE hDLL = NULL;               // Handle to DLL
 DWORD (*Get_ASPI_Info) (void);

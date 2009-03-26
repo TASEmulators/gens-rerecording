@@ -3,10 +3,10 @@
 #include "guidraw.h"
 #include "EccoBoxHack.h"
 #include "HacksCommon.h"
-#include "misc.h"
-#include "g_main.h"
-#include "io.h"
-#include "movie.h"
+#include "..\..\common\core\misc\misc.h"
+#include "..\..\common\g_main.h"
+#include "..\..\common\core\io\io.h"
+#include "..\..\common\movie.h"
 #ifdef ECCOBOXHACK
 void EccoDraw3D()
 {

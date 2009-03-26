@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "mem_M68K.h"
-#include "mem_S68K.h"
+#include "..\core\mem\mem_M68K.h"
+#include "..\core\mem\mem_S68K.h"
 
 
 static char Dbg_Str[32];

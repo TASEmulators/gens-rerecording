@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <windows.h>
-#include "misc.h"
+#include "..\core\misc\misc.h"
 #include "lc89510.h"
 #include "cd_aspi.h"
 #include "cd_sys.h"
-#include "Star_68k.h"
-#include "mem_S68k.h"
-#include "pcm.h"
+#include "..\core\cpu\68k\Star_68k.h"
+#include "..\core\mem\mem_S68k.h"
+#include "..\core\sound\pcm.h"
 
 #define CDC_DMA_SPEED 256
 

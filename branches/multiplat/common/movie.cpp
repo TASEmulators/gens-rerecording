@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include "gens.h"
 #include "G_main.h"
-#include "io.h"
+#include "core\io\io.h"
 #include "G_ddraw.h"
 #include "G_Input.h"
 #include "movie.h"
-#include "mem_M68K.h"
-#include "luascript.h"
-#include "OpenArchive.h"
+#include "core\mem\mem_M68K.h"
+#include "..\win32\src\luascript.h"
+#include "..\win32\src\OpenArchive.h"
 long unsigned int FrameCount=0;
 long unsigned int LagCount=0;
 long unsigned int LagCountPersistent = 0; // same as LagCount but ignores manual resets

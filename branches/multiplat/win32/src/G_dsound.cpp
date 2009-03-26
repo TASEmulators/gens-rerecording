@@ -1,17 +1,17 @@
 #include <stdio.h>
-#include "G_ddraw.h"
-#include "G_dsound.h"
-#include "psg.h"
-#include "ym2612.h"
-#include "mem_M68K.h"
-#include "vdp_io.h"
-#include "G_Main.h"
-#include "gens.h"
-#include "Rom.h"
-#include "wave.h"
-#include "pcm.h"
-#include "misc.h"		// for Have_MMX flag
-#include "scrshot.h"
+#include "..\..\common\G_ddraw.h"
+#include "..\..\common\G_dsound.h"
+#include "..\..\common\core\sound\psg.h"
+#include "..\..\common\core\sound\ym2612.h"
+#include "..\..\common\core\mem\mem_M68K.h"
+#include "..\..\common\core\vdp\vdp_io.h"
+#include "..\..\common\G_Main.h"
+#include "..\..\common\gens.h"
+#include "..\..\common\Rom.h"
+#include "..\..\common\wave.h"
+#include "..\..\common\core\sound\pcm.h"
+#include "..\..\common\core\misc\misc.h"		// for Have_MMX flag
+#include "..\..\common\scrshot.h"
 #include <math.h> // Nitsuja includes this for his softsound filter
 
 LPDIRECTSOUND lpDS;

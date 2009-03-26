@@ -1,5 +1,5 @@
 #include "luascript.h"
-#include "ggenie.h"
+#include "..\..\common\ggenie.h"
 #include "corehooks.h"
 #include "tracer.h"
 

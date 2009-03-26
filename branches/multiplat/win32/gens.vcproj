@@ -19,8 +19,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory=".\src\Release"
+			IntermediateDirectory=".\src\Release"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -48,7 +48,7 @@
 				MkTypLibCompatible="true"
 				SuppressStartupBanner="true"
 				TargetEnvironment="1"
-				TypeLibraryName=".\Release/gens.tlb"
+				TypeLibraryName=".\src\Release/gens.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
@@ -60,15 +60,15 @@
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="directx; 7z\CPP"
+				AdditionalIncludeDirectories="src\directx; ..\common\7z\CPP"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;EXTRACT_ONLY;_NO_CRYPTO"
 				StringPooling="true"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
-				PrecompiledHeaderFile=".\Release/gens.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile=".\src\Release/gens.pch"
+				AssemblerListingLocation=".\src\Release/"
+				ObjectFile=".\src\Release/"
+				ProgramDataBaseFileName=".\src\Release/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -87,14 +87,14 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj; /LTCG"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
-				OutputFile=".\Release/gens.exe"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib src/directx/ddraw.lib src/directx/dsound.lib src/directx/dinput.lib src/directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
+				OutputFile=".\src\Release/gens.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="LIBC.lib"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Release/gens.pdb"
+				ProgramDatabaseFile=".\src\Release/gens.pdb"
 				SubSystem="2"
 				LinkTimeCodeGeneration="1"
 				TargetMachine="1"
@@ -156,7 +156,7 @@
 				MkTypLibCompatible="true"
 				SuppressStartupBanner="true"
 				TargetEnvironment="1"
-				TypeLibraryName=".\Release/gens.tlb"
+				TypeLibraryName=".\src\Release/gens.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
@@ -172,10 +172,10 @@
 				SmallerTypeCheck="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="false"
-				PrecompiledHeaderFile=".\Debug/gens.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
+				PrecompiledHeaderFile=".\src\Debug/gens.pch"
+				AssemblerListingLocation=".\src\Debug/"
+				ObjectFile=".\src\Debug/"
+				ProgramDataBaseFileName=".\src\Debug/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -194,14 +194,14 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib vfw32.lib"
-				OutputFile=".\Debug/gens.exe"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib shell32.lib oleaut32.lib src/directx/ddraw.lib src/directx/dsound.lib src/directx/dinput.lib src/directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib vfw32.lib"
+				OutputFile=".\src\Debug/gens.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/gens.pdb"
+				ProgramDatabaseFile=".\src\Debug/gens.pdb"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -239,43 +239,23 @@
 			Filter=".c;.cpp"
 			>
 			<File
-				RelativePath=".\7zip.cpp"
+				RelativePath="..\common\7zip.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\AVIWrite.cpp"
+				RelativePath=".\src\AVIWrite.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\base64.c"
+				RelativePath=".\src\base64.c"
 				>
 			</File>
 			<File
-				RelativePath=".\cblit.cpp"
+				RelativePath="..\common\core\gfx\cblit.cpp"
 				>
 			</File>
 			<File
-				RelativePath="CCnet.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="cd_aspi.cpp"
+				RelativePath=".\src\netplay\CCnet.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -295,7 +275,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="cd_file.c"
+				RelativePath="..\common\segacd\cd_aspi.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -315,7 +295,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="cd_sys.c"
+				RelativePath="..\common\segacd\cd_file.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -335,15 +315,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\cdda_mp3.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\corehooks.cpp"
-				>
-			</File>
-			<File
-				RelativePath="Cpu_68k.c"
+				RelativePath="..\common\segacd\cd_sys.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -363,7 +335,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Cpu_SH2.c"
+				RelativePath="..\common\segacd\cdda_mp3.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\corehooks.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\common\core\cpu\68k\Cpu_68k.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -383,7 +363,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Cpu_Z80.c"
+				RelativePath="..\common\core\cpu\sh2\Cpu_SH2.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -403,7 +383,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Debug.cpp"
+				RelativePath="..\common\core\cpu\z80\Cpu_Z80.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -423,11 +403,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\drawutil.cpp"
-				>
-			</File>
-			<File
-				RelativePath="G_ddraw.cpp"
+				RelativePath="..\common\debug\Debug.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -447,7 +423,11 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="G_dinput.cpp"
+				RelativePath=".\src\drawutil.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\g_ddraw.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -467,7 +447,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="G_dsound.cpp"
+				RelativePath=".\src\g_dinput.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -487,7 +467,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="G_main.cpp"
+				RelativePath=".\src\g_dsound.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -507,11 +487,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\Gens.cpp"
-				>
-			</File>
-			<File
-				RelativePath="ggenie.cpp"
+				RelativePath=".\src\G_main.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -531,15 +507,11 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\gm2_structs.cpp"
+				RelativePath="..\common\Gens.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\guidraw.cpp"
-				>
-			</File>
-			<File
-				RelativePath="LC89510.c"
+				RelativePath="..\common\ggenie.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -559,39 +531,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\luascript.cpp"
+				RelativePath=".\src\gm2_structs.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\luascript_window.cpp"
+				RelativePath=".\src\guidraw.cpp"
 				>
 			</File>
 			<File
-				RelativePath="M68KD.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\movie.cpp"
-				>
-			</File>
-			<File
-				RelativePath="net.cpp"
+				RelativePath="..\common\segacd\LC89510.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -611,35 +559,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\OpenArchive.cpp"
+				RelativePath=".\src\luascript.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ParseCmdLine.cpp"
+				RelativePath=".\src\luascriptwindow.cpp"
 				>
 			</File>
 			<File
-				RelativePath="pcm.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="psg.c"
+				RelativePath="..\common\debug\M68KD.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -659,7 +587,79 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\pwm.c"
+				RelativePath="..\common\movie.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\netplay\net.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\OpenArchive.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\common\ParseCmdLine.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\common\core\sound\pcm.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\core\sound\psg.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\core\sound\pwm.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -681,35 +681,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\ram_search.cpp"
+				RelativePath=".\src\ramsearch.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ramwatch.cpp"
+				RelativePath=".\src\ramwatch.cpp"
 				>
 			</File>
 			<File
-				RelativePath="Rom.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="save.cpp"
+				RelativePath="..\common\Rom.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -729,11 +709,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\scrshot.cpp"
-				>
-			</File>
-			<File
-				RelativePath="SH2.c"
+				RelativePath="..\common\save.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -753,7 +729,11 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="SH2D.c"
+				RelativePath="..\common\scrshot.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\common\core\cpu\sh2\SH2.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -773,15 +753,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\tracer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\tracer_cd.cpp"
-				>
-			</File>
-			<File
-				RelativePath="unzip.c"
+				RelativePath="..\common\debug\SH2D.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -801,7 +773,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="wave.c"
+				RelativePath=".\src\tracer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\tracer_cd.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\common\unzip.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -821,7 +801,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="ym2612.c"
+				RelativePath="..\common\wave.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -841,7 +821,27 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="z80dis.c"
+				RelativePath="..\common\core\sound\ym2612.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\debug\z80dis.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -864,7 +864,7 @@
 				Name="mp3_dec_c"
 				>
 				<File
-					RelativePath="mp3_dec\common.c"
+					RelativePath="..\common\segacd\mp3_dec\common.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -884,7 +884,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\dct64_i386.c"
+					RelativePath="..\common\segacd\mp3_dec\dct64_i386.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -904,7 +904,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\decode_i386.c"
+					RelativePath="..\common\segacd\mp3_dec\decode_i386.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -924,7 +924,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\interface.c"
+					RelativePath="..\common\segacd\mp3_dec\interface.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -944,7 +944,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\layer3.c"
+					RelativePath="..\common\segacd\mp3_dec\layer3.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -964,7 +964,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\tabinit.c"
+					RelativePath="..\common\segacd\mp3_dec\tabinit.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -990,7 +990,7 @@
 			Filter=".asm"
 			>
 			<File
-				RelativePath="blit.asm"
+				RelativePath="..\common\core\gfx\blit.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1014,7 +1014,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="gfx_cd.asm"
+				RelativePath="..\common\core\gfx\gfx_cd.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1038,7 +1038,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="io.asm"
+				RelativePath="..\common\core\io\io.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1062,7 +1062,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\Starscream\Main68k\main68k.asm"
+				RelativePath="..\common\core\cpu\68k\main68k.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1086,7 +1086,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Mem_M68k.asm"
+				RelativePath="..\common\core\mem\Mem_M68k.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1095,7 +1095,7 @@
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
 						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
-						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
+						AdditionalDependencies="..\common\core\mem\mem_m68k_32x.inc;..\common\core\mem\mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1106,45 +1106,21 @@
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
 						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
-						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
+						AdditionalDependencies="..\common\core\mem\mem_m68k_32x.inc;..\common\core\mem\mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Mem_M68K_32X.inc"
+				RelativePath="..\common\core\mem\Mem_M68K_32X.inc"
 				>
 			</File>
 			<File
-				RelativePath="Mem_M68K_CD.inc"
+				RelativePath="..\common\core\mem\Mem_M68K_CD.inc"
 				>
 			</File>
 			<File
-				RelativePath="Mem_S68k.asm"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
-						Outputs="$(OutDir)\$(InputName).obj"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
-						Outputs="$(OutDir)\$(InputName).obj"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="Mem_SH2.asm"
+				RelativePath="..\common\core\mem\Mem_S68k.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1168,7 +1144,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Mem_Z80.asm"
+				RelativePath="..\common\core\mem\Mem_SH2.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1192,7 +1168,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Misc.asm"
+				RelativePath="..\common\core\mem\Mem_Z80.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1216,7 +1192,31 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="pwm.asm"
+				RelativePath="..\common\core\misc\Misc.asm"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Assembling $(InputName).asm"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						Outputs="$(OutDir)\$(InputName).obj"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Assembling $(InputName).asm"
+						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						Outputs="$(OutDir)\$(InputName).obj"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\core\sound\pwm.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1244,7 +1244,7 @@
 				>
 			</File>
 			<File
-				RelativePath="SH2a.asm"
+				RelativePath="..\common\core\cpu\sh2\SH2a.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1270,7 +1270,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\Starscream\Sub68k\sub68k.asm"
+				RelativePath="..\common\core\cpu\68k\sub68k.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1294,7 +1294,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="vdp_32X.asm"
+				RelativePath="..\common\core\vdp\vdp_32X.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1318,7 +1318,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="vdp_io.asm"
+				RelativePath="..\common\core\vdp\vdp_io.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1342,7 +1342,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="vdp_rend.asm"
+				RelativePath="..\common\core\vdp\vdp_rend.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1366,7 +1366,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="z80.asm"
+				RelativePath="..\common\core\cpu\z80\z80.asm"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -1395,19 +1395,19 @@
 			Filter=".h"
 			>
 			<File
-				RelativePath=".\7zip.h"
+				RelativePath="..\common\7zip.h"
 				>
 			</File>
 			<File
-				RelativePath=".\7zipstreams.h"
+				RelativePath="..\common\7zipstreams.h"
 				>
 			</File>
 			<File
-				RelativePath=".\AVIWrite.h"
+				RelativePath=".\src\AVIWrite.h"
 				>
 			</File>
 			<File
-				RelativePath=".\base64.h"
+				RelativePath=".\src\base64.h"
 				>
 			</File>
 			<File
@@ -1415,7 +1415,7 @@
 				>
 			</File>
 			<File
-				RelativePath="CCnet.h"
+				RelativePath=".\src\netplay\CCnet.h"
 				>
 			</File>
 			<File
@@ -1435,63 +1435,63 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Corehooks.h"
+				RelativePath=".\src\Corehooks.h"
 				>
 			</File>
 			<File
-				RelativePath="Cpu_68k.h"
+				RelativePath="..\common\core\cpu\68k\Cpu_68k.h"
 				>
 			</File>
 			<File
-				RelativePath="Cpu_SH2.h"
+				RelativePath="..\common\core\cpu\sh2\Cpu_SH2.h"
 				>
 			</File>
 			<File
-				RelativePath="Cpu_Z80.h"
+				RelativePath="..\common\core\cpu\z80\Cpu_Z80.h"
 				>
 			</File>
 			<File
-				RelativePath="Debug.h"
+				RelativePath="..\common\debug\Debug.h"
 				>
 			</File>
 			<File
-				RelativePath=".\drawutil.h"
+				RelativePath=".\src\drawutil.h"
 				>
 			</File>
 			<File
-				RelativePath="G_ddraw.h"
+				RelativePath="..\common\G_ddraw.h"
 				>
 			</File>
 			<File
-				RelativePath="G_dsound.h"
+				RelativePath="..\common\G_dsound.h"
 				>
 			</File>
 			<File
-				RelativePath="G_Input.h"
+				RelativePath="..\common\G_Input.h"
 				>
 			</File>
 			<File
-				RelativePath="G_main.h"
+				RelativePath="..\common\G_main.h"
 				>
 			</File>
 			<File
-				RelativePath="gens.h"
+				RelativePath="..\common\gens.h"
 				>
 			</File>
 			<File
-				RelativePath="gfx_cd.h"
+				RelativePath="..\common\core\gfx\gfx_cd.h"
 				>
 			</File>
 			<File
-				RelativePath="ggenie.h"
+				RelativePath="..\common\ggenie.h"
 				>
 			</File>
 			<File
-				RelativePath=".\gm2_structs.h"
+				RelativePath=".\src\gm2_structs.h"
 				>
 			</File>
 			<File
-				RelativePath=".\guidraw.h"
+				RelativePath=".\src\guidraw.h"
 				>
 			</File>
 			<File
@@ -1511,31 +1511,31 @@
 				>
 			</File>
 			<File
-				RelativePath="LC89510.h"
+				RelativePath="..\common\segacd\LC89510.h"
 				>
 			</File>
 			<File
-				RelativePath=".\luascript.h"
+				RelativePath=".\src\luascript.h"
 				>
 			</File>
 			<File
-				RelativePath="M68KD.h"
+				RelativePath="..\common\debug\M68KD.h"
 				>
 			</File>
 			<File
-				RelativePath="Mem_M68k.h"
+				RelativePath="..\common\core\mem\mem_M68k.h"
 				>
 			</File>
 			<File
-				RelativePath="Mem_S68k.h"
+				RelativePath="..\common\core\mem\mem_S68k.h"
 				>
 			</File>
 			<File
-				RelativePath="Mem_SH2.h"
+				RelativePath="..\common\core\mem\mem_SH2.h"
 				>
 			</File>
 			<File
-				RelativePath="Mem_Z80.h"
+				RelativePath="..\common\core\mem\mem_Z80.h"
 				>
 			</File>
 			<File
@@ -1543,51 +1543,51 @@
 				>
 			</File>
 			<File
-				RelativePath=".\movie.h"
+				RelativePath="..\common\movie.h"
 				>
 			</File>
 			<File
-				RelativePath=".\moviegfx.h"
+				RelativePath=".\src\moviegfx.h"
 				>
 			</File>
 			<File
-				RelativePath="net.h"
+				RelativePath=".\src\netplay\net.h"
 				>
 			</File>
 			<File
-				RelativePath=".\OpenArchive.h"
+				RelativePath=".\src\OpenArchive.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ParseCmdLine.h"
+				RelativePath="..\common\ParseCmdLine.h"
 				>
 			</File>
 			<File
-				RelativePath="pcm.h"
+				RelativePath="..\common\core\sound\pcm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\png.h"
+				RelativePath=".\src\png.h"
 				>
 			</File>
 			<File
-				RelativePath="psg.h"
+				RelativePath="..\common\core\sound\psg.h"
 				>
 			</File>
 			<File
-				RelativePath="pwm.h"
+				RelativePath="..\common\core\sound\pwm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ram_search.h"
+				RelativePath=".\src\ramsearch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ramwatch.h"
+				RelativePath=".\src\ramwatch.h"
 				>
 			</File>
 			<File
-				RelativePath="Rom.h"
+				RelativePath="..\common\Rom.h"
 				>
 			</File>
 			<File
@@ -1595,15 +1595,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\scrshot.h"
+				RelativePath=".\src\scrshot.h"
 				>
 			</File>
 			<File
-				RelativePath="SH2.h"
+				RelativePath="..\common\core\cpu\sh2\SH2.h"
 				>
 			</File>
 			<File
-				RelativePath="SH2D.h"
+				RelativePath="..\common\debug\SH2D.h"
 				>
 			</File>
 			<File
@@ -1611,11 +1611,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\tracer.h"
+				RelativePath=".\src\tracer.h"
 				>
 			</File>
 			<File
-				RelativePath="unzip.h"
+				RelativePath="..\common\unzip.h"
 				>
 			</File>
 			<File
@@ -1631,19 +1631,19 @@
 				>
 			</File>
 			<File
-				RelativePath="wave.h"
+				RelativePath="..\common\wave.h"
 				>
 			</File>
 			<File
-				RelativePath="ym2612.h"
+				RelativePath="..\common\core\sound\ym2612.h"
 				>
 			</File>
 			<File
-				RelativePath="z80.h"
+				RelativePath="..\common\core\cpu\z80\z80.h"
 				>
 			</File>
 			<File
-				RelativePath="z80dis.h"
+				RelativePath="..\common\debug\z80dis.h"
 				>
 			</File>
 			<File
@@ -1658,15 +1658,15 @@
 				Name="mp3_dec_h"
 				>
 				<File
-					RelativePath="mp3_dec\huffman.h"
+					RelativePath="..\common\segacd\mp3_dec\huffman.h"
 					>
 				</File>
 				<File
-					RelativePath="mp3_dec\mpg123.h"
+					RelativePath="..\common\segacd\mp3_dec\mpg123.h"
 					>
 				</File>
 				<File
-					RelativePath="mp3_dec\mpglib.h"
+					RelativePath="..\common\segacd\mp3_dec\mpglib.h"
 					>
 				</File>
 			</Filter>
@@ -1675,18 +1675,18 @@
 			Name="resources"
 			>
 			<File
-				RelativePath="Gens.rc"
+				RelativePath=".\src\Gens.rc"
 				>
 			</File>
 			<File
-				RelativePath="resource.h"
+				RelativePath=".\src\resource.h"
 				>
 			</File>
 			<Filter
 				Name="icon"
 				>
 				<File
-					RelativePath="gens.ico"
+					RelativePath="resource\gens.ico"
 					>
 				</File>
 				<File
@@ -1738,7 +1738,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\resource\bmp00007.bmp"
+					RelativePath="resource\bmp00007.bmp"
 					>
 				</File>
 				<File
@@ -1755,39 +1755,39 @@
 			Name="DisplayHacks"
 			>
 			<File
-				RelativePath=".\EccoBoxHack.cpp"
+				RelativePath=".\src\EccoBoxHack.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\EccoBoxHack.h"
+				RelativePath=".\src\EccoBoxHack.h"
 				>
 			</File>
 			<File
-				RelativePath=".\hackdefs.h"
+				RelativePath=".\src\hackdefs.h"
 				>
 			</File>
 			<File
-				RelativePath=".\HacksCommon.cpp"
+				RelativePath=".\src\HacksCommon.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\HacksCommon.h"
+				RelativePath=".\src\HacksCommon.h"
 				>
 			</File>
 			<File
-				RelativePath=".\RKABoxHack.cpp"
+				RelativePath=".\src\RKABoxHack.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\RKABoxHack.h"
+				RelativePath=".\src\RKABoxHack.h"
 				>
 			</File>
 			<File
-				RelativePath=".\SonicHackSuite.cpp"
+				RelativePath=".\src\SonicHackSuite.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\SonicHackSuite.h"
+				RelativePath=".\src\SonicHackSuite.h"
 				>
 			</File>
 		</Filter>
@@ -1795,211 +1795,211 @@
 			Name="LibLua"
 			>
 			<File
-				RelativePath=".\lua\src\lapi.c"
+				RelativePath="..\common\lua\src\lapi.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lapi.h"
+				RelativePath="..\common\lua\src\lapi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lauxlib.c"
+				RelativePath="..\common\lua\src\lauxlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lauxlib.h"
+				RelativePath="..\common\lua\src\lauxlib.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lbaselib.c"
+				RelativePath="..\common\lua\src\lbaselib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lcode.c"
+				RelativePath="..\common\lua\src\lcode.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lcode.h"
+				RelativePath="..\common\lua\src\lcode.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldblib.c"
+				RelativePath="..\common\lua\src\ldblib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldebug.c"
+				RelativePath="..\common\lua\src\ldebug.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldebug.h"
+				RelativePath="..\common\lua\src\ldebug.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldo.c"
+				RelativePath="..\common\lua\src\ldo.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldo.h"
+				RelativePath="..\common\lua\src\ldo.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldump.c"
+				RelativePath="..\common\lua\src\ldump.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lfunc.c"
+				RelativePath="..\common\lua\src\lfunc.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lfunc.h"
+				RelativePath="..\common\lua\src\lfunc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lgc.c"
+				RelativePath="..\common\lua\src\lgc.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lgc.h"
+				RelativePath="..\common\lua\src\lgc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\linit.c"
+				RelativePath="..\common\lua\src\linit.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\liolib.c"
+				RelativePath="..\common\lua\src\liolib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llex.c"
+				RelativePath="..\common\lua\src\llex.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llex.h"
+				RelativePath="..\common\lua\src\llex.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llimits.h"
+				RelativePath="..\common\lua\src\llimits.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmathlib.c"
+				RelativePath="..\common\lua\src\lmathlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmem.c"
+				RelativePath="..\common\lua\src\lmem.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmem.h"
+				RelativePath="..\common\lua\src\lmem.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\loadlib.c"
+				RelativePath="..\common\lua\src\loadlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lobject.c"
+				RelativePath="..\common\lua\src\lobject.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lobject.h"
+				RelativePath="..\common\lua\src\lobject.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lopcodes.c"
+				RelativePath="..\common\lua\src\lopcodes.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lopcodes.h"
+				RelativePath="..\common\lua\src\lopcodes.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\loslib.c"
+				RelativePath="..\common\lua\src\loslib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lparser.c"
+				RelativePath="..\common\lua\src\lparser.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lparser.h"
+				RelativePath="..\common\lua\src\lparser.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstate.c"
+				RelativePath="..\common\lua\src\lstate.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstate.h"
+				RelativePath="..\common\lua\src\lstate.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstring.c"
+				RelativePath="..\common\lua\src\lstring.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstring.h"
+				RelativePath="..\common\lua\src\lstring.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstrlib.c"
+				RelativePath="..\common\lua\src\lstrlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltable.c"
+				RelativePath="..\common\lua\src\ltable.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltable.h"
+				RelativePath="..\common\lua\src\ltable.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltablib.c"
+				RelativePath="..\common\lua\src\ltablib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltm.c"
+				RelativePath="..\common\lua\src\ltm.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltm.h"
+				RelativePath="..\common\lua\src\ltm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lua.h"
+				RelativePath="..\common\lua\src\lua.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\luaconf.h"
+				RelativePath="..\common\lua\src\luaconf.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lualib.h"
+				RelativePath="..\common\lua\src\lualib.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lundump.c"
+				RelativePath="..\common\lua\src\lundump.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lundump.h"
+				RelativePath="..\common\lua\src\lundump.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lvm.c"
+				RelativePath="..\common\lua\src\lvm.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lvm.h"
+				RelativePath="..\common\lua\src\lvm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lzio.c"
+				RelativePath="..\common\lua\src\lzio.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lzio.h"
+				RelativePath="..\common\lua\src\lzio.h"
 				>
 			</File>
 		</Filter>
