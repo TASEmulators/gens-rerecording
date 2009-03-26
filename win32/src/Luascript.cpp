@@ -1,14 +1,14 @@
 #include "luascript.h"
-#include "gens.h"
-#include "save.h"
-#include "g_main.h"
+#include "..\..\common\gens.h"
+#include "..\..\common\save.h"
+#include "..\..\common\g_main.h"
 #include "guidraw.h"
-#include "movie.h"
-#include "vdp_io.h"
+#include "..\..\common\movie.h"
+#include "..\..\common\core\vdp\vdp_io.h"
 #include "drawutil.h"
-#include "unzip.h"
-#include "Cpu_68k.h"
-#include "io.h"
+#include "..\..\common\unzip.h"
+#include "..\..\common\core\cpu\68k\Cpu_68k.h"
+#include "..\..\common\core\io\io.h"
 #include <assert.h>
 #include <vector>
 #include <map>
@@ -54,10 +54,10 @@ extern void GensReplayMovie();
 extern bool SkipNextRerecordIncrement;
 
 extern "C" {
-	#include "lua/src/lua.h"
-	#include "lua/src/lauxlib.h"
-	#include "lua/src/lualib.h"
-	#include "lua/src/lstate.h"
+	#include "..\..\common\lua/src/lua.h"
+	#include "..\..\common\lua/src/lauxlib.h"
+	#include "..\..\common\lua/src/lualib.h"
+	#include "..\..\common\lua/src/lstate.h"
 };
 
 enum SpeedMode

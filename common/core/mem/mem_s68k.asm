@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 	extern _Write_To_68K_Space
 	extern _Read_To_68K_Space

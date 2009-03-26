@@ -1,7 +1,7 @@
 #ifndef _MEM_SH2_H
 #define _MEM_SH2_H
 
-#include "sh2.h"
+#include "..\cpu\sh2\sh2.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 %define _PWM_BUF_SIZE 4
 

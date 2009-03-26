@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 %define HIGH_B   0x80
 %define SHAD_B   0x40

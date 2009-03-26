@@ -1,4 +1,4 @@
-#include "vdp_rend.h"
+#include "..\..\common\core\vdp\vdp_rend.h"
 
 #ifndef _GUIDRAW_H
 #define _GUIDRAW_H

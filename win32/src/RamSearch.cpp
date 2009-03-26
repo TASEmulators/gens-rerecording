@@ -25,19 +25,19 @@
 // (You can test this case by performing the search: Modulo 2 Is Specific Address 0)
 
 #include "resource.h"
-#include "gens.h"
-#include "mem_m68k.h"
-#include "mem_s68k.h"
-#include "mem_sh2.h"
-#include "misc.h"
-#include "mem_z80.h"
-#include "vdp_io.h"
-#include "save.h"
-#include "ram_search.h"
-#include "g_main.h"
+#include "..\..\common\gens.h"
+#include "..\..\common\core\mem\mem_m68k.h"
+#include "..\..\common\core\mem\mem_s68k.h"
+#include "..\..\common\core\mem\mem_sh2.h"
+#include "..\..\common\core\misc\misc.h"
+#include "..\..\common\core\mem\mem_z80.h"
+#include "..\..\common\core\vdp\vdp_io.h"
+#include "..\..\common\save.h"
+#include "ramsearch.h"
+#include "..\..\common\g_main.h"
 #include <assert.h>
 #include <commctrl.h>
-#include "G_dsound.h"
+#include "..\..\common\G_dsound.h"
 #include "ramwatch.h"
 #include "luascript.h"
 #include <list>

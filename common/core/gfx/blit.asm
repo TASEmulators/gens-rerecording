@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 	srcPtr        equ 8
 	srcPitch      equ 12

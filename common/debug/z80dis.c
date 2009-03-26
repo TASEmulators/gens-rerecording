@@ -1,10 +1,10 @@
-#include "gens.h"
+#include "..\gens.h"
 #ifdef GENS_DEBUG
 
 #include <stdio.h>
 #include <string.h>
 
-#include "mem_z80.h"
+#include "..\core\mem\mem_z80.h"
 
 char Mnemonics[256][16] =
 {

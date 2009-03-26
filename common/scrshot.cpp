@@ -2,14 +2,14 @@
 #include "G_Main.h"
 #include "G_ddraw.h"
 #include "rom.h"
-#include "AVIWrite.h"
+#include "..\win32\src\AVIWrite.h"
 #include "save.h"
 #include "movie.h"
 #include "scrshot.h"
-#include "mem_M68K.h"
+#include "core\mem\mem_M68K.h"
 #include <stdio.h>
 #include "g_dsound.h"
-#include "drawutil.h"
+#include "..\win32\src\drawutil.h"
 #include "png.h"
 #include <set>
 #include <assert.h>

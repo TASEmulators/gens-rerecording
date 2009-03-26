@@ -11,7 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MainStar", "Starscream\Main
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubStar", "Starscream\Sub68k\SubStar.vcproj", "{0249BCC8-AAB7-4BB1-9F8D-4F33622D4DB8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib7zip", "7z\7zip.vcproj", "{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib7zip", "..\common\7z\7zip.vcproj", "{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

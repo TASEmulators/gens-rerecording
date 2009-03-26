@@ -2,8 +2,8 @@
 #include <windows.h>
 #include "z80.h"
 #include "Cpu_Z80.h"
-#include "Mem_M68K.h"
-#include "Mem_Z80.h"
+#include "..\..\mem\Mem_M68K.h"
+#include "..\..\mem\Mem_Z80.h"
 
 
 /*** Z80_Reset - reset z80 sub-unit ***/
@@ -72,7 +72,7 @@ int Z80_Init(void)
 
 
 
-#include "cd_sys.h"
+#include "..\..\..\segacd\cd_sys.h"
 
 
 void Write_To_Bank(int val)

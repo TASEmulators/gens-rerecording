@@ -1,4 +1,4 @@
-%include "nasmhead.inc"
+%include "..\nasmhead.inc"
 
 
 section .bss align=64

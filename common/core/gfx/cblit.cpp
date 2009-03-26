@@ -1,6 +1,6 @@
 #include "blit.h"
-#include "vdp_rend.h"
-#include "drawutil.h"
+#include "..\vdp\vdp_rend.h"
+#include "..\..\..\win32\src\drawutil.h"
 
 template<typename pixel>
 static void TBlit_EPX(pixel* Src, pixel* Dest, int srcWidth, int dstWidth, int x, int y)

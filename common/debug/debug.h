@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "gens.h"
+#include "..\gens.h"
 #ifdef GENS_DEBUG
 
 extern int adr_mem;

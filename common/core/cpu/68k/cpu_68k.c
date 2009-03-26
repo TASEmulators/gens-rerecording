@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <windows.h>
 #include "Cpu_68k.h"
-#include "mem_M68K.h"
-#include "mem_S68K.h"
-#include "mem_SH2.h"
-#include "save.h"
-#include "ym2612.h"
-#include "misc.h"
-#include "gfx_cd.h"
+#include "..\..\mem\mem_M68K.h"
+#include "..\..\mem\mem_S68K.h"
+#include "..\..\mem\mem_SH2.h"
+#include "..\..\..\save.h"
+#include "..\..\sound\ym2612.h"
+#include "..\..\misc\misc.h"
+#include "..\..\gfx\gfx_cd.h"
 
-#include "io.h"
-#include "cd_sys.h"
+#include "..\..\io\io.h"
+#include "..\..\..\segacd\cd_sys.h"
 
 
 #define GENESIS 0
