@@ -1149,7 +1149,9 @@ int gens_wait(lua_State* L);
 
 void indicateBusy(lua_State* L, bool busy)
 {
-	if(busy)
+	// disabled because there have been complaints about this message being useless spam.
+	// the script window's title changing should be sufficient, I guess.
+/*	if(busy)
 	{
 		const char* fmt = "script became busy (frozen?)";
 		va_list argp;
@@ -1171,7 +1173,7 @@ void indicateBusy(lua_State* L, bool busy)
 		}
 		lua_pop(L, 1);
 	}
-
+*/
 #ifdef _WIN32
 	int uid = luaStateToUIDMap[L];
 	HWND hDlg = (HWND)uid;
