@@ -85,7 +85,7 @@ struct LuaContextInfo {
 	bool ranFrameAdvance; // false if gens.frameadvance() hasn't been called yet
 	int transparencyModifier; // values less than 255 will scale down the opacity of whatever the GUI renders, values greater than 255 will increase the opacity of anything transparent the GUI renders
 	SpeedMode speedMode; // determines how gens.frameadvance() acts
-	char panicMessage [64]; // a message to print if the script terminates due to panic being set
+	char panicMessage [72]; // a message to print if the script terminates due to panic being set
 	std::string lastFilename; // path to where the script last ran from so that restart can work (note: storing the script in memory instead would not be useful because we always want the most up-to-date script from file)
 	std::string nextFilename; // path to where the script should run from next, mainly used in case the restart flag is true
 	unsigned int dataSaveKey; // crc32 of the save data key, used to decide which script should get which data... by default (if no key is specified) it's calculated from the script filename
@@ -3744,7 +3744,14 @@ void RequestAbortLuaScript(int uid, const char* message)
 		}
 		else
 		{
-			strcpy(info.panicMessage, "script terminated");
+			// attach file/line info because this is the case where it's most necessary to see that,
+			// and often it won't be possible for the later luaL_error call to retrieve it otherwise.
+			// this means sometimes printing multiple file/line numbers if luaL_error does find something,
+			// but that's fine since more information is probably better anyway.
+			luaL_where(L,0); // should be 0 and not 1 here to get useful (on force stop) messages
+			const char* whereString = lua_tostring(L,-1);
+			snprintf(info.panicMessage, sizeof(info.panicMessage), "%sscript terminated", whereString);
+			lua_pop(L,1);
 		}
 	}
 }
