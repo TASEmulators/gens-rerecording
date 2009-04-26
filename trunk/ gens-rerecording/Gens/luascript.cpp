@@ -2796,7 +2796,7 @@ DEFINE_LUA_FUNCTION(gens_openscript, "filename")
 {
 	char curScriptDir[1024]; GetCurrentScriptDir(curScriptDir, 1024); // make sure we can always find scripts that are in the same directory as the current script
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
-	const char* errorMsg = GensOpenScript(filename, curScriptDir);
+	const char* errorMsg = GensOpenScript(filename, curScriptDir, true);
 	if(errorMsg)
 		luaL_error(L, errorMsg);
     return 0;

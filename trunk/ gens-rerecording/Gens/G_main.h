@@ -108,7 +108,7 @@ void LoadFlags(int flags);
 void init_list_box(HWND Box, const char* Strs[], int numColumns, int *columnWidths);
 int IsVideoLatencyCompensationOn();
 #ifdef __cplusplus
-const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0); // returns NULL on success, returns error msg on failure
+const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0, bool makeSubservient=false); // returns NULL on success, returns error msg on failure
 const char* GensPlayMovie(const char* filename, bool silent=false); // returns NULL on success, returns error msg on failure
 const char* MakeRomPathAbsolute(const char* filename, const char* extraDirToCheck=0);
 #endif

@@ -17,7 +17,7 @@
 // example input Name:          "C:\games.zip"
 // example output LogicalName:  "C:\games.zip|Sonic.smd"
 // example output PhysicalName: "C:\Documents and Settings\User\Local Settings\Temp\Gens\rom7A37.smd"
-// assumes the three name arguments are unique character buffers with exactly 1024 bytes each
+// assumes the three name arguments are distinct character buffers with exactly 1024 bytes each
 bool ObtainFile(const char* Name, char *const & LogicalName, char *const & PhysicalName, const char* category=NULL, const char** ignoreExtensions=NULL, int numIgnoreExtensions=0);
 
 // ReleaseTempFileCategory()
