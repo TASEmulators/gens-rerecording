@@ -2673,6 +2673,7 @@ GensFileType GuessFileType(const char* filename, const char* extension)
 long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	RECT r;
+	static char Str_Tmp[1024]; // necessary to shadow this here, or things like ID_FILES_LOADSTATE will break in subtle ways...
 
 	switch(message)
 	{
@@ -2779,9 +2780,14 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_DROPFILES:
 		{
 			HDROP hDrop = (HDROP)wParam;
-			DragQueryFile(hDrop, 0, Str_Tmp, 1024);
+			int numDropped = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
+			// TODO: defer gmv loads to happen later than any rom loads that might be in the set of dropped files
+			for(int i = 0; i < numDropped; i++)
+			{
+				DragQueryFile(hDrop, i, Str_Tmp, 1024);
+				GensOpenFile(Str_Tmp);
+			}
 			DragFinish(hDrop);
-			GensOpenFile(Str_Tmp);
 			return true;
 		}	break;
 
@@ -6179,7 +6185,7 @@ const char* MakeScriptPathAbsolute(const char* filename, const char* extraDirToC
 	return filename;
 }
 
-const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
+const char* GensOpenScript(const char* filename, const char* extraDirToCheck, bool makeSubservient)
 {
 	if(LuaScriptHWnds.size() < 16)
 	{
@@ -6194,7 +6200,8 @@ const char* GensOpenScript(const char* filename, const char* extraDirToCheck)
 			HWND prevWindow = GetActiveWindow();
 
 			HWND hDlg = CreateDialog(ghInstance, MAKEINTRESOURCE(IDD_LUA), HWnd, (DLGPROC) LuaScriptProc);
-			SendMessage(hDlg,WM_COMMAND,IDC_NOTIFY_SUBSERVIENT,TRUE);
+			if(makeSubservient)
+				SendMessage(hDlg,WM_COMMAND,IDC_NOTIFY_SUBSERVIENT,TRUE);
 			SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)filename);
 			DialogsOpen++;
 
