@@ -1505,6 +1505,14 @@ DEFINE_LUA_FUNCTION(gens_pause, "")
 	return 0;
 }
 
+DEFINE_LUA_FUNCTION(gens_unpause, "")
+{
+	LuaContextInfo& info = GetCurrentInfo();
+
+	Paused = 0;
+	return 0;
+}
+
 DEFINE_LUA_FUNCTION(gens_redraw, "")
 {
 	Show_Genesis_Screen();
@@ -3161,6 +3169,7 @@ static const struct luaL_reg genslib [] =
 	{"speedmode", gens_speedmode},
 	{"wait", gens_wait},
 	{"pause", gens_pause},
+	{"unpause", gens_unpause},
 	{"emulateframe", gens_emulateframe},
 	//{"emulateframefastnoskipping", gens_emulateframefastnoskipping}, // removed from library because probably nobody would notice the difference from gens_emulateframe
 	{"emulateframefast", gens_emulateframefast},
