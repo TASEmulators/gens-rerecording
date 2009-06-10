@@ -1459,7 +1459,6 @@ void UpdateInput()
 		MoviePlayingStuff();
 	else
 		Update_Controllers();
-	ApplyNextInputCondensed();
 
 	//// XXX - probably most people won't need to use this?
 	////Modif N - playback one player while recording another player
