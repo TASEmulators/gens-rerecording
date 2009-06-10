@@ -1,4 +1,3 @@
-//TODO - Move map-dump hack here
 //TODO - enable separate activation of Camhack, hitbox display, and solidity display (separate #defines)
 //TODO - fix object sizes for Sonic 2, Sonic CD, Sonic 3, Sonic & Knuckles
 //TODO - Make use of Sonic 3 and Sonic & Knuckle's "touchable object" table in hitbox display, to keep from displaying "ghost" boxes
@@ -14,118 +13,134 @@
 #include "save.h"
 #include "ym2612.h"
 
-	// Sonic camera hack
-	#ifdef SK
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x10;
-		const unsigned char YPo = 0x14;
-		const unsigned char XVo = 0x18;
-		const unsigned char YVo = 0x1A;
-		const unsigned char To = 0x28;
-		const unsigned char Wo = 0x1F;
-		const unsigned char Ho = 0x1E;
-		const unsigned char Fo = 0x4;
-		const unsigned int CAMOFFSET1 = 0xFFEE78;
-		const unsigned int CAMOFFSET2 = 0xFFEE80;
-		const unsigned int CAMLOCK = 0xFFEE0A;
-		const unsigned int INLEVELFLAG = 0xFFB004;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x1FCC;
-		const unsigned int SPRITESIZE = 0x4A;
-		unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-		const unsigned char XSCROLLRATE = 32;
-		const unsigned char YSCROLLRATE = 16;
-		const int NumObj = (SSTLEN/SPRITESIZE);
-	#elif defined S2
-		const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int POSOFFSET = 0xB000;
-		const unsigned int SSTLEN = 0x2600;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int CAMOFFSET1 = 0xFFEE00;
-		const unsigned int CAMOFFSET2 = 0xFFEE00;
-		const unsigned int CAMLOCK = 0xFFFEBE;
-		const unsigned int INLEVELFLAG = 0xFFB001;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-		const int NumObj = (SSTLEN/SPRITESIZE);
-	#elif defined GAME_SCD
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFF1926;
-		const unsigned int CAMOFFSET3 = 0xFFFCA4;
-		const unsigned int CAMLOCK = 0xFFF744;
-		const unsigned int INLEVELFLAG = 0xFFD001;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-		const int NumObj = (SSTLEN/SPRITESIZE);
-	#elif defined S1MMCD
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFF1926;
-		const unsigned int CAMOFFSET3 = 0xFFFCA4;
-		const unsigned int CAMLOCK = 0xFFF744;
-		const unsigned int INLEVELFLAG = 0xFFD001;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-		const int NumObj = (SSTLEN/SPRITESIZE);
+// Sonic camera hack
+#ifdef SK
+	const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	const unsigned char Fo = 0x4;
+	const unsigned char XPo = 0x10;
+	const unsigned char YPo = 0x14;
+	const unsigned char XVo = 0x18;
+	const unsigned char YVo = 0x1A;
+	const unsigned char GVo = 0x1C;
+	const unsigned char Ho = 0x1E;
+	const unsigned char Wo = 0x1F;
+	const unsigned char So = 0x22;
+	const unsigned char Ao = 0x26;
+	const unsigned char To = 0x28;
+	const unsigned int CAMOFFSET1 = 0xFFEE78;
+	const unsigned int CAMOFFSET2 = 0xFFEE80;
+	const unsigned int CAMLOCK = 0xFFEE0A;
+	const unsigned int INLEVELFLAG = 0xFFB004;
+	const unsigned int POSOFFSET = 0xB000;
+	const unsigned int SSTLEN = 0x1FCC;
+	const unsigned int SPRITESIZE = 0x4A;
+	unsigned int LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
+	const unsigned char XSCROLLRATE = 32;
+	const unsigned char YSCROLLRATE = 16;
+	const int NumObj = (SSTLEN/SPRITESIZE);
+#elif defined S2
+	const unsigned int P1OFFSET = 0xFFB000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	const unsigned char Fo = 1;
+	const unsigned char XPo = 0x8;
+	const unsigned char YPo = 0xC;
+	const unsigned char XVo = 0x10;
+	const unsigned char YVo = 0x12;
+	const unsigned char GVo = 0x14;
+	const unsigned char Ho = 0x16;
+	const unsigned char Wo = 0x17;
+	const unsigned char To = 0x20;
+	const unsigned char So = 0x22;
+	const unsigned char Ao = 0x26;
+	const unsigned int POSOFFSET = 0xB000;
+	const unsigned int SSTLEN = 0x2600;
+	const unsigned int SPRITESIZE = 0x40;
+	const unsigned int CAMOFFSET1 = 0xFFEE00;
+	const unsigned int CAMOFFSET2 = 0xFFEE00;
+	const unsigned int CAMLOCK = 0xFFFEBE;
+	const unsigned int INLEVELFLAG = 0xFFB001;
+	const unsigned int LEVELHEIGHT = 2047;
+	const unsigned char XSCROLLRATE = 16;
+	const unsigned char YSCROLLRATE = 16;
+	const int NumObj = (SSTLEN/SPRITESIZE);
+#elif defined GAME_SCD
+	const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	const unsigned char Fo = 1;
+	const unsigned char XPo = 0x8;
+	const unsigned char YPo = 0xC;
+	const unsigned char XVo = 0x10;
+	const unsigned char YVo = 0x12;
+	const unsigned char GVo = 0x14;
+	const unsigned char Ho = 0x16;
+	const unsigned char Wo = 0x17;
+	const unsigned char To = 0x20;
+	const unsigned char So = 0x22;
+	const unsigned char Ao = 0x26;
+	const unsigned int CAMOFFSET1 = 0xFFF700;
+	const unsigned int CAMOFFSET2 = 0xFF1926;
+	const unsigned int CAMOFFSET3 = 0xFFFCA4;
+	const unsigned int CAMLOCK = 0xFFF744;
+	const unsigned int INLEVELFLAG = 0xFFD001;
+	const unsigned int POSOFFSET = 0xD000;
+	const unsigned int SSTLEN = 0x2000;
+	const unsigned int SPRITESIZE = 0x40;
+	const unsigned int LEVELHEIGHT = 2047;
+	const unsigned char XSCROLLRATE = 16;
+	const unsigned char YSCROLLRATE = 16;
+	const int NumObj = (SSTLEN/SPRITESIZE);
+#elif defined S1MMCD
+	const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	const unsigned char Fo = 1;
+	const unsigned char XPo = 0x8;
+	const unsigned char YPo = 0xC;
+	const unsigned char XVo = 0x10;
+	const unsigned char YVo = 0x12;
+	const unsigned char GVo = 0x14;
+	const unsigned char Ho = 0x16;
+	const unsigned char Wo = 0x17;
+	const unsigned char To = 0x20;
+	const unsigned char So = 0x22;
+	const unsigned char Ao = 0x26;
+	const unsigned int CAMOFFSET1 = 0xFFF700;
+	const unsigned int CAMOFFSET2 = 0xFF1926;
+	const unsigned int CAMOFFSET3 = 0xFFFCA4;
+	const unsigned int CAMLOCK = 0xFFF744;
+	const unsigned int INLEVELFLAG = 0xFFD001;
+	const unsigned int POSOFFSET = 0xD000;
+	const unsigned int SSTLEN = 0x2000;
+	const unsigned int SPRITESIZE = 0x40;
+	const unsigned int LEVELHEIGHT = 2047;
+	const unsigned char XSCROLLRATE = 16;
+	const unsigned char YSCROLLRATE = 16;
+	const int NumObj = (SSTLEN/SPRITESIZE);
 #elif defined S1
-		const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
-		const unsigned char XPo = 0x8;
-		const unsigned char YPo = 0xC;
-		const unsigned char XVo = 0x10;
-		const unsigned char YVo = 0x12;
-		const unsigned char To = 0x20;
-		const unsigned char Wo = 0x17;
-		const unsigned char Ho = 0x16;
-		const unsigned char Fo = 1;
-		const unsigned int CAMOFFSET1 = 0xFFF700;
-		const unsigned int CAMOFFSET2 = 0xFFF710;
-		const unsigned int CAMOFFSET3 = 0xFFFDB8;
-		const unsigned int CAMOFFSET4 = 0xFFF616;
-		const unsigned int CAMLOCK = 0xFFF744;
-		const unsigned int INLEVELFLAG = 0xFFD04B;
-		const unsigned int POSOFFSET = 0xD000;
-		const unsigned int SSTLEN = 0x2000;
-		const unsigned int SPRITESIZE = 0x40;
-		const unsigned int LEVELHEIGHT = 2047;
-		const unsigned char XSCROLLRATE = 16;
-		const unsigned char YSCROLLRATE = 16;
-		const int NumObj = (SSTLEN/SPRITESIZE);
-		bool Tails = false;
-	#endif
+	const unsigned int P1OFFSET = 0xFFD000;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	const unsigned char Fo = 1;
+	const unsigned char XPo = 0x8;
+	const unsigned char YPo = 0xC;
+	const unsigned char XVo = 0x10;
+	const unsigned char YVo = 0x12;
+	const unsigned char GVo = 0x14;
+	const unsigned char Ho = 0x16;
+	const unsigned char Wo = 0x17;
+	const unsigned char To = 0x20;
+	const unsigned char So = 0x22;
+	const unsigned char Ao = 0x26;
+	const unsigned int CAMOFFSET1 = 0xFFF700;
+	const unsigned int CAMOFFSET2 = 0xFFF710;
+	const unsigned int CAMOFFSET3 = 0xFFFDB8;
+	const unsigned int CAMOFFSET4 = 0xFFF616;
+	const unsigned int CAMLOCK = 0xFFF744;
+	const unsigned int INLEVELFLAG = 0xFFD04B;
+	const unsigned int POSOFFSET = 0xD000;
+	const unsigned int SSTLEN = 0x2000;
+	const unsigned int SPRITESIZE = 0x40;
+	const unsigned int LEVELHEIGHT = 2047;
+	const unsigned char XSCROLLRATE = 16;
+	const unsigned char YSCROLLRATE = 16;
+	const int NumObj = (SSTLEN/SPRITESIZE);
+	bool Tails = false;
+#endif
+short off = 0;
 #ifdef SONICCAMHACK
 ALIGN16 static unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 //extern "C" int Do_VDP_Only();
@@ -1135,7 +1150,6 @@ void DisplaySolid()
 //Draws bounding boxes around objects in sonic games
 //Scroll lock disables (for compatibility with map-dumping)
 //Num lock enables display of each object's base address in RAM
-	short off = 0;
 void DrawBoxes()
 {
 #ifdef SONICNOHITBOXES
@@ -2454,5 +2468,364 @@ void Update_RAM_Cheats()
 		Put_Info(Str_Tmp,1000);
 	}
 	prevsize=size;
+}
+#endif
+#ifdef SONICSPEEDHACK
+#include "io.h"
+#include "vdp_io.h"
+extern unsigned short RCircle[81];
+extern unsigned int RCircle32[81];
+extern unsigned short FCDigit[1040];
+extern unsigned int FCDigit32[1040];
+#define IS_FULL_X_RESOLUTION (VDP_Reg.Set4 & 0x01)
+void SonicSpeedTicker()
+{
+	int i,j,m,n; //UpthModif - Added l[3] for use when displaying input
+	char pos;
+	unsigned short SineTable[] = 
+	{
+		0x0000, 0x0006, 0x000C, 0x0012, 0x0019, 0x001F, 0x0025, 0x002B, 0x0031, 0x0038, 0x003E, 0x0044, 0x004A, 0x0050, 0x0056, 0x005C, 
+		0x0061, 0x0067, 0x006D, 0x0073, 0x0078, 0x007E, 0x0083, 0x0088, 0x008E, 0x0093, 0x0098, 0x009D, 0x00A2, 0x00A7, 0x00AB, 0x00B0, 
+		0x00B5, 0x00B9, 0x00BD, 0x00C1, 0x00C5, 0x00C9, 0x00CD, 0x00D1, 0x00D4, 0x00D8, 0x00DB, 0x00DE, 0x00E1, 0x00E4, 0x00E7, 0x00EA, 
+		0x00EC, 0x00EE, 0x00F1, 0x00F3, 0x00F4, 0x00F6, 0x00F8, 0x00F9, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FE, 0x00FF, 0x00FF, 0x00FF, 
+		0x0100, 0x00FF, 0x00FF, 0x00FF, 0x00FE, 0x00FE, 0x00FD, 0x00FC, 0x00FB, 0x00F9, 0x00F8, 0x00F6, 0x00F4, 0x00F3, 0x00F1, 0x00EE, 
+		0x00EC, 0x00EA, 0x00E7, 0x00E4, 0x00E1, 0x00DE, 0x00DB, 0x00D8, 0x00D4, 0x00D1, 0x00CD, 0x00C9, 0x00C5, 0x00C1, 0x00BD, 0x00B9, 
+		0x00B5, 0x00B0, 0x00AB, 0x00A7, 0x00A2, 0x009D, 0x0098, 0x0093, 0x008E, 0x0088, 0x0083, 0x007E, 0x0078, 0x0073, 0x006D, 0x0067, 
+		0x0061, 0x005C, 0x0056, 0x0050, 0x004A, 0x0044, 0x003E, 0x0038, 0x0031, 0x002B, 0x0025, 0x001F, 0x0019, 0x0012, 0x000C, 0x0006, 
+		0x0000, 0xFFFA, 0xFFF4, 0xFFEE, 0xFFE7, 0xFFE1, 0xFFDB, 0xFFD5, 0xFFCF, 0xFFC8, 0xFFC2, 0xFFBC, 0xFFB6, 0xFFB0, 0xFFAA, 0xFFA4, 
+		0xFF9F, 0xFF99, 0xFF93, 0xFF8B, 0xFF88, 0xFF82, 0xFF7D, 0xFF78, 0xFF72, 0xFF6D, 0xFF68, 0xFF63, 0xFF5E, 0xFF59, 0xFF55, 0xFF50, 
+		0xFF4B, 0xFF47, 0xFF43, 0xFF3F, 0xFF3B, 0xFF37, 0xFF33, 0xFF2F, 0xFF2C, 0xFF28, 0xFF25, 0xFF22, 0xFF1F, 0xFF1C, 0xFF19, 0xFF16, 
+		0xFF14, 0xFF12, 0xFF0F, 0xFF0D, 0xFF0C, 0xFF0A, 0xFF08, 0xFF07, 0xFF05, 0xFF04, 0xFF03, 0xFF02, 0xFF02, 0xFF01, 0xFF01, 0xFF01, 
+		0xFF00, 0xFF01, 0xFF01, 0xFF01, 0xFF02, 0xFF02, 0xFF03, 0xFF04, 0xFF05, 0xFF07, 0xFF08, 0xFF0A, 0xFF0C, 0xFF0D, 0xFF0F, 0xFF12, 
+		0xFF14, 0xFF16, 0xFF19, 0xFF1C, 0xFF1F, 0xFF22, 0xFF25, 0xFF28, 0xFF2C, 0xFF2F, 0xFF33, 0xFF37, 0xFF3B, 0xFF3F, 0xFF43, 0xFF47, 
+		0xFF4B, 0xFF50, 0xFF55, 0xFF59, 0xFF5E, 0xFF63, 0xFF68, 0xFF6D, 0xFF72, 0xFF78, 0xFF7D, 0xFF82, 0xFF88, 0xFF8B, 0xFF93, 0xFF99, 
+		0xFF9F, 0xFFA4, 0xFFAA, 0xFFB0, 0xFFB6, 0xFFBC, 0xFFC2, 0xFFC8, 0xFFCF, 0xFFD5, 0xFFDB, 0xFFE1, 0xFFE7, 0xFFEE, 0xFFF4, 0xFFFA, 
+		0x0000, 0x0006, 0x000C, 0x0012, 0x0019, 0x001F, 0x0025, 0x002B, 0x0031, 0x0038, 0x003E, 0x0044, 0x004A, 0x0050, 0x0056, 0x005C, 
+		0x0061, 0x0067, 0x006D, 0x0073, 0x0078, 0x007E, 0x0083, 0x0088, 0x008E, 0x0093, 0x0098, 0x009D, 0x00A2, 0x00A7, 0x00AB, 0x00B0, 
+		0x00B5, 0x00B9, 0x00BD, 0x00C1, 0x00C5, 0x00C9, 0x00CD, 0x00D1, 0x00D4, 0x00D8, 0x00DB, 0x00DE, 0x00E1, 0x00E4, 0x00E7, 0x00EA, 
+		0x00EC, 0x00EE, 0x00F1, 0x00F3, 0x00F4, 0x00F6, 0x00F8, 0x00F9, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FE, 0x00FF, 0x00FF, 0x00FF
+	};
+	#ifndef SONICCAMHACK
+		bool up = (GetAsyncKeyState(VK_PRIOR))?1:0;
+		bool down = (GetAsyncKeyState(VK_NEXT))?1:0;
+		bool home = (GetAsyncKeyState(VK_HOME))?1:0;
+		bool end = (GetAsyncKeyState(VK_END))?1:0;
+		unsigned int OBJ;
+		unsigned char flags;
+		static bool upprev = up;
+		static bool downprev = upprev = 0;
+		strcpy(Str_Tmp,"");
+		unsigned short x;
+		signed short y;
+
+		if (up && !upprev && CheatRead<unsigned char>(INLEVELFLAG)) 
+		{
+			do {
+				off -= SPRITESIZE;
+				if (off < 0) off += SSTLEN;
+				#ifdef SK
+					OBJ = CheatRead<unsigned long>(P1OFFSET + off);
+				#else
+					OBJ = CheatRead<unsigned char>(P1OFFSET + off);
+				#endif
+					flags = CheatRead<unsigned char>(P1OFFSET + off + Fo);
+					x = CheatRead<signed short>(P1OFFSET + off + XPo);
+					y = CheatRead<signed short>(P1OFFSET + off + YPo);
+			} while (!(OBJ && (flags & 4) && (x | y)));
+		}
+		else if (down && !downprev && CheatRead<unsigned char>(INLEVELFLAG)) 
+		{
+			do {
+				off += SPRITESIZE;
+				if (off >= SSTLEN) off -= SSTLEN;
+				#ifdef SK
+					OBJ = CheatRead<unsigned long>(P1OFFSET + off);
+				#else
+					OBJ = CheatRead<unsigned char>(P1OFFSET + off);
+				#endif
+					flags = CheatRead<unsigned char>(P1OFFSET + off + Fo);
+					x = CheatRead<signed short>(P1OFFSET + off + XPo);
+					y = CheatRead<signed short>(P1OFFSET + off + YPo);
+			} while (!(OBJ && (flags & 4) && (x | y)));
+		}
+		else if (home)
+		{
+			off = 0;
+			flags = CheatRead<unsigned char>(P1OFFSET + Fo);
+			x = CheatRead<signed short>(P1OFFSET + XPo);
+			y = CheatRead<signed short>(P1OFFSET + YPo);
+		}
+	/*	else if (end)
+		{
+			//NYI - Some sort of pop up which lets you choose directly which sprite to focus on.
+		}*/
+		else {
+			#ifdef SK
+				OBJ = CheatRead<unsigned long>(P1OFFSET + off);
+			#else
+				OBJ = CheatRead<unsigned char>(P1OFFSET + off);
+			#endif
+			if (!OBJ) off = 0;
+			flags = CheatRead<unsigned char>(P1OFFSET + off + Fo);
+			x = CheatRead<signed short>(P1OFFSET + off + XPo);
+			y = CheatRead<signed short>(P1OFFSET + off + YPo);
+		}
+		upprev=up;
+		downprev=down;
+	#endif
+	char temp[64]; //increased to prevent stack corruption
+	unsigned char angle = CheatRead<unsigned char>(P1OFFSET + off + Ao);
+	bool Super = CheatRead<char>(0xFFFE19)?true:false;
+//		const unsigned int P1OFFSET = 0xB008;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+	#ifdef SK //Sonic and Knuckles
+		const unsigned char Char = (unsigned char) (Ram_68k[0xFF08]);
+		bool Knuckles = Game ? (Char == 3) : 0;
+	#elif defined S2 //Sonic 2
+		bool Knuckles = (* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3)? true : false; //Compare ROM checksum to S&K's
+	#elif (defined S1) || (defined GAME_SCD) //Sonic 1
+		bool Knuckles = (* (unsigned short *) &Rom_Data[0x18E] == 0x3F81)? true : false; //Compare ROM checksum to S1K's
+	#elif defined S1MM //Sonic 1
+		const bool Knuckles = false;
+	#elif defined RISTAR
+		const bool Knuckles = false;
+		const unsigned int P1OFFSET = 0xC01A;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
+		const unsigned int SinTableOffset = (0x663C); // sonic 1: 29F2 S1K: 2980 ... sonic 2: 33CE ... sonic 3: 1D64 //Where in the ROM is the sine table?
+		const unsigned char angle = (unsigned char)(Ram_68k[0xC02F]);
+		const unsigned char XVo = 0x2;
+		const unsigned char YVo = 0x4;
+		const unsigned char GVo = 0x0;
+		const unsigned char XPo = 0x6;
+		const unsigned char YPo = 0xA;
+	#endif
+	short xvel = CheatRead<short>(P1OFFSET + off + XVo);
+	short yvel = CheatRead<short>(P1OFFSET + off + YVo);
+	unsigned short xpos = CheatRead<short>(P1OFFSET + off + XPo);
+	unsigned short ypos = CheatRead<short>(P1OFFSET + off + YPo);
+	unsigned char xspos = CheatRead<unsigned char>(P1OFFSET + off + XPo + 2);
+	unsigned char yspos = CheatRead<unsigned char>(P1OFFSET + off + YPo + 2);
+//		short CamX[0] = *(short *) &Ram_68k[0xF700];
+//		short CamY[0] = *(short *) &Ram_68k[0xF704];
+	#ifndef RISTAR
+		const unsigned char status = CheatRead<unsigned char>(P1OFFSET + off + So); //live, dead, rolling, running, falling, jumping?
+		const bool inair = (status & 0x02) ? true : false;
+		const bool water = (status & 0x40) ? true : false;
+		const short jumpspeed = ((Knuckles) ? (water ? 768 : 1536) : ((Super)?(water ? 1280 : 2048):(water ? 896 : 1664))); // this gets multiplied by a sine table value for jump prediction
+		unsigned short SinOffset = (unsigned char) (angle - 0x40); // vertical sine ratio
+		unsigned short CosOffset = (unsigned char) (angle); // horizontal sine ratio
+		short xjumpvel = SineTable[CosOffset];
+		short yjumpvel = SineTable[SinOffset];
+		if (inair)
+		{
+			xjumpvel = xvel;
+			while (yjumpvel < -1024) yjumpvel += 56;
+			for (; yjumpvel < 0; yjumpvel +=56) 
+			{
+				xjumpvel -= (xjumpvel / 32);
+				if (!(status & 0x10) && !Controller_1_Left) xjumpvel = max(-1536,xjumpvel-24);
+				if (!(status & 0x10) && !Controller_1_Right) xjumpvel = min(1536,xjumpvel+24);
+			}
+		}
+		else
+		{
+			xjumpvel = ((xjumpvel * jumpspeed) >> 8) + xvel;
+			yjumpvel = ((yjumpvel * jumpspeed) >> 8) + yvel;
+		}
+	#else
+		const unsigned char status = (unsigned char)(Ram_68k[P1OFFSET + 0x17]); //live, dead, rolling, running, falling, jumping?
+		unsigned short SinOffset,CosOffset;
+		unsigned short Sin,Cos;
+		short xjumpvel,yjumpvel;
+		if (Ram_68k[0xC059] == 0x04)
+		{
+			SinOffset = (angle & 0xFF) * 2;
+			CosOffset = SinOffset + 0x80;
+			Sin = Rom_Data[SinOffset + SinTableOffset] | (Rom_Data[SinOffset + SinTableOffset + 1] << 8);
+			Cos = Rom_Data[CosOffset + SinTableOffset] | (Rom_Data[CosOffset + SinTableOffset + 1] << 8);
+			xjumpvel = (Sin * 0xF);
+			yjumpvel = (Cos * 0xF);
+		}
+		else
+		{
+			SinOffset = (angle + (Ram_68k[0xE537] > 0)? 0x80 :0x40);
+			SinOffset = (SinOffset & 0xFF) * 2;
+			CosOffset = SinOffset + 0x80;
+			Sin = Rom_Data[SinOffset + SinTableOffset] | (Rom_Data[SinOffset + SinTableOffset + 1] << 8);
+			Cos = Rom_Data[CosOffset + SinTableOffset] | (Rom_Data[CosOffset + SinTableOffset + 1] << 8);
+			xjumpvel = (Sin * 0x2A * Ram_68k[0xE537] * -1) >> 5;
+			yjumpvel = (Cos * 0x2A * Ram_68k[0xE537] * -1) >> 5;
+		}
+	#endif
+	if (!GetKeyState(VK_SCROLL))
+	{
+		sprintf(temp, "%d:%d",xvel,xjumpvel); // here we output all the values, framecounter style, in the top-right corner
+		n=FRAME_COUNTER_TOP_RIGHT+4704;
+		int prevn = n;
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}
+			}
+			n -= 336*7-6;
+		}
+		strcpy(temp,"");
+		sprintf(temp,"%u:%03u",xpos,xspos);
+		n=prevn+2352;
+		prevn=n;
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}	
+			}	
+			n -= 336*7-6;
+		}
+		n=prevn+2352;
+		prevn=n;
+		strcpy(temp,"");
+		sprintf(temp,"%d:%d",yvel,yjumpvel);
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}
+			}
+			n -= 336*7-6;
+		}
+		n=prevn+2352;
+		prevn=n;
+		strcpy(temp,"");
+		sprintf(temp,"%u:%03u",ypos,yspos);
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}
+			}
+			n -= 336*7-6;
+		}
+		n=prevn+2352;
+		prevn=n;
+		strcpy(temp,"");
+		sprintf(temp,"%d:%d:%05.2f"/**/,CheatRead<short>(P1OFFSET + GVo),(signed char)angle,((signed char)angle)*(90.0/64.0));
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}
+			}
+			n -= 336*7-6;
+		}
+	#ifdef S1
+		n=prevn+2352;
+		prevn=n;
+		strcpy(temp,"");
+//		sprintf(temp,"%d",CalcFuckFrames());
+		if (strlen(temp) > 8) n-=(6*(strlen(temp)-8));
+		if (!IS_FULL_X_RESOLUTION)
+			n-=64;	
+		for(pos=0;pos<(int)strlen(temp);pos++)
+		{
+			m=(temp[pos]-'-')*30;
+			for(j=0;j<7;j++,n+=330)
+			{
+				for(i=0;i<6;i++,n++)
+				{
+					if(j>0 && j<6)
+					{
+						if (Bits32) MD_Screen32[n]=FCDigit32[m++];
+						else MD_Screen[n]=FCDigit[m++];
+					}
+					else
+					{
+						if (Bits32) MD_Screen32[n]=0x0000;
+						else MD_Screen[n]=0x0000;
+					}
+				}
+			}
+			n -= 336*7-6;
+		}
+	#endif
+	}
 }
 #endif

@@ -14,4 +14,7 @@ void Update_RAM_Cheats();
 int SonicCamHack();
 extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
 #endif
+#ifdef SONICSPEEDHACK
+void SonicSpeedTicker();
+#endif
 #endif
