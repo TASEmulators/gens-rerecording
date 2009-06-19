@@ -1,0 +1,34 @@
+#.gmv is the movie capture format of Gens, a Sega Genesis/Megadrive emulator. 
+
+==GMV file format description==
+GMV file consists of a 64-byte header and the movie data. 
+
+===Header format:===
+ 000 16-byte signature and format version: "Gens Movie TEST9"
+    00F ASCII-encoded GMV file format version. The most recent is 'A'. (?)
+    010 4-byte little-endian unsigned int: rerecord count
+    014 ASCII-encoded controller config for player 1. '3' or '6'.
+    015 ASCII-encoded controller config for player 2. '3' or '6'.
+    016 has some special flags (Version A and up only):
+       bit 7 (most significant) Frames per second. 1 for 50 Hz, 0 for 60Hz.
+       bit 6 is savestate required. 1 = savestate required.
+       bit 5 is 3 player movie. 1 = 3 players, 0 = 2 players.
+    018 40-byte zero-terminated ascii movie name string
+    040 frame data begins here
+
+Each frame consists of 3 bytes.
+Byte 1 defines controller 1, in order from least significant to most significant bit:
+
+  Up, Down, Left, Right, A, B, C, Start
+
+Byte 2 defines controller 2 in the same way.
+If the movie is a 3-player movie, byte 3 defines controller 3 in the same way.
+If the movie is a 2-player movie, byte 3 defines XYZ-mode for both controllers.
+
+  X, Y, Z, Mode (for controller 1), X, Y, Z, Mode, (for controller 2)
+
+When a bit is set in the controller data, it means button is not pressed. Thus a three byte triplet FF FF FF means nothing is pressed during that particular frame.
+
+The file has no terminator byte or frame count. The number of frames is the <filesize minus 64> divided by 3.
+
+The file format has no means of identifying NTSC/PAL, but the FPS can still be derived from the header. 
