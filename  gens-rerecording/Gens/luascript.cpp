@@ -3480,7 +3480,8 @@ void registerLibs(lua_State* L)
 {
 	luaL_openlibs(L);
 
-	luaL_register(L, "gens", genslib);
+	luaL_register(L, "emu", genslib); // added for better cross-emulator compatibility
+	luaL_register(L, "gens", genslib); // kept for backward compatibility
 	luaL_register(L, "gui", guilib);
 	luaL_register(L, "savestate", statelib);
 	luaL_register(L, "memory", memorylib);
