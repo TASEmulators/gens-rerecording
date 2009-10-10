@@ -2579,7 +2579,7 @@ void SonicSpeedTicker()
 //		const unsigned int P1OFFSET = 0xB008;// sonic 1: D008 ... sonic 2: B008 ... sonic 3: B010 // Where in RAM are these values stored?
 	#ifdef SK //Sonic and Knuckles
 		const unsigned char Char = (unsigned char) (Ram_68k[0xFF08]);
-		bool Knuckles = Game ? (Char == 3) : 0;
+		bool Knuckles = ((CheatRead<unsigned char>(0xFFF600) & 0x7F) == 0xC) ? (Char == 3) : 0;
 	#elif defined S2 //Sonic 2
 		bool Knuckles = (* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3)? true : false; //Compare ROM checksum to S&K's
 	#elif (defined S1) || (defined GAME_SCD) //Sonic 1
