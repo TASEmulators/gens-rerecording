@@ -21,6 +21,7 @@
 extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 extern unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
+extern bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell);
 extern bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size);
@@ -297,6 +298,46 @@ DEFINE_LUA_FUNCTION(memory_registerread, "address,[size=1,][cpuname=\"main\",]fu
 DEFINE_LUA_FUNCTION(memory_registerexec, "address,[size=2,][cpuname=\"main\",]func")
 {
 	return memory_registerHook(L, MatchHookTypeToCPU(L,LUAMEMHOOK_EXEC), 2);
+}
+
+DEFINE_LUA_FUNCTION(vdp_readcell, "address[,count]")
+{
+	unsigned short address = luaL_checkinteger(L,1);
+	int count = 1;
+	if(lua_isnumber(L,2))
+	{
+		count = luaL_checkinteger(L,2);
+	}
+
+	if(count < 0)
+	{
+		address += (count * 32);
+		count = -count;
+	}
+
+	int i = 0;
+	unsigned char *cell = (unsigned char *)malloc(32);
+
+	// push the array
+	lua_newtable(L);
+	while ((i < count) && ReadCellAtVDPAddress(address, cell))
+	{
+		lua_pushinteger(L,++i);
+		lua_newtable(L);
+		address += 32;
+		for (int j = 0; j < 32; j++)
+		{
+			lua_pushinteger(L, j + 1);
+			lua_pushinteger(L, cell[j]);
+			lua_settable(L,-3);
+		}
+		lua_settable(L,-3);
+	}
+	lua_pushinteger(L,0);
+	lua_pushinteger(L,i);
+	lua_settable(L,-3);
+	free(cell);
+	return 1;
 }
 
 
@@ -3480,6 +3521,11 @@ static const struct luaL_reg soundlib [] =
 	{"clear", sound_clear},
 	{NULL, NULL}
 };
+static const struct luaL_reg vdplib [] =
+{
+	{"readcell", vdp_readcell},
+	{NULL, NULL}
+};
 
 static const struct CFuncInfo
 {
@@ -3639,6 +3685,7 @@ void registerLibs(lua_State* L)
 	luaL_register(L, "movie", movielib);
 	luaL_register(L, "sound", soundlib);
 	luaL_register(L, "bit", bit_funcs); // LuaBitOp library
+	luaL_register(L, "vdp", vdplib);
 	lua_settop(L, 0); // clean the stack, because each call to luaL_register leaves a table on top
 	
 	// register a few utility functions outside of libraries (in the global namespace)
