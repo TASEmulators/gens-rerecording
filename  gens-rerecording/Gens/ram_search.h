@@ -37,6 +37,7 @@ void signal_new_size();
 void UpdateRamSearchTitleBar(int percent = 0);
 void SetRamSearchUndoType(HWND hDlg, int type);
 unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
+bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell);
 bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 bool IsHardwareRAMAddressValid(unsigned int address);
 extern int curr_ram_size;
