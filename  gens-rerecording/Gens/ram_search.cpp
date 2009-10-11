@@ -920,6 +920,64 @@ bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell) {
 	return true;
 }
 
+bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell) {
+	unsigned short scroll_begin, scroll_end, tableA_begin, tableA_end, tableB_begin, tableB_end;
+	unsigned short tableW_begin, tableW_end, tableS_begin, tableS_end;
+
+	scroll_begin = (VDP_Reg.H_Scr_Adr & 0x3F) << 10;
+	if ((VDP_Reg.Set3 & 0x3) == 0x3)
+		scroll_end = scroll_begin + 0x400;
+	else if (VDP_Reg.Set3 & 0x3)
+		scroll_end = scroll_begin + 0x3F4;
+	else
+		scroll_end = scroll_begin + 4;
+
+	tableA_begin = (VDP_Reg.Pat_ScrA_Adr & 0x38) << 10;
+	tableB_begin = (VDP_Reg.Pat_ScrB_Adr & 0x3) << 13;
+	if (VDP_Reg.Set4 & 0x81)
+	{
+		tableW_begin = (VDP_Reg.Pat_Win_Adr & 0x3C) << 10;
+		tableW_end = tableW_begin + 0x1000;
+		tableS_begin = (VDP_Reg.Spr_Att_Adr & 0x7E) << 9;
+	}
+	else 
+	{
+		tableW_begin = (VDP_Reg.Pat_Win_Adr & 0x3E) << 10;
+		tableW_end = tableW_begin + 0x800;
+		tableS_begin = (VDP_Reg.Spr_Att_Adr & 0x7F) << 9;
+	}
+	tableS_end = tableS_begin + 640;
+	unsigned char scrollsize = ((VDP_Reg.Scr_Size & 0x30) >> 2) | (VDP_Reg.Scr_Size & 0x3);
+	switch (scrollsize & 0xF) {
+		case 1:
+		case 4:
+			tableA_end = tableA_begin + 0x1000;
+			tableB_end = tableB_begin + 0x1000;
+			break;
+		case 3:
+		case 5:
+		case 12:
+			tableA_end = tableA_begin + 0x2000;
+			tableB_end = tableB_begin + 0x2000;
+			break;
+		default:
+			tableA_end = tableA_begin + 0x800;
+			tableB_end = tableB_begin + 0x800;
+			break;
+	}
+
+	if ((address > 0xFFFF) || ((address >= tableA_begin) && (address < tableA_end))
+		|| ((address >= tableB_begin) && (address < tableB_end))
+		|| ((address >= tableW_begin) && (address < tableW_end))
+		|| ((address >= tableS_begin) && (address < tableS_end))
+		|| ((address >= scroll_begin) && (address < scroll_end)))
+		return false;
+
+	Byte_Swap(cell,32);
+	memcpy(&(VRam[address]),cell,32);
+	return true;
+}
+
 bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless)
 {
 	if((address & ~0xFFFFFF) == ~0xFFFFFF)
