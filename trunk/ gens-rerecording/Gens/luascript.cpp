@@ -22,6 +22,7 @@ extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 extern unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
 extern bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell);
+extern bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell);
 extern bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size);
@@ -316,31 +317,101 @@ DEFINE_LUA_FUNCTION(vdp_readcell, "address[,count]")
 	}
 
 	int i = 0;
-	unsigned char *cell = (unsigned char *)malloc(32);
+	bool blah = true;
+	// push the array
+
+	lua_newtable(L);
+	while ((i < count) && blah)
+	{
+		blah = ReadCellAtVDPAddress(address, (unsigned char *)lua_newuserdata(L,32));
+		if (blah)
+		{
+			lua_rawseti(L,-2,++i);
+			address += 32;
+		}
+		else
+		{
+			lua_pop(L,1);
+		}
+	}
+	lua_pushinteger(L,i);
+	lua_insert(L,-2);
+
+	return 2;
+}
+DEFINE_LUA_FUNCTION(vdp_writecell, "address,celldata")
+{
+	unsigned short address = luaL_checkinteger(L,1);
+	int count = 0;
+	int type = lua_type(L,2);
+	if (type == LUA_TUSERDATA)
+	{
+		if (WriteCellToVDPAddress(address, (unsigned char *)lua_touserdata(L,2)))
+			count++;
+		lua_pushinteger(L,count);
+		return 1;
+	}
+
+	if (type != LUA_TTABLE)
+		return 0;
+
+	int i = 1;
+	bool blah = true;
+	do {
+		lua_rawgeti(L,2,i++);
+		if (lua_type(L,-1) == LUA_TUSERDATA)
+		{
+			blah = WriteCellToVDPAddress(address, (unsigned char *)lua_touserdata(L,-1));
+			count++;
+			address += 32;
+		}
+		else
+			blah = false;
+		lua_pop(L,1);
+	} while (blah);
+
+	lua_pushinteger(L,count);
+	return 1;
+}
+/*DEFINE_LUA_FUNCTION(vdp_readpalette, "[line][,numlines]")
+{
+	short line = 0;
+	int count = 4;
+	if(lua_isnumber(L,1))
+		line = luaL_checkinteger(L,1);
+	if(lua_isnumber(L,2))
+		count = luaL_checkinteger(L,2);
+
+	if(count < 0)
+	{
+		line += count;
+		count = -count;
+	}
+	count = min(count,(4 - line));
+
+	int i = line;
+	unsigned short *pal = (unsigned short *)malloc(32);
 
 	// push the array
 	lua_newtable(L);
-	while ((i < count) && ReadCellAtVDPAddress(address, cell))
+	while ((i < count) && ReadPaletteLine(i, pal))
 	{
 		lua_pushinteger(L,++i);
 		lua_newtable(L);
-		address += 32;
-		for (int j = 0; j < 32; j++)
+		for (int j = 0; j < 16; j++)
 		{
 			lua_pushinteger(L, j + 1);
-			lua_pushinteger(L, cell[j]);
+			lua_pushinteger(L, pal[j]);
 			lua_settable(L,-3);
 		}
 		lua_settable(L,-3);
 	}
 	lua_pushinteger(L,0);
-	lua_pushinteger(L,i);
+	lua_pushinteger(L,line);
 	lua_settable(L,-3);
-	free(cell);
+	free(pal);
 	return 1;
-}
-
-
+}*/
 DEFINE_LUA_FUNCTION(gens_registerbefore, "func")
 {
 	if (!lua_isnil(L,1))
@@ -3524,6 +3595,7 @@ static const struct luaL_reg soundlib [] =
 static const struct luaL_reg vdplib [] =
 {
 	{"readcell", vdp_readcell},
+	{"writecell", vdp_writecell},
 	{NULL, NULL}
 };
 
