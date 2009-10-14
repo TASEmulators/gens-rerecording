@@ -915,8 +915,15 @@ bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell) {
 		|| ((address >= scroll_begin) && (address < scroll_end)))
 		return false;
 
-	memcpy(cell,&(VRam[address]),32);
+	memcpy(cell, &(VRam[address]), 32);
 	Byte_Swap(cell,32);
+	return true;
+}
+
+bool ReadVDPPaletteLine(unsigned short line, unsigned short *pal) {
+	if (line > 3)
+		return false;
+	memcpy(pal, &CRam[line << 4], 32);
 	return true;
 }
 
@@ -975,6 +982,17 @@ bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell) {
 
 	Byte_Swap(cell,32);
 	memcpy(&(VRam[address]),cell,32);
+	return true;
+}
+
+bool WriteVDPPaletteLine(unsigned short line, unsigned short *pal) {
+	if (line > 3)
+		return false;
+	for (int i = 0; i < 16; i++) {
+		if (pal[i] != 0xFFFF)
+			CRam[(line << 4) + i] = pal[i];
+	}
+	CRam_Flag = 1;
 	return true;
 }
 
