@@ -2,6 +2,7 @@
 #include "gens.h"
 #include "save.h"
 #include "g_main.h"
+#include "misc.h"
 #include "guidraw.h"
 #include "movie.h"
 #include "vdp_io.h"
@@ -22,7 +23,9 @@ extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 extern unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
 extern bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell);
+extern bool ReadVDPPaletteLine(unsigned short line, unsigned short *pal);
 extern bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell);
+extern bool WriteVDPPaletteLine(unsigned short line, unsigned short *pal);
 extern bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size);
@@ -318,8 +321,8 @@ DEFINE_LUA_FUNCTION(vdp_readcell, "address[,count]")
 
 	int i = 0;
 	bool blah = true;
-	// push the array
 
+	// push the array
 	lua_newtable(L);
 	while ((i < count) && blah)
 	{
@@ -373,12 +376,12 @@ DEFINE_LUA_FUNCTION(vdp_writecell, "address,celldata")
 	lua_pushinteger(L,count);
 	return 1;
 }
-/*DEFINE_LUA_FUNCTION(vdp_readpalette, "[line][,numlines]")
+DEFINE_LUA_FUNCTION(vdp_readpalette, "[line][,numlines]")
 {
 	short line = 0;
 	int count = 4;
 	if(lua_isnumber(L,1))
-		line = luaL_checkinteger(L,1);
+		line = luaL_checkinteger(L,1) - 1; 
 	if(lua_isnumber(L,2))
 		count = luaL_checkinteger(L,2);
 
@@ -389,29 +392,64 @@ DEFINE_LUA_FUNCTION(vdp_writecell, "address,celldata")
 	}
 	count = min(count,(4 - line));
 
-	int i = line;
-	unsigned short *pal = (unsigned short *)malloc(32);
+	int i = 0;
+	bool blah = true;
 
 	// push the array
 	lua_newtable(L);
-	while ((i < count) && ReadPaletteLine(i, pal))
+	while ((i < count) && blah)
 	{
-		lua_pushinteger(L,++i);
-		lua_newtable(L);
-		for (int j = 0; j < 16; j++)
-		{
-			lua_pushinteger(L, j + 1);
-			lua_pushinteger(L, pal[j]);
-			lua_settable(L,-3);
-		}
-		lua_settable(L,-3);
+		blah = ReadVDPPaletteLine(i + line, (unsigned short *)lua_newuserdata(L,32));
+		if (blah)
+			lua_rawseti(L,-2,++i);
+		else
+			lua_pop(L,1);
 	}
-	lua_pushinteger(L,0);
-	lua_pushinteger(L,line);
-	lua_settable(L,-3);
-	free(pal);
+	lua_pushinteger(L,i);
+	lua_insert(L,-2);
+
+	return 2;
+}
+DEFINE_LUA_FUNCTION(vdp_writepalette, "[line,]paldata")
+{
+	short line = 0;
+	int ind = 1;
+	if(lua_isnumber(L,1))
+	{
+		line = luaL_checkinteger(L,1) - 1;
+		ind++;
+	}
+	int count = 0;
+
+	int type = lua_type(L,ind);
+	if (type == LUA_TUSERDATA)
+	{
+		if (WriteVDPPaletteLine(line, (unsigned short *)lua_touserdata(L,ind)))
+			count++;
+		lua_pushinteger(L,count);
+		return 1;
+	}
+
+	if (type != LUA_TTABLE)
+		return 0;
+
+	int i = 1;
+	bool blah = true;
+	do {
+		lua_rawgeti(L,ind,i++);
+		if (lua_type(L,-1) == LUA_TUSERDATA)
+		{
+			blah = WriteVDPPaletteLine(line++, (unsigned short *)lua_touserdata(L,-1));
+			count++;
+		}
+		else
+			blah = false;
+		lua_pop(L,1);
+	} while (blah);
+
+	lua_pushinteger(L,count);
 	return 1;
-}*/
+}
 DEFINE_LUA_FUNCTION(gens_registerbefore, "func")
 {
 	if (!lua_isnil(L,1))
@@ -1881,6 +1919,58 @@ DEFINE_LUA_FUNCTION(memory_readbyterange, "address,length")
 
 	return 1;
 }
+DEFINE_LUA_FUNCTION(memory_writebyterange, "address,[length,]data")
+{
+	int address = luaL_checkinteger(L,1);
+	int length = 0;
+	int ind = 2;
+	if (lua_isnumber(L,ind))
+		length = luaL_checkinteger(L,ind++);
+
+	if(length < 0)
+	{
+		address += length;
+		length = -length;
+	}
+	int count = 0;
+	if (length)
+	{
+		for(int a = address, n = 1; n <= length; a++, n++)
+		{
+			if(IsHardwareAddressValid(a))
+			{
+				lua_rawgeti(L, ind, n);
+				if (!lua_isnil(L,-1)) {
+					WriteValueAtHardwareAddress(a,luaL_checkinteger(L,-1) & 0xFF,1);
+					count++;
+				}
+				lua_pop(L,1);
+			}
+		}
+	}
+	else 
+	{
+		bool blah = false;
+		int a = address;
+		int i = 1;
+		while(!blah && (a <= 0xFFFFFF)) {
+			while (!IsHardwareAddressValid(a) && (a <= 0xFFFFFF))
+				a++, i++;
+			if (a > 0xFFFFFF)
+				break;
+
+			lua_rawgeti(L, ind, i++);
+			blah = lua_isnil(L,-1);
+			if (!blah) {
+				WriteValueAtHardwareAddress(a++,luaL_checkinteger(L,-1) & 0xFF,1);
+				count++;
+			}
+		}
+	}
+
+	lua_pushinteger(L,count);
+	return 1;
+}
 
 DEFINE_LUA_FUNCTION(memory_isvalid, "address")
 {
@@ -2525,7 +2615,86 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 	}
 	return color;
 }
+DEFINE_LUA_FUNCTION(pal_create, "")
+{
+	unsigned short *pal = (unsigned short *)lua_newuserdata(L,32);
+	memset(pal,~0,32);
 
+	return 1;
+}
+DEFINE_LUA_FUNCTION(pal_getcolor, "palette,index")
+{
+	int type = lua_type(L,1);
+	if ((type != LUA_TUSERDATA) || !lua_isnumber(L,2))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned short *pal = (unsigned short *) lua_touserdata(L,1);
+	unsigned short color = pal[luaL_checkinteger(L,2)-1];
+	if (color == 0xFFFF)
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+	lua_newtable(L);
+	lua_pushinteger(L,(color & 0xE) << 4);
+	lua_setfield(L,-2,"R");
+	lua_pushinteger(L,color & 0xE0);
+	lua_setfield(L,-2,"G");
+	lua_pushinteger(L,(color & 0xE00) >> 4);
+	lua_setfield(L,-2,"B");
+	lua_pushinteger(L,255);
+	lua_setfield(L,-2,"A");
+	return 1;
+}
+DEFINE_LUA_FUNCTION(pal_setcolor, "palette,index,color")
+{
+	int type = lua_type(L,1);
+	if ((type != LUA_TUSERDATA) || !lua_isnumber(L,2))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned short *pal = (unsigned short *) lua_touserdata(L,1);
+	unsigned short color;
+	if (lua_isnil(L,3))
+		color = 0xFFFF;
+	else
+	{
+		int color32 = getcolor_unmodified(L,3,0);
+		if (color32 & 0xFF)
+			color = ((color32 & 0xE000) >> 4) | ((color32 & 0xE00000) >> 16) | ((color32 & 0xE0000000) >> 28);
+		else
+			color = 0xFFFF;
+	}
+	pal[luaL_checkinteger(L,2)-1] = color;
+	lua_pushinteger(L,0);
+	return 1;
+}
+DEFINE_LUA_FUNCTION(pal_getraw, "palette")
+{
+	int type = lua_type(L,1);
+	if (type != LUA_TUSERDATA)
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned char *pal = (unsigned char *) lua_touserdata(L,1);
+	unsigned short *blah = (unsigned short *) pal;
+	Byte_Swap(pal,32);
+	lua_newtable(L);
+	int i = 0;
+	while (i < 32) {
+		if (pal[i] != 0xFF)
+			lua_pushinteger(L,pal[i]);
+		else
+			lua_pushnil(L);
+		lua_rawseti(L,-2,++i);
+	}
+	Byte_Swap(pal,32);
+	return 1;
+}
 // r,g,b,a = gui.parsecolor(color)
 // examples:
 // local r,g,b = gui.parsecolor("green")
@@ -3506,6 +3675,7 @@ static const struct luaL_reg memorylib [] =
 	{"writebyte", memory_writebyte},
 	{"writeword", memory_writeword},
 	{"writedword", memory_writedword},
+	{"writebyterange", memory_writebyterange},
 	{"isvalid", memory_isvalid},
 	{"getregister", memory_getregister},
 	{"setregister", memory_setregister},
@@ -3592,10 +3762,23 @@ static const struct luaL_reg soundlib [] =
 	{"clear", sound_clear},
 	{NULL, NULL}
 };
+static const struct luaL_reg pallib [] =
+{
+	{"new", pal_create},
+	{"create", pal_create},
+	{"getcolor", pal_getcolor},
+	{"readcolor", pal_getcolor},
+	{"setcolor", pal_setcolor},
+	{"writecolor", pal_setcolor},
+	{"rawdata", pal_getraw},
+	{NULL, NULL}
+};
 static const struct luaL_reg vdplib [] =
 {
 	{"readcell", vdp_readcell},
 	{"writecell", vdp_writecell},
+	{"readpalette", vdp_readpalette},
+	{"writepalette", vdp_writepalette},
 	{NULL, NULL}
 };
 
@@ -3758,6 +3941,8 @@ void registerLibs(lua_State* L)
 	luaL_register(L, "sound", soundlib);
 	luaL_register(L, "bit", bit_funcs); // LuaBitOp library
 	luaL_register(L, "vdp", vdplib);
+	luaL_register(L, "palette", pallib);
+	luaL_register(L, "pal", pallib);
 	lua_settop(L, 0); // clean the stack, because each call to luaL_register leaves a table on top
 	
 	// register a few utility functions outside of libraries (in the global namespace)
