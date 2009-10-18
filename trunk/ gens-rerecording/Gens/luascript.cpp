@@ -2615,6 +2615,89 @@ int getcolor(lua_State *L, int idx, int defaultColor)
 	}
 	return color;
 }
+DEFINE_LUA_FUNCTION(tile_create, "")
+{
+	unsigned short *tile = (unsigned short *)lua_newuserdata(L,32);
+	memset(tile,0,32);
+
+	return 1;
+}
+DEFINE_LUA_FUNCTION(tile_getpixel, "tile,x,y")
+{
+	int type = lua_type(L,1);
+	if ((type != LUA_TUSERDATA) || !lua_isnumber(L,2) || !lua_isnumber(L,3))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned char x = luaL_checkinteger(L,2)-1;
+	unsigned char y = luaL_checkinteger(L,3)-1;
+	if ((x < 0) || (y < 0) || (x > 7) || (y > 7))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned char *tile = (unsigned char *) lua_touserdata(L,1);
+	unsigned char color = tile[(y << 4) + (x >> 1)];
+	if (!(x & 1))
+		color >>= 4;
+	color &= 0xF;
+	lua_pushinteger(L,color);
+	return 1;
+}
+DEFINE_LUA_FUNCTION(tile_setpixel, "tile,x,y,color")
+{
+	int type = lua_type(L,1);
+	if ((type != LUA_TUSERDATA) || !lua_isnumber(L,2) || !lua_isnumber(L,3) || (!lua_isnil(L,4) && !lua_isnumber(L,4)))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned char x = luaL_checkinteger(L,2)-1;
+	unsigned char y = luaL_checkinteger(L,3)-1;
+	unsigned char color;
+	if (lua_isnil(L,4))
+		color = 0;
+	else
+		color = luaL_checkinteger(L,4);
+	if ((x < 0) || (y < 0) || (x > 7) || (y > 7) || (color & ~0xF))
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+
+	unsigned char *tile = (unsigned char *) lua_touserdata(L,1);
+	if (x & 1)
+	{
+		tile[(y << 2) + (x >> 1)] &= 0xF0;
+		tile[(y << 2) + (x >> 1)] |= color;
+	}
+	else
+	{
+		tile[(y << 2) + (x >> 1)] &= 0x0F;
+		tile[(y << 2) + (x >> 1)] |= (color << 4);
+
+	}
+	lua_pushinteger(L,0);
+	return 1;
+}
+DEFINE_LUA_FUNCTION(tile_getraw, "tile")
+{
+	int type = lua_type(L,1);
+	if (type != LUA_TUSERDATA)
+	{
+		lua_pushinteger(L,-1);
+		return 1;
+	}
+	unsigned char *tile = (unsigned char *) lua_touserdata(L,1);
+	lua_newtable(L);
+	int i = 0;
+	while (i < 32) {
+		lua_pushinteger(L,tile[i]);
+		lua_rawseti(L,-2,++i);
+	}
+	return 1;
+}
 DEFINE_LUA_FUNCTION(pal_create, "")
 {
 	unsigned short *pal = (unsigned short *)lua_newuserdata(L,32);
@@ -3762,6 +3845,17 @@ static const struct luaL_reg soundlib [] =
 	{"clear", sound_clear},
 	{NULL, NULL}
 };
+static const struct luaL_reg tilelib [] =
+{
+	{"new", tile_create},
+	{"create", tile_create},
+	{"getpixel", tile_getpixel},
+	{"readpixel", tile_getpixel},
+	{"setpixel", tile_setpixel},
+	{"writepixel", tile_setpixel},
+	{"rawdata", tile_getraw},
+	{NULL, NULL}
+};
 static const struct luaL_reg pallib [] =
 {
 	{"new", pal_create},
@@ -3941,6 +4035,7 @@ void registerLibs(lua_State* L)
 	luaL_register(L, "sound", soundlib);
 	luaL_register(L, "bit", bit_funcs); // LuaBitOp library
 	luaL_register(L, "vdp", vdplib);
+	luaL_register(L, "tile", tilelib);
 	luaL_register(L, "palette", pallib);
 	luaL_register(L, "pal", pallib);
 	lua_settop(L, 0); // clean the stack, because each call to luaL_register leaves a table on top
