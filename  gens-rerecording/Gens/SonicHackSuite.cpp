@@ -24,7 +24,7 @@
 	const unsigned char GVo = 0x1C;
 	const unsigned char Ho = 0x1E;
 	const unsigned char Wo = 0x1F;
-	const unsigned char So = 0x22;
+	const unsigned char So = 0x2A;
 	const unsigned char Ao = 0x26;
 	const unsigned char To = 0x28;
 	const unsigned int CAMOFFSET1 = 0xFFEE78;
