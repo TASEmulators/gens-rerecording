@@ -308,6 +308,8 @@ void FindObjectDims (unsigned int index, unsigned char &X, unsigned char &Y)
 		case 0x86:
 			X = Y = 8;
 			return;
+#else
+		case 0: // anti-warning
 #endif
 		default:
 			X = Y = 3;
