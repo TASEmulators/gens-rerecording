@@ -2798,12 +2798,13 @@ DEFINE_LUA_FUNCTION(gui_parsecolor, "color")
 
 DEFINE_LUA_FUNCTION(gui_text, "x,y,str[,color=\"white\"[,outline=\"black\"]]")
 {
+	int x = luaL_checkinteger(L,1) & 0xFFFF; // have to check for errors before deferring
+	int y = luaL_checkinteger(L,2) & 0xFFFF;
+
 	if(DeferGUIFuncIfNeeded(L))
 		return 0; // we have to wait until later to call this function because gens hasn't emulated the next frame yet
 		          // (the only way to avoid this deferring is to be in a gui.register or gens.registerafter callback)
 
-	int x = luaL_checkinteger(L,1) & 0xFFFF;
-	int y = luaL_checkinteger(L,2) & 0xFFFF;
 	const char* str = toCString(L,3); // better than using luaL_checkstring here (more permissive)
 	
 	if(str && *str)
@@ -2947,13 +2948,15 @@ int amplifyShader(lua_State* L)
 
 DEFINE_LUA_FUNCTION(gui_box, "x1,y1,x2,y2[,fill[,outline]]")
 {
-	if(DeferGUIFuncIfNeeded(L))
-		return 0;
-
+	// have to check for errors before deferring
 	int x1 = luaL_checkinteger(L,1); // & 0xFFFF removed because it was turning -1 into 65535 which screwed up the out-of-bounds checking in ApplyShaderToBox
 	int y1 = luaL_checkinteger(L,2);
 	int x2 = luaL_checkinteger(L,3);
 	int y2 = luaL_checkinteger(L,4);
+
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	int fillcolor = getcolor(L,5,0xFFFFFF3F);
 	int outlinecolor = getcolor(L,6,fillcolor|0xFF);
 	if(!lua_isfunction(L,5) || !lua_isnoneornil(L,6))
@@ -2981,11 +2984,12 @@ DEFINE_LUA_FUNCTION(gui_box, "x1,y1,x2,y2[,fill[,outline]]")
 //   or it can be a preset color like 'red', 'orange', 'blue', 'white', etc.
 DEFINE_LUA_FUNCTION(gui_pixel, "x,y[,color=\"white\"]")
 {
+	int x = luaL_checkinteger(L,1) & 0xFFFF; // have to check for errors before deferring
+	int y = luaL_checkinteger(L,2) & 0xFFFF;
+
 	if(DeferGUIFuncIfNeeded(L))
 		return 0;
 
-	int x = luaL_checkinteger(L,1) & 0xFFFF;
-	int y = luaL_checkinteger(L,2) & 0xFFFF;
 	int color = getcolor(L,3,0xFFFFFFFF);
 	int color32 = color>>8;
 	int color16 = DrawUtil::Pix32To16(color32);
@@ -3028,13 +3032,14 @@ DEFINE_LUA_FUNCTION(gui_getpixel, "x,y")
 }
 DEFINE_LUA_FUNCTION(gui_line, "x1,y1,x2,y2[,color=\"white\"[,skipfirst=false]]")
 {
-	if(DeferGUIFuncIfNeeded(L))
-		return 0;
-
-	int x1 = luaL_checkinteger(L,1) & 0xFFFF;
+	int x1 = luaL_checkinteger(L,1) & 0xFFFF; // have to check for errors before deferring
 	int y1 = luaL_checkinteger(L,2) & 0xFFFF;
 	int x2 = luaL_checkinteger(L,3) & 0xFFFF;
 	int y2 = luaL_checkinteger(L,4) & 0xFFFF;
+
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	int color = getcolor(L,5,0xFFFFFFFF);
 	int color32 = color>>8;
 	int color16 = DrawUtil::Pix32To16(color32);
@@ -3165,9 +3170,6 @@ DEFINE_LUA_FUNCTION(gui_gdscreenshot, "")
 // example: gui.gdoverlay(gd.createFromPng("myimage.png"):gdStr())
 DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
 {
-	if(DeferGUIFuncIfNeeded(L))
-		return 0;
-
 	int xStart = 0;
 	int yStart = 0;
 
@@ -3179,7 +3181,11 @@ DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
 			yStart = lua_tointeger(L,index++);
 	}
 
-	luaL_checktype(L,index,LUA_TSTRING);
+	luaL_checktype(L,index,LUA_TSTRING); // have to check for errors before deferring
+
+	if(DeferGUIFuncIfNeeded(L))
+		return 0;
+
 	const unsigned char* ptr = (const unsigned char*)lua_tostring(L,index++);
 
 	// GD format header for truecolor image (11 bytes)
