@@ -2900,9 +2900,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 		CDDA_Enable = GetPrivateProfileInt("Sound", "CDDA State", 1, Conf_File);
 	}
 
-	YM2612_Improv = GetPrivateProfileInt("Sound", "YM2612 Improvement", 1, Conf_File); // Modif N
-	DAC_Improv = GetPrivateProfileInt("Sound", "DAC Improvement", 1, Conf_File); // Modif N
-	PSG_Improv = GetPrivateProfileInt("Sound", "PSG Improvement", 1, Conf_File); // Modif N
+	YM2612_Improv = GetPrivateProfileInt("Sound", "YM2612 Improvement", 0, Conf_File); // Modif N
+	DAC_Improv = GetPrivateProfileInt("Sound", "DAC Improvement", 0, Conf_File); // Modif N
+	PSG_Improv = GetPrivateProfileInt("Sound", "PSG Improvement", 0, Conf_File); // Modif N
 	MastVol = (GetPrivateProfileInt("Sound", "Master Volume", 128, Conf_File) & 0x1FF);
 	YM2612Vol = (GetPrivateProfileInt("Sound", "YM2612 Volume", 256, Conf_File) & 0x1FF);
 	DACVol = (GetPrivateProfileInt("Sound", "DAC Volume", 256, Conf_File) & 0x1FF);
