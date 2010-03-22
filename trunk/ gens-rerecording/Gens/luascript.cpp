@@ -10,6 +10,7 @@
 #include "unzip.h"
 #include "Cpu_68k.h"
 #include "io.h"
+#include "resource.h"
 #include <assert.h>
 #include <vector>
 #include <map>
@@ -637,6 +638,133 @@ DEFINE_LUA_FUNCTION(gui_popup, "message[,type=\"ok\"[,icon=\"message\"]]")
 DEFINE_LUA_FUNCTION(input_popup, "message[,type=\"yesno\"[,icon=\"question\"]]")
 {
 	return doPopup(L, "yesno", "question");
+}
+
+const char *prompt_str = new char[];
+const char *prompt_default = new char[];
+int prompt_maxlength;
+char *prompt_result = new char[];
+
+LRESULT CALLBACK LuaPromptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	RECT r;
+	RECT r2;
+	int dx1, dy1, dx2, dy2;
+
+	const char* msg = "";
+	char* length = "";
+	//int uid;
+
+	switch(uMsg)
+	{
+		case WM_INITDIALOG:
+			if (Full_Screen)
+			{
+				while (ShowCursor(false) >= 0);
+				while (ShowCursor(true) < 0);
+			}
+
+			GetWindowRect(HWnd, &r);
+			dx1 = (r.right - r.left) / 2;
+			dy1 = (r.bottom - r.top) / 2;
+
+			GetWindowRect(hDlg, &r2);
+			dx2 = (r2.right - r2.left) / 2;
+			dy2 = (r2.bottom - r2.top) / 2;
+
+			SetWindowPos(hDlg, NULL, r.left + dx1 - dx2, r.top + dy1 + dy2, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+
+			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT,WM_SETTEXT,0,(LPARAM)prompt_str);
+			
+			SendDlgItemMessage(hDlg,IDC_PROMPT_EDIT,EM_LIMITTEXT,(WPARAM)prompt_maxlength,0);
+			SendDlgItemMessage(hDlg,IDC_PROMPT_EDIT,WM_SETTEXT,0,(LPARAM)prompt_default);
+
+			sprintf(Str_Tmp, "Maximum length is %i characters.", prompt_maxlength);
+
+			SendDlgItemMessage(hDlg,IDC_PROMPT_TEXT2,WM_SETTEXT,0,(LPARAM)Str_Tmp);
+
+			return true;
+			break;
+
+		case WM_COMMAND:
+			switch(LOWORD(wParam))
+			{
+				case IDOK:
+				{
+					if (Full_Screen)
+					{
+						while (ShowCursor(true) < 0);
+						while (ShowCursor(false) >= 0);
+					}
+
+					prompt_result = new char[prompt_maxlength];
+					GetDlgItemText(hDlg, IDC_PROMPT_EDIT, prompt_result, prompt_maxlength+1);
+
+					EndDialog(hDlg, true);
+					return true;
+					break;
+				}
+				case ID_CANCEL:
+				case IDCANCEL:
+					if (Full_Screen)
+					{
+						while (ShowCursor(true) < 0);
+						while (ShowCursor(false) >= 0);
+					}
+					
+					prompt_result = "";
+
+					EndDialog(hDlg, false);
+					return true;
+					break;
+			}
+			break;
+
+		case WM_CLOSE:
+			if (Full_Screen)
+			{
+				while (ShowCursor(true) < 0);
+				while (ShowCursor(false) >= 0);
+			}
+			prompt_result = "";
+			EndDialog(hDlg, false);
+
+			return true;
+			break;
+	}
+
+	return false;
+}
+
+static int doPrompt(lua_State* L, const char *defstr, const char *defvalue, const int deflength)
+{
+	prompt_str = (const char *) (lua_type(L,1) == LUA_TSTRING ? lua_tostring(L,1) : defstr);
+	prompt_default = (const char *) (lua_type(L,2) == LUA_TSTRING ? lua_tostring(L,2) : defvalue);
+	prompt_maxlength = lua_type(L,3) == LUA_TNUMBER ? lua_tointeger(L,3) : deflength;
+
+	if (Full_Screen)
+	{
+		while (ShowCursor(false) >= 0);
+		while (ShowCursor(true) < 0);
+	}
+
+	EnableWindow(HWnd, false);
+
+	if (DialogBox(ghInstance, MAKEINTRESOURCE(IDD_PROMPT), (HWND)luaStateToUIDMap[L], (DLGPROC) LuaPromptProc))
+		lua_pushstring(L, prompt_result);
+	else
+		lua_pushnil(L);
+	
+	EnableWindow(HWnd, true);
+
+	return 1;
+}
+
+// string input.prompt()
+// string input.prompt(string message = "", string default = "", int maxlength = 100)
+DEFINE_LUA_FUNCTION(input_prompt, "[message=\"\"[,default=\"\"[,maxlength=100]]]")
+{
+	return doPrompt(L, "", "", 100);
 }
 
 static const char* FilenameFromPath(const char* path)
@@ -3813,6 +3941,7 @@ static const struct luaL_reg inputlib [] =
 	{"get", input_getcurrentinputstatus},
 	{"registerhotkey", input_registerhotkey},
 	{"popup", input_popup},
+	{"prompt", input_prompt},
 	// alternative names
 	{"read", input_getcurrentinputstatus},
 	{NULL, NULL}
