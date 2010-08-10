@@ -593,6 +593,8 @@
 #define IDC_C_ELIMINATE                 42174
 #define IDC_C_WATCH_DUPLICATE           42175
 #define IDC_C_WATCH_REMOVE              42176
+#define IDC_C_WATCH_DUPLICATE2          42177
+#define IDC_C_WATCH_SEPARATE            42177
 #define IDC_CHEATLIST                   42180
 #define IDC_PROMPT_TEXT                 43000
 #define IDC_PROMPT_TEXT2                43001
