@@ -2481,9 +2481,9 @@ const char* GensPlayMovie(const char* filename, bool silent)
 //		return 0;
 //	if(MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED)
 //		CloseMovieFile(&MainMovie);
-	if(!(Game))
-		if(SendMessage(HWnd, WM_COMMAND, ID_FILES_OPENROM, 0) <= 0) // Modif N. -- prompt once to load ROM if it's not already loaded
-			return "no game loaded";
+	if(!(Game)) 
+		SendMessage(HWnd, WM_COMMAND, ID_FILES_OPENROM, 0); // Modif N. -- prompt once to load ROM if it's not already loaded
+		
 
 	// Modif N. -- added so that a movie that's currently being recorded doesn't show up with bogus info in the movie play dialog
 	if(MainMovie.Status == MOVIE_RECORDING && MainMovie.File)
@@ -2499,7 +2499,7 @@ const char* GensPlayMovie(const char* filename, bool silent)
 		if (PlayMovieCanceled)
 			return "user cancelled";
 	}
-	else
+	else if (Game)
 	{
 		char tempfilename [1024];
 		strncpy(tempfilename, filename, 1024);
