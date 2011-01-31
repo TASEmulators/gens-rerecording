@@ -1433,7 +1433,7 @@ static UBits barg(lua_State *L, int idx)
 #ifdef SWAPPED_DOUBLE
   b = (UBits)(bn.b >> 32);
 #else
-  b = (UBits)bn.b;
+  b = (UBits)(bn.b & (UBits)~0);
 #endif
 #elif defined(LUA_NUMBER_INT) || defined(LUA_NUMBER_LONG) || \
       defined(LUA_NUMBER_LONGLONG) || defined(LUA_NUMBER_LONG_LONG) || \
@@ -2520,8 +2520,8 @@ DEFINE_LUA_FUNCTION(joy_set, "[controller=1,]inputtable")
 
 	luaL_checktype(L, index, LUA_TTABLE);
 
-	int input = ~0;
-	int mask = 0;
+	long long input = ~0;
+	long long mask = 0;
 
 	for(int i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
 	{
@@ -2532,7 +2532,7 @@ DEFINE_LUA_FUNCTION(joy_set, "[controller=1,]inputtable")
 			if (!lua_isnil(L,-1))
 			{
 				bool pressed = lua_toboolean(L,-1) != 0;
-				int bitmask = ((long long)1 << bd.bit);
+				long long bitmask = ((long long)1 << bd.bit);
 				if(pressed)
 					input &= ~bitmask;
 				else
