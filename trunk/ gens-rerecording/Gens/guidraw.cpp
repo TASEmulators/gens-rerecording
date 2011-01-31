@@ -270,11 +270,11 @@ void DrawLineBress(short x1,short y1,short x2,short y2,short dx,short dy,unsigne
 		if (skipFirst)  skipFirst = false;
 		else if (steep) Pixel(y,x,color32,color16,wrap, Opac);
 		else            Pixel(x,y,color32,color16,wrap, Opac);
-		err += dy << 1;
+		err = (err + (dy << 1)) & 0xFFFF;
 		if (err >= thresh)
 		{
 			y += sy;
-			err -= dx << 1;
+			err = (err - (dx << 1)) & 0xFFFF;
 		}
 	}	
 }
