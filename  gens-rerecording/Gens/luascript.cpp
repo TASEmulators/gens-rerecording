@@ -1985,7 +1985,7 @@ DEFINE_LUA_FUNCTION(memory_readdword, "address")
 	int address = luaL_checkinteger(L,1);
 	unsigned long value = (unsigned long)(ReadValueAtHardwareAddress(address, 4));
 	lua_settop(L,0);
-	lua_pushinteger(L, value);
+	lua_pushnumber(L, value); // can't use pushinteger in this case (out of range)
 	return 1;
 }
 DEFINE_LUA_FUNCTION(memory_readdwordsigned, "address")
