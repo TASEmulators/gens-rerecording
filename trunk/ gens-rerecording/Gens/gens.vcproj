@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9.00"
 	Name="gens"
 	ProjectGUID="{BCD798AC-DD36-450E-BFE9-269C182290CC}"
 	RootNamespace="gens"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -97,6 +98,8 @@
 				ProgramDatabaseFile=".\Release/gens.pdb"
 				SubSystem="2"
 				LinkTimeCodeGeneration="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -116,9 +119,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -203,6 +203,8 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/gens.pdb"
 				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -222,9 +224,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
