@@ -10,6 +10,7 @@
 #include "unzip.h"
 #include "Cpu_68k.h"
 #include "io.h"
+#include "ym2612.h"
 #include "resource.h"
 #include <assert.h>
 #include <vector>
@@ -3605,6 +3606,120 @@ DEFINE_LUA_FUNCTION(movie_close, "")
 	return 0;
 }
 
+extern "C"
+{
+	extern unsigned int AR_TAB[128];
+	extern unsigned int DR_TAB[96];
+	extern unsigned int DT_TAB[8][32];
+	extern unsigned int SL_TAB[16];
+	extern unsigned int NULL_RATE[32];
+}
+DEFINE_LUA_FUNCTION(sound_get, "")
+{
+	lua_newtable(L);
+	lua_newtable(L);
+	lua_newtable(L);
+	for (int channel = 0; channel < 6; channel++)
+	{
+		lua_newtable(L);
+		lua_pushinteger(L, YM2612.CHANNEL[channel].ALGO);
+		lua_setfield(L, -2, "AL");
+		lua_pushinteger(L, YM2612.CHANNEL[channel].FB);
+		lua_setfield(L, -2, "FB");
+
+		lua_newtable(L);
+		for (int slot = 0; slot < 4; slot++)
+		{
+			lua_newtable(L);
+
+			// un-pointerify
+			// TODO: prevent double un-pointerify
+			int AR = (int)((int*)YM2612.CHANNEL[channel].SLOT[slot].AR - (int*)&AR_TAB);
+			if ((int*)(YM2612.CHANNEL[channel].SLOT[slot].AR) != (int*)(&NULL_RATE[0]))
+			{
+				assert(AR % 2 == 0);
+				AR >>= 1;
+			}
+			else
+			{
+				AR = 0;
+			}
+			int DR = (int)((int*)YM2612.CHANNEL[channel].SLOT[slot].DR - (int*)&DR_TAB);
+			if ((int*)(YM2612.CHANNEL[channel].SLOT[slot].DR) != (int*)(&NULL_RATE[0]))
+			{
+				assert(DR % 2 == 0);
+				DR >>= 1;
+			}
+			else
+			{
+				DR = 0;
+			}
+			int SR = (int)((int*)YM2612.CHANNEL[channel].SLOT[slot].SR - (int*)&DR_TAB);
+			if ((int*)(YM2612.CHANNEL[channel].SLOT[slot].SR) != (int*)(&NULL_RATE[0]))
+			{
+				assert(SR % 2 == 0);
+				SR >>= 1;
+			}
+			else
+			{
+				SR = 0;
+			}
+			int RR = (int)((int*)YM2612.CHANNEL[channel].SLOT[slot].RR - (int*)&DR_TAB);
+			assert((RR - 2) % 4 == 0);
+			RR = (RR - 2) >> 2;
+			int DT = 0;
+			for (int i = 0; i < 8; i++)
+			{
+				if ((int*)(YM2612.CHANNEL[channel].SLOT[slot].DT) == (int*)DT_TAB[i])
+				{
+					DT = i;
+					break;
+				}
+			}
+			int SL = 0;
+			for (int i = 0; i < 16; i++)
+			{
+				if (YM2612.CHANNEL[channel].SLOT[slot].SLL == SL_TAB[i])
+				{
+					SL = i;
+					break;
+				}
+			}
+			int OL = YM2612.CHANNEL[channel].SLOT[slot].TL;
+			int KS = 3 - YM2612.CHANNEL[channel].SLOT[slot].KSR_S;
+			int ML = (YM2612.CHANNEL[channel].SLOT[slot].MUL > 1) ?
+				(YM2612.CHANNEL[channel].SLOT[slot].MUL >> 1) : 0;
+
+			lua_pushinteger(L, AR);
+			lua_setfield(L, -2, "AR");
+			lua_pushinteger(L, DR);
+			lua_setfield(L, -2, "DR");
+			lua_pushinteger(L, SR);
+			lua_setfield(L, -2, "SR");
+			lua_pushinteger(L, RR);
+			lua_setfield(L, -2, "RR");
+			lua_pushinteger(L, OL);
+			lua_setfield(L, -2, "OL");
+			lua_pushinteger(L, KS);
+			lua_setfield(L, -2, "KS");
+			lua_pushinteger(L, ML);
+			lua_setfield(L, -2, "ML");
+			lua_pushinteger(L, DT);
+			lua_setfield(L, -2, "DT1");
+			lua_pushboolean(L, YM2612.CHANNEL[channel].SLOT[slot].AMSon != 0);
+			lua_setfield(L, -2, "AMS");
+
+			lua_rawseti(L, -2, 1 + slot);
+		}
+		lua_setfield(L, -2, "slot");
+
+		lua_rawseti(L, -2, 1 + channel);
+	}
+	lua_setfield(L, -2, "channel");
+	lua_setfield(L, -2, "ym2612");
+	return 1;
+}
+
 DEFINE_LUA_FUNCTION(sound_clear, "")
 {
 	Clear_Sound_Buffer();
@@ -3977,6 +4092,7 @@ static const struct luaL_reg movielib [] =
 };
 static const struct luaL_reg soundlib [] =
 {
+	{"get", sound_get},
 	{"clear", sound_clear},
 	{NULL, NULL}
 };
