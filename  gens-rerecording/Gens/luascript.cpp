@@ -3613,6 +3613,8 @@ extern "C"
 	extern unsigned int DT_TAB[8][32];
 	extern unsigned int SL_TAB[16];
 	extern unsigned int NULL_RATE[32];
+	extern const unsigned int LFO_AMS_TAB[4];
+	extern const unsigned int LFO_FMS_TAB[8];
 }
 DEFINE_LUA_FUNCTION(sound_get, "")
 {
@@ -3685,7 +3687,7 @@ DEFINE_LUA_FUNCTION(sound_get, "")
 					break;
 				}
 			}
-			int OL = YM2612.CHANNEL[channel].SLOT[slot].TL;
+			int TL = YM2612.CHANNEL[channel].SLOT[slot].TL;
 			int KS = 3 - YM2612.CHANNEL[channel].SLOT[slot].KSR_S;
 			int ML = (YM2612.CHANNEL[channel].SLOT[slot].MUL > 1) ?
 				(YM2612.CHANNEL[channel].SLOT[slot].MUL >> 1) : 0;
@@ -3698,20 +3700,45 @@ DEFINE_LUA_FUNCTION(sound_get, "")
 			lua_setfield(L, -2, "SR");
 			lua_pushinteger(L, RR);
 			lua_setfield(L, -2, "RR");
-			lua_pushinteger(L, OL);
-			lua_setfield(L, -2, "OL");
+			lua_pushinteger(L, SL);
+			lua_setfield(L, -2, "SL");
+			lua_pushinteger(L, TL);
+			lua_setfield(L, -2, "TL");
 			lua_pushinteger(L, KS);
 			lua_setfield(L, -2, "KS");
 			lua_pushinteger(L, ML);
 			lua_setfield(L, -2, "ML");
 			lua_pushinteger(L, DT);
-			lua_setfield(L, -2, "DT1");
-			lua_pushboolean(L, YM2612.CHANNEL[channel].SLOT[slot].AMSon != 0);
-			lua_setfield(L, -2, "AMS");
+			lua_setfield(L, -2, "DT");
+			lua_pushinteger(L, YM2612.CHANNEL[channel].SLOT[slot].AMSon ? 1 : 0);
+			lua_setfield(L, -2, "AME");
 
 			lua_rawseti(L, -2, 1 + slot);
 		}
 		lua_setfield(L, -2, "slot");
+
+		int AMS = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			if (YM2612.CHANNEL[channel].AMS == LFO_AMS_TAB[i])
+			{
+				AMS = i;
+				break;
+			}
+		}
+		lua_pushinteger(L, AMS);
+		lua_setfield(L, -2, "AMS");
+		int PMS = 0;
+		for (int i = 0; i < 8; i++)
+		{
+			if (YM2612.CHANNEL[channel].FMS == LFO_FMS_TAB[i])
+			{
+				PMS = i;
+				break;
+			}
+		}
+		lua_pushinteger(L, PMS);
+		lua_setfield(L, -2, "PMS");
 
 		lua_rawseti(L, -2, 1 + channel);
 	}
