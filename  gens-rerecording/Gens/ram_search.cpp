@@ -1074,13 +1074,22 @@ void CompactAddrs()
 		ListView_SetItemCount(GetDlgItem(RamSearchHWnd,IDC_RAMLIST),ResultCount);
 }
 
-void soft_reset_address_info (bool resetPrevValues = false)
+void soft_reset_address_info ()
 {
-	if (resetPrevValues) {
-		memcpy(s_prevValues, s_curValues, sizeof(s_prevValues));
-		s_prevValuesNeedUpdate = false;
-	}
+	s_prevValuesNeedUpdate = false;
 	ResetMemoryRegions();
+	if(!RamSearchHWnd)
+	{
+		s_activeMemoryRegions.clear();
+		ResultCount = 0;
+	}
+	else
+	{
+		// force s_prevValues to be valid
+		signal_new_frame();
+		s_prevValuesNeedUpdate = true;
+		signal_new_frame();
+	}
 	memset(s_numChanges, 0, sizeof(s_numChanges));
 	CompactAddrs();
 }
@@ -1273,6 +1282,7 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 	if(disableRamSearchUpdate)
 		return;
 
+	int prevValuesNeededUpdate;
 	if (AutoSearch && !ResultCount)
 	{
 		if(!AutoSearchAutoRetry)
@@ -1288,22 +1298,26 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 				AutoSearchAutoRetry = true;
 		}
 		reset_address_info();
+		prevValuesNeededUpdate = s_prevValuesNeedUpdate;
 	}
-
-	int prevValuesNeededUpdate = s_prevValuesNeedUpdate;
-	if (RamSearchHWnd)
+	else
 	{
-		// update active RAM values
-		signal_new_frame();
-	}
+		prevValuesNeededUpdate = s_prevValuesNeedUpdate;
 
-	if (AutoSearch && ResultCount)
-	{
-		//Clear_Sound_Buffer();
-		if(!rs_val_valid)
-			rs_val_valid = Set_RS_Val();
-		if(rs_val_valid)
-			prune(rs_c,rs_o,rs_t=='s',rs_val,rs_param);
+		if (RamSearchHWnd)
+		{
+			// update active RAM values
+			signal_new_frame();
+		}
+
+		if (AutoSearch && ResultCount)
+		{
+			//Clear_Sound_Buffer();
+			if(!rs_val_valid)
+				rs_val_valid = Set_RS_Val();
+			if(rs_val_valid)
+				prune(rs_c,rs_o,rs_t=='s',rs_val,rs_param);
+		}
 	}
 
 	if(RamSearchHWnd)
@@ -1765,7 +1779,7 @@ LRESULT CALLBACK RamSearchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					RamSearchSaveUndoStateIfNotTooBig(RamSearchHWnd);
 					int prevNumItems = last_rs_possible;
 
-					soft_reset_address_info(true);
+					soft_reset_address_info();
 
 					if(prevNumItems == last_rs_possible)
 						SetRamSearchUndoType(RamSearchHWnd, 0); // nothing to undo
