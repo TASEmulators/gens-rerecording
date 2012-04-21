@@ -1,11 +1,79 @@
-TODO: update this document (here's a start: open gens.sln in Visual Studio 2005 and choose Build Solution. If it complains about ddraw.h missing you'll need to install a DirectX SDK first.)
+---------------------------------
+Opening and Building the Project:
+---------------------------------
 
+Double-click gens.sln in the Gens folder.
 
+If you have Visual Studio Express:
+    You'll be asked which product to use to open the .sln file.  
+        Select the C++ version.
 
-You need Visual C++ 6.0 with the DirectX 7.0 Runtime library and NASM installed
-in the root directory of the drive where you've checked out Gens (\nasm) to
-compile Gens project (NASM in included in the sources package, you just need
-to move it in the root directory).
+If you have Visual Studio [Express] 2010 or newer:
+    You'll see the VS Conversion Wizard.  
+    Click Next. Select whether or not you want a backup, and click Next.  
+        Click Finish. Click Close
+    The Conversion Report should show no errors.
+
+First, build in Debug mode:
+    Right-click "Solution 'gens' (4 projects)" and select "Build Solution" 
+    It should build and in the Output area you should eventually see 
+    ========== Build: 4 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
+
+Next, build in Release mode:
+    Change the build configuration from Debug to Release
+    Right-click "Solution 'gens' (4 projects)" and select "Build Solution" 
+    You should see 
+    ========== Build: 2 succeeded, 0 failed, 2 up-to-date, 0 skipped ==========
+
+    If you build Release mode first, or use "Rebuild Solution", you should see 
+    ========== Build: 4 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
+
+---------------------------------
+Note About Visual Studio Express:
+---------------------------------
+
+Visual Studio Express does not have a resource editor for .rc files, 
+which is how the GUI windows are normally edited.
+
+Here are some 3rd-party resource file editors that may work for you:
+
+http://www.resedit.net/
+	
+    ResEdit breaks the resource file (Gens.rc) and resources.h, so you need to 
+	keep a separate copy of the files and copy your changes over manually.
+    You need to give it the include location for windows.h.  Here is an example 
+	for on 64-bit Windows 7:
+            C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Include
+            
+http://melander.dk/reseditor/ 
+
+	(Have not tried)
+
+    
+-------------------------------------
+Potential Build Errors and Solutions:
+-------------------------------------
+
+Error: 
+    it complains about ddraw.h missing 
+Solution: 
+    Install a DirectX SDK
+    
+Error:
+    LINK : fatal error LNK1104: cannot open file '.\Debug\pwm.obj'
+    LINK : fatal error LNK1181: cannot open input file '.\Release\pwm.obj'
+Solution:
+    Build again and this error goes away.
+
+Error:
+    Incremental Linker crashes
+Solution:
+    Build again and it will probably work.
+
+    
+--------------------
+Project Information:
+--------------------
 
 Gens uses the Starcream 680x0 library emulation for the genesis and Sega CD
 68000 CPU emulation, the core has been customised and optimised for Gens.
@@ -17,24 +85,11 @@ Gens project is structured as follow :
 - Sub68k directory contains the sources for the sub 68000 (Sega CD 68000).
 - z80 directory contains the sources for the Z80 cpu (genesis).
 
-I used 2 68000 cores for speed reasons :
+For speed reasons, 2 68000 cores are used:
 - No context swap required.
 - Each core is optimised for its function.
 
-Here's the step to follow to compile succefully the win32 vesion of Gens :
-
-- Be sure to have VC (Visual C++) 6.0 with the DirectX 7.0 Runtime library installed.
-- Open the Main68k project (DSW file) with VC, build star.exe then close the project.
-- Open the Sub68k project with VC, build star.exe then close the project.
-- Exec the comp_m68k.bat file.
-- Exec the comp_s68k.bat file.
-- Open the Gens project with VC and build gens.exe, that's all :)
-
 Gens.exe file is normally build in the gens\release directory.
-To uses netplay features, Gens requires kailleraclient.dll, the file should be in
-the same directory as gens.exe
-
-
-
-
+To uses netplay features, Gens requires kailleraclient.dll, the file should be
+in the same directory as gens.exe
 

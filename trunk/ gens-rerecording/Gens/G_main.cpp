@@ -1397,7 +1397,7 @@ int Check_If_Kaillera_Running(void)
 	if (Kaillera_Client_Running)
 	{
 		if (Sound_Initialised) Clear_Sound_Buffer();
-		MessageBox(HWnd, "You can't do it during netplay, you have to close rom and kaillera client before", "info", MB_OK);
+		MessageBox(HWnd, "You can't do this during netplay.  You must first close the rom and kaillera client.", "info", MB_OK);
 		return 1;
 	}
 
@@ -2004,62 +2004,10 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 	return reachedEmulate;
 }
 
-#ifdef _DEBUG
-void RedirectIOToConsole()
+void ReadHookRamFiles()
 {
-	// from "Adding Console I/O to a Win32 GUI App", "Windows Developer Journal, December 1997"
-	static const WORD MAX_CONSOLE_LINES = 3000;
-	int hConHandle;
-	long lStdHandle;
-	CONSOLE_SCREEN_BUFFER_INFO coninfo;
-	FILE *fp;
-	// allocate a console for this app
-	AllocConsole();
-	// set the screen buffer to be big enough to let us scroll text
-	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-	coninfo.dwSize.Y = MAX_CONSOLE_LINES;
-	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
-	// redirect unbuffered STDOUT to the console
-	lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
-	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
-	fp = _fdopen( hConHandle, "w" );
-	*stdout = *fp;
-	setvbuf( stdout, NULL, _IONBF, 0 );
-	// redirect unbuffered STDIN to the console
-	lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
-	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
-	fp = _fdopen( hConHandle, "r" );
-	*stdin = *fp;
-	setvbuf( stdin, NULL, _IONBF, 0 );
-	// redirect unbuffered STDERR to the console
-	lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
-	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
-	fp = _fdopen( hConHandle, "w" );
-	*stderr = *fp;
-	setvbuf( stderr, NULL, _IONBF, 0 );
-	// make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog
-	// point to console as well
-	std::ios::sync_with_stdio();
-}
-#endif
 
-
-int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) //note: nCmdShow is always one indicating that lpCmdLine contains something (even when it doesn't)
-{
-///////////////////////////////////////////////////
-
-	SetErrorMode(SEM_FAILCRITICALERRORS); // Modif N. -- prevents "There is no disk in the drive." error spam if a file on a removed disk is in the recent ROMs list
-
-#ifdef _DEBUG
-	// make it possible to see stdout/stderr output
-	// so we can do things like use printf to debug,
-	// see the mp3 decoder's error messages, etc.
-	// ...I'd rather redirect stdout/stderr to OutputDebugString() though
-	// but I can't figure out how to do that so this is the next best thing
-	RedirectIOToConsole();
-#endif
-
-	fp1 = fopen( "hook_log.txt", "r" );
+	fp1 = fopen( "hook_log.txt", "r" ); 
 	if( fp1 )
 	{
 		rd_mode = new unsigned int[ STATES ];
@@ -2144,6 +2092,63 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 		fclose( fp1 );
 	}
+
+}
+
+#ifdef _DEBUG
+void RedirectIOToConsole()
+{
+	// from "Adding Console I/O to a Win32 GUI App", "Windows Developer Journal, December 1997"
+	static const WORD MAX_CONSOLE_LINES = 3000;
+	int hConHandle;
+	long lStdHandle;
+	CONSOLE_SCREEN_BUFFER_INFO coninfo;
+	FILE *fp;
+	// allocate a console for this app
+	AllocConsole();
+	// set the screen buffer to be big enough to let us scroll text
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+	coninfo.dwSize.Y = MAX_CONSOLE_LINES;
+	SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
+	// redirect unbuffered STDOUT to the console
+	lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "w" );
+	*stdout = *fp;
+	setvbuf( stdout, NULL, _IONBF, 0 );
+	// redirect unbuffered STDIN to the console
+	lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "r" );
+	*stdin = *fp;
+	setvbuf( stdin, NULL, _IONBF, 0 );
+	// redirect unbuffered STDERR to the console
+	lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+	hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+	fp = _fdopen( hConHandle, "w" );
+	*stderr = *fp;
+	setvbuf( stderr, NULL, _IONBF, 0 );
+	// make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog
+	// point to console as well
+	std::ios::sync_with_stdio();
+}
+#endif
+
+
+int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) //note: nCmdShow is always one indicating that lpCmdLine contains something (even when it doesn't)
+{
+///////////////////////////////////////////////////
+
+	SetErrorMode(SEM_FAILCRITICALERRORS); // Modif N. -- prevents "There is no disk in the drive." error spam if a file on a removed disk is in the recent ROMs list
+
+#ifdef _DEBUG
+	// make it possible to see stdout/stderr output
+	// so we can do things like use printf to debug,
+	// see the mp3 decoder's error messages, etc.
+	// ...I'd rather redirect stdout/stderr to OutputDebugString() though
+	// but I can't figure out how to do that so this is the next best thing
+	RedirectIOToConsole();
+#endif
 
 ///////////////////////////////////////////////////
 
@@ -3473,7 +3478,6 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_FILES_SAVESTATE:
-					if (Check_If_Kaillera_Running()) return 0;
 					Str_Tmp[0] = 0;
 					Get_State_File_Name(Str_Tmp);
 					Save_State(Str_Tmp);
@@ -4395,6 +4399,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					if (hook_trace)
 					{
+						ReadHookRamFiles(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
 						if( !fp_hook )
 						{
 							fp_hook = fopen( "hook.txt", "a" );
