@@ -194,6 +194,7 @@
 #define IDC_BUTTON1                     1146
 #define IDC_REASSIGNKEY                 1146
 #define IDC_BUTTON_LUABROWSE            1146
+#define IDC_BTN_HELP                    1146
 #define IDC_BUTTON_LUAEDIT              1147
 #define IDC_STATIC_WARNING_EXIST        1147
 #define IDC_EDIT_NOTE                   1148
@@ -599,6 +600,10 @@
 #define IDC_PROMPT_TEXT                 43000
 #define IDC_PROMPT_TEXT2                43001
 #define IDC_PROMPT_EDIT                 43005
+#define IDC_EDIT_COMPAREADDRESSRANGE    43006
+#define IDC_EDIT_COMPAREADDRESSOFFSET   43007
+#define IDC_EDIT_COMPAREADDRESSSTEP     43008
+#define IDC_EDIT_COMPAREADDRESSSTEPCOUNT 43009
 #define ID_SPLICE                       43100
 #define ID_CHANGE_TRACE                 43200
 #define ID_CHANGE_HOOK                  43201

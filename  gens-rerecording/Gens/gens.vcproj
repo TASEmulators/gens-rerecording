@@ -2004,5 +2004,9 @@
 		</Filter>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="Gens.rc"
+		/>
 	</Globals>
 </VisualStudioProject>

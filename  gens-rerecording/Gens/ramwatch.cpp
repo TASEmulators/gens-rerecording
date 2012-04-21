@@ -63,18 +63,29 @@ bool VerifyWatchNotAlreadyAdded(const AddressWatcher& watch)
 }
 
 
-bool InsertWatch(const AddressWatcher& Watch, char *Comment)
+/*
+int i: either the number of existing watches minus 1, or the index of the watch to edit.
+*/
+bool InsertWatch(const AddressWatcher& Watch, char *Comment, int i)
 {
-	if(!VerifyWatchNotAlreadyAdded(Watch))
-		return false;
 
-	if(WatchCount >= MAX_WATCH_COUNT)
-		return false;
+	if (i == WatchCount) // append new watch
+	{
+		if(!VerifyWatchNotAlreadyAdded(Watch))
+			return false;
+		if(WatchCount >= MAX_WATCH_COUNT)
+			return false;
 
-	int i = WatchCount++;
+		WatchCount++;
+	}
+	else // replace existing watch
+	{
+		// TODO: minor bug: we have not checked that they haven't changed the address to an already-existing watch.
+		//       We can't just use VerifyWatchNotAlreadyAdded because doing so doesn't let us keep the same address but change the comment.
+		free(rswatches[i].comment);
+	}
 	AddressWatcher& NewWatch = rswatches[i];
 	NewWatch = Watch;
-	//if (NewWatch.comment) free(NewWatch.comment);
 	NewWatch.comment = (char *) malloc(strlen(Comment)+2);
 	NewWatch.CurValue = GetCurrentValue(NewWatch);
 	strcpy(NewWatch.comment, Comment);
@@ -129,7 +140,7 @@ LRESULT CALLBACK PromptWatchNameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 						while (ShowCursor(false) >= 0);
 					}
 					GetDlgItemText(hDlg,IDC_PROMPT_EDIT,Str_Tmp,80);
-					InsertWatch(rswatches[WatchCount],Str_Tmp);
+					InsertWatch(rswatches[WatchCount],Str_Tmp,WatchCount);
 					DialogsOpen--;
 					EndDialog(hDlg, true);
 					return true;
@@ -425,7 +436,7 @@ void OpenRWRecentFile(int memwRFileNumber)
 		Temp.WrongEndian = 0;
 		char *Comment = strrchr(Str_Tmp,DELIM) + 1;
 		*strrchr(Comment,'\n') = '\0';
-		InsertWatch(Temp,Comment);
+		InsertWatch(Temp,Comment,WatchCount);
 	}
 
 	fclose(WatchFile);
@@ -537,7 +548,7 @@ bool Load_Watches(bool clear, const char* filename)
 		Temp.WrongEndian = 0;
 		char *Comment = strrchr(Str_Tmp,DELIM) + 1;
 		*strrchr(Comment,'\n') = '\0';
-		InsertWatch(Temp,Comment);
+		InsertWatch(Temp,Comment,WatchCount);
 	}
 	
 	fclose(WatchFile);
@@ -586,13 +597,62 @@ void RemoveWatch(int watchIndex)
 	WatchCount--;
 }
 
-LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) //Gets info for a RAM Watch, and then inserts it into the Watch List
+/*
+Utility function for reading an int from a dialog text box.
+*/
+int GetDlgItemTextAsInt(HWND hDlg, unsigned int IDC, unsigned int maxLen, char hexDec)
+{
+	int ret = 0;
+	int result = 1;
+	GetDlgItemText(hDlg,IDC,Str_Tmp,1024);
+	char *addrstr = Str_Tmp;
+	if (strlen(Str_Tmp) > maxLen) addrstr = &(Str_Tmp[strlen(Str_Tmp) - maxLen]); //truncate and take the last maxLen characters
+	for(int i = 0; addrstr[i]; i++) {if(toupper(addrstr[i]) == 'O') addrstr[i] = '0';} // convert letter 'O' to number '0'
+	if (*addrstr == 0) //empty text box results in 0
+		ret = 0;
+	else if (hexDec == 'h') //interpret text as a hex value
+		result = sscanf(addrstr,"%08X",&(ret));
+	else if (hexDec == 'd') //interpret text as a decimal value
+		result = sscanf(addrstr,"%08d",&(ret));
+	if (result != 1) // if sscanf failed to read in a number
+	{
+		std::string msg = std::string("Could not recognize input as a number: \"") + std::string(addrstr) + "\"";
+		MessageBox(hDlg,msg.c_str(),"ERROR",MB_OK);
+	}
+	return ret;
+}
+
+bool ValidateAndAddWatch(HWND hDlg, unsigned int watchAddress, AddressWatcher &Temp, char *StrTmp, int index)
+{
+
+	Temp.Address = watchAddress;
+
+	if((Temp.Address & ~0xFFFFFF) == ~0xFFFFFF) // ?
+		Temp.Address &= 0xFFFFFF;
+
+	if(IsHardwareRAMAddressValid(Temp.Address))
+	{
+		InsertWatch(Temp,Str_Tmp, index);
+		if(RamWatchHWnd)
+		{
+			ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+		}
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+//Gets info for a RAM Watch (or multiple watches using a range or steps), and then inserts it into the Watch List
+LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 {
 	RECT r;
 	RECT r2;
 	int dx1, dy1, dx2, dy2;
 	static int index;
-	static char s,t = s = 0;
+	static char s,t = s = 0; //s: data size (byte/word/doubleword).  t=display type (signed/unsigned/hex)
 
 	switch(uMsg)
 	{
@@ -616,13 +676,19 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			//SetWindowPos(hDlg, NULL, max(0, r.left + (dx1 - dx2)), max(0, r.top + (dy1 - dy2)), NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hDlg, NULL, r.left, r.top, NULL, NULL, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
 			index = (int)lParam;
+			if (index < WatchCount) // disable range and step input when editing an existing watch
+			{
+				EnableWindow(GetDlgItem(hDlg, (int)IDC_EDIT_COMPAREADDRESSRANGE), FALSE); 
+				EnableWindow(GetDlgItem(hDlg, (int)IDC_EDIT_COMPAREADDRESSSTEP), FALSE); 
+				EnableWindow(GetDlgItem(hDlg, (int)IDC_EDIT_COMPAREADDRESSSTEPCOUNT), FALSE); 
+			}
 			sprintf(Str_Tmp,"%08X",rswatches[index].Address);
 			SetDlgItemText(hDlg,IDC_EDIT_COMPAREADDRESS,Str_Tmp);
 			if (rswatches[index].comment != NULL)
 				SetDlgItemText(hDlg,IDC_PROMPT_EDIT,rswatches[index].comment);
 			s = rswatches[index].Size;
 			t = rswatches[index].Type;
-			switch (s)
+			switch (s) // data size
 			{
 				case 'b':
 					SendDlgItemMessage(hDlg, IDC_1_BYTE, BM_SETCHECK, BST_CHECKED, 0);
@@ -637,7 +703,7 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					s = 0;
 					break;
 			}
-			switch (t)
+			switch (t) // display type
 			{
 				case 's':
 					SendDlgItemMessage(hDlg, IDC_SIGNED, BM_SETCHECK, BST_CHECKED, 0);
@@ -677,6 +743,22 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				case IDC_4_BYTES:
 					s = 'd';
 					return true;
+				case IDC_BTN_HELP:
+					MessageBox(hDlg,
+						"Edit Watch Help\n"
+						"-----------------\n"
+						"Basic Usage:\n"
+						"Enter an Address to watch. Example: FF1234. "
+						"Select the size of the data: 1, 2, or 4 bytes.  Select the display type of the data: signed, unsigned, or hexadecimal.  Optionally, add a note.\n"
+						"\n"
+						"Advanced Usage:\n"
+						"Note that all the advanced options are specified in decimal values, not hexadecimal.\n"
+						"There are 3 other ways to add watches.\n"
+						"1) Specify an Offset, and a watch will be created for the address at Address+Offset.\n"
+						"2) Specify a Range Length, and multiple watches will be created, covering all memory from Address to Address+Length-1.\n"
+						"3) Specify a Step, Step Count, and (optionally) an Offset, and Step Count watches will be created, the first at Address+Offset+(1*Step), the second at Address+Offset+(2*Step), and so on.  This is useful for watching arrays of structures."
+						,"Help",MB_OK | MB_ICONINFORMATION);
+					return true;
 				case IDOK:
 				{
 					if (Full_Screen)
@@ -690,31 +772,96 @@ LRESULT CALLBACK EditWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						Temp.Size = s;
 						Temp.Type = t;
 						Temp.WrongEndian = false; //replace this when I get little endian working properly
-						GetDlgItemText(hDlg,IDC_EDIT_COMPAREADDRESS,Str_Tmp,1024);
-						char *addrstr = Str_Tmp;
-						if (strlen(Str_Tmp) > 8) addrstr = &(Str_Tmp[strlen(Str_Tmp) - 9]);
-						for(int i = 0; addrstr[i]; i++) {if(toupper(addrstr[i]) == 'O') addrstr[i] = '0';}
-						sscanf(addrstr,"%08X",&(Temp.Address));
+						unsigned int watchAddress = 0;
+						int rangeSize = 0; // use int (signed) so we can protect against negatives
+						int offset = 0;
+						int step = 0; 
+						int stepCount = 0;
+						unsigned int sval; // byte = 1, word = 2, doubleword = 4
+						int tmp;
+						
+						watchAddress = GetDlgItemTextAsInt(hDlg, IDC_EDIT_COMPAREADDRESS, 8, 'h');
+						rangeSize    = GetDlgItemTextAsInt(hDlg, IDC_EDIT_COMPAREADDRESSRANGE, 4, 'd');
+						offset       = GetDlgItemTextAsInt(hDlg, IDC_EDIT_COMPAREADDRESSOFFSET, 4, 'd');
+						step         = GetDlgItemTextAsInt(hDlg, IDC_EDIT_COMPAREADDRESSSTEP, 4, 'd');
+						stepCount    = GetDlgItemTextAsInt(hDlg, IDC_EDIT_COMPAREADDRESSSTEPCOUNT, 4, 'd');
+						GetDlgItemText(hDlg,IDC_PROMPT_EDIT,Str_Tmp,80);
 
-						if((Temp.Address & ~0xFFFFFF) == ~0xFFFFFF)
-							Temp.Address &= 0xFFFFFF;
-
-						if(IsHardwareRAMAddressValid(Temp.Address))
+						switch(Temp.Size)
 						{
-							GetDlgItemText(hDlg,IDC_PROMPT_EDIT,Str_Tmp,80);
-							if (index < WatchCount) RemoveWatch(index);
-							InsertWatch(Temp,Str_Tmp);
-							if(RamWatchHWnd)
+							case 'b':
+								sval = 1;
+								break;
+							case 'w':
+								sval = 2;
+								break;
+							case 'd':
+								sval = 4;
+								break;
+						}
+
+						/*
+						 * Three different methods:
+						 * 1.  single address:  base address + offset(optional)
+						 * 2.  range: base address to base address + range size - 1
+						 * 3.  step: base address + offset + step * (for 0 to stepcount-1)
+						 * which method to use is decided based on what parameters were supplied with non-zero values.
+						 */
+						if (!rangeSize && !step)
+						{
+							watchAddress += offset;
+							if (!ValidateAndAddWatch(hDlg, watchAddress, Temp, Str_Tmp, index))
 							{
-								ListView_SetItemCount(GetDlgItem(RamWatchHWnd,IDC_WATCHLIST),WatchCount);
+								sprintf(Str_Tmp, "Invalid Address: %X", watchAddress); 
+								MessageBox(hDlg,Str_Tmp,"ERROR",MB_OK | MB_ICONSTOP);
 							}
-							DialogsOpen--;
-							EndDialog(hDlg, true);
 						}
-						else
+						else if (rangeSize)
 						{
-							MessageBox(hDlg,"Invalid Address","ERROR",MB_OK);
+							for (int rangeval = 0; rangeval < rangeSize; rangeval += sval)
+							{
+								tmp = strlen(Str_Tmp);
+								sprintf(Str_Tmp, "%s [%d]", Str_Tmp, rangeval);
+								if (!ValidateAndAddWatch(hDlg, watchAddress + rangeval, Temp, Str_Tmp, index))
+								{
+									sprintf(Str_Tmp, "Invalid Address: %X (%#X in range)", watchAddress + rangeval, rangeval); 
+									MessageBox(hDlg,Str_Tmp,"ERROR",MB_OK | MB_ICONSTOP);
+									break;
+								}
+								index++;
+								Str_Tmp[tmp] = '\0';
+							}
 						}
+						else // step method
+						{
+							
+							watchAddress += offset;
+							for (int stepval = 0; stepval < stepCount; stepval++)
+							{
+								tmp = strlen(Str_Tmp);
+								sprintf(Str_Tmp, "%s [step %d]", Str_Tmp, stepval);
+								if (!ValidateAndAddWatch(hDlg, watchAddress + step*stepval, Temp, Str_Tmp, index))
+								{
+									sprintf(Str_Tmp, "Invalid Address: %X (step number %d)", watchAddress + step*stepval, stepval); 
+									MessageBox(hDlg,Str_Tmp,"ERROR",MB_OK | MB_ICONSTOP);
+									break;
+								}
+								index++;
+								Str_Tmp[tmp] = '\0';
+							}
+
+						}
+
+
+						/* Even if something goes wrong (Invalid Address error), we will close the dialog.  
+						 * This way, if the error happens after part of a range or stepping is completed, the user can see how far things got before the error by seeing the watches that got added.
+						 * Better ways this could be handled:	If the first watch added fails, we don't close the dialog (need a way to track this).  
+						 *										Or maybe remove all the newly added watches, show user which address was bad, and leave dialog open..
+						 */
+						DialogsOpen--;
+						EndDialog(hDlg, true);
+
+
 					}
 					else
 					{
@@ -1018,7 +1165,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					separator.WrongEndian = false;
 					separator.Size = 'S';
 					separator.Type = 'S';
-					InsertWatch(separator, "----------------------------");
+					InsertWatch(separator, "----------------------------",WatchCount);
 					SetFocus(GetDlgItem(hDlg,IDC_WATCHLIST));
 					return true;
 
