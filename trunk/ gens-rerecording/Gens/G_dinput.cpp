@@ -230,6 +230,10 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_NEXT,     0, NULL, "Frame Search", "FrameSearchNextKey"},
 	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_PREV,     0, NULL, "Frame Search Prev", "FrameSearchPrevKey"},
 	{MOD_NONE,              VK_NONE,   ID_FRAME_SEARCH_END,      0, NULL, "Frame Search Result", "FrameSearchEndKey"},
+		
+	{MOD_CONTROL,         VK_F1,       ID_GRAPHICS_TOGGLEA,      0, NULL, "Toggle Scroll A", "ScrollAKey"}, // Added by feos
+	{MOD_CONTROL,         VK_F2,       ID_GRAPHICS_TOGGLEB,      0, NULL, "Toggle Scroll B", "ScrollBKey"}, // by TerraEsperZ request
+	{MOD_CONTROL,         VK_F3,       ID_GRAPHICS_TOGGLES,      0, NULL, "Toggle Sprites", "SpritesKey"},  // for VGMaps pleasure
 
 	{MOD_NONE,              VK_F2,     ID_GRAPHICS_FRAMESKIP_AUTO,     0, NULL, "Set Auto Frameskip", "AutoFrameskipKey"},
 	{MOD_NONE,              VK_F3,     ID_GRAPHICS_FRAMESKIP_DECREASE, 0, NULL, "Decrease Frameskip", "PrevFrameskipKey"},
