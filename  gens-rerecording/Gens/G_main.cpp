@@ -5175,7 +5175,7 @@ HMENU Build_Main_Menu(void)
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
 
 	MENU_L(Sound, i++, Flags | (YM2612_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_YMIMPROV, "YM2612 High Quality", "", "YM2612 High &Quality");
-	MENU_L(Sound, i++, Flags | (PSG_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PSGIMPROV, "PSG High Quality", "", "PSG High &Quality");
+//	MENU_L(Sound, i++, Flags | (PSG_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PSGIMPROV, "PSG High Quality", "", "PSG High &Quality");
 	MENU_L(Sound, i++, Flags | (DAC_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_DACIMPROV, "DAC High Quality", "", "DAC High &Quality");
 
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
