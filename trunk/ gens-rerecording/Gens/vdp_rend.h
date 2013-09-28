@@ -43,7 +43,7 @@ extern char Swap_Scroll_PriorityA;
 extern char Swap_Scroll_PriorityB;
 extern char Swap_Sprite_Priority;
 extern char PalLock;
-
+extern bool PinkBG;
 
 void Render_Line();
 void Post_Line();

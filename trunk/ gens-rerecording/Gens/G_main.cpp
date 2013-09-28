@@ -561,7 +561,7 @@ int Change_Plane (HWND hWnd, int num)
 
 	char message [256];
 	sprintf(message, "Plane %sabled", *Plane?"en":"dis");
-	MESSAGE_L(message, message, 1000)
+	MESSAGE_L(message, message, 1500)
 
 	Build_Main_Menu();
 	return (1);
@@ -1736,6 +1736,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	ScrollBOn = 1;
 	SpriteOn = 1;
 	Sprite_Always_Top = 0;
+	PinkBG = 0;
 	Render_W = 0;
 	Render_FS = 0;
 	Show_Message = 1;
@@ -3569,6 +3570,18 @@ dialogAgain: //Nitsuja added this
 					Change_Plane(hWnd, command - ID_GRAPHICS_TOGGLEA);
 					return 0;
 
+				case ID_GRAPHICS_PINKBG:
+				{
+					PinkBG = !PinkBG;
+					CRam_Flag = 1;
+					Build_Main_Menu();
+					char message [256];
+					sprintf(message, "Pink background %sd", PinkBG?"enable":"disable");
+					MESSAGE_L(message, message, 1500)
+
+					return 0;
+				}
+
 				case ID_GRAPHICS_RENDER_50SCANLINE:
 					Set_Render(hWnd, Full_Screen, 5, false);
 					return 0;
@@ -4905,6 +4918,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsLayers, "Layers", "", "&Layers");
 	MENU_L(Graphics, i++, Flags | (PalLock ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_PALLOCK, "Lock Palette", "", "Lock &Palette");
 	MENU_L(Graphics, i++, Flags | (Sprite_Over ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEOVER, "Sprite Limit", "", "&Sprite Limit");
+	MENU_L(Graphics, i++, Flags | (PinkBG ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_PINKBG, "Pink Background", "", "&Pink Background");
 
 	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsLatencyCompensation, "Latency Compensation", "", "L&atency Compensation");
