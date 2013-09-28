@@ -325,6 +325,7 @@
 #define ID_FILES_LOADSTATE_8            40027
 #define ID_FILES_LOADSTATE_9            40028
 #define ID_FILES_LOADSTATE_0            40029
+#define ID_GRAPHICS_PINKBG              40046
 #define ID_GRAPHICS_TOGGLEA             40047
 #define ID_GRAPHICS_TOGGLEB             40048
 #define ID_GRAPHICS_TOGGLES             40049

@@ -2349,8 +2349,16 @@ int Save_Config(char *File_Name)
 	wsprintf(Str_Tmp, "%d", Invert_Color & 1);
 	WritePrivateProfileString("Graphics", "Invert", Str_Tmp, Conf_File);
 
+	wsprintf(Str_Tmp, "%d", ScrollAOn);
+	WritePrivateProfileString("Graphics", "Scroll A layer", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", ScrollBOn);
+	WritePrivateProfileString("Graphics", "Scroll B layer", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", SpriteOn);
+	WritePrivateProfileString("Graphics", "Sprites layer", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Sprite_Over & 1);
 	WritePrivateProfileString("Graphics", "Sprite limit", Str_Tmp, Conf_File);
+	wsprintf(Str_Tmp, "%d", PinkBG);
+	WritePrivateProfileString("Graphics", "Pink Background", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Frame_Skip);
 	WritePrivateProfileString("Graphics", "Frame skip", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", CleanAvi);
@@ -2861,9 +2869,13 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	Set_Render(HWnd, Full_Screen, -1, 1);
 
+	ScrollAOn = GetPrivateProfileInt("Graphics", "Scroll A layer", 1, Conf_File);
+	ScrollBOn = GetPrivateProfileInt("Graphics", "Scroll B layer", 1, Conf_File);
+	SpriteOn = GetPrivateProfileInt("Graphics", "Sprites layer", 1, Conf_File);
 	Stretch = GetPrivateProfileInt("Graphics", "Stretch", 0, Conf_File);
 	Blit_Soft = GetPrivateProfileInt("Graphics", "Software Blit", 0, Conf_File);
 	Sprite_Over = GetPrivateProfileInt("Graphics", "Sprite limit", 1, Conf_File);
+	PinkBG = !!GetPrivateProfileInt("Graphics", "Pink Background", 0, Conf_File); // force bool?
 	Frame_Skip = GetPrivateProfileInt("Graphics", "Frame skip", -1, Conf_File);
 	CleanAvi = GetPrivateProfileInt("Graphics", "Clean Avi", 1, Conf_File);
 

@@ -178,6 +178,8 @@ section .bss align=64
 	resb 1
 	DECL Bits32
 	resb 1
+	DECL PinkBG
+	resb 1
 
 section .text align=64
 
@@ -1954,9 +1956,13 @@ ALIGN4
 	
 	.Palette_OK
 		test [Bits32], byte 1
-		jz short .Render16
+		jz near .Render16
 
 	.Render32
+		test byte [PinkBG], 1					; added by feos
+		jz short .Normal_BG32
+		mov [MD_Palette32],dword 0x3ff003ff		; bin: rrrrrrrrggggggggbbbbbbbb
+		.Normal_BG32
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]
@@ -1993,6 +1999,10 @@ ALIGN4
 	ret
 
 	.Render16
+		test byte [PinkBG], 1			; added by feos
+		jz short .Normal_BG
+		mov [MD_Palette],word 0xf81f	; bin: rrrrrggggggbbbbb (xrrrrrgggggbbbbb if mode_555)
+		.Normal_BG
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]
