@@ -1173,6 +1173,9 @@ void DrawBoxes()
 		for (int ii = 0; ii < numtouchables; ii += 2)
 			Touchables[ii>>1] = 0xFF0000 + CheatRead<unsigned short>(0xFFE380 + 2 + ii);
 		numtouchables >>= 1;
+#endif
+		if (CamY < 0) CamY += LEVELHEIGHT;
+		short diff = LEVELHEIGHT - CamY;
 		unsigned char Height,Width,Height2,Width2,Type;
 		bool Touchable;
 		unsigned int DrawColor32;
