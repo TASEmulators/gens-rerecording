@@ -90,6 +90,46 @@ MAKE_AUTO_KEY_VAR(Controller_1_C);
 MAKE_AUTO_KEY_VAR(Controller_1_X);
 MAKE_AUTO_KEY_VAR(Controller_1_Y);
 MAKE_AUTO_KEY_VAR(Controller_1_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_1B_Up);
+MAKE_AUTO_KEY_VAR(Controller_1B_Down);
+MAKE_AUTO_KEY_VAR(Controller_1B_Left);
+MAKE_AUTO_KEY_VAR(Controller_1B_Right);
+MAKE_AUTO_KEY_VAR(Controller_1B_Start);
+MAKE_AUTO_KEY_VAR(Controller_1B_Mode);
+MAKE_AUTO_KEY_VAR(Controller_1B_A);
+MAKE_AUTO_KEY_VAR(Controller_1B_B);
+MAKE_AUTO_KEY_VAR(Controller_1B_C);
+MAKE_AUTO_KEY_VAR(Controller_1B_X);
+MAKE_AUTO_KEY_VAR(Controller_1B_Y);
+MAKE_AUTO_KEY_VAR(Controller_1B_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_1C_Up);
+MAKE_AUTO_KEY_VAR(Controller_1C_Down);
+MAKE_AUTO_KEY_VAR(Controller_1C_Left);
+MAKE_AUTO_KEY_VAR(Controller_1C_Right);
+MAKE_AUTO_KEY_VAR(Controller_1C_Start);
+MAKE_AUTO_KEY_VAR(Controller_1C_Mode);
+MAKE_AUTO_KEY_VAR(Controller_1C_A);
+MAKE_AUTO_KEY_VAR(Controller_1C_B);
+MAKE_AUTO_KEY_VAR(Controller_1C_C);
+MAKE_AUTO_KEY_VAR(Controller_1C_X);
+MAKE_AUTO_KEY_VAR(Controller_1C_Y);
+MAKE_AUTO_KEY_VAR(Controller_1C_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_1D_Up);
+MAKE_AUTO_KEY_VAR(Controller_1D_Down);
+MAKE_AUTO_KEY_VAR(Controller_1D_Left);
+MAKE_AUTO_KEY_VAR(Controller_1D_Right);
+MAKE_AUTO_KEY_VAR(Controller_1D_Start);
+MAKE_AUTO_KEY_VAR(Controller_1D_Mode);
+MAKE_AUTO_KEY_VAR(Controller_1D_A);
+MAKE_AUTO_KEY_VAR(Controller_1D_B);
+MAKE_AUTO_KEY_VAR(Controller_1D_C);
+MAKE_AUTO_KEY_VAR(Controller_1D_X);
+MAKE_AUTO_KEY_VAR(Controller_1D_Y);
+MAKE_AUTO_KEY_VAR(Controller_1D_Z);
+
 MAKE_AUTO_KEY_VAR(Controller_2_Up);
 MAKE_AUTO_KEY_VAR(Controller_2_Down);
 MAKE_AUTO_KEY_VAR(Controller_2_Left);
@@ -102,6 +142,45 @@ MAKE_AUTO_KEY_VAR(Controller_2_C);
 MAKE_AUTO_KEY_VAR(Controller_2_X);
 MAKE_AUTO_KEY_VAR(Controller_2_Y);
 MAKE_AUTO_KEY_VAR(Controller_2_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_2B_Up);
+MAKE_AUTO_KEY_VAR(Controller_2B_Down);
+MAKE_AUTO_KEY_VAR(Controller_2B_Left);
+MAKE_AUTO_KEY_VAR(Controller_2B_Right);
+MAKE_AUTO_KEY_VAR(Controller_2B_Start);
+MAKE_AUTO_KEY_VAR(Controller_2B_Mode);
+MAKE_AUTO_KEY_VAR(Controller_2B_A);
+MAKE_AUTO_KEY_VAR(Controller_2B_B);
+MAKE_AUTO_KEY_VAR(Controller_2B_C);
+MAKE_AUTO_KEY_VAR(Controller_2B_X);
+MAKE_AUTO_KEY_VAR(Controller_2B_Y);
+MAKE_AUTO_KEY_VAR(Controller_2B_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_2C_Up);
+MAKE_AUTO_KEY_VAR(Controller_2C_Down);
+MAKE_AUTO_KEY_VAR(Controller_2C_Left);
+MAKE_AUTO_KEY_VAR(Controller_2C_Right);
+MAKE_AUTO_KEY_VAR(Controller_2C_Start);
+MAKE_AUTO_KEY_VAR(Controller_2C_Mode);
+MAKE_AUTO_KEY_VAR(Controller_2C_A);
+MAKE_AUTO_KEY_VAR(Controller_2C_B);
+MAKE_AUTO_KEY_VAR(Controller_2C_C);
+MAKE_AUTO_KEY_VAR(Controller_2C_X);
+MAKE_AUTO_KEY_VAR(Controller_2C_Y);
+MAKE_AUTO_KEY_VAR(Controller_2C_Z);
+
+MAKE_AUTO_KEY_VAR(Controller_2D_Up);
+MAKE_AUTO_KEY_VAR(Controller_2D_Down);
+MAKE_AUTO_KEY_VAR(Controller_2D_Left);
+MAKE_AUTO_KEY_VAR(Controller_2D_Right);
+MAKE_AUTO_KEY_VAR(Controller_2D_Start);
+MAKE_AUTO_KEY_VAR(Controller_2D_Mode);
+MAKE_AUTO_KEY_VAR(Controller_2D_A);
+MAKE_AUTO_KEY_VAR(Controller_2D_B);
+MAKE_AUTO_KEY_VAR(Controller_2D_C);
+MAKE_AUTO_KEY_VAR(Controller_2D_X);
+MAKE_AUTO_KEY_VAR(Controller_2D_Y);
+MAKE_AUTO_KEY_VAR(Controller_2D_Z);
 
 
 
@@ -1710,7 +1789,10 @@ void Update_Controllers()
 		extern long unsigned int LagCountPersistent;
 		autoAlternator = ((FrameCount - LagCountPersistent) % 2) == 0;
 
-		#define APPLY_AUTOS(x) APPLY_AUTOS_I(Controller_1_##x); APPLY_AUTOS_I(Controller_2_##x); 
+		#define APPLY_AUTOS(x) APPLY_AUTOS_I(Controller_1_##x); APPLY_AUTOS_I(Controller_1B_##x);	\
+		                       APPLY_AUTOS_I(Controller_1C_##x); APPLY_AUTOS_I(Controller_1D_##x);	\
+							   APPLY_AUTOS_I(Controller_2_##x); APPLY_AUTOS_I(Controller_2B_##x);	\
+							   APPLY_AUTOS_I(Controller_2C_##x); APPLY_AUTOS_I(Controller_2D_##x);
 		#define APPLY_AUTOS_I(x)\
 		{\
 			const bool autoFireFrame = autoAlternator ? x##_Autofire : x##_Autofire2;\
@@ -2168,7 +2250,16 @@ void Check_Misc_Key()
 	// N - checks for enabling/disabling the autofire and autohold toggles
 	// (this first part needs to always run even if no autofire/autohold/autoclear keys are held)
 	{
-		#define TRANSFER_PRESSED(x) {const int now = !Check_Key_Pressed(Keys_Def[0].##x); Controller_1_##x##_Just = Controller_1_##x##_Last && !now; Controller_1_##x##_Last = now;} {const int now = !Check_Key_Pressed(Keys_Def[1].##x); Controller_2_##x##_Just = Controller_2_##x##_Last && !now; Controller_2_##x##_Last = now;}
+		#define TRANSFER_PRESSED(x)	TRANSFER_PRESSED_I(Controller_1_##x,0,x)	\
+		                            TRANSFER_PRESSED_I(Controller_1B_##x,2,x)	\
+		                            TRANSFER_PRESSED_I(Controller_1C_##x,3,x)	\
+		                            TRANSFER_PRESSED_I(Controller_1D_##x,4,x)	\
+		                            TRANSFER_PRESSED_I(Controller_2_##x,1,x)	\
+		                            TRANSFER_PRESSED_I(Controller_2B_##x,5,x)	\
+		                            TRANSFER_PRESSED_I(Controller_2C_##x,6,x)	\
+		                            TRANSFER_PRESSED_I(Controller_2D_##x,7,x)
+		#define TRANSFER_PRESSED_I(x,y,z)	{	const int now = !Check_Key_Pressed(Keys_Def[y].##z);	\
+				x##_Just = x##_Last && !now; x##_Last = now;	}
 		TRANSFER_PRESSED(Up);
 		TRANSFER_PRESSED(Down);
 		TRANSFER_PRESSED(Left);
@@ -2188,7 +2279,14 @@ void Check_Misc_Key()
 			extern long unsigned int LagCountPersistent;
 			autoAlternator = ((FrameCount - LagCountPersistent) % 2) == 0;
 
-			#define CHECK_TOGGLE_AUTO(x) CHECK_TOGGLE_AUTO_I(Controller_1_##x); CHECK_TOGGLE_AUTO_I(Controller_2_##x); 
+			#define CHECK_TOGGLE_AUTO(x) CHECK_TOGGLE_AUTO_I(Controller_1_##x);	\
+			                             CHECK_TOGGLE_AUTO_I(Controller_1B_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_1C_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_1D_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_2_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_2B_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_2C_##x);	\
+										 CHECK_TOGGLE_AUTO_I(Controller_2D_##x);
 			#define CHECK_TOGGLE_AUTO_I(x)\
 			if(x##_Just)\
 			{\
@@ -2223,7 +2321,10 @@ void Check_Misc_Key()
 		}
 		if(AutoClearKeyDown)
 		{
-			#define CLEAR_AUTO(x) CLEAR_AUTO_I(Controller_1_##x); CLEAR_AUTO_I(Controller_2_##x); 
+			#define CLEAR_AUTO(x) CLEAR_AUTO_I(Controller_1_##x); CLEAR_AUTO_I(Controller_1B_##x);	\
+			                      CLEAR_AUTO_I(Controller_1C_##x); CLEAR_AUTO_I(Controller_1D_##x);	\
+								  CLEAR_AUTO_I(Controller_2_##x); CLEAR_AUTO_I(Controller_2B_##x);	\
+								  CLEAR_AUTO_I(Controller_2C_##x); CLEAR_AUTO_I(Controller_2D_##x);
 			#define CLEAR_AUTO_I(x) x##_Autofire = 0; x##_Autofire2 = 0; x##_Autohold = 0;
 
 			CLEAR_AUTO(Up);
