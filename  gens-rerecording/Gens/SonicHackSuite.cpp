@@ -1,6 +1,5 @@
 //TODO - enable separate activation of Camhack, hitbox display, and solidity display (separate #defines)
 //TODO - fix object sizes for Sonic 2, Sonic CD, Sonic 3, Sonic & Knuckles
-//TODO - Make use of Sonic 3 and Sonic & Knuckle's "touchable object" table in hitbox display, to keep from displaying "ghost" boxes
 #include <stdio.h>
 #include <windows.h>
 #include "guidraw.h"
@@ -1164,17 +1163,23 @@ void DrawBoxes()
 		short Xpos,Ypos;
 		short baky = CamY;
 #ifdef SK
+		int mode = CheatRead<unsigned char>(0xFFF600);
+		if (mode == 0 || mode == 4 || mode == 0x28 || mode == 0x34 || mode == 0x48 || mode == 0x4c)
+			return;
 		LEVELHEIGHT = CheatRead<unsigned short>(0xFFEEAA);
-#endif
-		if (CamY < 0) CamY += LEVELHEIGHT;
-		short diff = LEVELHEIGHT - CamY;
+		// Prepare checking on collision response list so sprites not on it use different color box.
+		int numtouchables = CheatRead<unsigned short>(0xFFE380);
+		unsigned int *Touchables = numtouchables > 0 ? new unsigned int[numtouchables>>1] : 0;
+		for (int ii = 0; ii < numtouchables; ii += 2)
+			Touchables[ii>>1] = 0xFF0000 + CheatRead<unsigned short>(0xFFE380 + 2 + ii);
+		numtouchables >>= 1;
 		unsigned char Height,Width,Height2,Width2,Type;
 		bool Touchable;
 		unsigned int DrawColor32;
 		unsigned short DrawColor16;
 		for (unsigned int CardBoard = P1OFFSET; CardBoard < P1OFFSET + SSTLEN; CardBoard += SPRITESIZE)
 		{
-			if (!CheatRead<unsigned long>(0xFF0000 + CardBoard)) continue;
+			if (!CheatRead<unsigned long>(CardBoard)) continue;
 			Xpos = CheatRead<short>(CardBoard + XPo);
 			Ypos = CheatRead<short>(CardBoard + YPo);
 			if ((Ypos < (224 - diff)) && (diff < 224)) Ypos += LEVELHEIGHT;
@@ -1213,6 +1218,18 @@ void DrawBoxes()
 				char ind = (CheatRead<unsigned char>(CardBoard + To) & 0x3F) << 1;
 				Height = CheatRead<unsigned char>(SizeTableY + ind - 2);
 				Width = CheatRead<unsigned char>(SizeTableX + ind - 2);
+			#elif defined SK
+				// Any sprite not on the collision response list will use white for its
+				// hit box; all others will use their correct colors.
+				Touchable = false;
+				for (int ii = 0; ii < numtouchables; ii++)
+					if (Touchables[ii] == CardBoard)
+					{
+						Touchable = true;
+						break;
+					}
+				Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
+				Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
 			#else
 				Height = SizeTableY[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
 				Width = SizeTableX[(CheatRead<unsigned char>(CardBoard + To) & 0x3F)];
@@ -1223,26 +1240,43 @@ void DrawBoxes()
 			else DrawColor32 = 0xFFFFFF, DrawColor16 = 0xFFFF;
 			Height2 = CheatRead<unsigned char>(CardBoard + Ho);
 			Width2 = CheatRead<unsigned char>(CardBoard + Wo);
-			#ifdef SK
-				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x22) == 0x39);
-			#else
-				bool ducking = (CheatRead<unsigned char>(CardBoard + 0x1A) == 0x39);
+			bool ducking = false;
+			#ifdef S2
+				if (CardBoard == P1OFFSET || CardBoard == P1OFFSET + SPRITESIZE)
+					ducking = (CheatRead<unsigned char>(CardBoard + 0x1A) == 0x4D);
+			#elif !(defined SK)		// No ducking on S&K.
+				if (CardBoard == P1OFFSET)
+					ducking = (CheatRead<unsigned char>(CardBoard + 0x1A) == 0x39);
 			#endif
 			if (CardBoard == P1OFFSET)
 			{
-	//			bool instashield = ((Ram_68k[0xFFBA] == 01) && !(Ram_68k[0xFE2C]) && !(Ram_68k[0xFE2D]) && (Ram_68k[0xFED1] == 2));
-				Width = 10;
-				Height = (ducking) ? 0xA : CheatRead<unsigned char>(CardBoard + Ho);
-	//			if (instashield)
-	//			{
-	//				Width = 0x18;
-	//				Height = 0x18;
-	//			}
+				bool instashield = false;
+			#ifdef SK
+			   instashield = CheatRead<unsigned char>(CardBoard + 0x38) == 0
+				   && (CheatRead<unsigned char>(CardBoard + 0x2B)&0x73) == 0
+				   && CheatRead<unsigned char>(CardBoard + 0x2F) == 1;
+			#endif
+				if (instashield)
+				{
+					Width = 0x18;
+					Height = 0x18;
+				}
+				else
+				{
+					Width = 8;
+					Height = (ducking) ? 0xA : CheatRead<unsigned char>(CardBoard + Ho) - 3;
+				}
 			}
+	#if !(defined S1 || defined GAME_SCD)
+			else if (CardBoard == P1OFFSET + SPRITESIZE)
+			{
+				Width = 8;
+				Height = (ducking) ? 0xA : CheatRead<unsigned char>(CardBoard + Ho) - 3;
+			}
+	#endif
 			unsigned char angle = CheatRead<unsigned char>(CardBoard + 0x26);
 			angle = 0x20;
 			if (angle & 0x40) Width2 ^= Height2, Height2 ^= Width2, Width2 ^= Height2;
-			Xpos += 8;	
 			if ((CheatRead<unsigned char>(CardBoard + Fo) & 0x4) || (CheatRead<unsigned char>(CardBoard) == 0x7D)) {
 				Xpos -= (short)CamX;
 				Ypos -= (short)CamY;
@@ -1251,57 +1285,23 @@ void DrawBoxes()
 				Xpos -= 0x80;
 				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
 			}
-/*				for (unsigned char JXQ = 0; JXQ <= Width2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xFF00FF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos - JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos - Height2))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + JXQ))) + (336 * max(0,min(223,(Ypos + Height2))))] = 0xF81F;
-					}
-				}
-				for (unsigned char JXQ = 0; JXQ <= Height2; JXQ++)
-				{
-					if (Bits32) 
-					{
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xFF00FF;
-						MD_Screen32[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xFF00FF;
-					}
-					else
-					{
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos - Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos - JXQ))))] = 0xF81F;
-						MD_Screen[max(8,min(327,(Xpos + Width2))) + (336 * max(0,min(223,(Ypos + JXQ))))] = 0xF81F;
-					}
-				}*/
-			if (ducking && (CardBoard == P1OFFSET)) Ypos+=CheatRead<unsigned char>(CardBoard + Ho) - 0xA;
+			if (ducking) Ypos+=0xC;
 	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
 	//			continue;
+	#ifdef S1
 			if  (!(CheatRead<unsigned char>(CardBoard + To)) && (CardBoard > P1OFFSET))
 			{
-#ifdef S1
 				FindObjectDims(CardBoard,Width,Height);
-#endif
 	//				Ypos -= 0x8;
 			}
+	#endif
 	#if !(defined S1 || defined GAME_SCD)
 			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)	//special case for multiple sprites in a single object	
 			{
-				sprintf(Str_Tmp,"");
+//				sprintf(Str_Tmp,"");
 				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
 				{
-					char Str_Dbg[1024];
+//					char Str_Dbg[1024];
 					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
 					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
 					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
@@ -1310,28 +1310,175 @@ void DrawBoxes()
 					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
 					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
 					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
-					sprintf(Str_Dbg, "%d: X %04X from %08X, Y %04X from %08X\n",i,x,CardBoard + YPo + 4 + i * 6,y,CardBoard + YPo + 6 + i * 6);
-					strcat(Str_Tmp,Str_Dbg);
+//					sprintf(Str_Dbg, "%d: X %04X from %08X, Y %04X from %08X\n",i,x,CardBoard + YPo + 4 + i * 6,y,CardBoard + YPo + 6 + i * 6);
+//					strcat(Str_Tmp,Str_Dbg);
 				}
 //				MessageBox(NULL,Str_Tmp,"Multiple Sprite Pos Debug message",MB_OK);
 			}
 			else
 	#endif
-				DrawBoxMWH(Xpos - 8,Ypos,Width2,Height2,0xFF00FF,0xF81F,0,-1,1);
+				DrawBoxMWH(Xpos,Ypos,Width2,Height2,0xFF00FF,0xF81F,0,-1,1);
+	#ifdef S1
 			if (CheatRead<unsigned char>(CardBoard) == 0x7D) Width = Height = 0x10;
-			DrawBoxMWH(Xpos - 8, Ypos, Width, Height, DrawColor32, DrawColor16,0,-1,1);
-			DrawBoxMWH(Xpos - 8,Ypos,2,2,0x00FF00,0x07E0,0,-1,1,-1);
-			DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,0,0,0);
-			DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,0,0,0);
+	#endif
+			DrawBoxMWH(Xpos, Ypos, Width, Height, DrawColor32, DrawColor16,0,-1,1);
+			DrawBoxMWH(Xpos,Ypos,2,2,0x00FF00,0x07E0,0,-1,1,-1);
+			DrawLine(Xpos-1,Ypos,Xpos+1,Ypos,0,0,0);
+			DrawLine(Xpos,Ypos-1,Xpos,Ypos+1,0,0,0);
 			if (CardBoard == (P1OFFSET + off))
 			{
-				DrawLine(Xpos-9,Ypos,Xpos-7,Ypos,-1,-1,0);
-				DrawLine(Xpos-8,Ypos-1,Xpos-8,Ypos+1,-1,-1,0);
+				DrawLine(Xpos-1,Ypos,Xpos+1,Ypos,-1,-1,0);
+				DrawLine(Xpos,Ypos-1,Xpos,Ypos+1,-1,-1,0);
+			}
+	#if !(defined S1 || defined GAME_SCD)
+			if (CardBoard == P1OFFSET || CardBoard == P1OFFSET + SPRITESIZE)
+	#else
+			if (CardBoard == P1OFFSET)
+	#endif
+			{
+				unsigned char status = CheatRead<unsigned char>(CardBoard + So);
+				signed short px0, px1 = Xpos, px2 = Xpos, py0, py1 = Ypos, py2 = Ypos;
+				if (status&2)
+				{		// On air
+					px0 = Xpos;
+					py0 = Ypos;
+					signed short px3 = Xpos, px4 = Xpos, py3 = Ypos, py4 = Ypos;
+					signed short vx = CheatRead<signed short>(CardBoard + XVo), vy = CheatRead<signed short>(CardBoard + YVo);
+					signed short avx = vx < 0 ? -vx : vx, avy = vy < 0 ? -vy : vy;
+					if (avx >= avy)
+					{		// Moving more horizontally than vertically
+						if (vx >= 0)
+							px0 += 10;
+						else
+							px0 -= 10;
+						px1 += Width2;
+						py1 += Height2;
+						px2 -= Width2;
+						py2 += Height2;
+
+						px3 += Width2;
+						py3 -= Height2;
+						px4 -= Width2;
+						py4 -= Height2;
+
+						DrawBoxMWH(px3,py3,2,2,0x8000FF,0x4010,0,-1,1,-1);
+						DrawLine(px3-1,py3,px3+1,py3,0,0,0);
+						DrawLine(px3,py3-1,px3,py3+1,0,0,0);
+
+						DrawBoxMWH(px4,py4,2,2,0x8000FF,0x4010,0,-1,1,-1);
+						DrawLine(px4-1,py4,px4+1,py4,0,0,0);
+						DrawLine(px4,py4-1,px4,py4+1,0,0,0);
+					}
+					else
+					{		// Moving more vertically than horizontally
+						px0 += 10;
+						DrawBoxMWH(px0,py0,2,2,0x8000FF,0x4010,0,-1,1,-1);
+						DrawLine(px0-1,py0,px0+1,py0,0,0,0);
+						DrawLine(px0,py0-1,px0,py0+1,0,0,0);
+						px0 -= 20;
+
+						px1 += Width2;
+						px2 -= Width2;
+						if (vy >= 0)
+						{
+							py1 += Height2;
+							py2 += Height2;
+						}
+						else
+						{
+							py1 -= Height2;
+							py2 -= Height2;
+						}
+					}
+					DrawBoxMWH(px0,py0,2,2,0x8000FF,0x4010,0,-1,1,-1);
+					DrawLine(px0-1,py0,px0+1,py0,0,0,0);
+					DrawLine(px0,py0-1,px0,py0+1,0,0,0);
+				}
+				else
+				{		// On ground
+					unsigned char angle1 = CheatRead<unsigned char>(CardBoard + Ao), angle2 = angle1, angle3;
+					signed short vx = CheatRead<signed short>(CardBoard + XVo), vy = CheatRead<signed short>(CardBoard + YVo);
+					signed int px = CheatRead<signed int>(CardBoard + XPo), py = CheatRead<signed int>(CardBoard + YPo);
+					px = (px + (vx<<8)) >> 16; py = (py + (vy<<8)) >> 16;
+					px0 = px - (short)CamX; py0 = py - (short)CamY;
+			#ifdef SK
+					bool showwall = (angle2&0x3f)==0 || ((angle2+0x40)&0x80) == 0;
+			#else
+					bool showwall = ((angle2+0x40)&0x80) == 0;
+			#endif
+					signed short inertia = CheatRead<signed short>(CardBoard + GVo);
+					if (!inertia)
+						showwall = false;
+					else
+						angle2 += inertia > 0 ? -0x40 : 0x40;
+					angle1 += 0x1F + ((angle1&0x40) >> 6);
+					angle3 = angle2&0x38;
+					angle2 += 0x1F + ((angle2&0x40) >> 6);
+					angle1 &= 0xC0;
+					angle2 &= 0xC0;
+					switch (angle1)
+					{
+						case 0x00:
+							px1 += Width2;
+							py1 += Height2;
+							px2 -= Width2;
+							py2 += Height2;
+							break;
+						case 0x40:
+							px1 -= Height2;
+							py1 -= Width2;
+							px2 -= Height2;
+							py2 += Width2;
+							break;
+						case 0x80:
+							px1 += Width2;
+							py1 -= Height2;
+							px2 -= Width2;
+							py2 -= Height2;
+							break;
+						case 0xC0:
+							px1 += Height2;
+							py1 -= Width2;
+							px2 += Height2;
+							py2 += Width2;
+							break;
+					}
+					if (showwall)
+					{
+						switch (angle2)
+						{
+							case 0x00:
+								py0 += 10;
+								break;
+							case 0x40:
+								px0 -= 10;
+								if (angle3 == 0) py0 += 8;
+								break;
+							case 0x80:
+								py0 -= 10;
+								break;
+							case 0xC0:
+								px0 += 10;
+								if (angle3 == 0) py0 += 8;
+								break;
+						}
+						DrawBoxMWH(px0,py0,2,2,0x8000FF,0x4010,0,-1,1,-1);
+						DrawLine(px0-1,py0,px0+1,py0,-1,-1,0);
+						DrawLine(px0,py0-1,px0,py0+1,-1,-1,0);
+					}
+				}
+				DrawBoxMWH(px1,py1,2,2,0x8000FF,0x4010,0,-1,1,-1);
+				DrawLine(px1-1,py1,px1+1,py1,0,0,0);
+				DrawLine(px1,py1-1,px1,py1+1,0,0,0);
+
+				DrawBoxMWH(px2,py2,2,2,0x8000FF,0x4010,0,-1,1,-1);
+				DrawLine(px2-1,py2,px2+1,py2,0,0,0);
+				DrawLine(px2,py2-1,px2,py2+1,0,0,0);
 			}
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
-				PutText(Str_Tmp,Xpos - 8,Ypos,0,0,0,0,VERT,BLEU);
+				PutText(Str_Tmp,Xpos,Ypos,0,0,0,0,VERT,BLEU);
 /*				Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
 				Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLEU);
 				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLEU);
@@ -1339,6 +1486,9 @@ void DrawBoxes()
 				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);*/
 			}
 		}
+	#ifdef SK
+		delete [] Touchables;
+	#endif
 	#ifdef S2
 		for (unsigned short CardBoard = 0xE806; CardBoard < 0xEE00; CardBoard += 6)	//ring table
 		{
