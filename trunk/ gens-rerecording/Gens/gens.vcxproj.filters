@@ -1,0 +1,702 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="C/C++ Sources">
+      <UniqueIdentifier>{30a042ec-6eea-46ce-86e1-270893d9a490}</UniqueIdentifier>
+      <Extensions>.c;.cpp</Extensions>
+    </Filter>
+    <Filter Include="C/C++ Sources\mp3_dec_c">
+      <UniqueIdentifier>{597555c6-e82b-447d-a0f3-104c5615842f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ASM Sources">
+      <UniqueIdentifier>{84462a2f-8514-4b27-9891-8ad8c2f55321}</UniqueIdentifier>
+      <Extensions>.asm</Extensions>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{6cca48ca-5d62-4fa2-b2e1-5a9ffc507d12}</UniqueIdentifier>
+      <Extensions>.h</Extensions>
+    </Filter>
+    <Filter Include="Headers\mp3_dec_h">
+      <UniqueIdentifier>{40e7ec2d-148d-4fee-a50c-498cf78bfc93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{405f8d5b-7e1f-4d4a-b36f-cbb4393bf862}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources\icon">
+      <UniqueIdentifier>{0d49e11c-2128-4805-9ae8-f22b3a76da3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources\bitmap">
+      <UniqueIdentifier>{9df59e79-9bc5-4a01-aa8a-b9d796cb6a5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DisplayHacks">
+      <UniqueIdentifier>{2b729b77-c375-488a-aadf-c4bebd3eaa3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LibLua">
+      <UniqueIdentifier>{50462c4b-faf5-4918-b0db-160d56d3e4bb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="7zip.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="AVIWrite.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="base64.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="cblit.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="CCnet.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="cd_aspi.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="cd_file.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="cd_sys.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="cdda_mp3.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="corehooks.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Cpu_68k.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Cpu_SH2.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Cpu_Z80.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="drawutil.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="G_ddraw.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="G_dinput.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="G_dsound.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="G_main.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Gens.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ggenie.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="gm2_structs.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="guidraw.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="LC89510.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="luascript.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="luascript_window.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="M68KD.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="movie.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="net.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenArchive.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ParseCmdLine.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="pcm.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="psg.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="pwm.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ram_search.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ramwatch.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Rom.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="save.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="scrshot.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SH2.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SH2D.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="tracer.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="tracer_cd.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="unzip.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="wave.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ym2612.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="z80dis.c">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\common.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\dct64_i386.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\decode_i386.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\interface.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\layer3.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="mp3_dec\tabinit.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="EccoBoxHack.cpp">
+      <Filter>DisplayHacks</Filter>
+    </ClCompile>
+    <ClCompile Include="HacksCommon.cpp">
+      <Filter>DisplayHacks</Filter>
+    </ClCompile>
+    <ClCompile Include="RKABoxHack.cpp">
+      <Filter>DisplayHacks</Filter>
+    </ClCompile>
+    <ClCompile Include="SonicHackSuite.cpp">
+      <Filter>DisplayHacks</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lapi.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lauxlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lbaselib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lcode.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ldblib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ldebug.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ldo.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ldump.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lfunc.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lgc.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\linit.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\liolib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\llex.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lmathlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lmem.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\loadlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lobject.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lopcodes.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\loslib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lparser.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lstate.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lstring.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lstrlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ltable.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ltablib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\ltm.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lundump.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lvm.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="lua\src\lzio.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Mem_M68K_32X.inc">
+      <Filter>ASM Sources</Filter>
+    </None>
+    <None Include="Mem_M68K_CD.inc">
+      <Filter>ASM Sources</Filter>
+    </None>
+    <None Include="SH2_IO.inc">
+      <Filter>ASM Sources</Filter>
+    </None>
+    <None Include="gens.ico">
+      <Filter>resources\icon</Filter>
+    </None>
+    <None Include="resource\Gens2.ico">
+      <Filter>resources\icon</Filter>
+    </None>
+    <None Include="resource\lua.ico">
+      <Filter>resources\icon</Filter>
+    </None>
+    <None Include="resource\sonic.ico">
+      <Filter>resources\icon</Filter>
+    </None>
+    <None Include="resource\bitmap1.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00000.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00001.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00002.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00003.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00004.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00005.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00006.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\bmp00007.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\gens_big.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+    <None Include="resource\gens_small.bmp">
+      <Filter>resources\bitmap</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="7zip.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="7zipstreams.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="AVIWrite.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="base64.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="blit.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="CCnet.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cd_aspi.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cd_file.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Cd_sys.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="cdda_mp3.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Corehooks.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Cpu_68k.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Cpu_SH2.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Cpu_Z80.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="drawutil.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="G_ddraw.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="G_dsound.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="G_Input.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="G_main.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="gens.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="gfx_cd.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ggenie.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="gm2_structs.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="guidraw.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="htmlhelp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="io.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="kailleraclient.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="keycode.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="LC89510.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="luascript.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="M68KD.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Mem_M68k.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Mem_S68k.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Mem_SH2.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Mem_Z80.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="movie.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="moviegfx.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="net.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenArchive.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ParseCmdLine.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcm.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="png.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="psg.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pwm.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ram_search.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ramwatch.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Rom.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="save.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="scrshot.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SH2.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SH2D.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Star_68k.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="tracer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="unzip.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="vdp_32X.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="vdp_io.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="vdp_rend.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="wave.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ym2612.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="z80.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="z80dis.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="zconf.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="zlib.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mp3_dec\huffman.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="mp3_dec\mpg123.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="mp3_dec\mpglib.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>resources</Filter>
+    </ClInclude>
+    <ClInclude Include="EccoBoxHack.h">
+      <Filter>DisplayHacks</Filter>
+    </ClInclude>
+    <ClInclude Include="hackdefs.h">
+      <Filter>DisplayHacks</Filter>
+    </ClInclude>
+    <ClInclude Include="HacksCommon.h">
+      <Filter>DisplayHacks</Filter>
+    </ClInclude>
+    <ClInclude Include="RKABoxHack.h">
+      <Filter>DisplayHacks</Filter>
+    </ClInclude>
+    <ClInclude Include="SonicHackSuite.h">
+      <Filter>DisplayHacks</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lapi.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lauxlib.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lcode.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\ldebug.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\ldo.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lfunc.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lgc.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\llex.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\llimits.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lmem.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lobject.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lopcodes.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lparser.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lstate.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lstring.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\ltable.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\ltm.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lua.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\luaconf.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lualib.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lundump.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lvm.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="lua\src\lzio.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Gens.rc">
+      <Filter>resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="blit.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="gfx_cd.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="io.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Starscream\Main68k\main68k.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Mem_M68k.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Mem_S68k.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Mem_SH2.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Mem_Z80.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Misc.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="pwm.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="SH2a.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Starscream\Sub68k\sub68k.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="vdp_32X.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="vdp_io.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="vdp_rend.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="z80.asm">
+      <Filter>ASM Sources</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>
