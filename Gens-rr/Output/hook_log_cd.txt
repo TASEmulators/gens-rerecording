@@ -1,0 +1,81 @@
+hook_pc1 2 	0 -1
+hook_pc2 1 -1 -1
+hook_pc3 1 -1 -1
+
+hook_rd1 7  0 -1
+hook_rd2 0 -1 -1
+hook_rd3 0 -1 -1
+
+hook_wr1 7  0 -1
+hook_wr2 0 -1 -1
+hook_wr3 0 -1 -1
+
+hook_ppu1 1 -1 -1
+hook_ppu2 1 -1 -1
+hook_ppu3 1 -1 -1
+
+------------------------------------------------------
+
+Sub 68k CPU
+
+Legend:
+- R/W (mode) <low> <high>
+ [hook.txt]  0 = Shadow address ($00-ff, $0000-ffff)
+ [hook.txt]  1 = Linear address ($000000-ffffff)
+
+ (tracing must be activated first)
+ [trace.txt] 2 = Shadow address ($00-ff, $0000-ffff)
+ [trace.txt] 3 = Linear address ($000000-ffffff)
+
+ Logging modes 4,5,6,7 will perform as 0-3 but will auto-enable tracing
+ when the breakpoint is reached.
+
+
+- PC <mode> <*> <*>
+ [hook.txt]  0 = <low linear> <high linear>
+ [hook.txt]  1 = <start linear> <stop linear>
+
+ (tracing must be activated first)
+ [trace.txt] 2 = <low linear> <high linear>
+ [trace.txt] 3 = <start linear> <stop linear>
+
+ Logging modes 4,5,6,7 will perform as 0-3 but will auto-enable tracing
+ when the breakpoint is reached.
+
+
+- PPU <low> <high>
+ [hook.txt]  0 = <register low> <register high>
+ [hook.txt]  1 = <vram low> <vram high>
+ = $00000-0ffff = VRAM
+ = $10000-1ffff = CRAM
+ = $20000-2ffff = VSRAM
+
+ (tracing must be activated first)
+ [trace.txt] 2 = <register low> <register high>
+ [trace.txt] 3 = <vram low> <vram high>
+
+ Logging modes 4,5,6,7 will perform as 0-3 but will auto-enable tracing
+ when the breakpoint is reached.
+
+
+Tips:
+1. You can turn on memory / instruction logging BEFORE you run the program
+
+2. Toggle logging on/off several times to isolate just the piece of code you want
+
+3. Using hook_pc* <start> -1 will blindly log data starting from your address.
+   Useful for tracking math algorithms or hard-to-understand bugs.
+
+
+Sega CD memory map:
+$00:0000-07:ffff = PRG RAM (sub program)
+
+$08:0000-0b:ffff = Data RAM (CD only)
+$0c:0000-0d:ffff = Word RAM (CD shared)
+
+$a0:0000-a7:ffff = Misc (I/O)
+$c0:0000-c7:ffff = VDP
+
+$fe:0000-fe:3fff = BRAM (battery RAM)
+$ff:8000-ff:81ff = sub registers
+
