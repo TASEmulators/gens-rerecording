@@ -105,8 +105,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>SubWCRev.bat</Command>
     </PreBuildEvent>
     <CustomBuildStep>
       <Command>

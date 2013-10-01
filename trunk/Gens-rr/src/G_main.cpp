@@ -1334,23 +1334,23 @@ int Change_Country(HWND hWnd, int Num)
 	if (Genesis_Started)
 	{
 		if ((CPU_Mode == 1) || (Game_Mode == 0))
-			sprintf(Str_Tmp, "Gens - Megadrive : %s", Game->Rom_Name_W);
+			sprintf(Str_Tmp, GENS_NAME " - Megadrive : %s", Game->Rom_Name_W);
 		else
-			sprintf(Str_Tmp, "Gens - Genesis : %s", Game->Rom_Name_W);
+			sprintf(Str_Tmp, GENS_NAME " - Genesis : %s", Game->Rom_Name_W);
 	}
 	else if (_32X_Started)
 	{
 		if (CPU_Mode == 1)
-			sprintf(Str_Tmp, "Gens - 32X (PAL) : %s", Game->Rom_Name_W);
+			sprintf(Str_Tmp, GENS_NAME " - 32X (PAL) : %s", Game->Rom_Name_W);
 		else
-			sprintf(Str_Tmp, "Gens - 32X (NTSC) : %s", Game->Rom_Name_W);
+			sprintf(Str_Tmp, GENS_NAME " - 32X (NTSC) : %s", Game->Rom_Name_W);
 	}
 	else if (SegaCD_Started)
 	{
 		if ((CPU_Mode == 1) || (Game_Mode == 0))
-			sprintf(Str_Tmp, "Gens - MegaCD : %s", Rom_Name);
+			sprintf(Str_Tmp, GENS_NAME " - MegaCD : %s", Rom_Name);
 		else
-			sprintf(Str_Tmp, "Gens - SegaCD : %s", Rom_Name);
+			sprintf(Str_Tmp, GENS_NAME " - SegaCD : %s", Rom_Name);
 	}
 
 	if(Genesis_Started || _32X_Started || SegaCD_Started)
@@ -1782,7 +1782,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	HWnd = CreateWindowEx(
 		NULL,
 		"Gens",
-		"Gens - Idle",
+		GENS_NAME " - Idle",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
