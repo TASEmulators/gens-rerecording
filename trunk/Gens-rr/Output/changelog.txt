@@ -1,0 +1,296 @@
+Gens Re-Recording v11c.
+
+Based on Gens v2.12 source code by Stéphane Dallongeville and the Gens development team.
+http://gens.consolemul.com/
+This version is UNOFFICIAL.  Don't bother the official Gens community for problems and bugs.
+
+New in version 11c:
+	(list not compiled yet. this is a pre-release of 11c.)
+	
+New in version 11b:
+	-Ram Watch - Separator Button - allows for displaying a separator line in a Ram Watch list
+	-Ram Search - Fix the Reset button bug where previous was not getting reset to current.
+	-Added a Lua Prompt feature
+	-fix for sudden exit if passing bad arguments into a lua gui function at a time when it must be deferred
+
+New in version 11a:
+	-Loading roms and such from command line no longer requires use of the -rom [or relevant] command line switches (nitsuja)
+	-More emulation variables properly initialized on ROM load (nitsuja)
+	-FrameCounter positioning now adjust so that it will not run past the right edge of the screen. (upthorn)
+	-Fixed automatic gmv backup bug where [movie_name].bak.gmv would become the current version and [movie_name].gmv the unmodified backup. (upthorn)
+	-Added desync warning when playing a movie from a savestate that has no input data saved in it whatsoever. (upthorn)
+	-Fixed bulletproof rerecording and desync detection compatibility with savestates from recently obsoleted gens versions. (upthorn)
+
+New in version 11:
+	-Optional compensation for game drawing latency. (nitsuja)
+	-Added configurable default RAM Watch directory to options. (Upthorn)
+	-Optional automatic loading of previous RAM watch file. (adelikat)
+	-RAM watch now prompts to save changes when you close gens. (adelikat)
+	-Fixed bug where framecounter resets and movie closes if you cancel opening a ROM. (nitsuja)
+	-Fix for menu squashing game window if fonts are too wide. (nitsuja)
+	-RAM watch now has recent files list. (adelikat)
+	-Fixed bug where "next render mode" wouldn't select past EPX. (nitsuja)
+	-Actually fixed bug where certain hotkeys would be read when window was out of focus. (Upthorn)
+	-Fixed crash to desktop on AVI splitting. (Upthorn)
+	-Option for frame advance to skip lag frames. (adelikat)
+	-Frame search (same feature as VBA) (nitsuja)
+	-Screenshots optionally no longer use the wrong resolution in 256x224 display mode. (nitsuja)
+	-Screenshots no longer affected by render mode. (nitsuja)
+	-Error messages when GMV can not be loaded. (nitsuja)
+	-Fixed file handle leak in mp3 code. (nitsuja)
+	-Autopause works correctly again. (Upthorn)
+	-Fixed bug where saving a state, closing gens, reopening it, and reloading the state would sometimes corrupt the z80 state. (Upthorn)
+	-GMV files again truncate properly to last recorded frame. (nitsuja)
+	-RAM Watch window optionally remembers position. (adelikat)
+	-Fixed bug where movie splicing produced 2 frames of garbage at the splice boundary. (nitsuja)
+	-RAM Search window now shows which rows will be eliminated by the current search condition. (nitsuja)
+	-RAM Search now has a modulo comparison operator. (nitsuja)
+	-Now possible to select and eliminate a range of rows in RAM Search. (nitsuja)
+	-Added undo/redo buttons to RAM search. (nitsuja)
+	-Various RAM search bug fixes (nitsuja)
+	-Movie length now displayed with framecount. (nitsuja)
+	-Various RAM watch file bug fixes (nitsuja)
+	-Fixed sound buffer looping when a frame takes longer than expected to render. (nitsuja)
+	-Lua scripting support (nitsuja)
+	-Added -play <gmv file> commandline option to begin a movie playing automatically. (adelikat)
+	-Added -cfg <config file> commandline option to automatically load a non-default config. (adelikat)
+	-Added -loadstate <gst file> commandline option to automatically load a specified savestate. (adelikat)
+	-Added -pause commandline option to open the emulator with emulation paused. (adelikat)
+	-Project now explicitly includes all required files, so no user setup is necessary to compile the svn source. (adelikat/nitsuja/upthorn)
+	-Added configurable default directory for Lua scripts. (nitsuja)
+	-RAM Search and RAM Watch no longer require a frame to advance between being opened and displaying correct values. (nitsuja)
+	-AVI split filesize now configurable. (nitsuja)
+	-AVIs no longer use the wrong vertical resolution for NTSC games. (nitsuja)
+	-AVIs optionally no longer use the wrong horizontal resolution in 256x224 display mode. (nitsuja)
+	-Screenshots now saved as PNG files. (nitsuja)
+	-Roms and movies can now be opened from inside zip, rar, and 7z files.
+	-Automatic movie backups once again back up _before_ file truncation. (upthorn)
+	-"Swap Scroll layer" option now swaps priority of the correct scroll plane. (upthorn)
+	-Workaround for BRAM size option causing Sega CD desyncs. (nitsuja)
+	-Drag and drop support for lua scripts, RAM watches, roms, gyms, savestates, cfgs, and zip/rar/7z archives containing them. (nitsuja)
+	-Added -lua <lua script file> commandline option to automatically load a specified lua script. (nitsuja)
+	-Added option to temporarily disable SRAM emulation. (nitsuja)
+	-Included manual/reference for Lua scripting. (nitsuja)
+	-Autofire and autohold modifiers again behave the same for enabling and disabling holds (nitsuja)
+	-Hotkey configuration now recognizes three versions of modifier keys (ctrl, alt, shift, win), L, R, and generic. (nitsuja)
+	-About window displays correct version information (nitsuja/upthorn)
+		
+New in version 10a:
+	-fix for cue files that refer to iso files that have spaces in their filename (nitsuja)
+	-fix for directinput hotkeys not working when a rom hasn't been loaded yet (nitsuja)
+	-safeguard against people forgetting to turn on SegaCD Perfect Synchro (nitsuja)
+	-Prevented "there is no disk in drive" error spam if a file in the recent ROMs list is on a removed disk (nitsuja)
+	-warn about completely missing SegaCD audio when playing or recording a movie (nitsuja)
+	-Fixed bug where certain hotkeys would be read when window was out of focus (Upthorn)
+	-New RAM Watch UI (adelikat)
+	-Autofire now accounts for lag (nitsuja)
+	-Fixed bug where CD Audio was very crackly (Upthorn)
+	-Extended Sega CD BRAM Autoformat for sizes other than 64kb (nitsuja)
+	-New hotkey to watch movie from start (nitsuja)
+	-PWM audio volume level fix (nitsuja)
+	-Increased audio quality during slow motion and fast-forward. (nitsuja)
+	-Some safeguards against file I/O errors (nitsuja)
+	-Menu typo fixes and garbage collection (nitsuja)
+	-Added Background input option, where all hotkeys and controller buttons will be read regardless of window focus (Upthorn)
+	-"Add Sound to AVI" now defaults to on (Upthorn)
+	-"Add Sound to AVI" now saves to config (Upthorn)
+
+New in version 10:
+	-Debug menu reenabled
+	-Debug menu items fixed not to cause crashes
+	-Sega CD GFX debug screen updated to support 32x32 stamps as well as 16x16
+	-Ram Search and Ram Watch menus no longer close on reset, or game reload
+	-EPX render mode fixed in 32bit display mode
+	-All other render modes updated to support 32bit display mode
+	-Sega CD emulation now supports BIN/CUE as an alternative to ISO+MP3
+	-Sega CD emulation now sync-robust
+	-Savestate upgrades for all Gens platforms.
+	-Slight disassembler output bugfix
+	-Bug where 32X palette was sometimes not updated in 32-bit mode fixed.
+	-Bug where 32X PWM volume was too low fixed
+	-Hotkey configurability: All hotkeys now assignable to any keyboard key or gamepad button.
+	-Bug where enabling "instruction logging" or "hook ram" would sometimes cause gens to crash has been fixed
+	-GMV playback now clears saved SRAM at start.
+
+New in version 9.5c:
+	-Graphics layers are now labelled properly in the Graphics->Layers toggle menu
+	-Option to force sprites always to display in front 
+	-Option to lock the display palette
+	-AVI dumps from currently active screen frame buffer, previously dumped from 16-bit frame buffer.
+	-AVI dump no longer one half pixel off, horizontally
+	-Multi-track recording now behaves in a sane, intuitive way
+	-Multi-track recording now has a submenu (tools->movie->tracks)
+	-New hotkeys for multi-track recording: "<" for Previous track, and ">" for next track
+	-Raw pixel display mode (Graphics->color adjust->XRay), interprets pixel flags and palette data as an RGB color code
+	-Prompt to resume recording at the end of movie playback, if you'd recorded at all since opening it, aren't recording an AVI, and don't have "Automatic Close Movie" checked
+	-"hook ram" no longer causes gens to crash if toggled on before "instruction logging"
+	-"hook ram" now respects configuration file
+
+New in version 9.5:
+	-Fixed numerous bugs in Ram search and ram watch. There should not be any, anymore.
+	-Ram Search and Ram Watch now update immediately upon state load
+	-Added 32 bit color support.
+	-Added "Lag detection"
+	-Added Multi-track recording
+	-Ported instruction logging from GensTracer
+	-Ported RAM access logging from GensTracer
+	-Added Volume control dialog
+	-Corrected behavior of Layer 3 toggled full transparency
+	-Added a "Sprites always on top" option.
+	-Input display, frame counter, and lag counter will no longer show up in AVIs
+	-TAB for fast forward no longer activates while ALT-TABbing
+
+New in version 9z:
+	-Tweaked the timing of continuous frame advance (courtesy of Nitusja)
+	-Fixed a bug where the checkmark by Automatic Close Movie displayed incorrectly
+	-Fixed a bug where the last frame of input never got recorded.
+	-Emulation no longer pauses at the end of a movie when Automatic Close Movie is unchecked
+	-Added Savestate movie consistency checking (courtesy of Nitsuja)
+	-Sound no longer causes high CPU usage (courtesy of Nitsuja)
+	-Quicksaving during movies now prepends the name of the movie file (sans .gmv) to the savestate name
+	-Quickloading during movies now checks for a savestate with the movie file name (sans .gmv) prepended to it
+	-When Automatic Close Movie is unchecked, and a movie is open read-only, resetting will replay movie from start (even if movie had finished playing)
+	-When Automatic Close Movie is unchecked, and a movie is open read-write, resetting will rerecord movie from start (even if movie had finished playing)
+	-When Automatic Close Movie is unchecked, and a movie is open read-only after finishing playback, loading a state from the movie will resume playback from that state.
+	-When Automatic Close Movie is unchecked, and a movie is open read-write after finishing playback, loading a state from the movie will resume recording from that state.
+	-Added a Ram Search feature (courtesy of Nitsuja & Ideamagnate) with hardware accurate addresses (courtesy of me).
+	-Added a Ram Watch feature with watchlist saving and loading.
+	-Added several previously unsaved variables to savestates (courtesy of nitsuja)
+	-Added an input splice feature, to allow for rerecording while saving work past a specified point.
+	-Added a frameseek feature, which fastforwards to the specified frame, then pauses.
+
+New in version 9j:
+	-No longer warns on different controller settings (windows only)
+	-Warns on GMV controller settings unknown (windows only)
+	-Stretch while maintaining aspect ratio (doesn't work with full screen blits) (windows only)
+	-User definable full screen resolution in options->misc (doesn't work with full screen blits) (windows only)
+	-Option to fullscreen at windows resolution (windows only)
+	-Less cluttered menu style (Slowdown, AVI dumping, and movie playback moved to "TAS Tools" menu) (windows only)
+	-Movies can default to read-only checked (can be configured in config)
+	-Movies default to read-only checked can change in Options->Misc (Windows Only)
+	-Saves and loads slowdown speed from config
+	-Separate joypad config dialog to allow for reassignment of keys individually (instead of having to go in order "up down left right a b c start x y z mode") (windows only)
+	-Auto Pause on movie end if movie is not in read only mode (to allow for rerecording without having to reopen movie.)
+	-Option to disable movie autoclose (on console reset/movie end)
+	-Minor SegaCD savestate improvements.
+	-Nitsuja's changes from version 9i
+
+New in version 9i: (unreleased)
+	-Graphical layers can be enabled-disabled
+	-Sound-soften filters implemented
+	-Auto-hold feature implemented (Only works on controller 1 and 2)
+	-Auto-fire feature implemented (Only works on controlelr 1 and 2)
+	-Frame counter can optionally be displayed in frames instead of MM:SS:FF
+
+New in version 9h:
+	-Input settings automatically load from GMV unless unknown
+	-Three player input display using RGB channels
+		-In two player mode, Player 1 is Blue, Player 2 is Orange
+		-In three player mode, Player 1 is Blue, Player 1B is Green, Player 1C is Red
+	-Based off of the version of Gens with SegaCD savestate support
+
+New in version 9g:
+      -bulletproof rerecording (out-of-order loading shouldn't cause desync anymore)
+      -I think I caught a desync bug where a chunk of memory at the end of save states was never getting loaded...
+      -continuous frame advance (and no pause required, with sound)
+      -ctrl-T to toggle read-only (for switching to/from playback while recording)
+      -0-9 keys to load save states 0-9 (not F0-F9 like several other emulators, because the F keys were used for too many things already)
+      -shift+0-9 keys to save save states 0-9 (ctrl+0-9 to only select, now)
+      -=/- for speedup/slowdown (automatically switches in/out of "slowdown mode" as necessary)
+      -hold Tab to fast-forward (ctrl-shift-R to reset, now)
+      -it no longer uses 100% CPU when it doesn't need to (this is a big one for me)
+      -gave messages an outline (if you didn't set them to transparent) so they're not impossible to read on some bright backgrounds
+      -allows you to choose record or playback while a movie is already recording or playing, which properly stops the current movie when you hit OK
+
+New in version 9f:
+      -Fixed a bug which caused read only movies to be recorded when loading a state
+
+New in version 9e:
+      -Fixed a bug with 3 player movie playback
+
+New in version 9d:
+       -3 player support (check this option when recording a new movie.  To record with 3 players, set the first controller to teamplay and configure pads 1,1B and 1C (3 buttons setting only)
+       -Record new movie from now : Check this option when recording a new movie to make a savestate and record a new movie from it.  To play back the movie, use the Play from savestate option and load the associated savestate.
+       -New autobackup : Use use this option, check it on the Misc option dialog box.  A backup will be created when a savestate is loaded while playing a movie or when the option "Resume record from now" is selected.  The backup filename is (movie name).bak.gmv
+       -New Input display : Show the keys being pressed ! To use this option, go to the Misc option menu.
+       -Other little features i forgot about.
+
+New in Version Test9c:
+       -44khz is now the default sound rate
+       -Response time of redefined keys improved when the game is paused.
+       -Quickload and quicksave enabled when the game is paused
+       -AVI framerate of PAL games fixed. 
+       -Slowdown check in the menu fixed
+
+New in Version Test9b :
+       -Slowndown mode with sound disabled is now more constant
+       -New option in Graphic menu: "Never skip a frame with auto frameskip".
+       -You can now advance frames one by one when the game is paused.  To do it, first assign an Advance frame key in Options/Joypads... menu.
+      -You can now define a Movie path in Options/Directories... menu
+      -You can now disable the blue pause screen effect in Options/Misc... menu
+      -New framecounter.  To activate it, go in Option/Misc... menu.  Time is showed as minutes:seconds:frame.  You can change its position too.
+      -Read-only is now disable by default.
+      -If Read-only is disabled and you load a savestate while a movie is playing, the movie will switch to recording (like in Famtasia and Snes9X)
+      -Movies are automaticly closed on reset.
+      - A red circle will blink if a movie is being recorded.
+   
+
+Some notes about Test9a
+
+-Fix a random bug in header identification
+-AVI output (still WIP).
+
+To log a GMV to AVI : 
+
+	-Load the game
+	-Enable sound (if you want sound in your AVI)
+	-Set sound rate to 44khz (If you want sound in your AVI)
+	-In the Graphic menu, select Sync AVI with movie
+	-		   select Add sound to AVI (if you want)
+	-		   select Start AVI Dump
+	-Play the GMV file using Play Movie/Resume record from state menu
+	-A box will show asking video compression.  Select one.
+	-To stop AVI, select Stop AVI Dump
+
+(Warning : sound is uncompressed.  You might want to compress it with a video editing program like Virtualdub or Nandub.)
+	
+
+Some notes about Test9
+
+-New movie core.  All movies of all versions are still compatible
+-New movies have some new features: Author notes and controller configuration
+-To convert an old movie to the new movie format, use gmvtool9
+-New GUI
+-Options have changed place
+
+
+Record New Movie : Record a movie from the beginning 
+Play Movie / Resume record from savestate: Play a recorded movie file from the beginning, from a savestate or resume record of an existing movie from a savestate 
+Stop Movie : Stop playing/recording 
+Resume Record from now: Resume recording from already playing movie 
+Slow Mode : Slow down emulation.  Only with Auto framerate.
+Slow Mode Speed :  Select the speed of slow down mode
+
+Rerecording available with Load State, Save State 
+
+Toggle Slow Mode, Pause, Quicksave and Quickload are assignable to game keys
+
+----------------------------------- FAQ ----------------------------------------
+
+Q: Why my movie doesn't play back correctly ?  It's desyncing.
+
+A: The movie must be played in the same condition it has been recorded.  There are some settings  that are known to affect playback :
+
+	-Rom version
+	-Game pad configuration : 6 or 3 buttons ( doesn't affect earlier games)
+	-Sound enabled or disable
+	-Sound mixing frequency ( 11Khz , 22 Khz or 44Khz).  With NTSC, 44khz is recommended.  With PAL, 22khz and 44khz do fine
+	-Battery Backed RAM data
+
+Q: Why my movie played well the first time but not anymore ?
+
+A: It's because of the battery backed ram.  Delete the .srm file.  However, you'll lose your save data !
+
+Q: How do I assign a key to Shift instead of LShift or RShift ?
+
+A: Press both the left shift and right shift keys during key assignment. This process is the same for Control, Alt, and Win keys, as well.
