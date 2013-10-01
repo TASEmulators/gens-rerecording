@@ -1,11 +1,35 @@
+//#define PUBLIC_RELEASE	// uncomment this when making a public release, but comment back before committing
+
 #include "Rom.h"
 
 #ifndef _GENS_H
 #define _GENS_H
 
+#ifdef _MSC_VER
+#include "svnrev.h"
+#endif
+
+#ifndef SVN_REV
+	#define SVN_REV ""
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* #ifdef __cplusplus */
+
+#define GENS_RR_VERSION "Gens11"
+
+#ifndef _DEBUG
+	#define SUB_STRING "svn" SVN_REV
+#else
+	#define SUB_STRING " debug"
+#endif
+
+#ifndef PUBLIC_RELEASE
+	#define GENS_NAME GENS_RR_VERSION SUB_STRING
+#elif
+	#define GENS_NAME GENS_RR_VERSION
+#endif
 
 //#define CLOCK_NTSC 53700000			// More accurate for division round
 //#define CLOCK_PAL  53200000

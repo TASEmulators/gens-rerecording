@@ -766,6 +766,6 @@ void Free_Rom(Rom *Rom_MD)
 
 	if (Intro_Style == 3) Init_Genesis_Bios();
 	
-	SetWindowText(HWnd, "Gens - Idle");
+	SetWindowText(HWnd, GENS_NAME " - Idle");
 }
 

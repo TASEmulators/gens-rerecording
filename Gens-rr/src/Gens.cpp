@@ -1054,9 +1054,9 @@ int Init_Genesis(struct Rom *MD_Rom)
 	}
 
 	if ((CPU_Mode == 1) || (Game_Mode == 0))
-		sprintf(Str_Err, "Gens - Megadrive : %s",MD_Rom->Rom_Name_W);
+		sprintf(Str_Err, GENS_NAME " - Megadrive : %s",MD_Rom->Rom_Name_W);
 	else
-		sprintf(Str_Err, "Gens - Genesis : %s",MD_Rom->Rom_Name_W);
+		sprintf(Str_Err, GENS_NAME " - Genesis : %s",MD_Rom->Rom_Name_W);
 
 	// Modif N. - remove double-spaces from title bar
 	for(int i = 0 ; i < (int)strlen(Str_Err)-1 ; i++)
@@ -1638,9 +1638,9 @@ int Init_32X(struct Rom *MD_Rom)
 	}
 
 	if (CPU_Mode == 1)
-		sprintf(Str_Err, "Gens - 32X (PAL) : %s",MD_Rom->Rom_Name_W);
+		sprintf(Str_Err, GENS_NAME " - 32X (PAL) : %s",MD_Rom->Rom_Name_W);
 	else
-		sprintf(Str_Err, "Gens - 32X (NTSC) : %s",MD_Rom->Rom_Name_W);
+		sprintf(Str_Err, GENS_NAME " - 32X (NTSC) : %s",MD_Rom->Rom_Name_W);
 
 	// Modif N. - remove double-spaces from title bar
 	for(int i = 0 ; i < (int)strlen(Str_Err)-1 ; i++)
@@ -2388,11 +2388,11 @@ int Init_SegaCD(char *iso_name)
 {
 	char Str_Err[256], *Bios_To_Use;
 
-	SetWindowText(HWnd, "Gens - Sega CD : initializing, please wait ...");
+	SetWindowText(HWnd, GENS_NAME " - Sega CD : initializing, please wait ...");
 
 	if (Reset_CD((char *) CD_Data, iso_name))
 	{
-		SetWindowText(HWnd, "Gens - Idle");
+		SetWindowText(HWnd, GENS_NAME " - Idle");
 		return 0;
 	}
 
@@ -2431,7 +2431,7 @@ int Init_SegaCD(char *iso_name)
 	if (Load_Bios(HWnd, Bios_To_Use) == NULL)
 	{
 		MessageBox(HWnd, "Your BIOS files aren't correctly configured, do it with 'Option -> Directories/Files...' menu.", "Warning", MB_OK | MB_ICONEXCLAMATION);
-		SetWindowText(HWnd, "Gens - Idle");
+		SetWindowText(HWnd, GENS_NAME " - Idle");
 		return 0;
 	}
 
@@ -2440,9 +2440,9 @@ int Init_SegaCD(char *iso_name)
 	Update_CD_Rom_Name((char *) &CD_Data[32]);
 
 	if ((CPU_Mode == 1) || (Game_Mode == 0))
-		sprintf(Str_Err, "Gens - MegaCD : %s", Rom_Name);
+		sprintf(Str_Err, GENS_NAME " - MegaCD : %s", Rom_Name);
 	else
-		sprintf(Str_Err, "Gens - SegaCD : %s", Rom_Name);
+		sprintf(Str_Err, GENS_NAME " - SegaCD : %s", Rom_Name);
 
 	// Modif N. - remove double-spaces from title bar
 	for(int i = 0 ; i < (int)strlen(Str_Err)-1 ; i++)
@@ -2565,13 +2565,13 @@ int Reload_SegaCD(char *iso_name)
 
 	Save_BRAM();
 
-	SetWindowText(HWnd, "Gens - Sega CD : re-initializing, please wait ...");
+	SetWindowText(HWnd, GENS_NAME " - Sega CD : re-initializing, please wait ...");
 
 	Reset_CD((char *) CD_Data, iso_name);
 	Update_CD_Rom_Name((char *) &CD_Data[32]);
 
-	if ((CPU_Mode == 1) || (Game_Mode == 0)) sprintf(Str_Err, "Gens - MegaCD : %s", Rom_Name);
-	else sprintf(Str_Err, "Gens - SegaCD : %s", Rom_Name);
+	if ((CPU_Mode == 1) || (Game_Mode == 0)) sprintf(Str_Err, GENS_NAME " - MegaCD : %s", Rom_Name);
+	else sprintf(Str_Err, GENS_NAME " - SegaCD : %s", Rom_Name);
 
 	SetWindowText(HWnd, Str_Err);
 

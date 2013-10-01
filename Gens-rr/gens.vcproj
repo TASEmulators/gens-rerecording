@@ -30,6 +30,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="SubWCRev.bat"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
