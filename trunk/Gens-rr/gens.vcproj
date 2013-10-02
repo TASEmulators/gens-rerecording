@@ -136,7 +136,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="dependencies\SubWCRev.bat"
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"

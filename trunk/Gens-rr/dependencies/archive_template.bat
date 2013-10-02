@@ -4,7 +4,7 @@ copy Gens.exe ..
 ..\dependencies\upx Gens.exe
 IF ERRORLEVEL 1 IF NOT ERRORLEVEL 2 GOTO UPXFailed
 rename Gens.exe Gens11svn$WCREV$.exe
-..\dependencies\zip -X -9 -r ..\Gens.zip Gens11svn$WCREV$.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
+..\dependencies\zip -X -9 -r ..\Gens11svn$WCREV$.zip Gens11svn$WCREV$.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
 del Gens11svn$WCREV$.exe
 move /y ..\Gens.exe .
 GOTO end
