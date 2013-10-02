@@ -36,111 +36,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mp3_dec\common.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="mp3_dec\dct64_i386.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="mp3_dec\decode_i386.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="mp3_dec\interface.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="mp3_dec\layer3.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="mp3_dec\tabinit.c">
-      <Filter>C/C++ Sources\mp3_dec_c</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lapi.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lauxlib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lbaselib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lcode.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ldblib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ldebug.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ldo.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ldump.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lfunc.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lgc.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\linit.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\liolib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\llex.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lmathlib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lmem.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\loadlib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lobject.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lopcodes.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\loslib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lparser.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lstate.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lstring.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lstrlib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ltable.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ltablib.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\ltm.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lundump.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lvm.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
-    <ClCompile Include="lua\src\lzio.c">
-      <Filter>LibLua</Filter>
-    </ClCompile>
     <ClCompile Include="src\7zip.cpp">
       <Filter>C/C++ Sources</Filter>
     </ClCompile>
@@ -294,6 +189,111 @@
     <ClCompile Include="src\AVIWrite.cpp">
       <Filter>C/C++ Sources</Filter>
     </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\common.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\dct64_i386.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\decode_i386.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\interface.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\layer3.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\mp3_dec\tabinit.c">
+      <Filter>C/C++ Sources\mp3_dec_c</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lapi.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lauxlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lbaselib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lcode.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ldblib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ldebug.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ldo.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ldump.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lfunc.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lgc.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\linit.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\liolib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\llex.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lmathlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lmem.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\loadlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lobject.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lopcodes.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\loslib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lparser.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lstate.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lstring.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lstrlib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ltable.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ltablib.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\ltm.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lundump.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lvm.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\lua\src\lzio.c">
+      <Filter>LibLua</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="gens.ico">
@@ -352,84 +352,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mp3_dec\huffman.h">
-      <Filter>Headers\mp3_dec_h</Filter>
-    </ClInclude>
-    <ClInclude Include="mp3_dec\mpg123.h">
-      <Filter>Headers\mp3_dec_h</Filter>
-    </ClInclude>
-    <ClInclude Include="mp3_dec\mpglib.h">
-      <Filter>Headers\mp3_dec_h</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lapi.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lauxlib.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lcode.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\ldebug.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\ldo.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lfunc.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lgc.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\llex.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\llimits.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lmem.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lobject.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lopcodes.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lparser.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lstate.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lstring.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\ltable.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\ltm.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lua.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\luaconf.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lualib.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lundump.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lvm.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
-    <ClInclude Include="lua\src\lzio.h">
-      <Filter>LibLua</Filter>
-    </ClInclude>
     <ClInclude Include="src\EccoBoxHack.h">
       <Filter>DisplayHacks</Filter>
     </ClInclude>
@@ -642,6 +564,84 @@
     </ClInclude>
     <ClInclude Include="src\resource.h">
       <Filter>resources</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\mp3_dec\huffman.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\mp3_dec\mpg123.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\mp3_dec\mpglib.h">
+      <Filter>Headers\mp3_dec_h</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lapi.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lauxlib.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lcode.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\ldebug.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\ldo.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lfunc.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lgc.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\llex.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\llimits.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lmem.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lobject.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lopcodes.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lparser.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lstate.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lstring.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\ltable.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\ltm.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lua.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\luaconf.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lualib.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lundump.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lvm.h">
+      <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\lua\src\lzio.h">
+      <Filter>LibLua</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
