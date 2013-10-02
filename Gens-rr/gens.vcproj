@@ -30,7 +30,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="SubWCRev.bat"
+				CommandLine="dependencies\SubWCRev.bat"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -62,7 +62,7 @@
 				OmitFramePointers="true"
 				EnableFiberSafeOptimizations="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="directx; 7z\CPP"
+				AdditionalIncludeDirectories="dependencies\directx;7z\CPP; dependencies"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;EXTRACT_ONLY;_NO_CRYPTO"
 				StringPooling="true"
 				ExceptionHandling="1"
@@ -89,7 +89,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj; /LTCG"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib dependencies/directx/ddraw.lib dependencies/directx/dsound.lib dependencies/directx/dinput.lib dependencies/directx/dxguid.lib winmm.lib dependencies/libs/zlib.lib dependencies/libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
 				OutputFile=".\Output/gens11.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -136,7 +136,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine=""
+				CommandLine="dependencies\SubWCRev.bat"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -165,7 +165,7 @@
 				Optimization="0"
 				InlineFunctionExpansion="0"
 				EnableIntrinsicFunctions="false"
-				AdditionalIncludeDirectories="directx; 7z\CPP"
+				AdditionalIncludeDirectories="dependencies\directx; 7z\CPP; dependencies"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;EXTRACT_ONLY;_NO_CRYPTO"
 				StringPooling="false"
 				ExceptionHandling="1"
@@ -195,7 +195,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj;"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib shell32.lib oleaut32.lib directx/ddraw.lib directx/dsound.lib directx/dinput.lib directx/dxguid.lib winmm.lib ./libs/zlib.lib ./libs/libpng.lib htmlhelp.lib vfw32.lib"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmtd.lib wsock32.lib shell32.lib oleaut32.lib dependencies\directx/ddraw.lib dependencies\directx/dsound.lib dependencies\directx/dinput.lib dependencies\directx/dxguid.lib winmm.lib dependencies\libs/zlib.lib dependencies\libs/libpng.lib htmlhelp.lib vfw32.lib"
 				OutputFile=".\Debug/gens.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -912,7 +912,7 @@
 				Name="mp3_dec_c"
 				>
 				<File
-					RelativePath="mp3_dec\common.c"
+					RelativePath=".\dependencies\mp3_dec\common.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -932,7 +932,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\dct64_i386.c"
+					RelativePath=".\dependencies\mp3_dec\dct64_i386.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -952,7 +952,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\decode_i386.c"
+					RelativePath=".\dependencies\mp3_dec\decode_i386.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -972,7 +972,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\interface.c"
+					RelativePath=".\dependencies\mp3_dec\interface.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -992,7 +992,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\layer3.c"
+					RelativePath=".\dependencies\mp3_dec\layer3.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -1012,7 +1012,7 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="mp3_dec\tabinit.c"
+					RelativePath=".\dependencies\mp3_dec\tabinit.c"
 					>
 					<FileConfiguration
 						Name="Release|Win32"
@@ -1046,7 +1046,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1056,7 +1056,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1070,7 +1070,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1080,7 +1080,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1094,7 +1094,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1104,7 +1104,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1118,7 +1118,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1128,7 +1128,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1142,7 +1142,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1153,7 +1153,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						AdditionalDependencies="mem_m68k_32x.inc;mem_m68k_cd.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1176,7 +1176,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1186,7 +1186,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1200,7 +1200,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1210,7 +1210,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1224,7 +1224,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1234,7 +1234,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1248,7 +1248,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1258,7 +1258,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1272,7 +1272,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1282,7 +1282,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1300,7 +1300,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						AdditionalDependencies="SH2_IO.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1311,7 +1311,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						AdditionalDependencies="SH2_IO.inc;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
@@ -1326,7 +1326,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1336,7 +1336,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1350,7 +1350,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1360,7 +1360,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1374,7 +1374,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1384,7 +1384,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1398,7 +1398,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1408,7 +1408,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1422,7 +1422,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1432,7 +1432,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Assembling $(InputName).asm"
-						CommandLine="nasm\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
+						CommandLine="dependencies\nasmw -i &quot;$(InputDir).&quot; &quot;$(InputDir)\$(InputName).asm&quot; -f win32 -o &quot;$(OutDir)\$(InputName).obj&quot;&#x0D;&#x0A;"
 						Outputs="$(OutDir)\$(InputName).obj"
 					/>
 				</FileConfiguration>
@@ -1706,15 +1706,15 @@
 				Name="mp3_dec_h"
 				>
 				<File
-					RelativePath="mp3_dec\huffman.h"
+					RelativePath=".\dependencies\mp3_dec\huffman.h"
 					>
 				</File>
 				<File
-					RelativePath="mp3_dec\mpg123.h"
+					RelativePath=".\dependencies\mp3_dec\mpg123.h"
 					>
 				</File>
 				<File
-					RelativePath="mp3_dec\mpglib.h"
+					RelativePath=".\dependencies\mp3_dec\mpglib.h"
 					>
 				</File>
 			</Filter>
@@ -1843,211 +1843,211 @@
 			Name="LibLua"
 			>
 			<File
-				RelativePath=".\lua\src\lapi.c"
+				RelativePath=".\dependencies\lua\src\lapi.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lapi.h"
+				RelativePath=".\dependencies\lua\src\lapi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lauxlib.c"
+				RelativePath=".\dependencies\lua\src\lauxlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lauxlib.h"
+				RelativePath=".\dependencies\lua\src\lauxlib.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lbaselib.c"
+				RelativePath=".\dependencies\lua\src\lbaselib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lcode.c"
+				RelativePath=".\dependencies\lua\src\lcode.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lcode.h"
+				RelativePath=".\dependencies\lua\src\lcode.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldblib.c"
+				RelativePath=".\dependencies\lua\src\ldblib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldebug.c"
+				RelativePath=".\dependencies\lua\src\ldebug.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldebug.h"
+				RelativePath=".\dependencies\lua\src\ldebug.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldo.c"
+				RelativePath=".\dependencies\lua\src\ldo.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldo.h"
+				RelativePath=".\dependencies\lua\src\ldo.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ldump.c"
+				RelativePath=".\dependencies\lua\src\ldump.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lfunc.c"
+				RelativePath=".\dependencies\lua\src\lfunc.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lfunc.h"
+				RelativePath=".\dependencies\lua\src\lfunc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lgc.c"
+				RelativePath=".\dependencies\lua\src\lgc.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lgc.h"
+				RelativePath=".\dependencies\lua\src\lgc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\linit.c"
+				RelativePath=".\dependencies\lua\src\linit.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\liolib.c"
+				RelativePath=".\dependencies\lua\src\liolib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llex.c"
+				RelativePath=".\dependencies\lua\src\llex.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llex.h"
+				RelativePath=".\dependencies\lua\src\llex.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\llimits.h"
+				RelativePath=".\dependencies\lua\src\llimits.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmathlib.c"
+				RelativePath=".\dependencies\lua\src\lmathlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmem.c"
+				RelativePath=".\dependencies\lua\src\lmem.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lmem.h"
+				RelativePath=".\dependencies\lua\src\lmem.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\loadlib.c"
+				RelativePath=".\dependencies\lua\src\loadlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lobject.c"
+				RelativePath=".\dependencies\lua\src\lobject.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lobject.h"
+				RelativePath=".\dependencies\lua\src\lobject.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lopcodes.c"
+				RelativePath=".\dependencies\lua\src\lopcodes.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lopcodes.h"
+				RelativePath=".\dependencies\lua\src\lopcodes.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\loslib.c"
+				RelativePath=".\dependencies\lua\src\loslib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lparser.c"
+				RelativePath=".\dependencies\lua\src\lparser.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lparser.h"
+				RelativePath=".\dependencies\lua\src\lparser.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstate.c"
+				RelativePath=".\dependencies\lua\src\lstate.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstate.h"
+				RelativePath=".\dependencies\lua\src\lstate.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstring.c"
+				RelativePath=".\dependencies\lua\src\lstring.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstring.h"
+				RelativePath=".\dependencies\lua\src\lstring.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lstrlib.c"
+				RelativePath=".\dependencies\lua\src\lstrlib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltable.c"
+				RelativePath=".\dependencies\lua\src\ltable.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltable.h"
+				RelativePath=".\dependencies\lua\src\ltable.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltablib.c"
+				RelativePath=".\dependencies\lua\src\ltablib.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltm.c"
+				RelativePath=".\dependencies\lua\src\ltm.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\ltm.h"
+				RelativePath=".\dependencies\lua\src\ltm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lua.h"
+				RelativePath=".\dependencies\lua\src\lua.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\luaconf.h"
+				RelativePath=".\dependencies\lua\src\luaconf.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lualib.h"
+				RelativePath=".\dependencies\lua\src\lualib.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lundump.c"
+				RelativePath=".\dependencies\lua\src\lundump.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lundump.h"
+				RelativePath=".\dependencies\lua\src\lundump.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lvm.c"
+				RelativePath=".\dependencies\lua\src\lvm.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lvm.h"
+				RelativePath=".\dependencies\lua\src\lvm.h"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lzio.c"
+				RelativePath=".\dependencies\lua\src\lzio.c"
 				>
 			</File>
 			<File
-				RelativePath=".\lua\src\lzio.h"
+				RelativePath=".\dependencies\lua\src\lzio.h"
 				>
 			</File>
 		</Filter>
