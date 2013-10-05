@@ -87,7 +87,7 @@ static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
 int Update_GYM_Dump(char v0, char v1, char v2);
 
 int PSG_Enable;
-int PSG_Improv;
+int PSG_Improv=0;
 int *PSG_Buf[2];
 int PSG_Len = 0;
 unsigned short PSGVol = 256;
