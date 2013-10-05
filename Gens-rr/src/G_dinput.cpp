@@ -367,7 +367,7 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,   ID_SOUND_STARTWAVDUMP,    0, NULL, "Dump WAV", "WAVKey"},
 
 	{MOD_NONE,             VK_NONE,    ID_SOUND_DACIMPROV,       0, NULL, "Improved DAC On/Off", "ImpDACKey"},
-	{MOD_NONE,             VK_NONE,    ID_SOUND_PSGIMPROV,       0, NULL, "Improved PSG On/Off", "ImpPSGKey"},
+//	{MOD_NONE,             VK_NONE,    ID_SOUND_PSGIMPROV,       0, NULL, "Improved PSG On/Off", "ImpPSGKey"},
 	{MOD_NONE,             VK_NONE,    ID_SOUND_YMIMPROV,        0, NULL, "Improved YM On/Off", "ImpYMKey"},
 	{MOD_NONE,             VK_NONE,    ID_SOUND_SOFTEN,          0, NULL, "Sound Soften Filter On/Off", "SoundSoftenKey"},
 

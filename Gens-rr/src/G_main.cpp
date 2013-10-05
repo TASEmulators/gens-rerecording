@@ -198,6 +198,7 @@ int MustUpdateMenu=0; // Modif // menuNeedsBuilding buildMenuNeeded
 bool RamSearchClosed = false;
 bool RamWatchClosed = false;
 
+unsigned int MessageDuration = 2000; // milliseconds // feos: who's idea was to hardcode this for every single call?!
 unsigned char StateSelectCfg = 0;
 bool PaintsEnabled = true;
 extern "C" int g_dontResetAudioCache;
@@ -328,8 +329,8 @@ int Change_VSync(HWND hWnd)
 	
 	*p_vsync = 1 - *p_vsync;
 	
-	if (*p_vsync) MESSAGE_L("Vertical Sync Enabled", "Vertical Sync Enabled", 1000)
-	else MESSAGE_L("Vertical Sync Disabled", "Vertical Sync Disabled", 1000)
+	if (*p_vsync) MESSAGE_L("Vertical Sync Enabled", "Vertical Sync Enabled", MessageDuration)
+	else MESSAGE_L("Vertical Sync Disabled", "Vertical Sync Disabled", MessageDuration)
 
 	Build_Main_Menu();
 	if (Full_Screen) return Init_DDraw(HWnd);
@@ -342,12 +343,12 @@ int Set_Frame_Skip(HWND hWnd, int Num)
 	Frame_Skip = Num;
 
 	if (Frame_Skip != -1)
-		MESSAGE_NUM_L("Frame skip set to %d", "Frame skip set to %d", Frame_Skip, 1500)
+		MESSAGE_NUM_L("Frame skip set to %d", "Frame skip set to %d", Frame_Skip, MessageDuration)
 	else
-		MESSAGE_L("Frame skip set to Auto", "Frame skip set to Auto", 1500)
+		MESSAGE_L("Frame skip set to Auto", "Frame skip set to Auto", MessageDuration)
 	if (SeekFrame)
 	{
-		MESSAGE_L("Seek Cancelled","Seek Cancelled",1500);
+		MESSAGE_L("Seek Cancelled","Seek Cancelled",MessageDuration);
 	}
 	SeekFrame = 0;
 	Build_Main_Menu();
@@ -363,7 +364,7 @@ int Set_Latency_Compensation(int Num)
 
 	char msg [256];
 	sprintf(msg, "Set to adjust for %d frame%s of video lag", VideoLatencyCompensation, VideoLatencyCompensation==1?"":"s");
-	MESSAGE_L(msg, msg, 1500)
+	MESSAGE_L(msg, msg, MessageDuration)
 
 	disableVideoLatencyCompensationCount = 0;
 
@@ -394,12 +395,12 @@ int Set_Current_State(int Num, bool showOccupiedMessage, bool showEmptyMessage)
 		fclose(f);
 		if(showOccupiedMessage)
 		{
-			MESSAGE_NUM_L("SLOT %d [OCCUPIED]", "SLOT %d [OCCUPIED]", Current_State, 1500)
+			MESSAGE_NUM_L("SLOT %d [OCCUPIED]", "SLOT %d [OCCUPIED]", Current_State, MessageDuration)
 		}
 	}
 	else if(showEmptyMessage)
 	{
-		MESSAGE_NUM_L("SLOT %d [EMPTY]", "SLOT %d [EMPTY]", Current_State, 1500)
+		MESSAGE_NUM_L("SLOT %d [EMPTY]", "SLOT %d [EMPTY]", Current_State, MessageDuration)
 	}
 
 	MustUpdateMenu = 1;
@@ -414,9 +415,9 @@ int Change_Stretch(void)
 	Flag_Clr_Scr = 1;
 
 	if (Stretch = (1 - Stretch))
-		MESSAGE_L("Stretched mode", "Stretched mode", 1000)
+		MESSAGE_L("Stretched mode", "Stretched mode", MessageDuration)
 	else
-		MESSAGE_L("Correct ratio mode", "Correct ratio mode", 1000)
+		MESSAGE_L("Correct ratio mode", "Correct ratio mode", MessageDuration)
 
 	Build_Main_Menu();
 	return(1);
@@ -430,9 +431,9 @@ int Change_Blit_Style(void)
 	Flag_Clr_Scr = 1;
 
 	if (Blit_Soft = (1 - Blit_Soft))
-		MESSAGE_L("Force software blit for Full-Screen", "Force software blit for Full-Screen", 1000)
+		MESSAGE_L("Force software blit for Full-Screen", "Force software blit for Full-Screen", MessageDuration)
 	else
-		MESSAGE_L("Enable hardware blit for Full-Screen", "Enable hardware blit for Full-Screen", 1000)
+		MESSAGE_L("Enable hardware blit for Full-Screen", "Enable hardware blit for Full-Screen", MessageDuration)
 
 	return(1);
 }
@@ -441,9 +442,9 @@ int Change_Blit_Style(void)
 int Set_Sprite_Over(HWND hWnd, int Num)
 {
 	if (Sprite_Over = Num)
-		MESSAGE_L("Sprite Limit Enabled", "Sprite Limit Enabled", 1000)
+		MESSAGE_L("Sprite Limit Enabled", "Sprite Limit Enabled", MessageDuration)
 	else
-		MESSAGE_L("Sprite Limit Disabled", "Sprite Limit Disabled", 1000)
+		MESSAGE_L("Sprite Limit Disabled", "Sprite Limit Disabled", MessageDuration)
 
 	Build_Main_Menu();
 	return(1);
@@ -470,9 +471,9 @@ int Change_Fast_Blur(HWND hWnd)
 	Flag_Clr_Scr = 1;
 
 	if (Fast_Blur = (1 - Fast_Blur))
-		MESSAGE_L("Fast Blur Enabled", "Fast Blur Enabled", 1000)
+		MESSAGE_L("Fast Blur Enabled", "Fast Blur Enabled", MessageDuration)
 	else
-		MESSAGE_L("Fast Blur Disabled", "Fast Blur Disabled", 1000)
+		MESSAGE_L("Fast Blur Disabled", "Fast Blur Disabled", MessageDuration)
 
 	Build_Main_Menu();
 	return(1);
@@ -496,7 +497,7 @@ int Change_Layer(HWND hWnd, int Num) //Nitsuja added this to allow for layer ena
 
 	char message [256];
 	sprintf(message, "Layer %d %sabled", Num+1, *layer?"en":"dis");
-	MESSAGE_L(message, message, 1000)
+	MESSAGE_L(message, message, MessageDuration)
 
 	Build_Main_Menu();
 	return(1);
@@ -508,7 +509,7 @@ int Change_SpriteTop (HWND hWnd)
 
 	char message [256];
 	sprintf(message, "Always Show Sprites %sabled", Sprite_Always_Top?"en":"dis");
-	MESSAGE_L(message, message, 1000)
+	MESSAGE_L(message, message, MessageDuration)
 
 	Build_Main_Menu();
 	return (1);
@@ -536,7 +537,7 @@ int Change_LayerSwap (HWND hWnd, int num)
 
 	char message [256];
 	sprintf(message, "Layer Swapping %sabled", *Plane?"en":"dis");
-	MESSAGE_L(message, message, 1000)
+	MESSAGE_L(message, message, MessageDuration)
 
 	Build_Main_Menu();
 	return (1);
@@ -563,7 +564,7 @@ int Change_Plane (HWND hWnd, int num)
 
 	char message [256];
 	sprintf(message, "Plane %sabled", *Plane?"en":"dis");
-	MESSAGE_L(message, message, 1500)
+	MESSAGE_L(message, message, MessageDuration)
 
 	Build_Main_Menu();
 	return (1);
@@ -662,19 +663,19 @@ void Set_Rend_Int(int Num, int* Rend, BlitFunc* Blit)
 	{
 		switch(*Rend)
 		{
-		case 0: MESSAGE_L("Render selected : NORMAL", "Render selected : NORMAL", 1500); break;
-		case 1: MESSAGE_L("Render selected : DOUBLE", "Render selected : DOUBLE", 1500); break;
-		case 2: MESSAGE_L("Render selected : EPX 2X SCALE", "Render selected : EPX 2X SCALE", 1500); break;
-		case 3: MESSAGE_L("Render selected : INTERPOLATED", "Render selected : INTERPOLATED", 1500); break;
-		case 4: MESSAGE_L("Render selected : FULL SCANLINE", "Render selected : FULL SCANLINE", 1500); break;
-		case 5: MESSAGE_L("Render selected : 50% SCANLINE", "Render selected : 50% SCANLINE", 1500); break;
-		case 6: MESSAGE_L("Render selected : 25% SCANLINE", "Render selected : 25% SCANLINE", 1500); break;
-		case 7: MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", 1500); break;
-		case 8: MESSAGE_L("Render selected : INTERPOLATED 50% SCANLINE", "Render selected : INTERPOLATED 50% SCANLINE", 1500); break;
-		case 9: MESSAGE_L("Render selected : INTERPOLATED 25% SCANLINE", "Render selected : INTERPOLATED 25% SCANLINE", 1500); break;
-		case 10: MESSAGE_L("Render selected : 2XSAI KREED'S ENGINE", "Render selected : 2XSAI KREED'S ENGINE", 1500); break;
-		case 11: MESSAGE_L("Render selected : EPX+", "Render selected : EPX+", 1500); break;
-		default: MESSAGE_L("Render selected : ??????", "Render selected : ??????", 1500); break;
+		case 0: MESSAGE_L("Render selected : NORMAL", "Render selected : NORMAL", MessageDuration); break;
+		case 1: MESSAGE_L("Render selected : DOUBLE", "Render selected : DOUBLE", MessageDuration); break;
+		case 2: MESSAGE_L("Render selected : EPX 2X SCALE", "Render selected : EPX 2X SCALE", MessageDuration); break;
+		case 3: MESSAGE_L("Render selected : INTERPOLATED", "Render selected : INTERPOLATED", MessageDuration); break;
+		case 4: MESSAGE_L("Render selected : FULL SCANLINE", "Render selected : FULL SCANLINE", MessageDuration); break;
+		case 5: MESSAGE_L("Render selected : 50% SCANLINE", "Render selected : 50% SCANLINE", MessageDuration); break;
+		case 6: MESSAGE_L("Render selected : 25% SCANLINE", "Render selected : 25% SCANLINE", MessageDuration); break;
+		case 7: MESSAGE_L("Render selected : INTERPOLATED SCANLINE", "Render selected : INTERPOLATED SCANLINE", MessageDuration); break;
+		case 8: MESSAGE_L("Render selected : INTERPOLATED 50% SCANLINE", "Render selected : INTERPOLATED 50% SCANLINE", MessageDuration); break;
+		case 9: MESSAGE_L("Render selected : INTERPOLATED 25% SCANLINE", "Render selected : INTERPOLATED 25% SCANLINE", MessageDuration); break;
+		case 10: MESSAGE_L("Render selected : 2XSAI KREED'S ENGINE", "Render selected : 2XSAI KREED'S ENGINE", MessageDuration); break;
+		case 11: MESSAGE_L("Render selected : EPX+", "Render selected : EPX+", MessageDuration); break;
+		default: MESSAGE_L("Render selected : ??????", "Render selected : ??????", MessageDuration); break;
 		}
 	}
 }
@@ -787,7 +788,7 @@ int Change_SegaCD_Synchro(void)
 			Update_Frame_Fast = Do_SegaCD_Frame_No_VDP;
 		}
 
-		MESSAGE_L("SegaCD normal mode", "SegaCD normal mode", 1500)
+		MESSAGE_L("SegaCD normal mode", "SegaCD normal mode", MessageDuration)
 	}
 	else
 	{
@@ -799,7 +800,7 @@ int Change_SegaCD_Synchro(void)
 			Update_Frame_Fast = Do_SegaCD_Frame_No_VDP_Cycle_Accurate;
 		}
 
-		MESSAGE_L("SegaCD perfect synchro mode (SLOW)", "SegaCD perfect synchro mode (slower)", 1500)
+		MESSAGE_L("SegaCD perfect synchro mode (SLOW)", "SegaCD perfect synchro mode (slower)", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -816,7 +817,7 @@ int Change_SegaCD_SRAM_Size(int num)
 	if (num == -1)
 	{
 		BRAM_Ex_State &= 1;
-		MESSAGE_L("SegaCD SRAM cart removed", "SegaCD SRAM cart removed", 1500)
+		MESSAGE_L("SegaCD SRAM cart removed", "SegaCD SRAM cart removed", MessageDuration)
 	}
 	else
 	{
@@ -826,7 +827,7 @@ int Change_SegaCD_SRAM_Size(int num)
 		BRAM_Ex_Size = num;
 
 		sprintf(bsize, "SegaCD SRAM cart plugged (%d Kb)", 8 << num);
-		MESSAGE_L(bsize, bsize, 1500)
+		MESSAGE_L(bsize, bsize, MessageDuration)
 	}
 	Load_BRAM();
 
@@ -840,12 +841,12 @@ int Change_Z80(HWND hWnd)
 	if (Z80_State & 1)
 	{
 		Z80_State &= ~1;
-		MESSAGE_L("Z80 Disabled", "Z80 Disabled", 1000)
+		MESSAGE_L("Z80 Disabled", "Z80 Disabled", MessageDuration)
 	}
 	else
 	{
 		Z80_State |= 1;
-		MESSAGE_L("Z80 Enabled", "Z80 Enabled", 1000)
+		MESSAGE_L("Z80 Enabled", "Z80 Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -858,12 +859,12 @@ int Change_DAC(HWND hWnd)
 	if (DAC_Enable)
 	{
 		DAC_Enable = 0;
-		MESSAGE_L("DAC Disabled", "DAC Disabled", 1000)
+		MESSAGE_L("DAC Disabled", "DAC Disabled", MessageDuration)
 	}
 	else
 	{
 		DAC_Enable = 1;
-		MESSAGE_L("DAC Enabled", "DAC Enabled", 1000)
+		MESSAGE_L("DAC Enabled", "DAC Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -876,12 +877,12 @@ int Change_DAC_Improv(HWND hWnd)
 	if (DAC_Improv)
 	{
 		DAC_Improv = 0;
-		MESSAGE_L("Normal DAC sound", "Normal DAC sound", 1000)
+		MESSAGE_L("Normal DAC sound", "Normal DAC sound", MessageDuration)
 	}
 	else
 	{
 		DAC_Improv = 1;
-		MESSAGE_L("High Quality DAC sound", "High Quality DAC sound", 1000) //Nitsuja modified this
+		MESSAGE_L("High Quality DAC sound", "High Quality DAC sound", MessageDuration) //Nitsuja modified this
 	}
 
 	Build_Main_Menu(); //Nitsuja added this line
@@ -894,12 +895,12 @@ int Change_YM2612(HWND hWnd)
 	if (YM2612_Enable)
 	{
 		YM2612_Enable = 0;
-		MESSAGE_L("YM2612 Disabled", "YM2612 Disabled", 1000)
+		MESSAGE_L("YM2612 Disabled", "YM2612 Disabled", MessageDuration)
 	}
 	else
 	{
 		YM2612_Enable = 1;
-		MESSAGE_L("YM2612 Enabled", "YM2612 Enabled", 1000)
+		MESSAGE_L("YM2612 Enabled", "YM2612 Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -914,12 +915,12 @@ int Change_YM2612_Improv(HWND hWnd)
 	if (YM2612_Improv)
 	{
 		YM2612_Improv = 0;
-		MESSAGE_L("Normal YM2612 emulation", "Normal YM2612 emulation", 1000)
+		MESSAGE_L("Normal YM2612 emulation", "Normal YM2612 emulation", MessageDuration)
 	}
 	else
 	{
 		YM2612_Improv = 1;
-		MESSAGE_L("High Quality YM2612 emulation", "High Quality YM2612 emulation", 1000)
+		MESSAGE_L("High Quality YM2612 emulation", "High Quality YM2612 emulation", MessageDuration)
 	}
 
 	YM2612_Save(Reg_1);
@@ -945,12 +946,12 @@ int Change_PSG(HWND hWnd)
 	if (PSG_Enable)
 	{
 		PSG_Enable = 0;
-		MESSAGE_L("PSG Disabled", "PSG Disabled", 1000)
+		MESSAGE_L("PSG Disabled", "PSG Disabled", MessageDuration)
 	}
 	else
 	{
 		PSG_Enable = 1;
-		MESSAGE_L("PSG Enabled", "PSG Enabled", 1000)
+		MESSAGE_L("PSG Enabled", "PSG Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -963,12 +964,12 @@ int Change_PSG_Improv(HWND hWnd)
 	if (PSG_Improv)
 	{
 		PSG_Improv = 0;
-		MESSAGE_L("Normal PSG sound", "Normal PSG sound", 1000)
+		MESSAGE_L("Normal PSG sound", "Normal PSG sound", MessageDuration)
 	}
 	else
 	{
 		PSG_Improv = 1;
-		MESSAGE_L("High Quality PSG sound", "High Quality PSG sound", 1000) //Nitsuja modified this
+		MESSAGE_L("High Quality PSG sound", "High Quality PSG sound", MessageDuration) //Nitsuja modified this
 	}
 
 	Build_Main_Menu(); //Nitsuja added this line
@@ -981,12 +982,12 @@ int Change_PCM(HWND hWnd)
 	if (PCM_Enable)
 	{
 		PCM_Enable = 0;
-		MESSAGE_L("PCM Sound Disabled", "PCM Sound Disabled", 1000)
+		MESSAGE_L("PCM Sound Disabled", "PCM Sound Disabled", MessageDuration)
 	}
 	else
 	{
 		PCM_Enable = 1;
-		MESSAGE_L("PCM Sound Enabled", "PCM Sound Enabled", 1000)
+		MESSAGE_L("PCM Sound Enabled", "PCM Sound Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -999,12 +1000,12 @@ int Change_PWM(HWND hWnd)
 	if (PWM_Enable)
 	{
 		PWM_Enable = 0;
-		MESSAGE_L("PWM Sound Disabled", "PWM Sound Disabled", 1000)
+		MESSAGE_L("PWM Sound Disabled", "PWM Sound Disabled", MessageDuration)
 	}
 	else
 	{
 		PWM_Enable = 1;
-		MESSAGE_L("PWM Sound Enabled", "PWM Sound Enabled", 1000)
+		MESSAGE_L("PWM Sound Enabled", "PWM Sound Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -1017,12 +1018,12 @@ int Change_CDDA(HWND hWnd)
 	if (CDDA_Enable)
 	{
 		CDDA_Enable = 0;
-		MESSAGE_L("CD Audio Sound Disabled", "CD Audio Sound Disabled", 1000)
+		MESSAGE_L("CD Audio Sound Disabled", "CD Audio Sound Disabled", MessageDuration)
 	}
 	else
 	{
 		CDDA_Enable = 1;
-		MESSAGE_L("CD Audio Enabled", "CD Audio Enabled", 1000)
+		MESSAGE_L("CD Audio Enabled", "CD Audio Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -1044,7 +1045,7 @@ int	Change_Sound(HWND hWnd)
 		PWM_Enable = 0;
 		CDDA_Enable = 0;
 
-		MESSAGE_L("Sound Disabled", "Sound Disabled", 1500)
+		MESSAGE_L("Sound Disabled", "Sound Disabled", MessageDuration)
 	}
 	else
 	{
@@ -1073,7 +1074,7 @@ int	Change_Sound(HWND hWnd)
 		PWM_Enable = 1;
 		CDDA_Enable = 1;
 
-		MESSAGE_L("Sound Enabled", "Sound Enabled", 1500)
+		MESSAGE_L("Sound Enabled", "Sound Enabled", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -1088,17 +1089,17 @@ int Change_Sample_Rate(HWND hWnd, int Rate)
 	{
 	case 0:
 		Sound_Rate = 11025;
-		MESSAGE_L("Sound rate set to 11025", "Sound rate set to 11025", 2500)
+		MESSAGE_L("Sound rate set to 11025", "Sound rate set to 11025", MessageDuration)
 		break;
 
 	case 1:
 		Sound_Rate = 22050;
-		MESSAGE_L("Sound rate set to 22050", "Sound rate set to 22050", 2500)
+		MESSAGE_L("Sound rate set to 22050", "Sound rate set to 22050", MessageDuration)
 		break;
 
 	case 2:
 		Sound_Rate = 44100;
-		MESSAGE_L("Sound rate set to 44100", "Sound rate set to 44100", 2500)
+		MESSAGE_L("Sound rate set to 44100", "Sound rate set to 44100", MessageDuration)
 		break;
 	}
 
@@ -1143,12 +1144,12 @@ int Change_Sound_Stereo(HWND hWnd)
 	if (Sound_Stereo)
 	{
 		Sound_Stereo = 0;
-		MESSAGE_L("Mono sound", "Mono sound", 1000)
+		MESSAGE_L("Mono sound", "Mono sound", MessageDuration)
 	}
 	else
 	{
 		Sound_Stereo = 1;
-		MESSAGE_L("Stereo sound", "Stereo sound", 1000)
+		MESSAGE_L("Stereo sound", "Stereo sound", MessageDuration)
 	}
 
 	if (Sound_Enable)
@@ -1190,7 +1191,7 @@ int Change_Sound_Soften(HWND hWnd)
 	if (Sound_Soften)
 	{
 		Sound_Soften = 0;
-		MESSAGE_L("Low pass filter off", "Low pass filter off", 1000)
+		MESSAGE_L("Low pass filter off", "Low pass filter off", MessageDuration)
 	}
 	else
 	{
@@ -1198,12 +1199,12 @@ int Change_Sound_Soften(HWND hWnd)
 
 		if (Sound_Rate == 44100)
 		{
-			MESSAGE_L("Low pass filter on", "Low pass filter on", 1000)
+			MESSAGE_L("Low pass filter on", "Low pass filter on", MessageDuration)
 		}
 		else
 		{
 			Change_Sample_Rate(hWnd, 2);
-			MESSAGE_L("Low pass filter on and rate changed to 44100", "Low pass filter on and rate changed to 44100", 1000)
+			MESSAGE_L("Low pass filter on and rate changed to 44100", "Low pass filter on and rate changed to 44100", MessageDuration)
 		}
 	}
 
@@ -1217,12 +1218,12 @@ int Change_Sound_Hog(HWND hWnd)
 	if (Sleep_Time)
 	{
 		Sleep_Time = 0;
-		MESSAGE_L("Maximum CPU usage", "Maximum CPU usage", 1000)
+		MESSAGE_L("Maximum CPU usage", "Maximum CPU usage", MessageDuration)
 	}
 	else
 	{
 		Sleep_Time = 5;
-		MESSAGE_L("Balanced CPU usage", "Balanced CPU usage", 1000)
+		MESSAGE_L("Balanced CPU usage", "Balanced CPU usage", MessageDuration)
 	}
 
 	Build_Main_Menu();
@@ -1324,13 +1325,13 @@ int Change_Country(HWND hWnd, int Num)
 
 	if (Game_Mode)
 	{
-		if (CPU_Mode) MESSAGE_L("Europe system (50 FPS)", "Europe system (50 FPS)", 1500)
-		else MESSAGE_L("USA system (60 FPS)", "USA system (60 FPS)", 1500)
+		if (CPU_Mode) MESSAGE_L("Europe system (50 FPS)", "Europe system (50 FPS)", MessageDuration)
+		else MESSAGE_L("USA system (60 FPS)", "USA system (60 FPS)", MessageDuration)
 	}
 	else
 	{
-		if (CPU_Mode) MESSAGE_L("Japan system (50 FPS)", "Japan system (50 FPS)", 1500)
-		else MESSAGE_L("Japan system (60 FPS)", "Japan system (60 FPS)", 1500)
+		if (CPU_Mode) MESSAGE_L("Japan system (50 FPS)", "Japan system (50 FPS)", MessageDuration)
+		else MESSAGE_L("Japan system (60 FPS)", "Japan system (60 FPS)", MessageDuration)
 	}
 
 	if (Genesis_Started)
@@ -1387,7 +1388,7 @@ int Change_Country_Order(int Num)
 	if (Country == -1) Change_Country(HWnd, -1);		// Update Country
 
 	wsprintf(str_w, "Country detec.order : %s %s %s", c_str[Country_Order[0]], c_str[Country_Order[1]], c_str[Country_Order[2]]);
-	MESSAGE_L(str_w, str_w, 1500)
+	MESSAGE_L(str_w, str_w, MessageDuration)
 
 	Build_Main_Menu();
 	return(1);
@@ -1727,7 +1728,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	W_VSync = 0;
 	FS_VSync = 0;
 	Stretch = 0;
-	Sprite_Over = 1;
+	Sprite_Over = 0;
 	VScrollAl = 1; // Modif N.
 	VScrollBl = 1; // Modif N.
 	VScrollAh = 1; // Modif N.
@@ -2395,7 +2396,7 @@ void BeginMoviePlayback()
 {
 	if(OpenMovieFile(&MainMovie)==0)
 	{
-		MESSAGE_L("Error opening file", "Error opening file", 1500)
+		MESSAGE_L("Error opening file", "Error opening file", MessageDuration)
 		MainMovie.Status=0;
 		return;
 	}
@@ -2433,13 +2434,13 @@ void BeginMoviePlayback()
 		if (Genesis_Started)
 		{
 			Pre_Load_Rom(HWnd,Recent_Rom[0]);
-			MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+			MESSAGE_L("Genesis reseted", "Genesis reset", MessageDuration)
             if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
 		}
 		else if (_32X_Started)
 		{
 			Pre_Load_Rom(HWnd, Recent_Rom[0]);
-			MESSAGE_L("32X reseted", "32X reset", 1500)
+			MESSAGE_L("32X reseted", "32X reset", MessageDuration)
             if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
 		}
 		else if (SegaCD_Started)
@@ -2453,7 +2454,7 @@ void BeginMoviePlayback()
 			else
 				Pre_Load_Rom(HWnd, Recent_Rom[0]);
 			g_dontResetAudioCache = 0;
-			MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+			MESSAGE_L("SegaCD reseted", "SegaCD reset", MessageDuration)
             if(MainMovie.ClearSRAM) memset(SRAM, 0, sizeof(SRAM));
 			if(MainMovie.ClearSRAM) Format_Backup_Ram();
 		}
@@ -3019,7 +3020,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if(!(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
 					frameSearchFrames++;
-					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, 1500);
+					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, MessageDuration);
 					if(frameSearchFrames == 0)
 					{	// setup initial frame
 						frameSearchInitialInput = GetLastInputCondensed();
@@ -3050,7 +3051,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if(frameSearchFrames <= 0 || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
 					frameSearchFrames--;
-					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, 1500);
+					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames, MessageDuration);
 					Load_State_From_Buffer(frameSearch_Start_State_Buffer);
 					if(MainMovie.File && MainMovie.Status == MOVIE_RECORDING)
 						MainMovie.NbRerecords++;
@@ -3078,7 +3079,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				case ID_FRAME_SEARCH_END:
 					if(!frameSearchInitialized || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
-					MESSAGE_L("Frame search result", "Frame search result", 1500);
+					MESSAGE_L("Frame search result", "Frame search result", MessageDuration);
 					Load_State_From_Buffer(frameSearch_End_State_Buffer);
 					if(MainMovie.File && MainMovie.Status == MOVIE_RECORDING)
 						MainMovie.NbRerecords++;
@@ -3182,12 +3183,12 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						return 0;
 					if(MainMovie.Status!=MOVIE_PLAYING)
 					{
-						MESSAGE_L("Error: no movie is playing", "Error: no movie is playing", 1500);
+						MESSAGE_L("Error: no movie is playing", "Error: no movie is playing", MessageDuration);
 						return 0;
 					}
 					if(MainMovie.ReadOnly)
 					{
-						MESSAGE_L("Error: movie is read only", "Error: movie is read only", 1500);
+						MESSAGE_L("Error: movie is read only", "Error: movie is read only", MessageDuration);
 						return 0;
 					}
 					strncpy(Str_Tmp,MainMovie.FileName,512);
@@ -3207,7 +3208,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						MainMovie.LastFrame=max(max(max(Track1_FrameCount,Track2_FrameCount),Track3_FrameCount),FrameCount);
 					else
 						MainMovie.LastFrame=max(max(Track1_FrameCount,Track2_FrameCount),FrameCount);
-					MESSAGE_L("Recording from current frame", "Recording from current frame", 1500);
+					MESSAGE_L("Recording from current frame", "Recording from current frame", MessageDuration);
 					Build_Main_Menu();
 					return 0;
 				case ID_STOP_MOVIE:
@@ -3218,7 +3219,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if(MainMovie.File!=NULL)
 						CloseMovieFile(&MainMovie);
 					MainMovie.Status=0;
-					MESSAGE_L("Recording/Playing stop", "Recording/Playing stop", 1500);
+					MESSAGE_L("Recording/Playing stop", "Recording/Playing stop", MessageDuration);
 					Build_Main_Menu();
 					return 0;
 				case ID_RECORD_MOVIE:	//Modif
@@ -3296,7 +3297,7 @@ dialogAgain: //Nitsuja added this
 						MessageBox(hWnd, MainMovie.FileName, "Error", MB_OK);
 
 						MainMovie.Status=0;
-						MESSAGE_L("File error", "File error", 1500)
+						MESSAGE_L("File error", "File error", MessageDuration)
 						return 0;
 					}
 					MainMovie.Ok=1;
@@ -3309,7 +3310,7 @@ dialogAgain: //Nitsuja added this
 					if(OpenMovieFile(&MainMovie)==0)
 					{
 						MainMovie.Status=0;
-						MESSAGE_L("File error", "File error", 1500)
+						MESSAGE_L("File error", "File error", MessageDuration)
 						return 0;
 					}
 					FrameCount=0;
@@ -3320,20 +3321,20 @@ dialogAgain: //Nitsuja added this
 					MainMovie.LastFrame=0;
 					if(MainMovie.StateRequired)
 					{
-						MESSAGE_L("Recording from now", "Recording from now", 1500)
+						MESSAGE_L("Recording from now", "Recording from now", MessageDuration)
 					}
 					else
 					{
 						if (Genesis_Started)
 						{
 							Pre_Load_Rom(HWnd,Recent_Rom[0]);
-							MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+							MESSAGE_L("Genesis reseted", "Genesis reset", MessageDuration)
 			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (_32X_Started)
 						{
 							Pre_Load_Rom(HWnd, Recent_Rom[0]);
-							MESSAGE_L("32X reseted", "32X reset", 1500)
+							MESSAGE_L("32X reseted", "32X reset", MessageDuration)
 			                memset(SRAM, 0, sizeof(SRAM));
 						}
 						else if (SegaCD_Started)
@@ -3347,11 +3348,11 @@ dialogAgain: //Nitsuja added this
 							else
 								Pre_Load_Rom(HWnd, Recent_Rom[0]);
 							g_dontResetAudioCache = 0;
-							MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+							MESSAGE_L("SegaCD reseted", "SegaCD reset", MessageDuration)
 			                memset(SRAM, 0, sizeof(SRAM));
 							Format_Backup_Ram();
 						}
-						MESSAGE_L("Recording from start", "Recording from start", 1500)
+						MESSAGE_L("Recording from start", "Recording from start", MessageDuration)
 					}
 					Build_Main_Menu();
 					CallRegisteredLuaFunctions(LUACALL_ONSTART);
@@ -3380,7 +3381,7 @@ dialogAgain: //Nitsuja added this
 					{
 						SeekFrame = 0;
 						MustUpdateMenu = 1;
-						MESSAGE_L("Seek Cancelled","Seek Cancelled",1500);
+						MESSAGE_L("Seek Cancelled","Seek Cancelled",MessageDuration);
 						return 0;
 					}
 					else
@@ -3410,7 +3411,7 @@ dialogAgain: //Nitsuja added this
 							if(!Full_Screen)
 								MessageBox(HWnd, "You need WNASPI32.DLL to run from a CD drive.", "Error", MB_OK);
 							else
-								MESSAGE_L("You need WNASPI32.DLL to run from a CD drive.", "You need WNASPI32.DLL to run from a CD drive.", 1500)
+								MESSAGE_L("You need WNASPI32.DLL to run from a CD drive.", "You need WNASPI32.DLL to run from a CD drive.", MessageDuration)
 						return 1;
 					}
 					if (Check_If_Kaillera_Running()) return 0;
@@ -3583,7 +3584,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					char message [256];
 					sprintf(message, "Pink background %sd", PinkBG?"enable":"disable");
-					MESSAGE_L(message, message, 1500)
+					MESSAGE_L(message, message, MessageDuration)
 
 					return 0;
 				}
@@ -3856,11 +3857,11 @@ dialogAgain: //Nitsuja added this
 					frameSearchFrames = -1; frameSearchInitialized = false;
 
 					if (Genesis_Started)
-						MESSAGE_L("Genesis reseted", "Genesis reset", 1500)
+						MESSAGE_L("Genesis reseted", "Genesis reset", MessageDuration)
 					else if (_32X_Started)
-						MESSAGE_L("32X reseted", "32X reset", 1500)
+						MESSAGE_L("32X reseted", "32X reset", MessageDuration)
 					else if (SegaCD_Started)
-						MESSAGE_L("SegaCD reseted", "SegaCD reset", 1500)
+						MESSAGE_L("SegaCD reseted", "SegaCD reset", MessageDuration)
 
 					CallRegisteredLuaFunctions(LUACALL_ONSTART);
 
@@ -3878,8 +3879,8 @@ dialogAgain: //Nitsuja added this
 					{
 						Paused = 0;
 						main68k_reset();
-						if (Genesis_Started) MESSAGE_L("68000 CPU reseted", "68000 CPU reseted", 1000)
-						else if (SegaCD_Started) MESSAGE_L("Main 68000 CPU reseted", "Main 68000 CPU reseted", 1000)
+						if (Genesis_Started) MESSAGE_L("68000 CPU reseted", "68000 CPU reseted", MessageDuration)
+						else if (SegaCD_Started) MESSAGE_L("Main 68000 CPU reseted", "Main 68000 CPU reseted", MessageDuration)
 					}
 					FrameCount=0;
 					LagCount = 0;
@@ -3899,7 +3900,7 @@ dialogAgain: //Nitsuja added this
 					{
 						Paused = 0;
 						SH2_Reset(&M_SH2, 1);
-						MESSAGE_L("Master SH2 reseted", "Master SH2 reseted", 1000)
+						MESSAGE_L("Master SH2 reseted", "Master SH2 reseted", MessageDuration)
 					}
 					FrameCount=0;
 					LagCount = 0;
@@ -3919,7 +3920,7 @@ dialogAgain: //Nitsuja added this
 					{
 						Paused = 0;
 						SH2_Reset(&S_SH2, 1);
-						MESSAGE_L("Slave SH2 reseted", "Slave SH2 reseted", 1000)
+						MESSAGE_L("Slave SH2 reseted", "Slave SH2 reseted", MessageDuration)
 					}
 					FrameCount=0;
 					LagCount = 0;
@@ -3939,7 +3940,7 @@ dialogAgain: //Nitsuja added this
 					{
 						Paused = 0;
 						sub68k_reset();
-						MESSAGE_L("Sub 68000 CPU reseted", "Sub 68000 CPU reseted", 1000)
+						MESSAGE_L("Sub 68000 CPU reseted", "Sub 68000 CPU reseted", MessageDuration)
 					}
 					FrameCount=0;
 					LagCount = 0;
@@ -3958,7 +3959,7 @@ dialogAgain: //Nitsuja added this
 					if (Game)
 					{
 						z80_Reset(&M_Z80);
-						MESSAGE_L("CPU Z80 reseted", "CPU Z80 reseted", 1000)
+						MESSAGE_L("CPU Z80 reseted", "CPU Z80 reseted", MessageDuration)
 					}
 					FrameCount=0;
 					LagCount = 0;
@@ -4029,7 +4030,7 @@ dialogAgain: //Nitsuja added this
 					return 0;
 
 				case ID_SOUND_PSGIMPROV:
-					Change_PSG_Improv(hWnd);
+//					Change_PSG_Improv(hWnd);
 					return 0;
 
 				case ID_SOUND_YMIMPROV:
@@ -4358,7 +4359,7 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					char message [256];
 					sprintf(message, "Palette %sed", PalLock?"lock":"unlock");
-					MESSAGE_L(message, message, 1000)
+					MESSAGE_L(message, message, MessageDuration)
 
 					return 0;
 				}
@@ -4407,7 +4408,7 @@ dialogAgain: //Nitsuja added this
 
 					char message [256];
 					sprintf(message, "Instruction logging %sed", trace_map?"start":"end");
-					MESSAGE_L(message, message, 1000)
+					MESSAGE_L(message, message, MessageDuration)
 
 					return 0;
 				}
@@ -4453,7 +4454,7 @@ dialogAgain: //Nitsuja added this
 					
 					char message [256];
 					sprintf(message, "RAM logging %sed", hook_trace?"start":"end");
-					MESSAGE_L(message, message, 1000)
+					MESSAGE_L(message, message, MessageDuration)
 
 					return 0;
 				}
@@ -4495,7 +4496,7 @@ dialogAgain: //Nitsuja added this
 #endif
 
 		case WM_KNUX:
-			MESSAGE_L("Communicating", "Communicating ...", 1000)
+			MESSAGE_L("Communicating", "Communicating ...", MessageDuration)
 
 			switch(wParam)
 			{
