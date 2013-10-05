@@ -95,7 +95,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\Release/gens.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>.\Release/$(TargetName).pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -152,12 +152,12 @@
     <Link>
       <AdditionalOptions>/NODEFAULTLIB:MSVCR80.dll%3bcinitexe.obj%3b %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmtd.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>.\Debug/gens.exe</OutputFile>
+      <OutputFile>.\Debug/$(TargetName).exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\Debug/gens.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>.\Debug/$(TargetName).pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>

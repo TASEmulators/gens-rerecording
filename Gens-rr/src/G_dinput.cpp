@@ -242,13 +242,14 @@ static InputButton s_inputButtons [] =
 
 	{MOD_NONE,          VK_NONE,       ID_FILES_OPENRECENTROM0,  0, NULL, "Open Most Recent ROM", "OpenMostRecentROM"},
 	{MOD_NONE,          VK_NONE,       ID_LUA_OPENRECENTSCRIPT0, 0, NULL, "Open Most Recent Lua Script", "OpenMostRecentLua"},
-
-	{MOD_NONE, VK_TAB,   ID_NONE, 0, &FastForwardKeyDown,  "Fast Forward", "FastForwardKey"},
-	{MOD_NONE, VK_OEM_5, ID_NONE, 0, &FrameAdvanceKeyDown, "Frame Advance", "SkipFrameKey"},
-	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoFireKeyDown,     "Auto-Fire Modifier", "AutoFireKey"},
-	{MOD_NONE, VK_NONE,  ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
-	{MOD_NONE, VK_OEM_3, ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
-
+	
+	{MOD_NONE,			VK_TAB,		   ID_NONE, 0, &FastForwardKeyDown,  "Fast Forward", "FastForwardKey"},
+	{MOD_NONE,			VK_OEM_5,	   ID_NONE, 0, &FrameAdvanceKeyDown, "Frame Advance", "SkipFrameKey"},
+	{MOD_NONE,			VK_NONE,	   ID_NONE, 0, &AutoFireKeyDown,     "Auto-Fire Modifier", "AutoFireKey"},
+	{MOD_NONE,			VK_NONE,	   ID_NONE, 0, &AutoHoldKeyDown,     "Auto-Hold Modifier", "AutoHoldKey"},
+	{MOD_NONE,			VK_OEM_3,	   ID_NONE, 0, &AutoClearKeyDown,    "Clear Auto-Fire and Auto-Hold", "AutoClearKey"},
+	
+	{MOD_SHIFT,			 VK_TAB,	   ID_TOGGLE_TURBO,				   0, NULL, "Toggle Fast Forward", "ToggleFastForwardKey"},
 	{MOD_NONE,     VK_OEM_COMMA,       ID_TOGGLE_SHOWINPUT,            0, NULL, "Show Input", "ShowInputKey"},
 	{MOD_NONE,    VK_OEM_PERIOD,       ID_TOGGLE_SHOWFRAMEANDLAGCOUNT, 0, NULL, "Show Frame/Lag Counter", "ShowFrameAndLagCounterKey"},
 	{MOD_NONE,          VK_NONE,       ID_TOGGLE_TIMEUNIT,             0, NULL, "Toggle Counter Time Unit", "ToggleCounterTimeUnitKey"},
@@ -284,7 +285,7 @@ static InputButton s_inputButtons [] =
 	{MOD_SHIFT,             '8',       ID_FILES_SAVESTATE_8,     0, NULL, "Save State 8", "Save8Key"},
 	{MOD_SHIFT,             '9',       ID_FILES_SAVESTATE_9,     0, NULL, "Save State 9", "Save9Key"},
 	{MOD_SHIFT,             '0',       ID_FILES_SAVESTATE_0,     0, NULL, "Save State 0", "Save0Key"},
-
+	
 	{MOD_CONTROL,           '1',       ID_FILES_SETSTATE_1,      0, NULL, "Set State 1", "Set1Key"},
 	{MOD_CONTROL,           '2',       ID_FILES_SETSTATE_2,      0, NULL, "Set State 2", "Set2Key"},
 	{MOD_CONTROL,           '3',       ID_FILES_SETSTATE_3,      0, NULL, "Set State 3", "Set3Key"},
@@ -337,7 +338,7 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_2, 0, NULL, "Latency Compensation 2", "LatencyComp2"},
 	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_3, 0, NULL, "Latency Compensation 3", "LatencyComp3"},
 	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_4, 0, NULL, "Latency Compensation 4", "LatencyComp4"},
-	//{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_5, 0, NULL, "Latency Compensation 5", "LatencyComp5"},
+//	{MOD_NONE,              VK_NONE,  ID_LATENCY_COMPENSATION_5, 0, NULL, "Latency Compensation 5", "LatencyComp5"},
 
 	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_1,        0, NULL, "Lua Custom Hotkey 1", "LuaHotkey1"},
 	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_2,        0, NULL, "Lua Custom Hotkey 2", "LuaHotkey2"},

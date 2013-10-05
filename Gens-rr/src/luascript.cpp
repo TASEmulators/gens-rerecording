@@ -1901,7 +1901,7 @@ DEFINE_LUA_FUNCTION(gens_frameadvance, "")
 			break;
 		case SPEEDMODE_NOTHROTTLE:
 			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
+			if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
 				gens_emulateframefastnoskipping(L);
 			else
 				gens_emulateframefast(L);

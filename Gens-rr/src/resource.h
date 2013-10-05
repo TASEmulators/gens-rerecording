@@ -544,6 +544,7 @@
 #define ID_TOGGLE_SHOWINPUT             40724
 #define ID_TOGGLE_SHOWFPS               40725
 #define ID_TOGGLE_SHOWLED               40726
+#define ID_TOGGLE_TURBO                 40728
 #define IDC_EDIT_COMPAREVALUE           41090
 #define IDC_EDIT_COMPAREADDRESS         41091
 #define IDC_EDIT_COMPARECHANGES         41092

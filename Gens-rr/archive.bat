@@ -1,11 +1,9 @@
-del /s Gens.zip
+del /s Gens11svn322.zip
 cd Output
 copy Gens.exe ..
 ..\dependencies\upx Gens.exe
 IF ERRORLEVEL 1 IF NOT ERRORLEVEL 2 GOTO UPXFailed
-rename Gens.exe Gens11svn320.exe
-..\dependencies\zip -X -9 -r ..\Gens.zip Gens11svn320.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
-del Gens11svn320.exe
+..\dependencies\zip -X -9 -r ..\Gens11svn322.zip Gens.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
 move /y ..\Gens.exe .
 GOTO end
 
