@@ -1517,7 +1517,7 @@ int Update_Emulation(HWND hWnd)
 	int current_div;
 
 	int Temp_Frame_Skip = Frame_Skip; //Modif N - part of a quick hack to make Tab the fast-forward key
-	if(TurboMode && (GetActiveWindow()==hWnd || BackgroundInput))
+	if (TurboMode)
 		Temp_Frame_Skip = 8;
 	if (SeekFrame) // If we've set a frame to seek to
 	{
@@ -1782,7 +1782,7 @@ void Update_Emulation_After_Fast(HWND hWnd)
 	UpdateLagCount();
 
 	int Temp_Frame_Skip = Frame_Skip;
-	if(TurboMode && (GetActiveWindow()==hWnd || BackgroundInput))
+	if (TurboMode)
 		Temp_Frame_Skip = 8;
 	if (AVIRecording && CleanAvi && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 		Temp_Frame_Skip = 0;

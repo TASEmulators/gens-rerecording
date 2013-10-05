@@ -1997,7 +1997,7 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 			{
 				static int count = 0;
 				count++;
-				if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
+				if(!TurboMode)
 					if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 						Sleep(1);
 			}
@@ -2268,8 +2268,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 						{
 							static int count = 0;
 							count++;
-							TurboMode = FastForwardKeyDown || TurboToggle;
-							if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
+							TurboMode = TurboToggle || (FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput));
+							if(!TurboMode)
 								if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 									Sleep(1);
 						}
@@ -2296,7 +2296,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 					// update the graphics in case they're changing during non-input frames
 					int Temp_Frame_Skip = Frame_Skip;
-					if(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput))
+					if(TurboMode)
 						Temp_Frame_Skip = 8;
 					if(Lag_Frame && Frame_Number+1 >= Temp_Frame_Skip)
 						Do_VDP_Only(); // better than nothing for showing skipped frames
