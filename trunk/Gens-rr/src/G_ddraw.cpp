@@ -4,6 +4,7 @@
 #include "G_dsound.h"
 #include "G_Input.h"
 #include "G_main.h"
+#include "guidraw.h"
 #include "resource.h"
 #include "gens.h"
 #include "mem_M68K.h"
@@ -69,8 +70,9 @@ int Correct_256_Aspect_Ratio = 1;
 #define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
 #define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount))
 
-// draw debug text onscreen. watch formatting
-//#define DEBUG_VARIABLES variables_by_comma
+// debug string is drawn in _DEBUG
+// list variables by comma and specify the string format
+#define DEBUG_VARIABLES NULL
 static char Debug_Format[1024] = "";
 static int Debug_xPos = 0;
 static int Debug_yPos = 0;
@@ -994,19 +996,9 @@ void DrawInformationOnTheScreen()
 		Print_Text(Info_String, strlen(Info_String), 10, 210, FPS_Style);
 	}
 #ifdef _DEBUG
-#ifdef DEBUG_VARIABLES
 	char str[1024];
 	sprintf(str, Debug_Format, DEBUG_VARIABLES);
-	if(!(Message_Style & TRANS))
-	{
-		int backColor = (((Message_Style & (BLEU|VERT|ROUGE)) == BLEU) ? ROUGE : BLEU) | (Message_Style & SIZE_X2) | TRANS;
-		const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
-		const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
-		for(int i = 0 ; i < 8 ; i++)
-			Print_Text(str, strlen(str), Debug_xPos+xOffset[i], Debug_yPos+yOffset[i], backColor);
-	}
-	Print_Text(str, strlen(str), Debug_xPos, Debug_yPos, Message_Style);
-#endif
+	PutText2(str,Debug_xPos,Debug_yPos);
 #endif
 }
 

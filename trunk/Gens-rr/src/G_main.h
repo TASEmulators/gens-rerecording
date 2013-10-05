@@ -53,7 +53,7 @@ extern BOOL AutoClearKeyDown;	//Modif N.
 extern BOOL PauseKeyDown; //Modif
 extern BOOL FrameAdvanceKeyDown; //Modif
 extern BOOL FastForwardKeyDown; // Modif N.
-extern BOOL TurboOn;
+extern BOOL TurboToggle;
 extern BOOL TurboMode;
 
 extern int SlowDownSpeed;	//Modif

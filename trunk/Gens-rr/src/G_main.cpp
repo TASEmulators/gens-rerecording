@@ -177,7 +177,7 @@ BOOL AutoHoldKeyDown=0;	//Modif N.
 BOOL AutoClearKeyDown=0;	//Modif N.
 BOOL FrameAdvanceKeyDown=0; //Modif
 BOOL FastForwardKeyDown=0; //Modif
-BOOL TurboOn=0;
+BOOL TurboToggle=0;
 BOOL TurboMode=0;
 
 int SlowDownSpeed=1;	//Modif
@@ -2268,7 +2268,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 						{
 							static int count = 0;
 							count++;
-							TurboMode = FastForwardKeyDown || TurboOn;
+							TurboMode = FastForwardKeyDown || TurboToggle;
 							if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
 								if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 									Sleep(1);
@@ -2921,7 +2921,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					Build_Main_Menu();
 					return 0;
 				case ID_TOGGLE_TURBO:
-					TurboOn = !TurboOn;
+					TurboToggle = !TurboToggle;
 					return 0;
 				case ID_SLOW_SPEED_PLUS: //Modif N - for new "speed up" key:
 					if(SlowDownSpeed==1 || SlowDownMode==0)
