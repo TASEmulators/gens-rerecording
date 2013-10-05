@@ -177,6 +177,8 @@ BOOL AutoHoldKeyDown=0;	//Modif N.
 BOOL AutoClearKeyDown=0;	//Modif N.
 BOOL FrameAdvanceKeyDown=0; //Modif
 BOOL FastForwardKeyDown=0; //Modif
+BOOL TurboOn=0;
+BOOL TurboMode=0;
 
 int SlowDownSpeed=1;	//Modif
 int RecordMovieCanceled=1;//Modif
@@ -1995,7 +1997,7 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 			{
 				static int count = 0;
 				count++;
-				if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
+				if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
 					if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 						Sleep(1);
 			}
@@ -2266,7 +2268,8 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 						{
 							static int count = 0;
 							count++;
-							if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
+							TurboMode = FastForwardKeyDown || TurboOn;
+							if(!(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput)))
 								if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 									Sleep(1);
 						}
@@ -2293,7 +2296,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 					// update the graphics in case they're changing during non-input frames
 					int Temp_Frame_Skip = Frame_Skip;
-					if(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput))
+					if(TurboMode && (GetActiveWindow()==HWnd || BackgroundInput))
 						Temp_Frame_Skip = 8;
 					if(Lag_Frame && Frame_Number+1 >= Temp_Frame_Skip)
 						Do_VDP_Only(); // better than nothing for showing skipped frames
@@ -2916,6 +2919,9 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					else
 						SlowDownMode=1;
 					Build_Main_Menu();
+					return 0;
+				case ID_TOGGLE_TURBO:
+					TurboOn = !TurboOn;
 					return 0;
 				case ID_SLOW_SPEED_PLUS: //Modif N - for new "speed up" key:
 					if(SlowDownSpeed==1 || SlowDownMode==0)

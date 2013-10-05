@@ -24,7 +24,6 @@
 #include "drawutil.h"
 #include "luascript.h"
 
-
 LPDIRECTDRAW lpDD_Init;
 LPDIRECTDRAW4 lpDD;
 LPDIRECTDRAWSURFACE4 lpDDS_Primary;
@@ -70,7 +69,11 @@ int Correct_256_Aspect_Ratio = 1;
 #define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
 #define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount))
 
-
+// draw debug text onscreen. watch formatting
+//#define DEBUG_VARIABLES variables_by_comma
+static char Debug_Format[1024] = "";
+static int Debug_xPos = 0;
+static int Debug_yPos = 0;
 
 // if you have to debug something in fullscreen mode
 // but the fullscreen lock prevents you from seeing the debugger
@@ -990,6 +993,21 @@ void DrawInformationOnTheScreen()
 		}
 		Print_Text(Info_String, strlen(Info_String), 10, 210, FPS_Style);
 	}
+#ifdef _DEBUG
+#ifdef DEBUG_VARIABLES
+	char str[1024];
+	sprintf(str, Debug_Format, DEBUG_VARIABLES);
+	if(!(Message_Style & TRANS))
+	{
+		int backColor = (((Message_Style & (BLEU|VERT|ROUGE)) == BLEU) ? ROUGE : BLEU) | (Message_Style & SIZE_X2) | TRANS;
+		const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
+		const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
+		for(int i = 0 ; i < 8 ; i++)
+			Print_Text(str, strlen(str), Debug_xPos+xOffset[i], Debug_yPos+yOffset[i], backColor);
+	}
+	Print_Text(str, strlen(str), Debug_xPos, Debug_yPos, Message_Style);
+#endif
+#endif
 }
 
 int Flip(HWND hWnd)
@@ -1507,7 +1525,7 @@ int Update_Emulation(HWND hWnd)
 	int current_div;
 
 	int Temp_Frame_Skip = Frame_Skip; //Modif N - part of a quick hack to make Tab the fast-forward key
-	if(FastForwardKeyDown && (GetActiveWindow()==hWnd || BackgroundInput))
+	if(TurboMode && (GetActiveWindow()==hWnd || BackgroundInput))
 		Temp_Frame_Skip = 8;
 	if (SeekFrame) // If we've set a frame to seek to
 	{
@@ -1772,7 +1790,7 @@ void Update_Emulation_After_Fast(HWND hWnd)
 	UpdateLagCount();
 
 	int Temp_Frame_Skip = Frame_Skip;
-	if(FastForwardKeyDown && (GetActiveWindow()==hWnd || BackgroundInput))
+	if(TurboMode && (GetActiveWindow()==hWnd || BackgroundInput))
 		Temp_Frame_Skip = 8;
 	if (AVIRecording && CleanAvi && (AVIWaitMovie == 0 || MainMovie.Status==MOVIE_PLAYING || MainMovie.Status==MOVIE_FINISHED))
 		Temp_Frame_Skip = 0;

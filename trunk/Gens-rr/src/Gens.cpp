@@ -198,7 +198,7 @@
 #define DO_FRAME_HEADER(name, fastname) \
 	int name() \
 	{ \
-		if(!((FastForwardKeyDown))) { \
+		if(!((TurboMode))) { \
 			Save_State_To_Buffer(State_Buffer); /* save */ \
 			disableSound = true; \
 			fastname##_Real(); /* run 2 frames */ \
