@@ -51,6 +51,7 @@ int Message_Style = EMU_MODE | BLANC | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
 extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
+unsigned int MessageDuration = 2000; // milliseconds
 
 long int MovieSize;//Modif
 int SlowFrame=0; //Modif
@@ -1531,7 +1532,7 @@ int Update_Emulation(HWND hWnd)
 		{
 			Paused = 1; //then pause when we arrive
 			SeekFrame = 0; //and clear the seek target
-			Put_Info("Seek complete. Paused",1500);
+			Put_Info("Seek complete. Paused",MessageDuration);
 			Clear_Sound_Buffer();
 			MustUpdateMenu = 1;
 		}
@@ -1980,8 +1981,10 @@ int Take_Shot()
 	return Save_Shot(Bits32?(unsigned char*)MD_Screen32:(unsigned char*)MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION);
 }
 
-
-
+int Take_Shot_Clipboard()
+{
+	return Save_Shot_Clipboard(Bits32?(unsigned char*)MD_Screen32:(unsigned char*)MD_Screen,(Mode_555 & 1) | (Bits32?2:0),IS_FULL_X_RESOLUTION,IS_FULL_Y_RESOLUTION);
+}
 
 
 

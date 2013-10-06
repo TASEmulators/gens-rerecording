@@ -1,6 +1,7 @@
 #include <windows.h>
 #include "G_Main.h"
 #include "G_ddraw.h"
+#include "guidraw.h"
 #include "rom.h"
 #include "AVIWrite.h"
 #include "save.h"
@@ -176,7 +177,107 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 	return true;
 }
 
+int CopyBitmapToClipboard(unsigned char *bitmapBuffer, size_t buflen) // feos added this
+{
+	HGLOBAL hResult;
+	if (!OpenClipboard(NULL)) return 4;
+	if (!EmptyClipboard()) return 3;
 
+	buflen -= sizeof(BITMAPFILEHEADER);
+	hResult = GlobalAlloc(GMEM_MOVEABLE, buflen);
+	if (hResult == NULL) return 2;
+
+	memcpy(GlobalLock(hResult), bitmapBuffer + sizeof(BITMAPFILEHEADER), buflen);
+	GlobalUnlock(hResult);
+
+	if (SetClipboardData(CF_DIB, hResult) == NULL)
+	{
+		CloseClipboard();
+		return 1;
+	}
+
+	CloseClipboard();
+	GlobalFree(hResult);
+	return 0;
+}
+
+int Save_Shot_Clipboard(void* Screen,int mode, int Hmode, int Vmode) // feos added this
+{
+	unsigned char *Src = NULL, *Dest = NULL;
+	int j, tmp, offs, num = -1;
+	
+	if (!Game) return(0);
+	if (CleanAvi) Update_Frame(); // clean screenshots are as easy as that
+	
+	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
+	int Y = Vmode ? 240 : 224;
+	int i = (X * Y * 3) + 54;
+	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
+	memset(Dest, 0, i);
+
+	Dest[0]  = 'B';
+	Dest[1]  = 'M';
+	Dest[2]  = (unsigned char) ((i >> 0) & 0xFF);
+	Dest[3]  = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[4]  = (unsigned char) ((i >> 16) & 0xFF);
+	Dest[5]  = (unsigned char) ((i >> 24) & 0xFF);
+	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
+	Dest[10] = 54;
+	Dest[11] = Dest[12] = Dest[13] = 0;
+	Dest[14] = 40;
+	Dest[15] = Dest[16] = Dest[17] = 0;
+	Dest[18] = (unsigned char) ((X >> 0) & 0xFF);
+	Dest[19] = (unsigned char) ((X >> 8) & 0xFF);
+	Dest[20] = (unsigned char) ((X >> 16) & 0xFF);
+	Dest[21] = (unsigned char) ((X >> 24) & 0xFF);
+	Dest[22] = (unsigned char) ((Y >> 0) & 0xFF);
+	Dest[23] = (unsigned char) ((Y >> 8) & 0xFF);
+	Dest[24] = (unsigned char) ((Y >> 16) & 0xFF);
+	Dest[25] = (unsigned char) ((Y >> 24) & 0xFF);
+	Dest[26] = 1;
+	Dest[27] = 0;	
+	Dest[28] = 24;
+	Dest[29] = 0;
+	Dest[30] = Dest[31] = Dest[32] = Dest[33] = 0;
+	i -= 54;	
+	Dest[34] = (unsigned char) ((i >> 0) & 0xFF);
+	Dest[35] = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[36] = (unsigned char) ((i >> 16) & 0xFF);
+	Dest[37] = (unsigned char) ((i >> 24) & 0xFF);
+	Dest[38] = Dest[42] = 0xC4;
+	Dest[39] = Dest[43] = 0x0E;
+	Dest[40] = Dest[44] = Dest[41] = Dest[45] = 0;
+	Dest[46] = Dest[47] = Dest[48] = Dest[49] = 0;
+	Dest[50] = Dest[51] = Dest[52] = Dest[53] = 0;
+	Dest += 54;
+
+	Src = (unsigned char *)(Screen);
+	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
+
+	if(mode & 2) // 32-bit:
+	{
+		#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
+		WRITE_FRAME_TO_SRC(32);
+		#undef READ_PIXEL
+	}
+	else if(!mode) // 16-bit 565:
+	{
+		#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
+		WRITE_FRAME_TO_SRC(16);
+		#undef READ_PIXEL
+	}
+	else // 16-bit 555:
+	{
+		#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
+		WRITE_FRAME_TO_SRC(15);
+		#undef READ_PIXEL
+	}
+
+	CopyBitmapToClipboard(Dest-54,X*Y*3+54);
+	Put_Info("Screen shot saved to clipboard", MessageDuration);
+
+	return(1);
+}
 
 int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 {
@@ -187,8 +288,9 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	char Name[1024], Message[1024], ext[16];
 
 	SetCurrentDirectory(Gens_Path);
-	
+
 	if (!Game) return(0);
+	if (CleanAvi) Update_Frame(); // feos: clean screenshots are as easy as that
 	
 	do
 	{
@@ -230,8 +332,9 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 		strcat(Name, Rom_Name);
 		strcat(Name, ext);
 
-		Temp_ScrShot_File_Handle = CreateFile(Name, GENERIC_WRITE, NULL,
-		NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+		Temp_ScrShot_File_Handle = CreateFile(
+			Name, GENERIC_WRITE, NULL, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL
+		);
 	} while(Temp_ScrShot_File_Handle == INVALID_HANDLE_VALUE);
 
 	CloseHandle(Temp_ScrShot_File_Handle);
@@ -244,51 +347,38 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	Dest[0] = 'B';
-	Dest[1] = 'M';
-
-	Dest[2] = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[3] = (unsigned char) ((i >> 8) & 0xFF);
-	Dest[4] = (unsigned char) ((i >> 16) & 0xFF);
-	Dest[5] = (unsigned char) ((i >> 24) & 0xFF);
-
-	Dest[6] = Dest[7] = Dest[8] = Dest[9] = 0;
-
+	Dest[0]  = 'B';
+	Dest[1]  = 'M';
+	Dest[2]  = (unsigned char) ((i >> 0) & 0xFF);
+	Dest[3]  = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[4]  = (unsigned char) ((i >> 16) & 0xFF);
+	Dest[5]  = (unsigned char) ((i >> 24) & 0xFF);
+	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
 	Dest[10] = 54;
 	Dest[11] = Dest[12] = Dest[13] = 0;
-
 	Dest[14] = 40;
 	Dest[15] = Dest[16] = Dest[17] = 0;
-
 	Dest[18] = (unsigned char) ((X >> 0) & 0xFF);
 	Dest[19] = (unsigned char) ((X >> 8) & 0xFF);
 	Dest[20] = (unsigned char) ((X >> 16) & 0xFF);
 	Dest[21] = (unsigned char) ((X >> 24) & 0xFF);
-
 	Dest[22] = (unsigned char) ((Y >> 0) & 0xFF);
 	Dest[23] = (unsigned char) ((Y >> 8) & 0xFF);
 	Dest[24] = (unsigned char) ((Y >> 16) & 0xFF);
 	Dest[25] = (unsigned char) ((Y >> 24) & 0xFF);
-
 	Dest[26] = 1;
-	Dest[27] = 0;
-	
+	Dest[27] = 0;	
 	Dest[28] = 24;
 	Dest[29] = 0;
-
 	Dest[30] = Dest[31] = Dest[32] = Dest[33] = 0;
-
-	i -= 54;
-	
+	i -= 54;	
 	Dest[34] = (unsigned char) ((i >> 0) & 0xFF);
 	Dest[35] = (unsigned char) ((i >> 8) & 0xFF);
 	Dest[36] = (unsigned char) ((i >> 16) & 0xFF);
 	Dest[37] = (unsigned char) ((i >> 24) & 0xFF);
-
 	Dest[38] = Dest[42] = 0xC4;
 	Dest[39] = Dest[43] = 0x0E;
 	Dest[40] = Dest[44] = Dest[41] = Dest[45] = 0;
-
 	Dest[46] = Dest[47] = Dest[48] = Dest[49] = 0;
 	Dest[50] = Dest[51] = Dest[52] = Dest[53] = 0;
 	Dest += 54;
@@ -321,11 +411,10 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 		write_png(Dest, X, Y, ScrShot_File); // save PNG
 
 	fclose(ScrShot_File);
-
 	free(Dest-54);
 
 	wsprintf(Message, "Screen shot %d saved (%s)", num, Name);
-	Put_Info(Message, 1500);
+	Put_Info(Message, MessageDuration);
 
 	return(1);
 }
