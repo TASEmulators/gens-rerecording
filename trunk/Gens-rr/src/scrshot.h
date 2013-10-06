@@ -7,6 +7,7 @@ extern int AVIRecording,AVISound,AVIWaitMovie,AVIBreakMovie,AVISplit,AVIHeight22
 
 int Save_Shot(void* Screen,int mode, int Hmode, int Vmode);
 int Save_Shot_AVI(void* VideoBuf,int mode, int Hmode, int Vmode,HWND hWnd);
+int Save_Shot_Clipboard(void* Screen,int mode, int Hmode, int Vmode);
 int Close_AVI();
 int InitAVI(HWND hWnd);
 int UpdateSoundAVI(unsigned char * buf,unsigned int length,int Rate, int Stereo);

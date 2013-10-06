@@ -112,7 +112,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		Load_Config((char*)CfgToLoad.c_str(), NULL);
 		strcpy(Str_Tmp, "config loaded from ");
 		strcat(Str_Tmp, CfgToLoad.c_str());
-		Put_Info(Str_Tmp, 2000);
+		Put_Info(Str_Tmp, MessageDuration);
 	}
 
 	//ROM

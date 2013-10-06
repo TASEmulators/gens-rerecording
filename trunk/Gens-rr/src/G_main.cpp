@@ -183,7 +183,7 @@ BOOL TurboMode=0;
 int SlowDownSpeed=1;	//Modif
 int RecordMovieCanceled=1;//Modif
 int PlayMovieCanceled=1; //Modif
-int Disable_Blue_Screen=0; //Modif
+int Disable_Blue_Screen=1; //Modif
 int Never_Skip_Frame=0; //Modif
 int SkipKeyIsPressed=0; //Modif
 int FrameCounterEnabled=0; //Modif
@@ -198,7 +198,6 @@ int MustUpdateMenu=0; // Modif // menuNeedsBuilding buildMenuNeeded
 bool RamSearchClosed = false;
 bool RamWatchClosed = false;
 
-unsigned int MessageDuration = 2000; // milliseconds // feos: who's idea was to hardcode this for every single call?!
 unsigned char StateSelectCfg = 0;
 bool PaintsEnabled = true;
 extern "C" int g_dontResetAudioCache;
@@ -2476,7 +2475,7 @@ void BeginMoviePlayback()
 	}
 	else
 		wsprintf(Str_Tmp, "Resuming recording from savestate. Frame %d.",FrameCount);
-	Put_Info(Str_Tmp, 4500);
+	Put_Info(Str_Tmp, MessageDuration);
 	Build_Main_Menu();
 	CallRegisteredLuaFunctions(LUACALL_ONSTART);
 }
@@ -2953,7 +2952,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case 15: strcpy(Str_Tmp, "3%"); break;
 					}
 					if(Str_Tmp[0])
-						Put_Info(Str_Tmp, 1000);
+						Put_Info(Str_Tmp, MessageDuration);
 
 					Build_Main_Menu();
 					return 0;
@@ -2983,7 +2982,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						case 15: strcpy(Str_Tmp, "3%"); break;
 					}
 					if(Str_Tmp[0])
-						Put_Info(Str_Tmp, 1000);
+						Put_Info(Str_Tmp, MessageDuration);
 
 					Build_Main_Menu();
 					return 0;
@@ -2992,20 +2991,20 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					{
 						if(MainMovie.ReadOnly && (GetFileAttributes(MainMovie.PhysicalFileName) & FILE_ATTRIBUTE_READONLY))
 						{
-							Put_Info("Can't toggle read-only; write permission denied.", 1000);
+							Put_Info("Can't toggle read-only; write permission denied.", MessageDuration);
 						}
 						else
 						{
 							MainMovie.ReadOnly = !MainMovie.ReadOnly;
 							if(MainMovie.ReadOnly)
-								Put_Info("Movie is now read-only.", 1000);
+								Put_Info("Movie is now read-only.", MessageDuration);
 							else
-								Put_Info("Movie is now editable.", 1000);
+								Put_Info("Movie is now editable.", MessageDuration);
 						}
 					}
 					else
 					{
-						Put_Info("Can't toggle read-only; no movie is active.", 1000);
+						Put_Info("Can't toggle read-only; no movie is active.", MessageDuration);
 					}
 					break;
 
@@ -3681,6 +3680,12 @@ dialogAgain: //Nitsuja added this
 					Build_Main_Menu();
 					return 0;
 
+				case ID_GRAPHICS_CLIPBOARD:
+					Clear_Sound_Buffer();
+					Take_Shot_Clipboard();
+					Build_Main_Menu();
+					return 0;
+
 				case ID_FILES_SAVESTATE_1:
 				case ID_FILES_SAVESTATE_2:
 				case ID_FILES_SAVESTATE_3:
@@ -3740,7 +3745,7 @@ dialogAgain: //Nitsuja added this
 
 				case ID_MOVIE_CHANGETRACK_ALL:
 					track = 1 | 2 | 4;
-					Put_Info("Recording all tracks",1000);
+					Put_Info("Recording all tracks",MessageDuration);
 					if (!MainMovie.TriplePlayerHack) track &= 3;
 					return 0;
 				case ID_MOVIE_CHANGETRACK_1:
@@ -3750,7 +3755,7 @@ dialogAgain: //Nitsuja added this
 					int chgtrack = command - ID_MOVIE_CHANGETRACK_ALL;
 					track ^= chgtrack;
 					sprintf(Str_Tmp,"Recording player %d %sed",min(chgtrack,3),(track & chgtrack)?"start":"end");
-					Put_Info(Str_Tmp,1000);
+					Put_Info(Str_Tmp,MessageDuration);
 					if (!MainMovie.TriplePlayerHack) track &= 3;
 					return 0;
 				}
@@ -3768,7 +3773,7 @@ dialogAgain: //Nitsuja added this
 					}
 					if (track == maxtrack) sprintf(Str_Tmp,"Recording all players.");
 					else sprintf(Str_Tmp,"Recording player %d.",min(track,3));
-					Put_Info(Str_Tmp,1000);
+					Put_Info(Str_Tmp,MessageDuration);
 				}
 				break;
 				case ID_NEXT_TRACK:
@@ -3786,7 +3791,7 @@ dialogAgain: //Nitsuja added this
 					}
 					if (track == maxtrack) sprintf(Str_Tmp,"Recording all players.");
 					else sprintf(Str_Tmp,"Recording player %d.",min(track,3));
-					Put_Info(Str_Tmp,1000);
+					Put_Info(Str_Tmp,MessageDuration);
 				}
 				break;
 #ifdef GENS_DEBUG
@@ -4900,17 +4905,17 @@ HMENU Build_Main_Menu(void)
 
 	if (Full_Screen)
 	{
-		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Windowed", "\tAlt+Enter", "&Windowed");
+		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Windowed", "", "&Windowed");
 	}
 	else
 	{
-		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Full Screen", "\tAlt+Enter", "&Full Screen");
+		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Full Screen", "", "&Full Screen");
 	}
 
 	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
 
 	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1))
-		MENU_L(Graphics, i++, Flags | MF_UNCHECKED | MF_GRAYED, ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
+		MENU_L(Graphics, i++, Flags | MF_UNCHECKED | MF_GRAYED, ID_GRAPHICS_STRETCH, "Stretch", "", "&Stretch");
 	else
 		MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
 
@@ -4933,7 +4938,8 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Graphics, i++, Flags | (Never_Skip_Frame ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_NEVER_SKIP_FRAME, "Never skip frame with auto frameskip", "", "&Never skip frame with auto frameskip");
 	
 	InsertMenu(Graphics, i++, MF_MENUBARBREAK, NULL, NULL);
-	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_SHOT, "Screen Shot", "\tShift+Backspc", "&Screen Shot");
+	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_SHOT, "Screen Shot To File", "", "&Screen Shot To File");
+	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_CLIPBOARD, "Screen Shot To Clipboard", "", "&Screen Shot To Clipboard");
 	
 	//InsertMenu(Graphics, 12, MF_SEPARATOR, NULL, NULL);
 
@@ -6286,7 +6292,7 @@ void GensOpenFile(const char* filename)
 				Load_Config(PhysicalName, Game);
 				strcpy(Str_Tmp, "config loaded from ");
 				strcat(Str_Tmp, LogicalName);
-				Put_Info(Str_Tmp, 2000);
+				Put_Info(Str_Tmp, MessageDuration);
 			}
 			break;
 		case FILETYPE_SRAM:
@@ -6297,7 +6303,7 @@ void GensOpenFile(const char* filename)
 				fclose(file);
 				strcpy(Str_Tmp, "SRAM loaded from ");
 				strcat(Str_Tmp, LogicalName);
-				Put_Info(Str_Tmp, 2000);
+				Put_Info(Str_Tmp, MessageDuration);
 			}
 			break;
 		case FILETYPE_BRAM:
@@ -6310,7 +6316,7 @@ void GensOpenFile(const char* filename)
 				fclose(file);
 				strcpy(Str_Tmp, "BRAM loaded from ");
 				strcat(Str_Tmp, LogicalName);
-				Put_Info(Str_Tmp, 2000);
+				Put_Info(Str_Tmp, MessageDuration);
 			}
 			break;
 		case FILETYPE_GYM:
@@ -6765,8 +6771,8 @@ void DoMovieSplice() //Splices saved input back into the movie file
 	fread(TempBuffer,1,size,TempSplice);
 	fwrite(TempBuffer,1,size,MainMovie.File);
 	free(TempBuffer);
-	if (MainMovie.Status == MOVIE_RECORDING) Put_Info("Movie successfully spliced. Resuming playback from now.",2000);
-	else Put_Info("Movie successfully spliced.",2000);
+	if (MainMovie.Status == MOVIE_RECORDING) Put_Info("Movie successfully spliced. Resuming playback from now.",MessageDuration);
+	else Put_Info("Movie successfully spliced.",MessageDuration);
 	MainMovie.Status = MOVIE_PLAYING;
 	fseek(MainMovie.File,0,SEEK_END);
 	MainMovie.LastFrame = (ftell(MainMovie.File)-64) / 3;
@@ -6850,7 +6856,7 @@ LRESULT CALLBACK PromptSpliceFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPAR
 						BackupMovieFile(&MainMovie);
 						strncpy(MainMovie.FileName,Str_Tmp,512);
 					}
-					Put_Info(Str_Tmp,2000);
+					Put_Info(Str_Tmp,MessageDuration);
 					char cfgFile[1024];
 					strcpy(cfgFile, Gens_Path);
 					strcat(cfgFile, "Gens.cfg");
@@ -6940,7 +6946,7 @@ LRESULT CALLBACK PromptSeekFrameProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM
 					}
 					SeekFrame = GetDlgItemInt(hDlg,IDC_PROMPT_EDIT,NULL,false);
 					sprintf(Str_Tmp,"Seeking to frame %d",SeekFrame);
-					Put_Info(Str_Tmp,2000);
+					Put_Info(Str_Tmp,MessageDuration);
 					MustUpdateMenu = 1;
 					DialogsOpen--;
 					EndDialog(hDlg, true);

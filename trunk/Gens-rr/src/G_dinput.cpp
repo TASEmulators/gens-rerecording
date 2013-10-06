@@ -357,7 +357,8 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_15,       0, NULL, "Lua Custom Hotkey 15", "LuaHotkey15"},
 	{MOD_NONE,              VK_NONE,   IDC_LUA_SCRIPT_HOTKEY_16,       0, NULL, "Lua Custom Hotkey 16", "LuaHotkey16"},
 
-	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Take Screenshot", "ScreenshotKey"},
+	{MOD_SHIFT,             VK_BACK,   ID_GRAPHICS_SHOT,         0, NULL, "Screenshot To File", "ScreenshotFileKey"},
+	{MOD_CONTROL,           VK_BACK,   ID_GRAPHICS_CLIPBOARD,    0, NULL, "Screenshot To Clipboard", "ScreenshotClipboardKey"},
 	{MOD_NONE,              VK_F1,     ID_HELP_HELP,             0, NULL, "Get Help", "HelpKey"},
 
 	{MOD_NONE,              VK_NONE,   ID_GRAPHICS_SPRITEALWAYS, 0, NULL, "Sprites On Top On/Off", "SpritesOnTopKey"},

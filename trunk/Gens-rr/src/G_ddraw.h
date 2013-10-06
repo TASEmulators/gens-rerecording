@@ -28,6 +28,7 @@ extern int Kaillera_Error;
 extern unsigned char CleanAvi;
 extern bool frameadvSkipLag;
 extern bool justlagged;
+extern unsigned int MessageDuration;
 
 extern void (*Blit_FS)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
@@ -52,9 +53,9 @@ int Flip(HWND hWnd);
 void Restore_Primary(void);
 int Take_Shot();
 int Take_Shot(int WriteToAVI, HWND hWnd);
+int Take_Shot_Clipboard();
 void End_DDraw(void);
 int Update_Frame_Adjusted();
-
 
 //void MP3_update_test();
 //void MP3_init_test();

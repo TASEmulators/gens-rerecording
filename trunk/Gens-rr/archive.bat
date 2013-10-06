@@ -1,9 +1,9 @@
-del /s Gens11svn325.zip
+del /s Gens11svn326.zip
 cd Output
 copy Gens.exe ..
 ..\dependencies\upx Gens.exe
 IF ERRORLEVEL 1 IF NOT ERRORLEVEL 2 GOTO UPXFailed
-..\dependencies\zip -X -9 -r ..\Gens11svn325.zip Gens.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
+..\dependencies\zip -X -9 -r ..\Gens11svn326.zip Gens.exe LuaSamples TracerHelp HookLog language.dat changelog.txt
 move /y ..\Gens.exe .
 GOTO end
 

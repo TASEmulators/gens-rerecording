@@ -1874,12 +1874,12 @@ void Update_RAM_Cheats()
 				STEALTH = 0x4E75F700;
 				CheatWrite<unsigned int>(NITSUJA,STEALTH);	//so we update the angle array pointer flag
 				sprintf(Str_Tmp,"%08X:%08X",CheatRead<unsigned int>(NITSUJA),STEALTH);
-				Put_Info(Str_Tmp,1000);
+				Put_Info(Str_Tmp,MessageDuration);
 			}
 			else
 			{	
 				sprintf(Str_Tmp,"%08X:%08X",CheatRead<unsigned int>(NITSUJA),STEALTH);
-				Put_Info(Str_Tmp,1000);
+				Put_Info(Str_Tmp,MessageDuration);
 				return;
 			}
 		}
@@ -2499,7 +2499,7 @@ void Update_RAM_Cheats()
 			if (fwrite(DestFull, 1, size, ScrShot_File) > size) return;
 			fclose(ScrShot_File);
 			sprintf(Str_Tmp,"Updating route map...");
-			Put_Info(Str_Tmp,1000);
+			Put_Info(Str_Tmp,MessageDuration);
 			free(DestFull);
 			DestFull = NULL;
 		}
@@ -2510,7 +2510,7 @@ void Update_RAM_Cheats()
 		if (fwrite(DestFull, 1, size, ScrShot_File) > size) return;
 		fclose(ScrShot_File);
 		sprintf(Str_Tmp,"Updating route map...");
-		Put_Info(Str_Tmp,1000);
+		Put_Info(Str_Tmp,MessageDuration);
 	}
 	prevlev = lev;
 	prevmode = mode;
@@ -2519,7 +2519,7 @@ void Update_RAM_Cheats()
 	if (neednewfile)
 	{
 		sprintf(Str_Tmp,"agphaoewiah");
-		Put_Info(Str_Tmp,1000);
+		Put_Info(Str_Tmp,MessageDuration);
 		neednewfile = false;
 		OPENFILENAME ofn;	
 		SetCurrentDirectory(Gens_Path);
@@ -2542,7 +2542,7 @@ void Update_RAM_Cheats()
 		ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
 
 		if (GetOpenFileName(&ofn) == NULL) return;
-		Put_Info(MapFileName,1000);
+		Put_Info(MapFileName,MessageDuration);
 		ScrShot_File = fopen(MapFileName,"r");
 		int blah;
 		fseek(ScrShot_File,0,SEEK_END);
@@ -2554,7 +2554,7 @@ void Update_RAM_Cheats()
 		X = (DestFull[21] << 24) | (DestFull[20] << 16) | (DestFull[19] << 8) | DestFull[18];
 		Y =	(DestFull[25] << 24) | (DestFull[24] << 16) | (DestFull[23] << 8) | DestFull[22];
 		sprintf(Str_Tmp,"%08X:%08X,%d,%d",size,blah,X,Y);
-		Put_Info(Str_Tmp,1000);
+		Put_Info(Str_Tmp,MessageDuration);
 		if (Y < 0) topdown = true, Y = -Y;
 		prevx = CheatRead<short>(P1OFFSET + XPo);
 		prevy = CheatRead<short>(P1OFFSET + YPo);
@@ -2562,7 +2562,7 @@ void Update_RAM_Cheats()
 	x = CheatRead<short>(P1OFFSET + XPo);
 	y = CheatRead<short>(P1OFFSET + YPo);
 //	sprintf(Str_Tmp,"%08X,%08X:%08X,%08X",prevx,prevy,x,y);
-//	Put_Info(Str_Tmp,1000);
+//	Put_Info(Str_Tmp,MessageDuration);
 	// XXX: screenshot, for map capture
 	if ((prevy > y) && (y < 32) && (prevy > (Y-32)))
 		prevy -= Y;
@@ -2614,13 +2614,13 @@ void Update_RAM_Cheats()
 //		if (prevx != x || prevy != y) 
 			DrawMapLine(Dest,prevx,prevy,x,y,X,Y,color,topdown);
 	}
-	Put_Info(Str_Clr,1000);
+	Put_Info(Str_Clr,MessageDuration);
 	prevx = CheatRead<short>(P1OFFSET + XPo);
 	prevy = CheatRead<short>(P1OFFSET + YPo);
 	if ((X * Y * 3) + 54 != prevsize)
 	{
 		sprintf(Str_Tmp,"WTF!! %08X,%08X,%08X",size,prevsize,(X * Y * 3) + 54);
-		Put_Info(Str_Tmp,1000);
+		Put_Info(Str_Tmp,MessageDuration);
 	}
 	prevsize=size;
 }

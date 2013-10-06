@@ -416,7 +416,7 @@ int Load_State(char *Name)
 		else if(switched == 3)
 			sprintf(Str_Tmp, "STATE %d LOADED : RECORDING RESUMED", Current_State);
 
-		Put_Info(Str_Tmp, 2000);
+		Put_Info(Str_Tmp, MessageDuration);
 	}
 
 	//Modif N - bulletproof re-recording (loading)
@@ -625,7 +625,7 @@ int Save_State (char *Name)
 	fclose(f);
 
 	sprintf(Str_Tmp, "STATE %d SAVED", Current_State);
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }
@@ -2763,7 +2763,7 @@ int Save_As_Config(HWND hWnd)
 		Save_Config(Name);
 		strcpy(Str_Tmp, "config saved in ");
 		strcat(Str_Tmp, Name);
-		Put_Info(Str_Tmp, 2000);
+		Put_Info(Str_Tmp, MessageDuration);
 		return 1;
 	}
 	else return 0;
@@ -2959,7 +2959,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	GetPrivateProfileString("Options", "GCOffline path", "GCOffline.chm", CGOffline_Path, 1024, Conf_File);
 	GetPrivateProfileString("Options", "Gens manual path", "manual.exe", Manual_Path, 1024, Conf_File);
-    Disable_Blue_Screen = GetPrivateProfileInt("Options", "Disable Blue Screen", 0, Conf_File); //Modif
+    Disable_Blue_Screen = GetPrivateProfileInt("Options", "Disable Blue Screen", 1, Conf_File); //Modif
 	FrameCounterEnabled = GetPrivateProfileInt("Options", "FrameCounterEnabled", 1, Conf_File); //Modif N
 	FrameCounterFrames = GetPrivateProfileInt("Options", "FrameCounterFrames", 1, Conf_File); // Modif N
 	FrameCounterPosition = GetPrivateProfileInt("Options", "FrameCounterPosition", FRAME_COUNTER_TOP_LEFT, Conf_File);
@@ -3153,7 +3153,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 		else
 		{
 			sprintf(Str_Tmp,"%s splice session restored",SpliceMovie);
-			Put_Info(Str_Tmp,2000);
+			Put_Info(Str_Tmp,MessageDuration);
 		}
 		DialogsOpen--;
 	}
@@ -3197,7 +3197,7 @@ int Load_As_Config(HWND hWnd, void *Game_Active)
 		Load_Config(Name, Game_Active);
 		strcpy(Str_Tmp, "config loaded from ");
 		strcat(Str_Tmp, Name);
-		Put_Info(Str_Tmp, 2000);
+		Put_Info(Str_Tmp, MessageDuration);
 		return 1;
 	}
 	else return 0;
@@ -3230,7 +3230,7 @@ int Load_SRAM(void)
 
 	strcpy(Str_Tmp, "SRAM loaded from ");
 	strcat(Str_Tmp, Name);
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }
@@ -3238,7 +3238,7 @@ int Load_SRAMFromBuf(char *buf)
 {
 	strcpy((char *)SRAM,buf);
 //	strcpy(Str_Tmp, "SRAM loaded from embedded movie data.");
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }
@@ -3277,7 +3277,7 @@ int Save_SRAM(void)
 
 	strcpy(Str_Tmp, "SRAM saved in ");
 	strcat(Str_Tmp, Name);
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }
@@ -3355,7 +3355,7 @@ int Load_BRAM(void)
 
 	strcpy(Str_Tmp, "BRAM loaded from ");
 	strcat(Str_Tmp, Name);
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }
@@ -3387,7 +3387,7 @@ int Save_BRAM(void)
 
 	strcpy(Str_Tmp, "BRAM saved in ");
 	strcat(Str_Tmp, Name);
-	Put_Info(Str_Tmp, 2000);
+	Put_Info(Str_Tmp, MessageDuration);
 
 	return 1;
 }

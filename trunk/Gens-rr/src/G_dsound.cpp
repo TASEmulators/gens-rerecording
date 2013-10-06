@@ -513,7 +513,7 @@ int Start_WAV_Dump(void)
 		
 	if (WAV_Dumping)
 	{
-		Put_Info("WAV sound is already dumping", 1000);
+		Put_Info("WAV sound is already dumping", MessageDuration);
 		return(0);
 	}
 
@@ -522,17 +522,17 @@ int Start_WAV_Dump(void)
 	
 	if (WaveCreateFile(Name, &MMIOOut, &MainWfx, &CkOut, &CkRIFF))
 	{
-		Put_Info("Error in WAV dumping", 1000);
+		Put_Info("Error in WAV dumping", MessageDuration);
 		return(0);
 	}
 
 	if (WaveStartDataWrite(&MMIOOut, &CkOut, &MMIOInfoOut))
 	{
-		Put_Info("Error in WAV dumping", 1000);
+		Put_Info("Error in WAV dumping", MessageDuration);
 		return(0);
 	}
 
-	Put_Info("Starting to dump WAV sound", 1000);
+	Put_Info("Starting to dump WAV sound", MessageDuration);
 	WAV_Dumping = 1;
 
 
@@ -555,7 +555,7 @@ int Update_WAV_Dump(void)
 	
 	if (WaveWriteFile(MMIOOut, length, &Buf_Tmp[0], &CkOut, &Writted, &MMIOInfoOut))
 	{
-		Put_Info("Error in WAV dumping", 1000);
+		Put_Info("Error in WAV dumping", MessageDuration);
 		return 0;
 	}
 
@@ -582,14 +582,14 @@ int Stop_WAV_Dump(void)
 {
 	if (!WAV_Dumping)
 	{
-		Put_Info("Already stopped", 1000);
+		Put_Info("Already stopped", MessageDuration);
 		return 0;
 	}
 
 	if (WaveCloseWriteFile(&MMIOOut, &CkOut, &CkRIFF, &MMIOInfoOut, 0))
 		return 0;
 
-	Put_Info("WAV dump stopped", 1000);
+	Put_Info("WAV dump stopped", MessageDuration);
 	WAV_Dumping = 0;
 
 	return 1;
@@ -610,7 +610,7 @@ int Start_GYM_Dump(void)
 		
 	if (GYM_Dumping)
 	{
-		Put_Info("GYM sound is already dumping", 1000);
+		Put_Info("GYM sound is already dumping", MessageDuration);
 		return 0;
 	}
 
@@ -621,7 +621,7 @@ int Start_GYM_Dump(void)
 	{
 		if (num++ > 99999)
 		{
-			Put_Info("Too much GYM files in your GYM directory", 1000);
+			Put_Info("Too much GYM files in your GYM directory", MessageDuration);
 			GYM_File = NULL;
 			return(0);
 		}
@@ -697,7 +697,7 @@ int Start_GYM_Dump(void)
 	WriteFile(GYM_File, t_buf, 3, &bwr, NULL);
 
 
-	Put_Info("Starting to dump GYM sound", 1000);
+	Put_Info("Starting to dump GYM sound", MessageDuration);
 	GYM_Dumping = 1;
 
 	return 1;
@@ -708,7 +708,7 @@ int Stop_GYM_Dump(void)
 {
 	if (!GYM_Dumping)
 	{
-		Put_Info("Already stopped", 1000);
+		Put_Info("Already stopped", MessageDuration);
 		return 0;
 	}
 
@@ -716,7 +716,7 @@ int Stop_GYM_Dump(void)
 //
 	Clear_Sound_Buffer();
 
-	Put_Info("GYM dump stopped", 1000);
+	Put_Info("GYM dump stopped", MessageDuration);
 	GYM_Dumping = 0;
 
 	return 1;
@@ -732,7 +732,7 @@ int Start_Play_GYM(const char* filename)
 		
 	if (GYM_Playing)
 	{
-		Put_Info("Already playing GYM", 1000);
+		Put_Info("Already playing GYM", MessageDuration);
 		return 0;
 	}
 
@@ -742,7 +742,7 @@ int Start_Play_GYM(const char* filename)
 	if (!Init_Sound(HWnd)) 
 	{
 		Sound_Enable = 0;
-		Put_Info("Can't initialise DirectSound", 1000);
+		Put_Info("Can't initialise DirectSound", MessageDuration);
 		return 0;
 	}
 
@@ -778,7 +778,7 @@ int Start_Play_GYM(const char* filename)
 	PSG_Init(CLOCK_NTSC / 15, Sound_Rate);
 	GYM_Playing = 1;
 
-	Put_Info("Starting to play GYM", 1000);
+	Put_Info("Starting to play GYM", MessageDuration);
 
 	return 1;
 }
@@ -788,7 +788,7 @@ int Stop_Play_GYM(void)
 {
 	if (!GYM_Playing)
 	{
-		Put_Info("Already stopped", 1000);
+		Put_Info("Already stopped", MessageDuration);
 		return 0;
 	}
 
@@ -796,7 +796,7 @@ int Stop_Play_GYM(void)
 	Clear_Sound_Buffer();
 	GYM_Playing = 0;
 
-	Put_Info("Stop playing GYM", 1000);
+	Put_Info("Stop playing GYM", MessageDuration);
 
 	return 1;
 }
