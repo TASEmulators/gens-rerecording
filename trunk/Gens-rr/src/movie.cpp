@@ -115,7 +115,7 @@ void MoviePlayingStuff()
 		{
 			MainMovie.Status=MOVIE_FINISHED;
 			sprintf(Str_Tmp, "Movie finished");
-			Put_Info(Str_Tmp, MessageDuration);
+			Put_Info(Str_Tmp);
 			MustUpdateMenu=1;
 			CloseMovieFile(&MainMovie);//UpthAdd - So controller settings are restored
 		}
@@ -136,14 +136,14 @@ void MoviePlayingStuff()
 				Pause_Screen();
 				sprintf(Str_Tmp, "Movie end reached; Paused; Recording will resume."); //Upth-Add - Announce that the movie has paused and will switch to recording
 				MainMovie.Status = MOVIE_RECORDING;
-				Put_Info(Str_Tmp, MessageDuration);
+				Put_Info(Str_Tmp);
 				tempflag = true; //Upth-Add - And set the flag which brings us back into recording mode
 			}
 			else 
 			{
 				MainMovie.Status=MOVIE_FINISHED;
 				sprintf(Str_Tmp, "Movie finished");
-				Put_Info(Str_Tmp, MessageDuration);
+				Put_Info(Str_Tmp);
 				MustUpdateMenu=1;
 			}
 		}
@@ -151,7 +151,7 @@ void MoviePlayingStuff()
 		{
 			MainMovie.Status=MOVIE_FINISHED;
 			sprintf(Str_Tmp, "Movie finished");
-			Put_Info(Str_Tmp, MessageDuration);
+			Put_Info(Str_Tmp);
 			MustUpdateMenu=1;
 		}
 	}
@@ -364,7 +364,7 @@ void MovieRecordingStuff()
 			MainMovie.LastFrame=max(max(Track1_FrameCount,Track2_FrameCount),Track3_FrameCount);
 		else
 			MainMovie.LastFrame=max(Track1_FrameCount,Track2_FrameCount);
-		Put_Info("Recording from current frame", MessageDuration); //Upth-Add - Notify that we've resumed recording
+		Put_Info("Recording from current frame"); //Upth-Add - Notify that we've resumed recording
 		tempflag = false; //Upth-Add - And we unset the flag so it doesn't increment rerecords everyframe
 		Build_Main_Menu();
 	}
@@ -775,7 +775,7 @@ int BackupMovieFile(typeMovie *aMovie)
 	if(aMovie->File==NULL)
 		return 0;
 
-	Put_Info(aMovie->FileName, MessageDuration);
+	Put_Info(aMovie->FileName);
 
 	strncpy(aMovie->PhysicalFileName,aMovie->FileName,1024);
 	Backup=fopen(aMovie->PhysicalFileName,"wb");
