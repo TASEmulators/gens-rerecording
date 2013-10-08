@@ -28,7 +28,6 @@ extern int Kaillera_Error;
 extern unsigned char CleanAvi;
 extern bool frameadvSkipLag;
 extern bool justlagged;
-extern unsigned int MessageDuration;
 
 extern void (*Blit_FS)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
@@ -46,7 +45,7 @@ int Update_Emulation_One(HWND hWnd);
 int Update_Emulation_Netplay(HWND hWnd, int player, int num_player);
 int Eff_Screen(void);
 int Pause_Screen(void);
-extern "C" void Put_Info(char *Message, int Duration);
+extern "C" void Put_Info(char *Message, int Duration = 1500);
 extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
 int Show_Genesis_Screen(HWND hWnd);
 int Flip(HWND hWnd);

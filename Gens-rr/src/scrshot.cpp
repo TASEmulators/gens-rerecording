@@ -274,7 +274,7 @@ int Save_Shot_Clipboard(void* Screen,int mode, int Hmode, int Vmode) // feos add
 	}
 
 	CopyBitmapToClipboard(Dest-54,X*Y*3+54);
-	Put_Info("Screen shot saved to clipboard", MessageDuration);
+	Put_Info("Screen shot saved to clipboard");
 
 	return(1);
 }
@@ -414,7 +414,7 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	free(Dest-54);
 
 	wsprintf(Message, "Screen shot %d saved (%s)", num, Name);
-	Put_Info(Message, MessageDuration);
+	Put_Info(Message);
 
 	return(1);
 }

@@ -51,7 +51,6 @@ int Message_Style = EMU_MODE | BLANC | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
 extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
-unsigned int MessageDuration = 2000; // milliseconds
 
 long int MovieSize;//Modif
 int SlowFrame=0; //Modif
@@ -1532,7 +1531,7 @@ int Update_Emulation(HWND hWnd)
 		{
 			Paused = 1; //then pause when we arrive
 			SeekFrame = 0; //and clear the seek target
-			Put_Info("Seek complete. Paused",MessageDuration);
+			Put_Info("Seek complete. Paused");
 			Clear_Sound_Buffer();
 			MustUpdateMenu = 1;
 		}

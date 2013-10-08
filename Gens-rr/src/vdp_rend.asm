@@ -731,14 +731,14 @@ ALIGN4
 		mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
 		mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
 	%endif
-	test byte [ScrollAOn], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-	test dword [VScrollAl], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-%else
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBl], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+%else
+	test byte [ScrollAOn], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+	test dword [VScrollAl], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %endif
 
@@ -783,14 +783,14 @@ ALIGN4
 		mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
 		mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
 	%endif
-	test byte [ScrollAOn], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-	test dword [VScrollAl], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-%else
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBl], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+%else
+	test byte [ScrollAOn], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+	test dword [VScrollAl], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %endif
 
@@ -827,15 +827,16 @@ ALIGN4
 	mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
 	mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
 	mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
-	test byte [ScrollAOn], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-	test dword [VScrollAh], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-%else
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBh], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
+%else
+	test byte [ScrollAOn], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+	test dword [VScrollAh], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+
 	%if %2 > 0
 
 		; Faster on almost CPU (because of pairable instructions)
@@ -895,14 +896,14 @@ ALIGN4
 	mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
 	mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
 	mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
-	test byte [ScrollAOn], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-	test dword [VScrollAh], 1 ;Nitsuja added this
-	jz near %%Full_Trans ;Nitsuja added this
-%else
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBh], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+%else
+	test byte [ScrollAOn], 1 ;Nitsuja added this
+	jz near %%Full_Trans ;Nitsuja added this
+	test dword [VScrollAh], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 
 	%if %2 > 0
@@ -1085,6 +1086,24 @@ ALIGN4
 		dec ebx										; if the 64 colors were not yet made
 		jns short %%Loop							; then one continues
 
+		test byte [PinkBG], 1
+		jz short %%Normal_BG16
+
+		
+		mov ax, 0x7C1F								; pink (xrrrrrgggggbbbbb if mode_555)
+		test byte [Mode_555], 1
+		jnz %%Mode_555 
+		mov ax, 0xF81F								; pink (rrrrrggggggbbbbb if mode_565)
+
+	%%Mode_555
+		mov [MD_Palette + 0 * 2], ax				; normal
+		mov [MD_Palette + 0 * 2 + 192 * 2], ax		; normal
+		mov [MD_Palette + 0 * 2 + 64 * 2], ax		; darkened color (same)
+		mov [MD_Palette + 0 * 2 + 128 * 2], ax		; lightened color (same)
+		jmp short %%End
+
+	%%Normal_BG16
+
 		mov ebx, [VDP_Reg + 7 * 4]
 		and ebx, byte 0x3F
 		mov ax, [MD_Palette + ebx * 2]
@@ -1143,6 +1162,18 @@ ALIGN4
 		dec ebx										; if the 64 colors were not yet made
 		jns short %%Loop32							; then one continues
 
+		test byte [PinkBG], 1
+		jz short %%Normal_BG32
+
+		mov eax, 0x00ff00ff							; pink
+		mov [MD_Palette32 + 0 * 4], eax				; normal
+		mov [MD_Palette32 + 0 * 4 + 192 * 4], eax	; normal
+		mov [MD_Palette32 + 0 * 4 + 64 * 4], eax	; darkened color (same)
+		mov [MD_Palette32 + 0 * 4 + 128 * 4], eax	; lightened color (same)
+		jmp short %%Update_Pal16
+
+	%%Normal_BG32
+
 		mov ebx, [VDP_Reg + 7 * 4]
 		and ebx, byte 0x3F
 		mov eax, [MD_Palette32 + ebx * 4]
@@ -1157,6 +1188,7 @@ ALIGN4
 		mov [MD_Palette32 + 0 * 4 + 128 * 4], eax
 ;%endif
 
+%%Update_Pal16
 	UPDATE_PALETTE %1
 
 %%End
@@ -1219,7 +1251,7 @@ ALIGN4
 		GET_PATTERN_INFO 0
 		GET_PATTERN_DATA %1, 0
 		
-		test byte [Swap_Scroll_PriorityA], 1
+		test byte [Swap_Scroll_PriorityB], 1
 		jz short %%No_Invert
 		xor ax, 0x8000
 
@@ -1381,7 +1413,7 @@ ALIGN4
 		GET_PATTERN_INFO 1
 		GET_PATTERN_DATA %1, 0
 		
-		test byte [Swap_Scroll_PriorityB], 1
+		test byte [Swap_Scroll_PriorityA], 1
 		jz short %%No_Invert2
 		xor ax, 0x8000
 
@@ -1441,7 +1473,7 @@ ALIGN4
 	GET_PATTERN_INFO 1
 	GET_PATTERN_DATA %1, 0
 
-	test byte [Swap_Scroll_PriorityB], 1
+	test byte [Swap_Scroll_PriorityA], 1
 	jz short %%No_Invert3
 	xor ax, 0x8000
 
@@ -1959,10 +1991,6 @@ ALIGN4
 		jz near .Render16
 
 	.Render32
-		test byte [PinkBG], 1					; added by feos
-		jz short .Normal_BG32
-		mov [MD_Palette32],dword 0x3ff003ff		; bin: rrrrrrrrggggggggbbbbbbbb
-		.Normal_BG32
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]
@@ -1999,10 +2027,6 @@ ALIGN4
 	ret
 
 	.Render16
-		test byte [PinkBG], 1			; added by feos
-		jz short .Normal_BG
-		mov [MD_Palette],word 0xf81f	; bin: rrrrrggggggbbbbb (xrrrrrgggggbbbbb if mode_555)
-		.Normal_BG
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]

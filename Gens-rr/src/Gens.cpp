@@ -877,13 +877,13 @@ void Detect_Country_Genesis(void)
 
 	if (Game_Mode)
 	{
-		if (CPU_Mode) Put_Info("Europe system (50 FPS)", MessageDuration);
-		else Put_Info("USA system (60 FPS)", MessageDuration);
+		if (CPU_Mode) Put_Info("Europe system (50 FPS)");
+		else Put_Info("USA system (60 FPS)");
 	}
 	else
 	{
-		if (CPU_Mode) Put_Info("Japan system (50 FPS)", MessageDuration);
-		else Put_Info("Japan system (60 FPS)", MessageDuration);
+		if (CPU_Mode) Put_Info("Japan system (50 FPS)");
+		else Put_Info("Japan system (60 FPS)");
 	}
 
 	if (CPU_Mode)
@@ -1320,7 +1320,7 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 //		SRAM_Was_On = SRAM_ON;
 //		if (SRAM_ON) sprintf(Str_Tmp,"SRAM enabled");
 //		else		 sprintf(Str_Tmp,"SRAM disabled");;
-//		Put_Info(Str_Tmp,MessageDuration);
+//		Put_Info(Str_Tmp);
 //	}
 	return(1);
 }
