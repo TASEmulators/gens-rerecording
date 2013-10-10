@@ -1,4 +1,3 @@
-del /s Gens11svn$WCREV$.zip
 cd Output
 copy Gens.exe ..
 ..\dependencies\upx Gens.exe

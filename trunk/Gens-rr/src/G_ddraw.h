@@ -45,14 +45,15 @@ int Update_Emulation_One(HWND hWnd);
 int Update_Emulation_Netplay(HWND hWnd, int player, int num_player);
 int Eff_Screen(void);
 int Pause_Screen(void);
-extern "C" void Put_Info(char *Message, int Duration = 1500);
-extern "C" void Put_Info_NonImmediate(char *Message, int Duration);
+extern "C" void Put_Info(char *Message, int Duration = 2000);
+extern "C" void Put_Info_NonImmediate(char *Message, int Duration = 2000);
 int Show_Genesis_Screen(HWND hWnd);
 int Flip(HWND hWnd);
 void Restore_Primary(void);
 int Take_Shot();
-int Take_Shot(int WriteToAVI, HWND hWnd);
 int Take_Shot_Clipboard();
+int Take_Shot_AVI(HWND hWnd);
+int Take_Shot(int WriteToAVI, HWND hWnd);
 void End_DDraw(void);
 int Update_Frame_Adjusted();
 
