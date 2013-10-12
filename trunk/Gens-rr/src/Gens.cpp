@@ -268,13 +268,16 @@ unsigned int Pal32_XRAY[0x10000];
 			}\
 		}*/
 //#define POST_LINE
+
+// Blank mode
 #define POST_LINE_32X_M00 \
 		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 		{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 		}
+
+// Packed pixel mode (indexed mode)
 #define POST_LINE_32X_M01 {\
 VRam_Ind*=2;\
 	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
@@ -288,12 +291,13 @@ VRam_Ind*=2;\
 		}\
 		else\
 		{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 		}\
 	}\
 }
+
+// Direct color mode
 #define POST_LINE_32X_M10 \
 for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 {\
@@ -305,11 +309,12 @@ for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Curr
 	}\
 	else\
 	{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+		MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+		MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 	}\
 }
+
+// Run length mode
 #define POST_LINE_32X_M11 {\
 	int CurPixel = TAB336[VDP_Current_Line] + 8;\
 	int PixMax = TAB336[VDP_Current_Line] + 336;\
@@ -318,15 +323,17 @@ for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Curr
 		unsigned char Pix = VRam_32X[VRam_Ind] & 0xFF;\
 		unsigned char Num = VRam_32X[VRam_Ind++] >> 8;\
 		int EndPixel = CurPixel + Num;\
-		while (CurPixel <= EndPixel)\
+		while (CurPixel <= EndPixel && CurPixel < PixMax)\
 		{\
 			MD_Screen[CurPixel] = _32X_VDP_CRam_Ajusted[Pix];\
 			MD_Screen32[CurPixel++] = _32X_VDP_CRam_Ajusted32[Pix];\
 		}\
 	}\
 }
+
+// Packed pixel mode (indexed mode) + Shift
 #define POST_LINE_32X_SM01 {\
-VRam_Ind*=2;\
+VRam_Ind*=2; ++VRam_Ind;\
 	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
@@ -338,12 +345,13 @@ VRam_Ind*=2;\
 		}\
 		else\
 		{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 		}\
 	}\
 }
+
+// Packed pixel mode (indexed mode) + Priority
 #define POST_LINE_32X_M01_P {\
 VRam_Ind*=2;\
 	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
@@ -352,9 +360,8 @@ VRam_Ind*=2;\
 		unsigned short Pix = _32X_VDP_CRam[pix];\
 		if ((Pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
 		{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 		}\
 		else\
 		{\
@@ -363,33 +370,35 @@ VRam_Ind*=2;\
 		}\
 	}\
 }
+
+// Direct color mode + Priority
 #define POST_LINE_32X_M10_P \
 for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
 {\
 	unsigned short pix = VRam_32X[VRam_Ind++];\
-	if (!(pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
+	if ((pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
+	{\
+		MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+		MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+	}\
+	else\
 	{\
 		MD_Screen32[Pixel] = _32X_Palette_32B[pix];\
 		MD_Screen[Pixel] = _32X_Palette_16B[pix];\
 	}\
-	else\
-	{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-	}\
 }
+
+// Packed pixel mode (indexed mode) + Priority + Shift
 #define POST_LINE_32X_SM01_P {\
-VRam_Ind*=2;\
+VRam_Ind*=2; ++VRam_Ind;\
 	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
 	{\
 		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
 		unsigned short Pix = _32X_VDP_CRam[pix];\
 		if ((Pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
 		{\
-			if (XRay) MD_Screen32[Pixel] = Pal32_XRAY[MD_Screen[Pixel]];\
-			else MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			if (!XRay) MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
+			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
 		}\
 		else\
 		{\
@@ -2185,6 +2194,16 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 
 		Render_Line_32X();
 		//UPDATE_PALETTE32
+#ifdef DEBUG
+		static int _32X_Prev_Rend_Mode = -1;
+		if (_32X_Rend_Mode != _32X_Prev_Rend_Mode)
+		{
+			char temp[20];
+			sprintf(qwe,"32X Video Mode: %d",_32X_Rend_Mode);
+			SetWindowText(HWnd,qwe);
+			_32X_Prev_Rend_Mode = _32X_Rend_Mode;
+		}
+#endif
 		POST_LINE_32X
 
 		/* instruction by instruction execution */

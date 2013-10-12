@@ -7,9 +7,19 @@ extern "C" {
 
 extern unsigned int MD_Screen32[336 * 240];
 extern unsigned short MD_Screen[336 * 240];
+
+// from ttppiiii into RGB24
+// t = type {0 = normal, 1 = darkened, 2 = normal, 3 = lightened}
+// p = pal (0..3), i = index (0..F)
 extern unsigned int MD_Palette32[256];
+
+// from ttppiiii into RGB555 if (Mode_555 & 1) else RGB565
 extern unsigned short MD_Palette[256];
+
+// from 0000bbbbggggrrrr into RGB24
 extern unsigned int Palette32[0x1000];
+
+// from 0000bbbbggggrrrr into RGB555 if (Mode_555 & 1) else RGB565
 extern unsigned short Palette[0x1000];
 extern unsigned long TAB336[336];
 extern unsigned char Bits32;

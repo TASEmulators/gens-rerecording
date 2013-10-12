@@ -625,8 +625,8 @@ unsigned short Calculate_Checksum(void)
 	
 	for (i = 512; i < Rom_Size; i += 2)
 	{
-		checksum += (unsigned short)(Rom_Data[i + 0]);
-		checksum += (unsigned short)(Rom_Data[i + 1] << 8);
+		checksum = (checksum + Rom_Data[i + 0]) & 0xFFFF;
+		checksum = (checksum + (Rom_Data[i + 1] << 8)) & 0xFFFF;
 	}
 
 	return checksum;
