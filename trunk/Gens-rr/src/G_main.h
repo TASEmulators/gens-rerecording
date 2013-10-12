@@ -46,6 +46,7 @@ extern int DialogsOpen;
 extern int SlowDownMode; //Modif
 extern int VideoLatencyCompensation; // Modif N.
 extern int disableVideoLatencyCompensationCount;
+extern float ScaleFactor;
 
 extern BOOL AutoFireKeyDown;	//Modif N.
 extern BOOL AutoHoldKeyDown;	//Modif N.

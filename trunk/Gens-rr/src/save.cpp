@@ -2321,6 +2321,8 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Graphics", "Full Screen X Resolution", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", Res_Y); //Upth-Add - Save our full screen Y resolution to config
 	WritePrivateProfileString("Graphics", "Full Screen Y Resolution", Str_Tmp, Conf_File);
+	sprintf(Str_Tmp, "%.8f", ScaleFactor); // wsprintf forbids float
+	WritePrivateProfileString("Graphics", "Screen Scale Factor", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", FS_No_Res_Change); //Upth-Add - Save our fullscreen without resolution change flag
 	WritePrivateProfileString("Graphics", "Full Screen No Res Change", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", W_VSync & 1);
@@ -2857,6 +2859,9 @@ int Load_Config(char *File_Name, void *Game_Active)
 	FS_VSync = GetPrivateProfileInt("Graphics", "Full Screen VSync", 0, Conf_File);
 	Res_X = GetPrivateProfileInt("Graphics", "Full Screen X Resolution", 0, Conf_File); //Upth-Add - Load the fullscreen
 	Res_Y = GetPrivateProfileInt("Graphics", "Full Screen Y Resolution", 0, Conf_File); //Upth-Add - resolution from config
+	char str[11];
+	GetPrivateProfileString("Graphics", "Screen Scale Factor", "1.0", str, 11, Conf_File);
+	ScaleFactor = (float) atof(str);
 	FS_No_Res_Change = (bool) (GetPrivateProfileInt("Graphics", "Full Screen No Res Change", 0, Conf_File) > 0); //Upth-Add - and the no_res_change flag
 	W_VSync = GetPrivateProfileInt("Graphics", "Windows VSync", 0, Conf_File);
 	Full_Screen = GetPrivateProfileInt("Graphics", "Full Screen", 0, Conf_File);
@@ -2874,8 +2879,8 @@ int Load_Config(char *File_Name, void *Game_Active)
 	SpriteOn = GetPrivateProfileInt("Graphics", "Sprites layer", 1, Conf_File);
 	Stretch = GetPrivateProfileInt("Graphics", "Stretch", 0, Conf_File);
 	Blit_Soft = GetPrivateProfileInt("Graphics", "Software Blit", 0, Conf_File);
-	Sprite_Over = GetPrivateProfileInt("Graphics", "Sprite limit", 0, Conf_File);
-	PinkBG = !!GetPrivateProfileInt("Graphics", "Pink Background", 0, Conf_File); // force bool?
+	Sprite_Over = GetPrivateProfileInt("Graphics", "Sprite limit", 1, Conf_File);
+	PinkBG = !!GetPrivateProfileInt("Graphics", "Pink Background", 0, Conf_File);
 	Frame_Skip = GetPrivateProfileInt("Graphics", "Frame skip", -1, Conf_File);
 	CleanAvi = GetPrivateProfileInt("Graphics", "Clean Avi", 1, Conf_File);
 

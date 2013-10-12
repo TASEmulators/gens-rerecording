@@ -236,6 +236,7 @@
 #define IDC_LAGCOUNTERFRAMES            1187
 #define IDC_COMBO_NUMLOAD               1188
 #define IDC_CHECK_BGINPUT               1189
+#define IDC_TEXT_SCALE                  1190
 #define IDC_CHECK_CLEAR_SRAM            1200
 #define IDC_HOTKEYLIST                  1209
 #define ID_PLAY_FROM_START              1210
@@ -343,6 +344,10 @@
 #define ID_GRAPHICS_SHOT                40061
 #define ID_GRAPHICS_FS_SAME_RES         40062
 #define ID_GRAPHICS_CLIPBOARD           40063
+#define ID_GRAPHICS_SIZE_1X             40065
+#define ID_GRAPHICS_SIZE_2X             40066
+#define ID_GRAPHICS_SIZE_3X             40067
+#define ID_GRAPHICS_SIZE_4X             40068
 #define ID_GRAPHICS_RENDER_EPXPLUS      40069
 #define ID_GRAPHICS_RENDER_NORMAL       40070
 #define ID_GRAPHICS_RENDER_DOUBLE       40071
