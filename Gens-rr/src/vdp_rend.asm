@@ -76,8 +76,6 @@ section .bss align=64
 	extern _32X_VDP_CRam
 	extern _32X_VDP_CRam_Ajusted
 	extern _32X_VDP
-	extern _XRay
-	extern _Pal32_XRAY
 
 	struc vx
 		.Mode		resd 1
@@ -1061,8 +1059,8 @@ ALIGN4
 %%Loop
 		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
 		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
-		and ax, 0x0FFF
-		and dx, 0x0FFF
+		and ax, 0x0EEE
+		and dx, 0x0EEE
 		mov ax, [Palette + eax * 2]
 		mov dx, [Palette + edx * 2]
 		mov [MD_Palette + ebx * 4 + 0], ax				; normal color
@@ -1071,51 +1069,64 @@ ALIGN4
 ;%if %1 > 0
 		mov [MD_Palette + ebx * 4 + 192 * 2 + 0], ax	; normal color
 		mov [MD_Palette + ebx * 4 + 192 * 2 + 2], dx	; normal color
+
+		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
+		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
+		and ax, 0x0EEE
+		and dx, 0x0EEE
 		shr ax, 1
 		shr dx, 1
-		and ax, cx										; one divides by 2 the components for the shadow
-		and dx, cx										; one divides by 2 the components for the shadow
+		mov ax, [Palette + eax * 2]
+		mov dx, [Palette + edx * 2]
 		mov [MD_Palette + ebx * 4 + 64 * 2 + 0], ax		; darkened color
 		mov [MD_Palette + ebx * 4 + 64 * 2 + 2], dx		; darkened color
-		add ax, cx
-		add dx, cx
+
+		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
+		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
+		and ax, 0x0EEE
+		and dx, 0x0EEE
+		shr ax, 1
+		shr dx, 1
+		mov ax, [Palette + eax * 2 + 0x777 * 2]
+		mov dx, [Palette + edx * 2 + 0x777 * 2]
 		mov [MD_Palette + ebx * 4 + 128 * 2 + 0], ax	; lightened color
 		mov [MD_Palette + ebx * 4 + 128 * 2 + 2], dx	; lightened color
 ;%endif
 
 		dec ebx										; if the 64 colors were not yet made
-		jns short %%Loop							; then one continues
+		jns near %%Loop								; then one continues
 
+		; Backdrop color setup
 		test byte [PinkBG], 1
 		jz short %%Normal_BG16
 
-		
+		; Pink backdrop
 		mov ax, 0x7C1F								; pink (xrrrrrgggggbbbbb if mode_555)
 		test byte [Mode_555], 1
 		jnz %%Mode_555 
 		mov ax, 0xF81F								; pink (rrrrrggggggbbbbb if mode_565)
 
 	%%Mode_555
-		mov [MD_Palette + 0 * 2], ax				; normal
-		mov [MD_Palette + 0 * 2 + 192 * 2], ax		; normal
+		mov [MD_Palette + 0 * 2], ax				; normal color
+		mov [MD_Palette + 0 * 2 + 192 * 2], ax		; normal color
 		mov [MD_Palette + 0 * 2 + 64 * 2], ax		; darkened color (same)
 		mov [MD_Palette + 0 * 2 + 128 * 2], ax		; lightened color (same)
 		jmp short %%End
 
-	%%Normal_BG16
-
+	%%Normal_BG16 ; Normal backdrop
 		mov ebx, [VDP_Reg + 7 * 4]
 		and ebx, byte 0x3F
 		mov ax, [MD_Palette + ebx * 2]
-		mov [MD_Palette + 0 * 2], ax
+		mov [MD_Palette + 0 * 2], ax				; normal color
 
 ;%if %1 > 0
-		mov [MD_Palette + 0 * 2 + 192 * 2], ax
-		shr ax, 1
-		and ax, cx
-		mov [MD_Palette + 0 * 2 + 64 * 2], ax
-		add ax, cx
-		mov [MD_Palette + 0 * 2 + 128 * 2], ax
+		mov [MD_Palette + 0 * 2 + 192 * 2], ax		; normal color
+
+		mov ax, [MD_Palette + ebx * 2 + 64 * 2]
+		mov [MD_Palette + 0 * 2 + 64 * 2], ax		; darkened color
+
+		mov ax, [MD_Palette + ebx * 2 + 128 * 2]
+		mov [MD_Palette + 0 * 2 + 128 * 2], ax		; lightened color
 ;%endif
 %%End
 %endmacro
@@ -1137,8 +1148,8 @@ ALIGN4
 %%Loop32
 		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
 		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
-		and eax, 0x0FFF
-		and edx, 0x0FFF
+		and eax, 0x0EEE
+		and edx, 0x0EEE
 		mov eax, [Palette32 + eax * 4]
 		mov edx, [Palette32 + edx * 4]
 		mov [MD_Palette32 + ebx * 8 + 0], eax				; normal color
@@ -1147,45 +1158,59 @@ ALIGN4
 ;%if %1 > 0
 		mov [MD_Palette32 + ebx * 8 + 192 * 4 + 0], eax	; normal color
 		mov [MD_Palette32 + ebx * 8 + 192 * 4 + 4], edx	; normal color
-		shr eax, 1
-		shr edx, 1
-		and eax, ecx									; one divides by 2 the components for the shadow
-		and edx, ecx									; one divides by 2 the components for the shadow
+
+		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
+		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
+		and eax, 0x0EEE
+		and edx, 0x0EEE
+		shr ax, 1
+		shr dx, 1
+		mov eax, [Palette32 + eax * 4]
+		mov edx, [Palette32 + edx * 4]
 		mov [MD_Palette32 + ebx * 8 + 64 * 4 + 0], eax	; darkened color
 		mov [MD_Palette32 + ebx * 8 + 64 * 4 + 4], edx	; darkened color
-		add eax, ecx
-		add edx, ecx
+
+		mov ax, [CRam + ebx * 4 + 0]					; ax = data color
+		mov dx, [CRam + ebx * 4 + 2]					; dx = data color
+		and eax, 0x0EEE
+		and edx, 0x0EEE
+		shr ax, 1
+		shr dx, 1
+		mov eax, [Palette32 + eax * 4 + 0x777 * 4]
+		mov edx, [Palette32 + edx * 4 + 0x777 * 4]
 		mov [MD_Palette32 + ebx * 8 + 128 * 4 + 0], eax	; lightened color
 		mov [MD_Palette32 + ebx * 8 + 128 * 4 + 4], edx	; lightened color
 ;%endif
 
 		dec ebx										; if the 64 colors were not yet made
-		jns short %%Loop32							; then one continues
+		jns near %%Loop32							; then one continues
 
+		; Backdrop color setup
 		test byte [PinkBG], 1
 		jz short %%Normal_BG32
 
+		; Pink backdrop
 		mov eax, 0x00ff00ff							; pink
-		mov [MD_Palette32 + 0 * 4], eax				; normal
-		mov [MD_Palette32 + 0 * 4 + 192 * 4], eax	; normal
+		mov [MD_Palette32 + 0 * 4], eax				; normal color
+		mov [MD_Palette32 + 0 * 4 + 192 * 4], eax	; normal color
 		mov [MD_Palette32 + 0 * 4 + 64 * 4], eax	; darkened color (same)
 		mov [MD_Palette32 + 0 * 4 + 128 * 4], eax	; lightened color (same)
 		jmp short %%Update_Pal16
 
-	%%Normal_BG32
-
+	%%Normal_BG32 ; Normal backdrop
 		mov ebx, [VDP_Reg + 7 * 4]
 		and ebx, byte 0x3F
 		mov eax, [MD_Palette32 + ebx * 4]
-		mov [MD_Palette32 + 0 * 4], eax
+		mov [MD_Palette32 + 0 * 4], eax					; normal color
 
 ;%if %1 > 0
-		mov [MD_Palette32 + 0 * 4 + 192 * 4], eax
-		shr eax, 1
-		and eax, ecx
-		mov [MD_Palette32 + 0 * 4 + 64 * 4], eax
-		add eax, ecx
-		mov [MD_Palette32 + 0 * 4 + 128 * 4], eax
+		mov [MD_Palette32 + 0 * 4 + 192 * 4], eax		; normal color
+
+		mov eax, [MD_Palette32 + ebx * 4 + 64 * 4]
+		mov [MD_Palette32 + 0 * 4 + 64 * 4], eax		; darkened color
+
+		mov eax, [MD_Palette32 + ebx * 4 + 128 * 4]
+		mov [MD_Palette32 + 0 * 4 + 128 * 4], eax		; lightened color
 ;%endif
 
 %%Update_Pal16
@@ -2000,10 +2025,8 @@ ALIGN4
 		shr ecx, 1
 		lea edi, [MD_Screen32 + edi * 4 + 8 * 4]
 		mov esi, MD_Palette32
-		test [_XRay], byte 1
-		jz short .Genesis_Loop32
-		mov esi, _Pal32_XRAY
-		jmp .Genesis_LoopXray		
+		jmp short .Genesis_Loop32
+
 		ALIGN32
 		
 	.Genesis_Loop32
@@ -2032,8 +2055,6 @@ ALIGN4
 		mov edi, [esp]
 		sub ecx, eax
 		add esp, byte 4
-		test [_XRay], byte 1
-		jnz short .end
 		lea edi, [MD_Screen + edi * 2 + 8 * 2]
 		shr ecx, 1
 		mov esi, MD_Palette
@@ -2058,31 +2079,8 @@ ALIGN4
 
 			dec ecx
 			jnz short .Genesis_Loop
-	.end
 		popad
 		ret
-
-	.Genesis_LoopXray
-		movzx eax, word [edx + 0]
-		movzx ebx, word [edx + 2]
-		mov eax, [esi + eax * 4]
-		mov ebx, [esi + ebx * 4]
-		mov [edi + 0], eax
-		mov [edi + 4], ebx
-		movzx ebp, word [edx + 4]
-		movzx eax, word [edx + 6]
-		mov ebp, [esi + ebp * 4]
-		mov eax, [esi + eax * 4]
-		mov [edi + 8], ebp
-		mov [edi + 12], eax
-		add edx, byte 8
-		add edi, byte 16
-		dec ecx
-		jnz short .Genesis_LoopXray
-	popad
-	ret
-
-
 
 ; *******************************************************
 
