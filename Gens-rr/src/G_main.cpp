@@ -185,6 +185,7 @@ int DialogsOpen = 0; //Modif
 int SlowDownMode = 0; //Modif
 int VideoLatencyCompensation = 0;
 int disableVideoLatencyCompensationCount = 0;
+float ScaleFactor = 1.0;
 
 BOOL AutoFireKeyDown=0;	//Modif N.
 BOOL AutoHoldKeyDown=0;	//Modif N.
@@ -693,6 +694,23 @@ void Set_Rend_Int(int Num, int* Rend, BlitFunc* Blit)
 	}
 }
 
+void Set_Window_Size(HWND hWnd)
+{
+	RECT r;
+
+	int xRight  = (int) ceilf(320 * ((Render_W == 0)?1:2) * ScaleFactor);
+	int yBottom = (int) ceilf(240 * ((Render_W == 0)?1:2) * ScaleFactor);
+
+	GetWindowRect(hWnd, &r);
+	SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
+	SetRect(&r, 0, 0, xRight, yBottom);
+	// don't let the menu go multi-line, since it would squash the game view because AdjustWindowRectEx doesn't take it into account
+	if(r.right < Gens_Menu_Width)
+		r.right = Gens_Menu_Width;
+	AdjustWindowRectEx(&r, GetWindowLong(hWnd, GWL_STYLE), 1, GetWindowLong(hWnd, GWL_EXSTYLE));
+	SetWindowPos(hWnd, NULL, Window_Pos.x, Window_Pos.y, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
 int Set_Render(HWND hWnd, int Full, int Num, int Force)
 {
 	Setting_Render = TRUE;
@@ -728,8 +746,6 @@ tryAgain:
 
 	if(reinit)
 	{
-		RECT r;
-
 		if (Sound_Initialised) Clear_Sound_Buffer();
 
 		End_DDraw();
@@ -755,12 +771,7 @@ tryAgain:
 			while (ShowCursor(false) >= 0);
 			while (ShowCursor(true) < 1);
 
-			// MoveWindow / ResizeWindow code
-			SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
-			SetRect(&r, 0, 0, 320 * ((*Rend == 0)?1:2), 240 * ((*Rend == 0)?1:2));
-			if(r.right < Gens_Menu_Width) r.right = Gens_Menu_Width; // don't let the menu go multi-line, since it would squash the game view because AdjustWindowRectEx doesn't take it into account
-			AdjustWindowRectEx(&r, GetWindowLong(hWnd, GWL_STYLE), 1, GetWindowLong(hWnd, GWL_EXSTYLE));
-			SetWindowPos(hWnd, NULL, Window_Pos.x, Window_Pos.y, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE);
+			Set_Window_Size(hWnd);
 		}
 		DEVMODE dm;
 		EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&dm);
@@ -1741,7 +1752,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	W_VSync = 0;
 	FS_VSync = 0;
 	Stretch = 0;
-	Sprite_Over = 0;
+	Sprite_Over = 1;
 	VScrollAl = 1; // Modif N.
 	VScrollBl = 1; // Modif N.
 	VScrollAh = 1; // Modif N.
@@ -2736,13 +2747,30 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			Clear_Sound_Buffer();
 			break;
 
- 		case WM_EXITSIZEMOVE:
+		case WM_MOVE:
 			if (!Full_Screen)
 			{
 				GetWindowRect(HWnd, &r);
 				Window_Pos.x = r.left;
 				Window_Pos.y = r.top;
 			}
+			break;
+
+ 		case WM_SIZING:
+			if (!Full_Screen)
+			{
+				GetWindowRect(HWnd, &r);
+				Window_Pos.x = r.left;
+				Window_Pos.y = r.top;
+				ScaleFactor = min(
+					(float) (r.right-r.left) / 320 / ((Render_W == 0) ? 1 : 2),
+					(float) (r.bottom-r.top) / 240 / ((Render_W == 0) ? 1 : 2)
+				);
+			}
+			break;
+
+		case WM_EXITSIZEMOVE:
+			Build_Main_Menu();
 			break;
 
 		case WM_CLOSE:
@@ -3563,6 +3591,42 @@ dialogAgain: //Nitsuja added this
 
 				case ID_GRAPHICS_RENDER_FULLSCANLINE:
 					Set_Render(hWnd, Full_Screen, 4, false);
+					return 0;
+
+				case ID_GRAPHICS_SIZE_1X:
+					if (ScaleFactor != 1.0)
+					{
+						ScaleFactor = 1.0;
+						Set_Window_Size(hWnd);
+						Build_Main_Menu();
+					}
+					return 0;
+
+				case ID_GRAPHICS_SIZE_2X:
+					if (ScaleFactor != 2.0)
+					{
+						ScaleFactor = 2.0;
+						Set_Window_Size(hWnd);
+						Build_Main_Menu();
+					}
+					return 0;
+
+				case ID_GRAPHICS_SIZE_3X:
+					if (ScaleFactor != 3.0)
+					{
+						ScaleFactor = 3.0;
+						Set_Window_Size(hWnd);
+						Build_Main_Menu();
+					}
+					return 0;
+
+				case ID_GRAPHICS_SIZE_4X:
+					if (ScaleFactor != 4.0)
+					{
+						ScaleFactor = 4.0;
+						Set_Window_Size(hWnd);
+						Build_Main_Menu();
+					}
 					return 0;
 
 				case ID_GRAPHICS_LAYER0: //Nitsuja added these
@@ -4711,6 +4775,7 @@ HMENU Build_Main_Menu(void)
 	HMENU FilesLoadState;
 	HMENU FilesHistory;
 	HMENU GraphicsRender;
+	HMENU GraphicsSize;
 	HMENU GraphicsLayers; //Nitsuja added this
 	HMENU GraphicsLayersA;
 	HMENU GraphicsLayersB;
@@ -4759,6 +4824,7 @@ HMENU Build_Main_Menu(void)
 	FilesLoadState = CreatePopupMenu();
 	FilesHistory = CreatePopupMenu();
 	GraphicsRender = CreatePopupMenu();
+	GraphicsSize = CreatePopupMenu();
 	GraphicsLayers = CreatePopupMenu(); //Nitsuja added this
 	GraphicsLayersA = CreatePopupMenu();
 	GraphicsLayersB = CreatePopupMenu();
@@ -4911,20 +4977,16 @@ HMENU Build_Main_Menu(void)
 	}
 
 	
-	// Menu Graphics
+// Menu Graphics
 
 	Flags = MF_BYPOSITION | MF_STRING;
 	
 	i = 0; //In this next section Nitsuja and I simplified the menu generation code greatly through consistent use of "i" and the trinary operator.
 
 	if (Full_Screen)
-	{
 		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Windowed", "", "&Windowed");
-	}
 	else
-	{
 		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Full Screen", "", "&Full Screen");
-	}
 
 	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
 
@@ -4934,31 +4996,32 @@ HMENU Build_Main_Menu(void)
 		MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
 
 	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd
-
 	MENU_L(Graphics, i++, Flags | (Correct_256_Aspect_Ratio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_256RATIO, "Proper Aspect Ratio in low-res mode", "", "Proper Aspect Ratio in low-res mode");
-
 	MENU_L(Graphics, i++, Flags, ID_GRAPHICS_COLOR_ADJUST, "Color", "", "&Color Adjust...");
 	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsRender, "Render", "", "&Render");
-	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
+	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsSize, "Window Size", "", "&Window Size");
 
+	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
+	
 	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsLayers, "Layers", "", "&Layers");
 	MENU_L(Graphics, i++, Flags | (PalLock ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_PALLOCK, "Lock Palette", "", "Lock &Palette");
 	MENU_L(Graphics, i++, Flags | (Sprite_Over ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEOVER, "Sprite Limit", "", "&Sprite Limit");
 	MENU_L(Graphics, i++, Flags | (PinkBG ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_PINKBG, "Pink Background", "", "&Pink Background");
 
 	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
+
 	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsLatencyCompensation, "Latency Compensation", "", "L&atency Compensation");
 	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsFrameSkip, "Frame Skip", "", "&Frame Skip");
 	MENU_L(Graphics, i++, Flags | (Never_Skip_Frame ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_NEVER_SKIP_FRAME, "Never skip frame with auto frameskip", "", "&Never skip frame with auto frameskip");
 	
 	InsertMenu(Graphics, i++, MF_MENUBARBREAK, NULL, NULL);
+
 	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_SHOT, "Screen Shot To File", "", "&Screen Shot To File");
 	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_CLIPBOARD, "Screen Shot To Clipboard", "", "&Screen Shot To Clipboard");
 	
-	//InsertMenu(Graphics, 12, MF_SEPARATOR, NULL, NULL);
+//	InsertMenu(Graphics, 12, MF_SEPARATOR, NULL, NULL);
 
-	// Menu GraphicsRender
-
+// Menu GraphicsRender
 	i = 0;
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_NORMAL, "Normal", "", "&Normal");
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 1) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_DOUBLE, "Double", "", "&Double");
@@ -4986,20 +5049,28 @@ HMENU Build_Main_Menu(void)
 	}
 
 	InsertMenu(GraphicsRender, i++, MF_SEPARATOR, NULL, NULL);
+
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend > 0) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_PREVIOUS_RENDER, "Previous Render Mode", "", "Previous Render Mode");
 	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend != 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
 
-	// Menu GraphicsLayers
-     // Nitsuja Added this
+// Menu GraphicsSize
+	i = 0;
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 1.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_1X, "1x", "", "&1x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 2.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_2X, "2x", "", "&2x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 3.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_3X, "3x", "", "&3x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 4.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_4X, "4x", "", "4x");
+		
+// Menu GraphicsLayers
+    // Nitsuja Added this
 	i = 0;
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersA, "Scroll A", "", "Scroll &A");
-	//MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
+//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersB, "Scroll B", "", "Scroll &B");
-	//MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
+//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersS, "Sprites", "", "&Sprites");
-	//MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
+//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
 
-	//menu GraphicLayers Submenus
+//menu GraphicLayers Submenus
 	i = 0;
 	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Scroll A Low", "", "Scroll A &Low");
 	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER1, "Scroll B Low", "", "Scroll B &Low");
@@ -5017,7 +5088,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Sprite_Always_Top ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEALWAYS, "Sprites Always On Top", "", "Sprites Always On &Top");
 
 
-	// Menu GraphicsLatencyCompensation
+// Menu GraphicsLatencyCompensation
 	i = 0;
 	Flags = MF_BYPOSITION | MF_STRING;
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_0, "0", "", "&0 (lightest/cheap/default)");
@@ -5025,7 +5096,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 2) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_2, "2", "", "&2 (responsive, recommended)");
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 3) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_3, "3", "", "&3 (over-responsive)");
 	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 4) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_4, "4", "", "&4 (heaviest/expensive)");
-	//MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 5) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_5, "5", "", "&5");
+//	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 5) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_5, "5", "", "&5");
 
 
 	// Menu GraphicsFrameSkip
@@ -7589,6 +7660,22 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return false;
 }
 
+BOOL SetDlgItemFloat(HWND hDlg, int item, float value)
+{
+	char buf[11];
+	sprintf(buf,"%.8f",value);
+	return SetDlgItemText(hDlg, item, buf);
+}
+
+float GetDlgItemFloat(HWND hDlg, int item)
+{
+	char buf[11];
+	float ret = 0;
+
+	GetDlgItemText(hDlg, item, buf, 11);
+	sscanf(buf,"%f",&ret);
+	return(ret);
+}
 
 LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -7669,6 +7756,7 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SendDlgItemMessage(hDlg, IDC_BOTTOM_RIGHT, BM_SETCHECK, (WPARAM) (FrameCounterPosition==FRAME_COUNTER_BOTTOM_RIGHT)?BST_CHECKED:BST_UNCHECKED, 0); //Modif
 			SetDlgItemInt(hDlg,IDC_TEXT_RES_X,Res_X,true); //Upth-Add - These will show the currently configured
 			SetDlgItemInt(hDlg,IDC_TEXT_RES_Y,Res_Y,true); //Upth-Add - fullscreen resolution value
+			SetDlgItemFloat(hDlg,IDC_TEXT_SCALE,ScaleFactor);
 			SetDlgItemInt(hDlg,IDC_TEXT_DELAY,DelayFactor,false); //Upth-Add - Frame Advance delay mod
 			
 			return true;
@@ -7678,7 +7766,9 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			switch(LOWORD(wParam))
 			{
 				case IDC_OPTION_OK:
-				{	unsigned int res;
+				{
+					unsigned int res;
+					float ScaleFactorOld = ScaleFactor;
 
 					if (Full_Screen)
 					{
@@ -7729,6 +7819,7 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								FrameCounterPosition = FRAME_COUNTER_BOTTOM_RIGHT;
 					Res_X = GetDlgItemInt(hDlg,IDC_TEXT_RES_X,NULL,true); //Upth-Add - This reconfigures
 					Res_Y = GetDlgItemInt(hDlg,IDC_TEXT_RES_Y,NULL,true); //Upth-Add - the fullscreen resolution
+					ScaleFactor = GetDlgItemFloat(hDlg,IDC_TEXT_SCALE);
 
 					Def_Read_Only = (SendDlgItemMessage(hDlg, IDC_CHECK_DEF_READ_ONLY, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0; //Upth-Add //Modif N. - it shouldn't save if the user hits Cancel instead of OK
 					AutoCloseMovie = (SendDlgItemMessage(hDlg, IDC_CHECK_AUTO_CLOSE, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0; //Upth-Add //Modif N. - it shouldn't save if the user hits Cancel instead of OK
@@ -7737,6 +7828,8 @@ LRESULT CALLBACK OptionProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					DelayFactor = (TempDelay) ? TempDelay : 1 ;
 
 					Build_Main_Menu();
+					if (ScaleFactorOld != ScaleFactor)
+						Set_Window_Size(HWnd);
 					
 					DialogsOpen--;
 					EndDialog(hDlg, true);
