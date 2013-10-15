@@ -45,6 +45,9 @@ public:
 		GMASK_16 = 0x07E0,
 		BMASK_16 = 0x001F,
 		RBMASK_16 = (RMASK_16|BMASK_16),
+	};
+	enum
+	{
 		RMASK_32 = 0x00FF0000,
 		GMASK_32 = 0x0000FF00,
 		BMASK_32 = 0x000000FF,
@@ -68,20 +71,27 @@ public:
 	{ enum{MASK =  GMASK_##depth}; rv |= (code)&MASK; } \
 	return rv;
 
+#define DO_RGBA(depth, code, codea) \
+	pix##depth rv; \
+	{ enum{MASK = RBMASK_##depth}; rv = (code)&MASK; } \
+	{ enum{MASK =  GMASK_##depth}; rv |= (code)&MASK; } \
+	{ enum{MASK =     0xFF000000}; rv |= (codea)&MASK; } \
+	return rv;
+
 inline pix16 DrawUtil::Blend (pix16 A, pix16 B) {
 	DO_RGB(16, (((A & MASK) + (B & MASK)) >> 1) ); }
 inline pix32 DrawUtil::Blend (pix32 A, pix32 B) {
-	DO_RGB(32, (((A & MASK) + (B & MASK)) >> 1) ); }
+	DO_RGBA(32, (((A & MASK) + (B & MASK)) >> 1), (((A & MASK) >> 1) + ((B & MASK) >> 1)) ); }
 
 inline pix16 DrawUtil::Blend (pix16 A, pix16 B, int AWeight, int BWeight, int Shift) {
 	DO_RGB(16, (((A & MASK)*AWeight + (B & MASK)*BWeight) >> Shift) ); }
 inline pix32 DrawUtil::Blend (pix32 A, pix32 B, int AWeight, int BWeight, int Shift) {
-	DO_RGB(32, (((A & MASK)*AWeight + (B & MASK)*BWeight) >> Shift) ); }
+	DO_RGBA(32, (((A & MASK)*AWeight + (B & MASK)*BWeight) >> Shift), (((A & MASK) >> Shift)*AWeight + ((B & MASK) >> Shift)*BWeight) ); }
 
 inline pix16 DrawUtil::Blend (pix16 To, pix16 From, int Opac) {
 	DO_RGB(16, (((To & MASK) * Opac + (From & MASK) * (256-Opac) ) >> 8) ); }
 inline pix32 DrawUtil::Blend (pix32 To, pix32 From, int Opac) {
-	DO_RGB(32, (((To & MASK) * Opac + (From & MASK) * (256-Opac) ) >> 8) ); }
+	DO_RGBA(32, (((To & MASK) * Opac + (From & MASK) * (256-Opac) ) >> 8), (((To & MASK) >> 8) * Opac + ((From & MASK) >> 8) * (256-Opac) ) ); }
 
 inline pix16 DrawUtil::Blend (pix16 A, pix16 B, pix16 C, pix16 D) {
 	return Blend(Blend(A,B),Blend(C,D)); }

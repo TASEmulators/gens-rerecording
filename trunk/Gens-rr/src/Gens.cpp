@@ -241,214 +241,6 @@
 
 #endif // TEST_FOR_DESYNCS
 
-
-
-
-int XRay;
-unsigned int Pal32_XRAY[0x10000];
-/*#define //UPDATE_PALETTE32 \
-		if (!(CRam_Flag & 1) && !PalLock)\
-		{\
-			for (int Ind = 0; Ind < 64; Ind++)\
-			{\
-				MD_Palette32[Ind] = Palette32[CRam[Ind] & 0x0FFF];\
-				if (VDP_Reg.Set4 & 8)\
-				{\
-					MD_Palette32[Ind + 192] = MD_Palette32[Ind]; \
-					MD_Palette32[Ind + 64] =  (MD_Palette32[Ind] >> 1) & 0x777777;\
-					MD_Palette32[Ind + 128] = MD_Palette32[Ind + 64] + 0x777777;\
-				}\
-			}\
-			MD_Palette32[0] = MD_Palette32[VDP_Reg.BG_Color & 0x3F];\
-			if (VDP_Reg.Set4 & 8)\
-			{\
-				MD_Palette32[192] = MD_Palette32[0];\
-				MD_Palette32[64] =  (MD_Palette32[0] >> 1) & 0x777777;\
-				MD_Palette32[128] = MD_Palette32[64] + 0x777777;\
-			}\
-		}*/
-//#define POST_LINE
-
-// Blank mode
-#define POST_LINE_32X_M00 \
-		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
-		{\
-			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-		}
-
-// Packed pixel mode (indexed mode)
-#define POST_LINE_32X_M01 {\
-VRam_Ind*=2;\
-	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
-	{\
-		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
-		unsigned short Pix = _32X_VDP_CRam[pix];\
-		if ((Pix & 0x8000) || !(MD_Screen[Pixel] & 0xF))\
-		{\
-			MD_Screen[Pixel] = _32X_VDP_CRam_Ajusted[pix];\
-			MD_Screen32[Pixel] = _32X_VDP_CRam_Ajusted32[pix];\
-		}\
-		else\
-		{\
-			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-		}\
-	}\
-}
-
-// Direct color mode
-#define POST_LINE_32X_M10 \
-for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
-{\
-	unsigned short pix = VRam_32X[VRam_Ind++];\
-	if ((pix & 0x8000) || !(MD_Screen[Pixel] & 0xF))\
-	{\
-		MD_Screen32[Pixel] = _32X_Palette_32B[pix];\
-		MD_Screen[Pixel] = _32X_Palette_16B[pix];\
-	}\
-	else\
-	{\
-		MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-		MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-	}\
-}
-
-// Run length mode
-#define POST_LINE_32X_M11 {\
-	int CurPixel = TAB336[VDP_Current_Line] + 8;\
-	int PixMax = TAB336[VDP_Current_Line] + 336;\
-	while (CurPixel < PixMax)\
-	{\
-		unsigned char Pix = VRam_32X[VRam_Ind] & 0xFF;\
-		unsigned char Num = VRam_32X[VRam_Ind++] >> 8;\
-		int EndPixel = CurPixel + Num;\
-		while (CurPixel <= EndPixel && CurPixel < PixMax)\
-		{\
-			MD_Screen[CurPixel] = _32X_VDP_CRam_Ajusted[Pix];\
-			MD_Screen32[CurPixel++] = _32X_VDP_CRam_Ajusted32[Pix];\
-		}\
-	}\
-}
-
-// Packed pixel mode (indexed mode) + Shift
-#define POST_LINE_32X_SM01 {\
-VRam_Ind*=2; ++VRam_Ind;\
-	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
-	{\
-		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
-		unsigned short Pix = _32X_VDP_CRam[pix];\
-		if ((Pix & 0x8000) || !(MD_Screen[Pixel] & 0xF))\
-		{\
-			MD_Screen[Pixel] = _32X_VDP_CRam_Ajusted[pix];\
-			MD_Screen32[Pixel] = _32X_VDP_CRam_Ajusted32[pix];\
-		}\
-		else\
-		{\
-			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-		}\
-	}\
-}
-
-// Packed pixel mode (indexed mode) + Priority
-#define POST_LINE_32X_M01_P {\
-VRam_Ind*=2;\
-	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
-	{\
-		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
-		unsigned short Pix = _32X_VDP_CRam[pix];\
-		if ((Pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
-		{\
-			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-		}\
-		else\
-		{\
-			MD_Screen[Pixel] = _32X_VDP_CRam_Ajusted[pix];\
-			MD_Screen32[Pixel] = _32X_VDP_CRam_Ajusted32[pix];\
-		}\
-	}\
-}
-
-// Direct color mode + Priority
-#define POST_LINE_32X_M10_P \
-for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)\
-{\
-	unsigned short pix = VRam_32X[VRam_Ind++];\
-	if ((pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
-	{\
-		MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-		MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-	}\
-	else\
-	{\
-		MD_Screen32[Pixel] = _32X_Palette_32B[pix];\
-		MD_Screen[Pixel] = _32X_Palette_16B[pix];\
-	}\
-}
-
-// Packed pixel mode (indexed mode) + Priority + Shift
-#define POST_LINE_32X_SM01_P {\
-VRam_Ind*=2; ++VRam_Ind;\
-	for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < (TAB336[VDP_Current_Line] + 336); Pixel++)\
-	{\
-		unsigned char pix = _32X_VDP_Ram[VRam_Ind++ ^ 1];\
-		unsigned short Pix = _32X_VDP_CRam[pix];\
-		if ((Pix & 0x8000) && (MD_Screen[Pixel] & 0xF))\
-		{\
-			MD_Screen32[Pixel] = MD_Palette32[MD_Screen[Pixel] & 0xFF];\
-			MD_Screen[Pixel] = MD_Palette[MD_Screen[Pixel] & 0xFF];\
-		}\
-		else\
-		{\
-			MD_Screen[Pixel] = _32X_VDP_CRam_Ajusted[pix];\
-			MD_Screen32[Pixel] = _32X_VDP_CRam_Ajusted32[pix];\
-		}\
-	}\
-}
-#define POST_LINE_32X\
-	{\
-		unsigned short *VRam_32X = (unsigned short *) &_32X_VDP_Ram;\
-		int VRam_Ind = ((_32X_VDP.State & 1) << 16);\
-		VRam_Ind += VRam_32X[VRam_Ind + VDP_Current_Line];\
-		switch (_32X_Rend_Mode)\
-		{\
-			case 0:\
-			case 4:\
-			case 8:\
-			case 12:\
-				POST_LINE_32X_M00\
-				break;\
-			case 1:\
-				POST_LINE_32X_M01\
-				break;\
-			case 2:\
-			case 10:\
-				POST_LINE_32X_M10\
-				break;\
-			case 3:\
-			case 7:\
-			case 11:\
-			case 15:\
-				POST_LINE_32X_M11\
-				break;\
-			case 5:\
-				POST_LINE_32X_M01_P\
-				break;\
-			case 6:\
-			case 14:\
-				POST_LINE_32X_M10_P\
-				break;\
-			case 9:\
-				POST_LINE_32X_SM01\
-				break;\
-			case 13:\
-				POST_LINE_32X_SM01_P\
-				break;\
-		}\
-	}
-
 int Debug;
 int Frame_Skip;
 int Frame_Number;
@@ -461,6 +253,7 @@ int Contrast_Level;
 int Brightness_Level;
 int Greyscale;
 int Invert_Color;
+bool FakeVDPScreen=true;
 
 unsigned char CD_Data[1024];		// Used for hard reset to know the game name
 int SRAM_Was_On = 0;
@@ -538,9 +331,9 @@ void Recalculate_Palettes(void)
 		{
 			for(b = 0; b < 0x10; b++)
 			{
-				rf = (r & 0xE) << 2;
-				gf = (g & 0xE) << 2;
-				bf = (b & 0xE) << 2;
+				rf = (r & 0xF) << 2;
+				gf = (g & 0xF) << 2;
+				bf = (b & 0xF) << 2;
 
 				rf = (int)((double) (rf) * ((double) (RMax_Level) / 224.0));
 				gf = (int)((double) (gf) * ((double) (GMax_Level) / 224.0));
@@ -581,7 +374,7 @@ void Recalculate_Palettes(void)
 				gf <<= 10;
 				bf <<= 2;
 	
-				Palette32[(b << 8) | (g << 4) | r] = rf | gf | bf;
+				Palette32[(b << 8) | (g << 4) | r] = 0xFF000000 | rf | gf | bf; // alpha added
 				
 				rf >>= 18;
 				gf >>= 10;
@@ -649,7 +442,7 @@ void Recalculate_Palettes(void)
 		g <<= 10;
 		b <<= 2;
 
-		_32X_Palette_32B[i] = r | g | b;
+		_32X_Palette_32B[i] = 0xFF000000 | r | g | b; // alpha added
 		
 		r >>= 18;
 		g >>= 10;
@@ -687,7 +480,7 @@ void Recalculate_Palettes(void)
 			r <<= 16;
 			g <<= 8;
 
-			Palette32[i] = r | g | b;
+			Palette32[i] = 0xFF000000 | r | g | b; // alpha added
 
 			if (Mode_555 & 1)
 			{
@@ -739,7 +532,7 @@ void Recalculate_Palettes(void)
 			r <<= 16;
 			g <<= 8;
 
-			_32X_Palette_32B[i] = r | g | b;
+			_32X_Palette_32B[i] = 0xFF000000 | r | g | b; // alpha added
 
 			if (Mode_555 & 1)
 			{
@@ -791,6 +584,29 @@ void Recalculate_Palettes(void)
 			_32X_Palette_32B[i] ^= 0xFFFFFF;
 		}
 	}
+
+	for(i = 0; i < 0x1000; i++)
+	{
+		Palette32[0x1000|i] = Palette32[ i >> 1];			// shadow
+		Palette32[0x2000|i] = Palette32[(i >> 1) + 0x777];	// highlight
+		Palette[0x1000|i] = Palette[ i >> 1]; 				// shadow
+		Palette[0x2000|i] = Palette[(i >> 1) + 0x777];		// highlight
+	}
+
+	// colors for alpha = 1
+	for(i = 0; i < 0x4000; i++)
+	{
+		Palette32[0x4000|i] = Palette32[i];
+		Palette[0x4000|i] = Palette[i];
+	}
+
+	unsigned short pink_555 = (Mode_555 & 1) ? 0x7C1F : 0xF81F;
+	if (PinkBG)
+		for(i = 0; i < 0x4000; i++)
+		{
+			Palette32[i] = 0xFF00FF;
+			Palette[i] = pink_555;
+		}
 
 	for (i = 0; i < 0x100; i++)
 	{
@@ -979,6 +795,7 @@ void Init_Genesis_Bios(void)
 	M68K_Reset(0,1);
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	CPL_Z80 = Round_Double((((double) CLOCK_NTSC / 15.0) / 60.0) / 262.0);
 	CPL_M68K = Round_Double((((double) CLOCK_NTSC / 7.0) / 60.0) / 262.0);
 	VDP_Num_Lines = 262;
@@ -1083,6 +900,7 @@ int Init_Genesis(struct Rom *MD_Rom)
 	M68K_Reset(0,1);
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 
 	if (CPU_Mode)
 	{
@@ -1160,6 +978,7 @@ void Reset_Genesis()
 	M68K_Reset(0,1);
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	YM2612_Reset();
 
 	if (CPU_Mode) VDP_Status |= 1;
@@ -1180,7 +999,45 @@ extern "C"
 inline static int* LeftAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_L;	}
 inline static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
 
+void Render_MD_Screen()
+{
+	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+	{
+		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
+		{
+			MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+			MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+		}
+	}
+}
 
+void Render_MD_Screen32X()
+{
+	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+	{
+		if (Screen_32X[TAB336[VDP_Current_Line] + 7])
+		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
+		{
+			unsigned short pix = Screen_32X[Pixel];
+			if ((pix & 0x8000) || !(Screen_16X[Pixel] & 0x4000))
+			{
+				MD_Screen32[Pixel] = _32X_Palette_32B[pix];
+				MD_Screen[Pixel] = _32X_Palette_16B[pix];
+			}
+			else
+			{
+				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+			}
+		}
+		else
+			for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
+			{
+				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+			}
+	}
+}
 
 #ifdef SONICCAMHACK
 
@@ -1251,6 +1108,10 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
 		else z80_Set_Odo(&M_Z80, Cycles_Z80);
 	}
+
+	FakeVDPScreen = false;
+
+	Render_MD_Screen();
 
 	if(!disableSound)
 	{
@@ -1335,17 +1196,7 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 }
 #endif
 
-void Do_32X_Refresh() // is a separate function to prevent Do_VDP_Only from getting much larger to support this less-common case
-{
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		//UPDATE_PALETTE32
-		Render_Line_32X();
-		POST_LINE_32X
-	}
-}
-
-int Do_VDP_Only()
+int Do_VDP_Refresh()
 {
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
@@ -1354,12 +1205,10 @@ int Do_VDP_Only()
 	{
 		if(Genesis_Started || SegaCD_Started)
 		{
-			for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-			{
-				//UPDATE_PALETTE32
-				Render_Line();
-				//POST_LINE
-			}
+			if(FakeVDPScreen)
+				for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+					Render_Line();
+			Render_MD_Screen();
 		}
 		else // emulation hasn't started so just set all pixels to black
 		{
@@ -1369,10 +1218,10 @@ int Do_VDP_Only()
 	}
 	else
 	{
-		// Modif N. -- added to fix places where Do_VDP_Only is
-		// assumed to refresh the screen for 32X games
-		// (such as loading savestates and the color adjustment dialog)
-		Do_32X_Refresh();
+		if(FakeVDPScreen)
+			for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+				Render_Line_32X();
+		Render_MD_Screen32X();
 	}
 
 	Update_RAM_Search();
@@ -1422,6 +1271,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
+
+	FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -1694,6 +1545,7 @@ int Init_32X(struct Rom *MD_Rom)
 	M68K_Reset(1,1);
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	_32X_VDP_Reset();
 	_32X_Set_FB();
 	PWM_Init();
@@ -1788,6 +1640,7 @@ void Reset_32X()
 	M68K_Reset(1,1);
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	_32X_VDP_Reset();
 	_32X_Set_FB();
 	YM2612_Reset();
@@ -1860,6 +1713,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	p_j = (p_i * CPL_MSH2) / CPL_M68K;
 	p_k = (p_i * CPL_SSH2) / CPL_M68K;
 	p_l = p_i * 3;
+
+	FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -2194,17 +2049,17 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 
 		Render_Line_32X();
 		//UPDATE_PALETTE32
-#ifdef DEBUG
+#ifdef _DEBUG
 		static int _32X_Prev_Rend_Mode = -1;
 		if (_32X_Rend_Mode != _32X_Prev_Rend_Mode)
 		{
 			char temp[20];
-			sprintf(qwe,"32X Video Mode: %d",_32X_Rend_Mode);
-			SetWindowText(HWnd,qwe);
+			sprintf(temp,"32X Video Mode: %d",_32X_Rend_Mode);
+			SetWindowText(HWnd,temp);
 			_32X_Prev_Rend_Mode = _32X_Rend_Mode;
 		}
 #endif
-		POST_LINE_32X
+		//POST_LINE_32X
 
 		/* instruction by instruction execution */
 		
@@ -2227,6 +2082,11 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
 		else z80_Set_Odo(&M_Z80, Cycles_Z80);
 	}
+
+	FakeVDPScreen = false;
+
+	Render_MD_Screen32X();
+
 	if(!disableSound)
 	{
 		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
@@ -2516,6 +2376,7 @@ int Init_SegaCD(char *iso_name)
 	S68K_Reset();
 	Z80_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	Init_RS_GFX();
 	LC89510_Reset();
 
@@ -2643,6 +2504,7 @@ void Reset_SegaCD()
 	Z80_Reset();
 	LC89510_Reset();
 	Reset_VDP();
+	FakeVDPScreen = true;
 	Init_RS_GFX();
 	Reset_PCM();
 	YM2612_Reset();
@@ -2691,6 +2553,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
+
+	FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -2853,6 +2717,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cy
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
+
+	FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -3173,6 +3039,10 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 		Update_SegaCD_Timer();
 	}
 
+	FakeVDPScreen = false;
+
+	Render_MD_Screen();
+
 	if(!disableSound)
 	{
 		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
@@ -3423,6 +3293,10 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 		Update_SegaCD_Timer();
 	}
 
+	FakeVDPScreen = false;
+
+	Render_MD_Screen();
+
 	if(!disableSound)
 	{
 		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
@@ -3598,14 +3472,14 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 			MD_Screen[336 * 222 + 13] = 0x07E0;
 			MD_Screen[336 * 222 + 14] = 0x07E0;
 			MD_Screen[336 * 222 + 15] = 0x07E0;
-			MD_Screen32[336 * 220 + 12] = 0x00FF00;
-			MD_Screen32[336 * 220 + 13] = 0x00FF00;
-			MD_Screen32[336 * 220 + 14] = 0x00FF00;
-			MD_Screen32[336 * 220 + 15] = 0x00FF00;
-			MD_Screen32[336 * 222 + 12] = 0x00FF00;
-			MD_Screen32[336 * 222 + 13] = 0x00FF00;
-			MD_Screen32[336 * 222 + 14] = 0x00FF00;
-			MD_Screen32[336 * 222 + 15] = 0x00FF00;
+			MD_Screen32[336 * 220 + 12] = 0xFF00FF00; // alpha added
+			MD_Screen32[336 * 220 + 13] = 0xFF00FF00;
+			MD_Screen32[336 * 220 + 14] = 0xFF00FF00;
+			MD_Screen32[336 * 220 + 15] = 0xFF00FF00;
+			MD_Screen32[336 * 222 + 12] = 0xFF00FF00;
+			MD_Screen32[336 * 222 + 13] = 0xFF00FF00;
+			MD_Screen32[336 * 222 + 14] = 0xFF00FF00;
+			MD_Screen32[336 * 222 + 15] = 0xFF00FF00;
 		}
 
 		if (LED_Status & 1)
@@ -3618,14 +3492,14 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 			MD_Screen[336 * 222 + 13 + 8] = 0xF800;
 			MD_Screen[336 * 222 + 14 + 8] = 0xF800;
 			MD_Screen[336 * 222 + 15 + 8] = 0xF800;
-			MD_Screen32[336 * 220 + 12 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 13 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 14 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 15 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 12 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 13 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 14 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 15 + 8] = 0xFF0000;
+			MD_Screen32[336 * 220 + 12 + 8] = 0xFFFF0000; // alpha added
+			MD_Screen32[336 * 220 + 13 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 220 + 14 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 220 + 15 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 222 + 12 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 222 + 13 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 222 + 14 + 8] = 0xFFFF0000;
+			MD_Screen32[336 * 222 + 15 + 8] = 0xFFFF0000;
 		}
 	}
 

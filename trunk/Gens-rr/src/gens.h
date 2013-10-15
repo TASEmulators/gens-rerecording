@@ -51,8 +51,6 @@ extern int Contrast_Level;
 extern int Brightness_Level;
 extern int Greyscale;
 extern int Invert_Color;
-extern int XRay;
-extern unsigned int Pal32_XRAY[0x10000];
 
 int Round_Double(double val);
 void Init_Tab(void);
@@ -64,7 +62,7 @@ void Detect_Country_Genesis(void);
 void Init_Genesis_Bios(void);
 int Init_Genesis(struct Rom *MD_Rom);
 void Reset_Genesis();
-int Do_VDP_Only(void);
+int Do_VDP_Refresh(void);
 int Do_Genesis_Frame_No_VDP(void);
 int Do_Genesis_Frame(void);
 

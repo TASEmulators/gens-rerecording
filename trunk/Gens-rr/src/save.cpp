@@ -285,6 +285,7 @@ void TruncateMovieToFrameCount()
 }
 
 bool g_refreshScreenAfterLoad = true;
+extern bool FakeVDPScreen;
 int Load_State(char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;
@@ -525,7 +526,10 @@ int Load_State(char *Name)
 
 	extern bool g_anyScriptsHighSpeed;
 	if(g_refreshScreenAfterLoad && !g_anyScriptsHighSpeed)
+	{
+		FakeVDPScreen = true;
 		Show_Genesis_Screen(HWnd);
+	}
 
 	return 1;
 }
@@ -2853,6 +2857,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Brightness_Level = GetPrivateProfileInt("Graphics", "Brightness", 100, Conf_File);
 	Greyscale = GetPrivateProfileInt("Graphics", "Greyscale", 0, Conf_File);
 	Invert_Color = GetPrivateProfileInt("Graphics", "Invert", 0, Conf_File);
+	PinkBG = !!GetPrivateProfileInt("Graphics", "Pink Background", 0, Conf_File); // affects palette
 
 	Recalculate_Palettes();
 
@@ -2880,7 +2885,6 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Stretch = GetPrivateProfileInt("Graphics", "Stretch", 0, Conf_File);
 	Blit_Soft = GetPrivateProfileInt("Graphics", "Software Blit", 0, Conf_File);
 	Sprite_Over = GetPrivateProfileInt("Graphics", "Sprite limit", 1, Conf_File);
-	PinkBG = !!GetPrivateProfileInt("Graphics", "Pink Background", 0, Conf_File);
 	Frame_Skip = GetPrivateProfileInt("Graphics", "Frame skip", -1, Conf_File);
 	CleanAvi = GetPrivateProfileInt("Graphics", "Clean Avi", 1, Conf_File);
 

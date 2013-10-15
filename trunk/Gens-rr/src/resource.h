@@ -162,7 +162,6 @@
 #define IDC_SLIDER_LUMINOSITE           1119
 #define IDC_CHECK_GREYSCALE             1120
 #define IDC_CHECK_INVERT                1121
-#define IDC_CHECK_XRAY                  1122
 #define IDC_BUTTON_BROWSE_MOVIE         1122
 #define ID_CLOSE                        1123
 #define ID_APPLY                        1124

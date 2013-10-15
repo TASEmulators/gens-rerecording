@@ -723,6 +723,7 @@ void DrawInformationOnTheScreen()
 							if (Bits32) MD_Screen32[n]=0x0000;
 							else MD_Screen[n]=0x0000;
 						}
+						MD_Screen32[n] |= 0xFF000000; // alpha added (opaque)
 					}
 				}
 				n-=336*7-6;
@@ -765,6 +766,7 @@ void DrawInformationOnTheScreen()
 							if (Bits32) MD_Screen32[n]=0x0000;
 							else MD_Screen[n]=0x0000;
 						}
+						MD_Screen32[n] |= 0xFF000000; // alpha added (opaque)
 					}
 				}
 				n-=336*7-6;
@@ -860,6 +862,7 @@ void DrawInformationOnTheScreen()
 						if (Bits32) MD_Screen32[n]=0x0000;
 						else MD_Screen[n]=0x0000;
 					}
+					MD_Screen32[n] |= 0xFF000000; // alpha added (opaque)
 				}
 			}
 			n-=336*7-4;
@@ -1908,7 +1911,7 @@ int Pause_Screen(void)
 
 int Show_Genesis_Screen(HWND hWnd)
 {
-	Do_VDP_Only();
+	Do_VDP_Refresh();
 	Flip(hWnd);
 
 	return 1;
