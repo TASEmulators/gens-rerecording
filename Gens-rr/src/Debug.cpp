@@ -874,7 +874,7 @@ void Update_Debug_Screen(void)
 	memset(MD_Screen, 0, 336 * 240 * 2);
 	memset(MD_Screen32, 0, 336 * 240 * 4);
 	
-	if (Debug & 0x100) Do_VDP_Only();
+	if (Debug & 0x100) Do_VDP_Refresh();
 	else switch(Debug)
 	{
 		default:

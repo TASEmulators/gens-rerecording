@@ -5,6 +5,12 @@
 extern "C" {
 #endif
 
+// 0ahsbbbbggggrrrr main screen
+extern unsigned short Screen_16X[336 * 240];
+
+// pbbbbbgggggrrrrr 32X screen
+extern unsigned short Screen_32X[336 * 240];
+
 extern unsigned int MD_Screen32[336 * 240];
 extern unsigned short MD_Screen[336 * 240];
 
@@ -16,11 +22,11 @@ extern unsigned int MD_Palette32[256];
 // from ttppiiii into RGB555 if (Mode_555 & 1) else RGB565
 extern unsigned short MD_Palette[256];
 
-// from 0000bbbbggggrrrr into RGB24
-extern unsigned int Palette32[0x1000];
+// from 0ahsbbbbggggrrrr into RGB24
+extern unsigned int Palette32[0x8000];
 
-// from 0000bbbbggggrrrr into RGB555 if (Mode_555 & 1) else RGB565
-extern unsigned short Palette[0x1000];
+// from 0ahsbbbbggggrrrr into RGB555 if (Mode_555 & 1) else RGB565
+extern unsigned short Palette[0x8000];
 extern unsigned long TAB336[336];
 extern unsigned char Bits32;
 

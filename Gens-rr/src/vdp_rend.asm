@@ -2,13 +2,15 @@
 
 %define HIGH_B   0x80
 %define SHAD_B   0x40
-%define PRIO_B   0x01
+%define BACK_B   0x01 ; backdrop
+%define PRIO_B   0x02
 %define SPR_B    0x20
 
 %define HIGH_W   0x8080
 %define SHAD_W   0x4040
 %define NOSHAD_W 0xBFBF
-%define PRIO_W   0x0100
+%define BACK_W   0x0100 ; backdrop
+%define PRIO_W   0x0200
 %define SPR_W    0x2000
 
 %define SHAD_D   0x40404040
@@ -87,6 +89,12 @@ section .bss align=64
 
 	resw (320 + 32)
 
+	DECL Screen_16X
+	resw (336 * 240)
+
+	DECL Screen_32X
+	resw (336 * 240)
+
 	DECL MD_Screen
 	resw (336 * 240)
 
@@ -103,13 +111,13 @@ section .bss align=64
 	resw 0x100
 
 	DECL Palette
-	resw 0x1000
+	resw 0x8000
 
 	DECL MD_Palette32
 	resd 0x100
 
 	DECL Palette32
-	resd 0x1000
+	resd 0x8000
 
 	DECL Sprite_Struct
 	resd (0x100 * 8)
@@ -566,22 +574,28 @@ section .text align=64
 	jz short %%Trans
 
 %if %4 > 0
+	; Scroll A
 	%if %5 > 0
-		mov cl, [MD_Screen + ebp * 2 + (%1 * 2) + 1]
+		; Shadow/Highlight
+		mov cl, [Screen_16X + ebp * 2 + (%1 * 2) + 1]
 		test cl, PRIO_B
 		jnz short %%Trans
 	%else
-		test byte [MD_Screen + ebp * 2 + (%1 * 2) + 1], PRIO_B
+		; No Shadow/Highlight
+		test byte [Screen_16X + ebp * 2 + (%1 * 2) + 1], PRIO_B
 		jnz short %%Trans
 	%endif
 %endif
 
 %if %3 > 0
+	; shift > 0
 	shr eax, %3
 %endif
 
 %if %4 > 0
+	; Scroll A
 	%if %5 > 0
+		; Shadow / Highlight
 		and cl, SHAD_B
 		add al, dl
 		add al, cl
@@ -589,14 +603,17 @@ section .text align=64
 		add al, dl
 	%endif
 %else
+	; Scroll B
 	%if %5 > 0
+		; Shadow / Highlight
 		lea eax, [eax + edx + SHAD_W]
 	%else
 		add al, dl
 	%endif
 %endif
 
-	mov [MD_Screen + ebp * 2 + (%1 * 2)], al	; set the pixel
+	mov [Screen_16X + ebp * 2 + (%1 * 2)], al	; set the pixel
+	or [Screen_16X + ebp * 2 + (%1 * 2) + 1], byte BACK_B
 
 %%Trans
 
@@ -625,8 +642,8 @@ section .text align=64
 	shr eax, %3
 %endif
 
-	lea eax, [eax + edx + PRIO_W]
-	mov [MD_Screen + ebp * 2 + (%1 * 2)], ax
+	lea eax, [eax + edx + PRIO_W + BACK_W]
+	mov [Screen_16X + ebp * 2 + (%1 * 2)], ax
 
 %%Trans
 
@@ -652,14 +669,14 @@ section .text align=64
 	and eax, %2
 	jz short %%Trans
 
-	mov cl, [MD_Screen + ebp * 2 + (%1 * 2) + 16 + 1]
+	mov cl, [Screen_16X + ebp * 2 + (%1 * 2) + 16 + 1]
 	test cl, (PRIO_B + SPR_B - %4)
 	jz short %%Affich
 
 %%Prio
 	or ch, cl
 %if %4 < 1
-	or byte [MD_Screen + ebp * 2 + (%1 * 2) + 16 + 1], SPR_B
+	or byte [Screen_16X + ebp * 2 + (%1 * 2) + 16 + 1], SPR_B
 %endif
 	jmp %%Trans
 
@@ -685,11 +702,11 @@ ALIGN4
 	ja short %%Shadow
 
 %%Highlight
-	or word [MD_Screen + ebp * 2 + (%1 * 2) + 16], HIGH_W
+	or word [Screen_16X + ebp * 2 + (%1 * 2) + 16], HIGH_W
 	jmp short %%Trans
 	
 %%Shadow
-	or word [MD_Screen + ebp * 2 + (%1 * 2) + 16], SHAD_W
+	or word [Screen_16X + ebp * 2 + (%1 * 2) + 16], SHAD_W
 	jmp short %%Trans
 
 %%Normal
@@ -697,7 +714,8 @@ ALIGN4
 
 %endif
 
-	mov [MD_Screen + ebp * 2 + (%1 * 2) + 16], ax
+	mov [Screen_16X + ebp * 2 + (%1 * 2) + 16], ax
+	or [Screen_16X + ebp * 2 + (%1 * 2) + 16 + 1], byte BACK_B
 
 %%Trans
 
@@ -718,22 +736,27 @@ ALIGN4
 
 
 %if %1 < 1
+	; Scroll B
 	%if %2 > 0
-		mov dword [MD_Screen + ebp * 2 +  0], SHAD_D
-		mov dword [MD_Screen + ebp * 2 +  4], SHAD_D
-		mov dword [MD_Screen + ebp * 2 +  8], SHAD_D
-		mov dword [MD_Screen + ebp * 2 + 12], SHAD_D
+		; Shadow/Highlight is on
+		mov dword [Screen_16X + ebp * 2 +  0], SHAD_D
+		mov dword [Screen_16X + ebp * 2 +  4], SHAD_D
+		mov dword [Screen_16X + ebp * 2 +  8], SHAD_D
+		mov dword [Screen_16X + ebp * 2 + 12], SHAD_D
 	%else
-		mov dword [MD_Screen + ebp * 2 +  0], 0x00000000
-		mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
-		mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
-		mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
+		; Shadow/Highlight is off
+		mov dword [Screen_16X + ebp * 2 +  0], 0x00000000
+		mov dword [Screen_16X + ebp * 2 +  4], 0x00000000
+		mov dword [Screen_16X + ebp * 2 +  8], 0x00000000
+		mov dword [Screen_16X + ebp * 2 + 12], 0x00000000
 	%endif
+
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBl], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %else
+	; Scroll A
 	test byte [ScrollAOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollAl], 1 ;Nitsuja added this
@@ -770,22 +793,27 @@ ALIGN4
 %macro PUTLINE_FLIP_P0 2
 
 %if %1 < 1
+	; Scroll B
 	%if %2 > 0
-		mov dword [MD_Screen + ebp * 2 +  0], SHAD_D
-		mov dword [MD_Screen + ebp * 2 +  4], SHAD_D
-		mov dword [MD_Screen + ebp * 2 +  8], SHAD_D
-		mov dword [MD_Screen + ebp * 2 + 12], SHAD_D
+		; Shadow/Highlight is on
+		mov dword [Screen_16X + ebp * 2 +  0], SHAD_D
+		mov dword [Screen_16X + ebp * 2 +  4], SHAD_D
+		mov dword [Screen_16X + ebp * 2 +  8], SHAD_D
+		mov dword [Screen_16X + ebp * 2 + 12], SHAD_D
 	%else
-		mov dword [MD_Screen + ebp * 2 +  0], 0x00000000
-		mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
-		mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
-		mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
+		; Shadow/Highlight is off
+		mov dword [Screen_16X + ebp * 2 +  0], 0x00000000
+		mov dword [Screen_16X + ebp * 2 +  4], 0x00000000
+		mov dword [Screen_16X + ebp * 2 +  8], 0x00000000
+		mov dword [Screen_16X + ebp * 2 + 12], 0x00000000
 	%endif
+
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBl], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %else
+	; Scroll A
 	test byte [ScrollAOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollAl], 1 ;Nitsuja added this
@@ -821,15 +849,18 @@ ALIGN4
 %macro PUTLINE_P1 2
 
 %if %1 < 1
-	mov dword [MD_Screen + ebp * 2 +  0], 0x00000000
-	mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
-	mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
-	mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
+	; Scroll B
+	mov dword [Screen_16X + ebp * 2 +  0], 0x00000000
+	mov dword [Screen_16X + ebp * 2 +  4], 0x00000000
+	mov dword [Screen_16X + ebp * 2 +  8], 0x00000000
+	mov dword [Screen_16X + ebp * 2 + 12], 0x00000000
+
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBh], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %else
+	; Scroll A
 	test byte [ScrollAOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollAh], 1 ;Nitsuja added this
@@ -839,25 +870,25 @@ ALIGN4
 
 		; Faster on almost CPU (because of pairable instructions)
 
-		mov eax, [MD_Screen + ebp * 2 +  0]
-		mov ecx, [MD_Screen + ebp * 2 +  4]
+		mov eax, [Screen_16X + ebp * 2 +  0]
+		mov ecx, [Screen_16X + ebp * 2 +  4]
 		and eax, NOSHAD_D
 		and ecx, NOSHAD_D
-		mov [MD_Screen + ebp * 2 +  0], eax
-		mov [MD_Screen + ebp * 2 +  4], ecx
-		mov eax, [MD_Screen + ebp * 2 +  8]
-		mov ecx, [MD_Screen + ebp * 2 + 12]
+		mov [Screen_16X + ebp * 2 +  0], eax
+		mov [Screen_16X + ebp * 2 +  4], ecx
+		mov eax, [Screen_16X + ebp * 2 +  8]
+		mov ecx, [Screen_16X + ebp * 2 + 12]
 		and eax, NOSHAD_D
 		and ecx, NOSHAD_D
-		mov [MD_Screen + ebp * 2 +  8], eax
-		mov [MD_Screen + ebp * 2 + 12], ecx
+		mov [Screen_16X + ebp * 2 +  8], eax
+		mov [Screen_16X + ebp * 2 + 12], ecx
 
 		; Faster on K6 CPU
 
-		;and dword [MD_Screen + ebp * 2 +  0], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 +  4], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 +  8], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 + 12], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  0], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  4], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  8], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 + 12], NOSHAD_D
 	%endif
 %endif
 
@@ -890,43 +921,47 @@ ALIGN4
 %macro PUTLINE_FLIP_P1 2
 
 %if %1 < 1
-	mov dword [MD_Screen + ebp * 2 +  0], 0x00000000
-	mov dword [MD_Screen + ebp * 2 +  4], 0x00000000
-	mov dword [MD_Screen + ebp * 2 +  8], 0x00000000
-	mov dword [MD_Screen + ebp * 2 + 12], 0x00000000
+	; Scroll B
+	mov dword [Screen_16X + ebp * 2 +  0], 0x00000000
+	mov dword [Screen_16X + ebp * 2 +  4], 0x00000000
+	mov dword [Screen_16X + ebp * 2 +  8], 0x00000000
+	mov dword [Screen_16X + ebp * 2 + 12], 0x00000000
+
 	test byte [ScrollBOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollBh], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 %else
+	; Scroll A
 	test byte [ScrollAOn], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 	test dword [VScrollAh], 1 ;Nitsuja added this
 	jz near %%Full_Trans ;Nitsuja added this
 
 	%if %2 > 0
+		; Shadow/Highlight is on
 
 		; Faster on almost CPU (because of pairable instructions)
 
-		mov eax, [MD_Screen + ebp * 2 +  0]
-		mov ecx, [MD_Screen + ebp * 2 +  4]
+		mov eax, [Screen_16X + ebp * 2 +  0]
+		mov ecx, [Screen_16X + ebp * 2 +  4]
 		and eax, NOSHAD_D
 		and ecx, NOSHAD_D
-		mov [MD_Screen + ebp * 2 +  0], eax
-		mov [MD_Screen + ebp * 2 +  4], ecx
-		mov eax, [MD_Screen + ebp * 2 +  8]
-		mov ecx, [MD_Screen + ebp * 2 + 12]
+		mov [Screen_16X + ebp * 2 +  0], eax
+		mov [Screen_16X + ebp * 2 +  4], ecx
+		mov eax, [Screen_16X + ebp * 2 +  8]
+		mov ecx, [Screen_16X + ebp * 2 + 12]
 		and eax, NOSHAD_D
 		and ecx, NOSHAD_D
-		mov [MD_Screen + ebp * 2 +  8], eax
-		mov [MD_Screen + ebp * 2 + 12], ecx
+		mov [Screen_16X + ebp * 2 +  8], eax
+		mov [Screen_16X + ebp * 2 + 12], ecx
 
 		; Faster on K6 CPU
 
-		;and dword [MD_Screen + ebp * 2 +  0], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 +  4], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 +  8], NOSHAD_D
-		;and dword [MD_Screen + ebp * 2 + 12], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  0], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  4], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 +  8], NOSHAD_D
+		;and dword [Screen_16X + ebp * 2 + 12], NOSHAD_D
 	%endif
 %endif
 
@@ -1781,7 +1816,7 @@ ALIGN4
 	%%H_Flip_P1
 	%%H_Flip_P1_Loop
 			mov ebx, [VRam + esi]					; ebx = Pattern Data
-			PUTLINE_SPRITE_FLIP 1, %2				; one posts the line of the sprite pattern 
+			PUTLINE_SPRITE_FLIP PRIO_B, %2				; one posts the line of the sprite pattern 
 
 			sub ebp, byte 8							; one posts the previous pattern
 			add esi, edi							; one goes on next the pattern
@@ -1841,7 +1876,7 @@ ALIGN4
 	%%No_H_Flip_P1
 	%%No_H_Flip_P1_Loop
 			mov ebx, [VRam + esi]					; ebx = Pattern Data
-			PUTLINE_SPRITE 1, %2					; one posts the line of the sprite pattern 
+			PUTLINE_SPRITE PRIO_B, %2					; one posts the line of the sprite pattern 
 
 			add ebp, byte 8							; one posts the previous pattern
 			add esi, edi							; one goes on next the pattern
@@ -1911,7 +1946,7 @@ ALIGN4
 			mov eax, 0x40404040
 
 	.No_Shadow
-			lea edi, [MD_Screen + edi * 2 + 8 * 2]
+			lea edi, [Screen_16X + edi * 2 + 8 * 2]
 			rep stosd
 			jmp .VDP_OK
 
@@ -1996,13 +2031,13 @@ ALIGN4
 	
 	.VDP_OK
 		test byte [CRam_Flag], 1		; test if palette was modified
-		jz near .Palette_OK				; if yes
+		jz near Palette_OK				; if yes
 
 		test byte [VDP_Reg + 12 * 4], 8
 		jnz near .Palette_HS
 
 		UPDATE_PALETTE32 0
-		jmp .Palette_OK
+		jmp Palette_OK
 
 	ALIGN4
 		
@@ -2011,76 +2046,59 @@ ALIGN4
 
 	ALIGN4
 	
-	.Palette_OK
-		test [Bits32], byte 1
-		jz near .Render16
-
-	.Render32
+	Palette_OK
+		; Render
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]
 		sub ecx, eax
-		add esp, byte 4
-		lea edx, [MD_Screen + edi * 2 + 8 * 2]
-		shr ecx, 1
-		lea edi, [MD_Screen32 + edi * 4 + 8 * 4]
-		mov esi, MD_Palette32
-		jmp short .Genesis_Loop32
+		lea edi, [Screen_16X + edi * 2 + 8 * 2]
+		mov esi, CRam
+		
+		; Get backdrop color
+		mov ebp, [VDP_Reg + 7 * 4]
+		and ebp, byte 0x3F
+		jmp short .Genesis_Loop
 
 		ALIGN32
 		
-	.Genesis_Loop32
-		movzx eax, byte [edx + 0]
-		movzx ebx, byte [edx + 2]
-		mov eax, [esi + eax * 4]
-		mov ebx, [esi + ebx * 4]
-		mov [edi + 0], eax
-		mov [edi + 4], ebx
-		movzx ebp, byte [edx + 4]
-		movzx eax, byte [edx + 6]
-		mov ebp, [esi + ebp * 4]
-		mov eax, [esi + eax * 4]
-		mov [edi + 8], ebp
-		mov [edi + 12], eax
-		add edx, byte 8
-		add edi, byte 16
+	.Genesis_Loop
+		movzx eax, word [edi + 0]
+		mov ebx, eax
+		and ax, 0x3F
+		jnz .not_backdrop
+		mov ax, bp ; replace backdrop
+
+	.not_backdrop
+		and bx, 0x1C0
+		shl bx, 6
+		mov ax, [esi + eax * 2]
+		and ax, 0xEEE
+		or  ax, bx
+		mov [edi + 0], ax
+
+		movzx eax, word [edi + 2]
+		mov ebx, eax
+		and ax, 0x3F
+		jnz .not_backdrop1
+		mov ax, bp ; replace backdrop
+
+	.not_backdrop1
+		mov ax, [esi + eax * 2]
+		and ax, 0xEEE
+		and bx, 0x1C0
+		shl bx, 6
+		or  ax, bx
+		mov [edi + 2], ax
+
+		add edi, byte 4
 		dec ecx
-		jnz short .Genesis_Loop32
+		jnz short .Genesis_Loop
+
+		add esp, byte 4
+
 	popad
 	ret
-
-	.Render16
-		mov ecx, 160
-		mov eax, [H_Pix_Begin]
-		mov edi, [esp]
-		sub ecx, eax
-		add esp, byte 4
-		lea edi, [MD_Screen + edi * 2 + 8 * 2]
-		shr ecx, 1
-		mov esi, MD_Palette
-		jmp short .Genesis_Loop
-
-	ALIGN32
-	
-	.Genesis_Loop
-			movzx eax, byte [edi + 0]
-			movzx ebx, byte [edi + 2]
-			movzx edx, byte [edi + 4]
-			movzx ebp, byte [edi + 6]
-			mov ax, [esi + eax * 2]
-			mov bx, [esi + ebx * 2]
-			mov dx, [esi + edx * 2]
-			mov bp, [esi + ebp * 2]
-			mov [edi + 0], ax
-			mov [edi + 2], bx
-			mov [edi + 4], dx
-			mov [edi + 6], bp
-			add edi, byte 8
-
-			dec ecx
-			jnz short .Genesis_Loop
-		popad
-		ret
 
 ; *******************************************************
 
@@ -2103,7 +2121,7 @@ ALIGN4
 			mov eax, 0x40404040
 
 	.No_Shadow
-			lea edi, [MD_Screen + edi * 2 + 8 * 2]
+			lea edi, [Screen_16X + edi * 2 + 8 * 2]
 			rep stosd
 			jmp .VDP_OK
 
@@ -2159,12 +2177,12 @@ ALIGN4
 	ALIGN4
 	
 	.VDP_OK
+		; Render
 		mov ecx, 160
 		mov eax, [H_Pix_Begin]
 		mov edi, [esp]
 		sub ecx, eax
-		add esp, byte 4
-		lea edi, [MD_Screen + edi * 2 + 8 * 2]
+		lea edi, [Screen_32X + edi * 2 + 8 * 2]
 		mov esi, [_32X_VDP + vx.State]
 		mov eax, [_32X_VDP + vx.Mode]
 		and esi, byte 1
@@ -2184,6 +2202,7 @@ ALIGN4
 		mov [_32X_Rend_Mode], al
 		or  [_32X_Rend_Mode], dl
 		shl	edx, 2
+		mov [edi-2], word 1 ; mark that 32X was ON
 		jmp [.Table_32X_Draw + eax * 4 + edx]
 
 	ALIGN4
@@ -2200,340 +2219,166 @@ ALIGN4
 
 	ALIGN32
 
+	; Direct color mode
 	.32X_Draw_M10
-;		popad
-;		ret
-;			movzx ebp, word [esi + 0]
-;			movzx ebx, word [esi + 2]
-;			test ebp, 0x8000
-;			jnz short .32X_Draw_M10_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_M10_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_M10_G1
-;
-;	.32X_Draw_M10_X1
-;			mov ax, [_32X_Palette_16B + ebp * 2]
-;	.32X_Draw_M10_G1
-;			test ebx, 0x8000
-;			mov [edi + 0], ax
-;			jnz short .32X_Draw_M10_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_M10_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_M10_G2
-;
-;	.32X_Draw_M10_X2
-;			mov dx, [_32X_Palette_16B + ebx * 2]
-;	.32X_Draw_M10_G2
-;			add esi, byte 4
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_M10
-;
-;		popad
-;		ret
-;
-;	ALIGN32
-;	
+			mov ebp, [esi + 0]
+			mov ebx, [esi + 4]
+			mov [edi + 0], ebp
+			mov [edi + 4], ebx
+			add esi, byte 8
+			add edi, byte 8
+			sub ecx, 2
+			jns short .32X_Draw_M10
+
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Direct color mode + Priority
 	.32X_Draw_M10_P
-;			movzx ebp, word [esi + 0]
-;			movzx ebx, word [esi + 2]
-;			test ebp, 0x8000
-;			jz short .32X_Draw_M10_P_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_M10_P_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_M10_P_G1
-;
-;	.32X_Draw_M10_P_X1
-;			mov ax, [_32X_Palette_16B + ebp * 2]
-;	.32X_Draw_M10_P_G1
-;			test ebx, 0x8000
-;			mov [edi + 0], ax
-;			jz short .32X_Draw_M10_P_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_M10_P_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_M10_P_G2
-;
-;	.32X_Draw_M10_P_X2
-;			mov dx, [_32X_Palette_16B + ebx * 2]
-;	.32X_Draw_M10_P_G2
-;			add esi, byte 4
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_M10_P
-;
-;		popad
-;		ret
-;
-;	ALIGN32
-;
+			mov ebp, [esi + 0]
+			mov ebx, [esi + 4]
+			xor ebp, 0x10001000
+			xor ebx, 0x10001000
+			mov [edi + 0], ebp
+			mov [edi + 4], ebx
+			add esi, byte 8
+			add edi, byte 8
+			sub ecx, 2
+			jns short .32X_Draw_M10_P
+
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Packed pixel mode (indexed mode)
 	.32X_Draw_M01
-;		popad
-;		ret
-;			movzx ebp, byte [esi + 1]
-;			movzx ebx, byte [esi + 0]
-;			mov ax, [_32X_VDP_CRam + ebp * 2]
-;			mov dx, [_32X_VDP_CRam + ebx * 2]
-;			test ax, ax
-;			js short .32X_Draw_M01_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_M01_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_M01_G1
-;
-;
-;	.32X_Draw_M01_X1
-;			mov ax, [_32X_VDP_CRam_Ajusted + ebp * 2]
-;	.32X_Draw_M01_G1
-;			test dx, dx
-;			mov [edi + 0], ax
-;			js short .32X_Draw_M01_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_M01_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_M01_G2
-;
-;	.32X_Draw_M01_X2
-;			mov dx, [_32X_VDP_CRam_Ajusted + ebx * 2]
-;	.32X_Draw_M01_G2
-;			add esi, byte 2
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_M01
-;
-;		popad
-;		ret
-;
-;	ALIGN32
-;	
+			movzx ebp, byte [esi + 1]
+			movzx ebx, byte [esi + 0]
+			mov ax, [_32X_VDP_CRam + ebp * 2]
+			mov dx, [_32X_VDP_CRam + ebx * 2]
+			mov [edi + 0], ax
+			mov [edi + 2], dx
+			add esi, byte 2
+			add edi, byte 4
+			dec ecx
+			jnz short .32X_Draw_M01
+
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Packed pixel mode (indexed mode) + Priority
 	.32X_Draw_M01_P
-;		popad
-;		ret
-;			movzx ebp, byte [esi + 1]
-;			movzx ebx, byte [esi + 0]
-;			mov ax, [_32X_VDP_CRam + ebp * 2]
-;			mov dx, [_32X_VDP_CRam + ebx * 2]
-;			test ax, ax
-;			jns short .32X_Draw_M01_P_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_M01_P_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_M01_P_G1
-;
-;	.32X_Draw_M01_P_X1
-;			mov ax, [_32X_VDP_CRam_Ajusted + ebp * 2]
-;	.32X_Draw_M01_P_G1
-;			test dx, dx
-;			mov [edi + 0], ax
-;			jns short .32X_Draw_M01_P_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_M01_P_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_M01_P_G2
-;
-;	.32X_Draw_M01_P_X2
-;			mov dx, [_32X_VDP_CRam_Ajusted + ebx * 2]
-;	.32X_Draw_M01_P_G2
-;			add esi, byte 2
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_M01_P
-;
-;		popad
-;		ret
-;
-;
-;	ALIGN32
-;
+			movzx ebp, byte [esi + 1]
+			movzx ebx, byte [esi + 0]
+			mov ax, [_32X_VDP_CRam + ebp * 2]
+			mov dx, [_32X_VDP_CRam + ebx * 2]
+			xor ax, 0x1000
+			xor dx, 0x1000
+			mov [edi + 0], ax
+			mov [edi + 2], dx
+			add esi, byte 2
+			add edi, byte 4
+			dec ecx
+			jnz short .32X_Draw_M01_P
+
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Packed pixel mode (indexed mode) + Shift
 	.32X_Draw_SM01
-;		popad
-;		ret	
-;			movzx ebp, byte [esi + 0]
-;			movzx ebx, byte [esi + 3]
-;			mov ax, [_32X_VDP_CRam + ebp * 2]
-;			mov dx, [_32X_VDP_CRam + ebx * 2]
-;			test ax, ax
-;			js short .32X_Draw_SM01_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_SM01_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_SM01_G1
-;
-;	.32X_Draw_SM01_X1
-;			mov ax, [_32X_VDP_CRam_Ajusted + ebp * 2]
-;	.32X_Draw_SM01_G1
-;			test dx, dx
-;			mov [edi + 0], ax
-;			js short .32X_Draw_SM01_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_SM01_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_SM01_G2
-;
-;	.32X_Draw_SM01_X2
-;			mov dx, [_32X_VDP_CRam_Ajusted + ebx * 2]
-;	.32X_Draw_SM01_G2
-;			add esi, byte 2
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_SM01
-;
-;		popad
-;		ret
-;
-;	ALIGN32
-;
+			movzx ebp, byte [esi + 0]
+			movzx ebx, byte [esi + 3]
+			mov ax, [_32X_VDP_CRam + ebp * 2]
+			mov dx, [_32X_VDP_CRam + ebx * 2]
+			mov [edi + 0], ax
+			mov [edi + 2], dx
+			add esi, byte 2
+			add edi, byte 4
+			dec ecx
+			jnz short .32X_Draw_SM01
+
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Packed pixel mode (indexed mode) + Shift + Priority
 	.32X_Draw_SM01_P
-;		popad
-;		ret
-;			movzx ebp, byte [esi + 0]
-;			movzx ebx, byte [esi + 3]
-;			mov ax, [_32X_VDP_CRam + ebp * 2]
-;			mov dx, [_32X_VDP_CRam + ebx * 2]
-;			test ax, ax
-;			jns short .32X_Draw_SM01_P_X1
-;
-;			movzx eax, byte [edi + 0]
-;			test eax, 0xF
-;			jz short .32X_Draw_SM01_P_X1
-;
-;			mov ax, [MD_Palette + eax * 2]
-;			jmp short .32X_Draw_SM01_P_G1
-;
-;	.32X_Draw_SM01_P_X1
-;			mov ax, [_32X_VDP_CRam_Ajusted + ebp * 2]
-;	.32X_Draw_SM01_P_G1
-;			test dx, dx
-;			mov [edi + 0], ax
-;			jns short .32X_Draw_SM01_P_X2
-;
-;			movzx edx, byte [edi + 2]
-;			test edx, 0xF
-;			jz short .32X_Draw_SM01_P_X2
-;
-;			mov dx, [MD_Palette + edx * 2]
-;			jmp short .32X_Draw_SM01_P_G2
-;
-;	.32X_Draw_SM01_P_X2
-;			mov dx, [_32X_VDP_CRam_Ajusted + ebx * 2]
-;	.32X_Draw_SM01_P_G2
-;			add esi, byte 2
-;			mov [edi + 2], dx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_SM01_P
-;
-;		popad
-;		ret
-;
-;
-;	ALIGN32
-;
+			movzx ebp, byte [esi + 0]
+			movzx ebx, byte [esi + 3]
+			mov ax, [_32X_VDP_CRam + ebp * 2]
+			mov dx, [_32X_VDP_CRam + ebx * 2]
+			xor ax, 0x1000
+			xor dx, 0x1000
+			mov [edi + 0], ax
+			mov [edi + 2], dx
+			add esi, byte 2
+			add edi, byte 4
+			dec ecx
+			jnz short .32X_Draw_SM01_P
+
+		jmp Palette_OK
+
+
+	ALIGN32
+
+	; Run length mode
 	.32X_Draw_M11
-;		popad
-;		ret
-;			lea edx, [ecx * 2]
-;			jmp short .32X_Draw_M11_Loop
-;
-;	ALIGN4
-;	
-;		.32X_Draw_M11_Loop
-;			movzx eax, byte [esi + 0]
-;			movzx ecx, byte [esi + 1]
-;			mov ax, [_32X_VDP_CRam_Ajusted + eax * 2]
-;			inc ecx
-;			add esi, byte 2
-;			sub edx, ecx
-;			jbe short .32X_Draw_M11_End
-;			rep stosw
-;			jmp short .32X_Draw_M11_Loop
-;
-;	ALIGN4
-;
-;	.32X_Draw_M11_End
-;		add ecx, edx
-;		rep stosw
-;		popad
-;		ret
-;
-;	ALIGN32
-;	
+			lea edx, [ecx * 2]
+			jmp short .32X_Draw_M11_Loop
+
+	ALIGN4
+	
+		.32X_Draw_M11_Loop
+			movzx eax, byte [esi + 0]
+			movzx ecx, byte [esi + 1]
+			mov ax, [_32X_VDP_CRam + eax * 2]
+			inc ecx
+			add esi, byte 2
+			sub edx, ecx
+			jbe short .32X_Draw_M11_End
+			rep stosw
+			jmp short .32X_Draw_M11_Loop
+
+	ALIGN4
+
+	.32X_Draw_M11_End
+		add ecx, edx
+		rep stosw
+		jmp Palette_OK
+
+	ALIGN32
+
+	; Run length mode + Priority
 	.32X_Draw_M11_P
-;		popad
-;		ret
-;			lea edx, [ecx * 2]
-;			jmp short .32X_Draw_M11_P_Loop
-;
-;	ALIGN4
-;	
-;		.32X_Draw_M11_P_Loop
-;			movzx eax, byte [esi + 0]
-;			movzx ecx, byte [esi + 1]
-;			mov ax, [_32X_VDP_CRam_Ajusted + eax * 2]
-;			inc ecx
-;			add esi, byte 2
-;			sub edx, ecx
-;			jbe short .32X_Draw_M11_P_End
-;			rep stosw
-;			jmp short .32X_Draw_M11_P_Loop
-;
-;	ALIGN4
-;
-;	.32X_Draw_M11_P_End
-;		add ecx, edx
-;		rep stosw
-;		popad
-;		ret
-;
-;	ALIGN32
-;	
+			lea edx, [ecx * 2]
+			jmp short .32X_Draw_M11_P_Loop
+
+	ALIGN4
+	
+		.32X_Draw_M11_P_Loop
+			movzx eax, byte [esi + 0]
+			movzx ecx, byte [esi + 1]
+			mov ax, [_32X_VDP_CRam + eax * 2]
+			xor ax, 0x1000
+			inc ecx
+			add esi, byte 2
+			sub edx, ecx
+			jbe short .32X_Draw_M11_P_End
+			rep stosw
+			jmp short .32X_Draw_M11_P_Loop
+
+	ALIGN4
+
+	.32X_Draw_M11_P_End
+		add ecx, edx
+		rep stosw
+		jmp Palette_OK
+
+	ALIGN32
+
 	.32X_Draw_M00
-		popad
-		ret
-;			movzx eax, byte [edi + 0]
-;			movzx ebx, byte [edi + 2]
-;			mov ax, [MD_Palette + eax * 2]
-;			mov bx, [MD_Palette + ebx * 2]
-;			mov [edi + 0], ax
-;			mov [edi + 2], bx
-;			add edi, byte 4
-;			dec ecx
-;			jnz short .32X_Draw_M00
+		mov [edi-2], word 0 ; mark that 32X was OFF
+		jmp Palette_OK

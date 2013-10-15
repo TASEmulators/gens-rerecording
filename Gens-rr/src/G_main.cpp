@@ -232,7 +232,6 @@ ALIGN16 static unsigned char frameadvSkipLag_Rewind_State_Buffer[2][MAX_STATE_FI
 long long frameadvSkipLag_Rewind_Input_Buffer[2] = {~0,~0};
 int frameadvSkipLag_Rewind_State_Buffer_Index = 0;
 bool frameadvSkipLag_Rewind_State_Buffer_Valid = false;
-extern "C" int Do_VDP_Only();
 extern void Update_Emulation_One_Before(HWND hWnd);
 extern void Update_Emulation_After_Fast(HWND hWnd);
 extern "C" int disableSound, disableSound2;
@@ -468,12 +467,21 @@ int Set_Sprite_Over(HWND hWnd, int Num)
 int Change_Debug(HWND hWnd, int Debug_Mode)
 {
 	if (!Game) return 0;
-		
-	Flag_Clr_Scr = 1;
+
 	Clear_Sound_Buffer();
 
-	if (Debug_Mode == Debug) Debug = 0;
-	else Debug = Debug_Mode;
+	if (Debug_Mode == Debug)
+	{
+		// Restore Game Screen
+		Debug = 0;
+		Show_Genesis_Screen(hWnd);
+	}
+	else
+	{
+		// Clear Screen
+		Flag_Clr_Scr = 1;
+		Debug = Debug_Mode;
+	}
 	
 	Build_Main_Menu();
 	return 1;
@@ -2191,17 +2199,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	Init_Genesis_Bios();
 
 	if (lpCmdLine[0])ParseCmdLine(lpCmdLine, HWnd);
-	
-	for (char r = 0; r <= 0x1F; r++)
-	{
-		for (char g = 0; g <= 0x3F; g++)
-		{
-			for (char b = 0; b <= 0x1F; b++)
-			{
-				Pal32_XRAY[(r << 11) | (g << 5) | b] = (r << 19) | (g << 10) | (b << 3);
-			}
-		}
-	}
+
 	while (Gens_Running)
 	{
 		Handle_Gens_Messages();
@@ -2324,7 +2322,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 					if(TurboMode)
 						Temp_Frame_Skip = 8;
 					if(Lag_Frame && Frame_Number+1 >= Temp_Frame_Skip)
-						Do_VDP_Only(); // better than nothing for showing skipped frames
+						Do_VDP_Refresh(); // better than nothing for showing skipped frames
 					if(!Lag_Frame)
 						disableSound2 = true;
 
@@ -3657,8 +3655,9 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_PINKBG:
 				{
 					PinkBG = !PinkBG;
-					CRam_Flag = 1;
 					Build_Main_Menu();
+					Recalculate_Palettes();
+					Show_Genesis_Screen(hWnd);
 					char message [256];
 					sprintf(message, "Pink background %sd", PinkBG?"enable":"disable");
 					MESSAGE_L(message, message)
@@ -7587,7 +7586,6 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			SendDlgItemMessage(hDlg, IDC_CHECK_GREYSCALE, BM_SETCHECK, (WPARAM) (Greyscale)?BST_CHECKED:BST_UNCHECKED, 0);
 			SendDlgItemMessage(hDlg, IDC_CHECK_INVERT, BM_SETCHECK, (WPARAM) (Invert_Color)?BST_CHECKED:BST_UNCHECKED, 0);
-			SendDlgItemMessage(hDlg, IDC_CHECK_XRAY, BM_SETCHECK, (WPARAM) (XRay)?BST_CHECKED:BST_UNCHECKED, 0);
 
 			return true;
 			break;
@@ -7612,7 +7610,6 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					Brightness_Level = SendDlgItemMessage(hDlg, IDC_SLIDER_LUMINOSITE, TBM_GETPOS, 0, 0);
 					Greyscale = (SendDlgItemMessage(hDlg, IDC_CHECK_GREYSCALE, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;
 					Invert_Color = (SendDlgItemMessage(hDlg, IDC_CHECK_INVERT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;
-					XRay = (SendDlgItemMessage(hDlg, IDC_CHECK_XRAY, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;
 
 					Recalculate_Palettes();
 					if (Genesis_Started || _32X_Started || SegaCD_Started)

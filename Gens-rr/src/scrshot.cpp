@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "gens.h"
 #include "G_Main.h"
 #include "G_ddraw.h"
 #include "guidraw.h"
@@ -28,14 +29,14 @@ int AVIHeight224IfNotPAL=1;
 int AVICurrentY=240;
 int ShotPNGFormat=1;
 
-#define WRITE_FRAME_TO_SRC(pixbits) do{ \
+#define WRITE_FRAME_TO_SRC(pixbits, bytes) do{ \
 	int topbar = (Y - (Vmode ? 240 : 224)) >> 1; \
 	if(Hmode || !Correct_256_Aspect_Ratio) \
 	{ \
 		int sidebar = (X - (Hmode ? 320 : 256)) >> 1; \
-		for(offs = 3*X*topbar, j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (3 * (X - sidebar))) \
+		for(offs = bytes*X*topbar, j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (bytes * (X - sidebar))) \
 		{ \
-			offs += sidebar * 3; \
+			offs += sidebar * bytes; \
 			for(i = Hmode ? 319 : 255; i >= 0; i--) \
 			{ \
 				tmp = READ_PIXEL(i); \
@@ -45,7 +46,7 @@ int ShotPNGFormat=1;
 	} \
 	else /* 256 across, but output equally wide as 320 across */ \
 	{ \
-		for(offs = 3*320*topbar, j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (3 * 320)) \
+		for(offs = bytes*320*topbar, j = Vmode ? 240 : 224; j > 0; j--, Src -= 336 * sizeof(pix##pixbits), offs += (bytes * 320)) \
 		{ \
 			int iDst, iSrc = 255, err = 0; \
 			unsigned int tmp1 = READ_PIXEL(iSrc); \
@@ -69,35 +70,72 @@ int ShotPNGFormat=1;
 		} \
 	} }while(0)
 
-// 24-bit output
-#define WRITE_PIXEL(i) Dest[offs + (3 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
-                       Dest[offs + (3 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
-                       Dest[offs + (3 * (i))    ] = (tmp & 0xFF);
-
 // allocates a png palette, or returns NULL if there are too many colors to put in a palette
-// input data is assumed to be 24-bit color
-png_colorp MakePalette(void* data, int X, int Y, int* numColorsOut, png_structp png_ptr)
+// input data is assumed to be 32-bit color BGRA
+png_colorp MakePalette(void* data, int X, int Y, int* numColorsOut, png_structp png_ptr, png_bytep *alpha)
 {
-	typedef std::set<std::pair<unsigned char,std::pair<unsigned char,unsigned char> > > RGBSet;
-	RGBSet found;
-	for(unsigned char* pix = (unsigned char*)data+((X*Y)-1)*3; pix >= data; pix -= 3)
-		found.insert(std::make_pair(pix[0],std::make_pair(pix[1],pix[2])));
+	typedef std::set<unsigned int> RGBASet;
+	RGBASet found;
+	bool was_alpha = false;
+	for(unsigned int* pix = (unsigned int*)data+(X*Y)-1; pix >= data; --pix)
+	{
+		if ((*pix)&0xFF000000)
+		{
+			found.insert(*pix);
+			if (((*pix)&0xFF000000) != 0xFF000000)
+				was_alpha = true;
+		}
+		else
+		{
+			found.insert(0); // full transparent
+			was_alpha = true;
+		}
+	}
 	int numColors = found.size();
 
 	png_colorp palette = NULL;
+	*alpha = NULL;
 	if(numColors <= PNG_MAX_PALETTE_LENGTH)
 	{
 		palette = (png_colorp)png_malloc(png_ptr, numColors * sizeof(png_color));
 		if(palette)
 		{
-			int i = 0;
-			for(RGBSet::iterator iter = found.begin(); iter != found.end(); ++iter)
+			if (was_alpha)
+				*alpha = (png_bytep)png_malloc(png_ptr, numColors);
+
+			if (*alpha)
 			{
-				png_color color = {iter->second.second, iter->second.first, iter->first};
-				palette[i++] = color;
+				int i = 0;
+				for(RGBASet::iterator iter = found.begin(); iter != found.end(); ++iter)
+				{
+					png_color color = {
+						((*iter) >> 16) & 0xFF,
+						((*iter) >>  8) & 0xFF,
+						((*iter) >>  0) & 0xFF
+						};
+
+					(*alpha)[i] = ((*iter) >> 24) & 0xFF;
+
+					palette[i++] = color;
+				}
+			}
+			else
+			{
+				int i = 0;
+				for(RGBASet::iterator iter = found.begin(); iter != found.end(); ++iter)
+				{
+					png_color color = {
+						((*iter) >> 16) & 0xFF,
+						((*iter) >>  8) & 0xFF,
+						((*iter) >>  0) & 0xFF
+						};
+					palette[i++] = color;
+				}
 			}
 		}
 	}
+	else if (was_alpha)
+		*alpha = (png_bytep)alpha;
 
 	if(numColorsOut)
 		*numColorsOut = numColors;
@@ -106,7 +144,7 @@ png_colorp MakePalette(void* data, int X, int Y, int* numColorsOut, png_structp 
 }
 
 // write a png file (PNG8 if possible to do so losslessly, PNG24 otherwise)
-// input data is assumed to be 24-bit color
+// input data is assumed to be 32-bit color BGRA
 bool write_png(void* data, int X, int Y, FILE* fp)
 {
 	png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -129,21 +167,51 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 	png_init_io(png_ptr, fp);
 
 	int numColors = 0;
-	png_colorp palette = MakePalette(data, X, Y, &numColors, png_ptr);
+	png_bytep alpha = NULL;
+	png_colorp palette = MakePalette(data, X, Y, &numColors, png_ptr, &alpha);
 
-	png_set_IHDR(png_ptr, info_ptr, X, Y, 8, palette ? PNG_COLOR_TYPE_PALETTE : PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+	int type = PNG_COLOR_TYPE_RGB_ALPHA;
+	if (palette)
+		type = PNG_COLOR_TYPE_PALETTE;
+	else if (!alpha) // if RGB and without alpha then plain RGB
+		type = PNG_COLOR_TYPE_RGB;
+	else // if RGBA, then remove fake alpha pointer
+		alpha = NULL;
+
+	png_set_IHDR(png_ptr, info_ptr, X, Y, 8, type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
 	if(palette)
 		png_set_PLTE(png_ptr, info_ptr, palette, numColors);
 
+	if (alpha)
+	{
+		// works only before png_write_info
+		png_set_tRNS(png_ptr, info_ptr, (png_bytep)alpha, numColors, NULL);
+	}
+
 	png_write_info(png_ptr, info_ptr);
 
-	if(!palette)
+	if (type == PNG_COLOR_TYPE_RGB)
+	{
+		assert(X <= 320);
+		png_byte row [320][3];
+		png_set_bgr(png_ptr);
+		for(int y = 0; y < Y; y++)
+		{
+			png_bytep src = (png_bytep)data + ((Y-y)-1) * X * 4;
+			for(int x = 0; x < X; x++)
+				for (int i=0; i<3; ++i)
+					row[x][i] = src[x*4 + i];
+			png_write_row(png_ptr, row[0]);
+		}
+	}
+	else if (type == PNG_COLOR_TYPE_RGB_ALPHA)
 	{
 		assert(Y <= 240);
 		png_bytep row_pointers [240];
 		for(int y = 0; y < Y; y++)
-			row_pointers[y] = (png_bytep)data + ((Y-y)-1) * X * 3;
+			row_pointers[y] = (png_bytep)data + ((Y-y)-1) * X * 4;
+		//png_set_swap_alpha(png_ptr);
 		png_set_bgr(png_ptr);
 		png_write_image(png_ptr, row_pointers);
 	}
@@ -153,16 +221,30 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 		png_byte row [320];
 		for(int y = 0; y < Y; y++)
 		{
-			png_bytep src = (png_bytep)data + ((Y-y)-1) * X * 3;
+			png_bytep src = (png_bytep)data + ((Y-y)-1) * X * 4;
 			for(int x = 0; x < X; x++)
 			{
 				png_byte b = *src++;
 				png_byte g = *src++;
 				png_byte r = *src++;
+				png_byte a = *src++;
 				int i;
-				for(i = 0; i < numColors; i++)
-					if(palette[i].red == r && palette[i].green == g && palette[i].blue == b)
-						break;
+				if (!a) // full transparent
+				{
+					for(i = 0; i < numColors; ++i)
+						if(!alpha[i])
+							break;
+				}
+				else if (alpha) // alpha channel
+				{
+					for(i = 0; i < numColors; ++i)
+						if(alpha[i] == a && palette[i].red == r && palette[i].green == g && palette[i].blue == b)
+							break;
+				}
+				else // full opacity
+					for(i = 0; i < numColors; ++i)
+						if(palette[i].red == r && palette[i].green == g && palette[i].blue == b)
+							break;
 				assert(i != numColors);
 				row[x] = i;
 			}
@@ -172,6 +254,7 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 
 	png_write_end(png_ptr, info_ptr);
 	png_free(png_ptr, palette);
+	png_free(png_ptr, alpha);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
 	return true;
@@ -201,79 +284,135 @@ int CopyBitmapToClipboard(unsigned char *bitmapBuffer, size_t buflen) // feos ad
 	return 0;
 }
 
-int Save_Shot_Clipboard(void* Screen,int mode, int Hmode, int Vmode) // feos added this
+void MakeBitmapHeader(unsigned char *Dest, int BmpSize)
+{
+	Dest[0]  = 'B';
+	Dest[1]  = 'M';
+	Dest[2]  = (unsigned char) ((BmpSize >> 0) & 0xFF); 
+	Dest[3]  = (unsigned char) ((BmpSize >> 8) & 0xFF);
+	Dest[4]  = (unsigned char) ((BmpSize >> 16) & 0xFF);
+	Dest[5]  = (unsigned char) ((BmpSize >> 24) & 0xFF);
+	// Reserved
+	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
+	
+	// OffBits
+	Dest[10] = 54;
+	Dest[11] = Dest[12] = Dest[13] = 0;
+}
+
+void MakeBitmapInfo(unsigned char *Dest, int Width, int Height)
+{
+	Dest[ 0] = 40;
+	Dest[ 1] = Dest[2] = Dest[3] = 0;
+	Dest[ 4] = (unsigned char) ((Width >> 0) & 0xFF);
+	Dest[ 5] = (unsigned char) ((Width >> 8) & 0xFF);
+	Dest[ 6] = (unsigned char) ((Width >> 16) & 0xFF);
+	Dest[ 7] = (unsigned char) ((Width >> 24) & 0xFF);
+	Dest[ 8] = (unsigned char) ((Height >> 0) & 0xFF);
+	Dest[ 9] = (unsigned char) ((Height >> 8) & 0xFF);
+	Dest[10] = (unsigned char) ((Height >> 16) & 0xFF);
+	Dest[11] = (unsigned char) ((Height >> 24) & 0xFF);
+	Dest[12] = 1;
+	Dest[13] = 0;
+	Dest[14] = 24;
+	Dest[15] = 0;
+	Dest[16] = Dest[17] = Dest[18] = Dest[19] = 0;
+	int i = Width * Height * 3;
+	Dest[20] = (unsigned char) ((i >> 0) & 0xFF);
+	Dest[21] = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[22] = (unsigned char) ((i >> 16) & 0xFF);
+	Dest[23] = (unsigned char) ((i >> 24) & 0xFF);
+	Dest[24] = Dest[28] = 0xC4;
+	Dest[25] = Dest[29] = 0x0E;
+	Dest[26] = Dest[30] = Dest[27] = Dest[31] = 0;
+	Dest[32] = Dest[33] = Dest[34] = Dest[35] = 0;
+	Dest[36] = Dest[37] = Dest[38] = Dest[39] = 0;
+}
+
+void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmode)
+{
+	int i, j, tmp, offs;
+	unsigned char *Src = (unsigned char *)(Screen);
+	
+	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
+	int Y = Vmode ? 240 : 224;
+
+	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
+
+	if(mode & 4)
+	{
+		// 32-bit BGRA output
+#define WRITE_PIXEL(i) Dest[offs + (4 * (i)) + 3] = ((tmp >> 24) & 0xFF); \
+                       Dest[offs + (4 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
+                       Dest[offs + (4 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
+                       Dest[offs + (4 * (i))    ] = (tmp & 0xFF);
+		if(mode & 2) // 32-bit:
+		{
+			#define READ_PIXEL(i) (*(pix32*)&(Src[4 * (i)]))
+			WRITE_FRAME_TO_SRC(32,4);
+			#undef READ_PIXEL
+		}
+		else if(!mode) // 16-bit 565:
+		{
+			#define READ_PIXEL(i) (DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8))) | 0xFF000000)
+			WRITE_FRAME_TO_SRC(16,4);
+			#undef READ_PIXEL
+		}
+		else // 16-bit 555:
+		{
+			#define READ_PIXEL(i) (DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8))) | 0xFF000000)
+			WRITE_FRAME_TO_SRC(15,4);
+			#undef READ_PIXEL
+		}
+		#undef WRITE_PIXEL
+	}
+	else
+	{
+		// 24-bit BGR output
+#define WRITE_PIXEL(i) Dest[offs + (3 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
+                       Dest[offs + (3 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
+                       Dest[offs + (3 * (i))    ] = (tmp & 0xFF);
+		if(mode & 2) // 32-bit:
+		{
+			#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
+			WRITE_FRAME_TO_SRC(32,3);
+			#undef READ_PIXEL
+		}
+		else if(!mode) // 16-bit 565:
+		{
+			#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
+			WRITE_FRAME_TO_SRC(16,3);
+			#undef READ_PIXEL
+		}
+		else // 16-bit 555:
+		{
+			#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
+			WRITE_FRAME_TO_SRC(15,3);
+			#undef READ_PIXEL
+		}
+		#undef WRITE_PIXEL
+	}
+}
+
+int Save_Shot_Clipboard(void* Screen, int mode, int Hmode, int Vmode) // feos added this
 {
 	unsigned char *Src = NULL, *Dest = NULL;
-	int j, tmp, offs, num = -1;
-	
+
 	if (!Game) return(0);
 	if (CleanAvi) Update_Frame(); // clean screenshots are as easy as that
-	
+
 	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
 	int Y = Vmode ? 240 : 224;
 	int i = (X * Y * 3) + 54;
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	Dest[0]  = 'B';
-	Dest[1]  = 'M';
-	Dest[2]  = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[3]  = (unsigned char) ((i >> 8) & 0xFF);
-	Dest[4]  = (unsigned char) ((i >> 16) & 0xFF);
-	Dest[5]  = (unsigned char) ((i >> 24) & 0xFF);
-	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
-	Dest[10] = 54;
-	Dest[11] = Dest[12] = Dest[13] = 0;
-	Dest[14] = 40;
-	Dest[15] = Dest[16] = Dest[17] = 0;
-	Dest[18] = (unsigned char) ((X >> 0) & 0xFF);
-	Dest[19] = (unsigned char) ((X >> 8) & 0xFF);
-	Dest[20] = (unsigned char) ((X >> 16) & 0xFF);
-	Dest[21] = (unsigned char) ((X >> 24) & 0xFF);
-	Dest[22] = (unsigned char) ((Y >> 0) & 0xFF);
-	Dest[23] = (unsigned char) ((Y >> 8) & 0xFF);
-	Dest[24] = (unsigned char) ((Y >> 16) & 0xFF);
-	Dest[25] = (unsigned char) ((Y >> 24) & 0xFF);
-	Dest[26] = 1;
-	Dest[27] = 0;	
-	Dest[28] = 24;
-	Dest[29] = 0;
-	Dest[30] = Dest[31] = Dest[32] = Dest[33] = 0;
-	i -= 54;	
-	Dest[34] = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[35] = (unsigned char) ((i >> 8) & 0xFF);
-	Dest[36] = (unsigned char) ((i >> 16) & 0xFF);
-	Dest[37] = (unsigned char) ((i >> 24) & 0xFF);
-	Dest[38] = Dest[42] = 0xC4;
-	Dest[39] = Dest[43] = 0x0E;
-	Dest[40] = Dest[44] = Dest[41] = Dest[45] = 0;
-	Dest[46] = Dest[47] = Dest[48] = Dest[49] = 0;
-	Dest[50] = Dest[51] = Dest[52] = Dest[53] = 0;
-	Dest += 54;
+	MakeBitmapHeader(Dest, i);
+	MakeBitmapInfo(Dest + 14, X, Y);
 
-	Src = (unsigned char *)(Screen);
-	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
+	WriteFrame(Screen, Dest + 54, mode, Hmode, Vmode);
 
-	if(mode & 2) // 32-bit:
-	{
-		#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
-		WRITE_FRAME_TO_SRC(32);
-		#undef READ_PIXEL
-	}
-	else if(!mode) // 16-bit 565:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(16);
-		#undef READ_PIXEL
-	}
-	else // 16-bit 555:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(15);
-		#undef READ_PIXEL
-	}
-
-	CopyBitmapToClipboard(Dest-54,X*Y*3+54);
+	CopyBitmapToClipboard(Dest,X*Y*3+54);
 	Put_Info("Screen shot saved to clipboard");
 
 	return(1);
@@ -284,14 +423,14 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	HANDLE Temp_ScrShot_File_Handle;
 	FILE* ScrShot_File;
 	unsigned char *Src = NULL, *Dest = NULL;
-	int j, tmp, offs, num = -1;
 	char Name[1024], Message[1024], ext[16];
 
 	SetCurrentDirectory(Gens_Path);
 
 	if (!Game) return(0);
-	if (CleanAvi) Update_Frame(); // feos: clean screenshots are as easy as that
-	
+	if (CleanAvi) Do_VDP_Refresh(); // feos: clean screenshots are as easy as that
+
+	int num = -1;
 	do
 	{
 		if (num++ > 99999)
@@ -344,74 +483,23 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
 	int Y = Vmode ? 240 : 224;
 	int i = (X * Y * 3) + 54;
+	if (ShotPNGFormat)
+		i = (X * Y * 4) + 54;
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	Dest[0]  = 'B';
-	Dest[1]  = 'M';
-	Dest[2]  = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[3]  = (unsigned char) ((i >> 8) & 0xFF);
-	Dest[4]  = (unsigned char) ((i >> 16) & 0xFF);
-	Dest[5]  = (unsigned char) ((i >> 24) & 0xFF);
-	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
-	Dest[10] = 54;
-	Dest[11] = Dest[12] = Dest[13] = 0;
-	Dest[14] = 40;
-	Dest[15] = Dest[16] = Dest[17] = 0;
-	Dest[18] = (unsigned char) ((X >> 0) & 0xFF);
-	Dest[19] = (unsigned char) ((X >> 8) & 0xFF);
-	Dest[20] = (unsigned char) ((X >> 16) & 0xFF);
-	Dest[21] = (unsigned char) ((X >> 24) & 0xFF);
-	Dest[22] = (unsigned char) ((Y >> 0) & 0xFF);
-	Dest[23] = (unsigned char) ((Y >> 8) & 0xFF);
-	Dest[24] = (unsigned char) ((Y >> 16) & 0xFF);
-	Dest[25] = (unsigned char) ((Y >> 24) & 0xFF);
-	Dest[26] = 1;
-	Dest[27] = 0;	
-	Dest[28] = 24;
-	Dest[29] = 0;
-	Dest[30] = Dest[31] = Dest[32] = Dest[33] = 0;
-	i -= 54;	
-	Dest[34] = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[35] = (unsigned char) ((i >> 8) & 0xFF);
-	Dest[36] = (unsigned char) ((i >> 16) & 0xFF);
-	Dest[37] = (unsigned char) ((i >> 24) & 0xFF);
-	Dest[38] = Dest[42] = 0xC4;
-	Dest[39] = Dest[43] = 0x0E;
-	Dest[40] = Dest[44] = Dest[41] = Dest[45] = 0;
-	Dest[46] = Dest[47] = Dest[48] = Dest[49] = 0;
-	Dest[50] = Dest[51] = Dest[52] = Dest[53] = 0;
-	Dest += 54;
+	MakeBitmapHeader(Dest, i);
+	MakeBitmapInfo(Dest + 14, X, Y);
 
-	Src = (unsigned char *)(Screen);
-	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
-
-	if(mode & 2) // 32-bit:
-	{
-		#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
-		WRITE_FRAME_TO_SRC(32);
-		#undef READ_PIXEL
-	}
-	else if(!mode) // 16-bit 565:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(16);
-		#undef READ_PIXEL
-	}
-	else // 16-bit 555:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(15);
-		#undef READ_PIXEL
-	}
+	WriteFrame(Screen, Dest + 54, mode | (ShotPNGFormat?4:0), Hmode, Vmode);
 
 	if(!ShotPNGFormat)
-		fwrite(Dest-54, (X * Y * 3) + 54, 1, ScrShot_File); // save BMP
+		fwrite(Dest, (X * Y * 3) + 54, 1, ScrShot_File); // save BMP
 	else
-		write_png(Dest, X, Y, ScrShot_File); // save PNG
+		write_png(Dest + 54, X, Y, ScrShot_File); // save PNG
 
 	fclose(ScrShot_File);
-	free(Dest-54);
+	free(Dest);
 
 	wsprintf(Message, "Screen shot %d saved (%s)", num, Name);
 	Put_Info(Message);
@@ -422,7 +510,7 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 {
 	unsigned char *Src = NULL, *Dest = NULL;
-	int i, j, tmp, offs, num = -1;
+	int i;
 
 	SetCurrentDirectory(Gens_Path);
 	
@@ -510,27 +598,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	Src = (unsigned char *)(VideoBuf);
-	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
-
-	if(mode & 2) // 32-bit:
-	{
-		#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
-		WRITE_FRAME_TO_SRC(32);
-		#undef READ_PIXEL
-	}
-	else if(!mode) // 16-bit 565:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(16);
-		#undef READ_PIXEL
-	}
-	else // 16-bit 555:
-	{
-		#define READ_PIXEL(i) DrawUtil::Pix15To32((pix15)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
-		WRITE_FRAME_TO_SRC(15);
-		#undef READ_PIXEL
-	}
+	WriteFrame(VideoBuf, Dest, mode, Hmode, Vmode);
 
 	AVIRecorder->AddFrame(AVIFrame, (char*)Dest);
 	AVIFrame++;

@@ -184,7 +184,7 @@ section .data align=64
 
 	%assign i 128
 	%rep 16
-		dd (i * 65536 + i * 256 + i)
+		dd (i * 65536 + i * 256 + i + 0xFF000000) ; added alpha
 	%assign i i+8
 	%endrep
 
@@ -192,7 +192,7 @@ section .data align=64
 
 	%assign i 128
 	%rep 16
-		dd i
+		dd (i + 0xFF000000) ; added alpha
 	%assign i i+8
 	%endrep
 
@@ -200,7 +200,7 @@ section .data align=64
 
 	%assign i 128
 	%rep 16
-		dd (i * 256)
+		dd (i * 256 + 0xFF000000) ; added alpha
 	%assign i i+8
 	%endrep
 
@@ -208,7 +208,7 @@ section .data align=64
 
 	%assign i 128
 	%rep 16
-		dd (i * 65536)
+		dd (i * 65536 + 0xFF000000) ; added alpha
 	%assign i i+8
 	%endrep
 
@@ -526,8 +526,8 @@ section .text align=64
 		mov dl, byte [Small_Police + ecx + (%1 * 4) + 2]
 		test dl, dl
 		jz %%Pix3
-		mov ax, [ebx + edx * 4]
-		mov dx, [edi + (336 * 4 * %1) + 8]
+		mov eax, [ebx + edx * 4]
+		mov edx, [edi + (336 * 4 * %1) + 8]
 		and eax, [Mask]
 		and edx, [Mask]
 		shr eax, 1
@@ -540,8 +540,8 @@ section .text align=64
 		mov dl, byte [Small_Police + ecx + (%1 * 4) + 3]
 		test dl, dl
 		jz %%End
-		mov ax, [ebx + edx * 4]
-		mov dx, [edi + (336 * 4 * %1) + 12]
+		mov eax, [ebx + edx * 4]
+		mov edx, [edi + (336 * 4 * %1) + 12]
 		and eax, [Mask]
 		and edx, [Mask]
 		shr eax, 1
@@ -1293,7 +1293,7 @@ section .text align=64
 		shr ebx, 1
 		sub esp, 4
 		and ebx, 0x3					; on garde uniquement le type palette
-		mov dword [Mask], 0xFEFEFE
+		mov dword [Mask], 0xFEFEFEFE	; added alpha
 		test byte [esi], 0xFF				; test the first byte
 		mov ebx, [.Palette_Table + ebx * 4]	; ebx pointe to the palette in use
 		jz near .End						; if NULL then we leave...
