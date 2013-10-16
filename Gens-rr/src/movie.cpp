@@ -8,6 +8,7 @@
 #include "mem_M68K.h"
 #include "luascript.h"
 #include "OpenArchive.h"
+
 long unsigned int FrameCount=0;
 long unsigned int LagCount=0;
 long unsigned int LagCountPersistent = 0; // same as LagCount but ignores manual resets
@@ -15,6 +16,7 @@ long unsigned int Track1_FrameCount = 0;
 long unsigned int Track2_FrameCount = 0;
 long unsigned int Track3_FrameCount = 0;
 unsigned int Temp_Controller_Type[4]; // upthadd - for saving the config's controller modes
+char Recent_Movie[MAX_RECENT_MOVIES][1024];
 char Movie_Dir[1024]="";
 bool tempflag = false; //Upth-Add - This is for the new feature which pauses at the end of movie play if readonly isn't set
 bool AutoCloseMovie = true; //Upth-Add - For the new AutoClose Movie toggle
@@ -24,6 +26,32 @@ extern int AVIRecording;
 typeMovie MainMovie;
 extern "C" char preloaded_tracks [100], played_tracks_linear [105]; // Modif N. -- added
 extern "C" int Clear_Sound_Buffer(void);
+
+void Update_Recent_Movie(const char *Path)
+{
+	int i;
+	for(i = 0; i < MAX_RECENT_MOVIES; i++)
+	{
+		if (!(strcmp(Recent_Movie[i], Path)))
+		{
+			// move recent item to the top of the list
+			if(i == 0)
+				return;
+			char temp [1024];
+			strcpy(temp, Recent_Movie[i]);
+			int j;
+			for(j = i; j > 0; j--)
+				strcpy(Recent_Movie[j], Recent_Movie[j-1]);
+			strcpy(Recent_Movie[0], temp);
+			return;
+		}
+	}
+
+	for(i = MAX_RECENT_MOVIES-1; i > 0; i--)
+		strcpy(Recent_Movie[i], Recent_Movie[i - 1]);
+
+	strcpy(Recent_Movie[0], Path);
+}
 
 //Modif
 void MoviePlayingStuff()
@@ -667,6 +695,7 @@ int OpenMovieFile(typeMovie *aMovie)
 			aMovie->ReadOnly = 2; // really read-only
 		}
 		strncpy(aMovie->PhysicalFileName,PhysicalName,1024);
+		Update_Recent_Movie(LogicalName);
 	}
 
 	if(!aMovie->File)

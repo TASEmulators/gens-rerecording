@@ -2275,6 +2275,13 @@ int Save_Config(char *File_Name)
 		WritePrivateProfileString("General", str, Recent_Rom[i], Conf_File);
 	}
 
+	for(int i = 0; i < MAX_RECENT_MOVIES; i++)
+	{
+		char str[256];
+		sprintf(str, "Movie %d", i+1);
+		WritePrivateProfileString("General", str, Recent_Movie[i], Conf_File);
+	}
+
 	for(int i = 0; i < MAX_RECENT_SCRIPTS; i++)
 	{
 		char str[256];
@@ -2814,6 +2821,13 @@ int Load_Config(char *File_Name, void *Game_Active)
 		char str[256];
 		sprintf(str, "Rom %d", i+1);
 		GetPrivateProfileString("General", str, "", &Recent_Rom[i][0], 1024, Conf_File);
+	}
+
+	for(int i = 0; i < MAX_RECENT_MOVIES; i++)
+	{
+		char str[256];
+		sprintf(str, "Movie %d", i+1);
+		GetPrivateProfileString("General", str, "", &Recent_Movie[i][0], 1024, Conf_File);
 	}
 
 	for(int i = 0; i < MAX_RECENT_SCRIPTS; i++)

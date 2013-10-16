@@ -2,17 +2,8 @@
 #define _H_MOVIE_
 
 #include "stdio.h"
-extern long unsigned int FrameCount;
-extern long unsigned int LagCount, LagCountPersistent;
-extern long unsigned int Track1_FrameCount;
-extern long unsigned int Track2_FrameCount;
-extern long unsigned int Track3_FrameCount;
-extern char Movie_Dir[1024]; 
-extern char track;
-void MovieRecordingStuff();
-void MoviePlayingStuff();
 
-
+#define MAX_RECENT_MOVIES 15
 #define MOVIE_PLAYING	1
 #define MOVIE_RECORDING 2
 #define MOVIE_FINISHED  3
@@ -26,6 +17,18 @@ void MoviePlayingStuff();
 #define TRACK1_3 (TRACK1 | TRACK3)
 #define TRACK2_3 (TRACK2 | TRACK3)
 #define ALL_TRACKS (TRACK1 | TRACK2 | TRACK3)
+
+extern long unsigned int FrameCount;
+extern long unsigned int LagCount, LagCountPersistent;
+extern long unsigned int Track1_FrameCount;
+extern long unsigned int Track2_FrameCount;
+extern long unsigned int Track3_FrameCount;
+extern char Recent_Movie[MAX_RECENT_MOVIES][1024];
+extern char Movie_Dir[1024]; 
+extern char track;
+void MovieRecordingStuff();
+void MoviePlayingStuff();
+
 struct typeMovie
 {
 	int Status;
@@ -51,6 +54,7 @@ struct typeMovie
 	bool ClearSRAM;
 	char PhysicalFileName[1024];
 };
+
 extern bool AutoCloseMovie; //Upth-Add - So these flags
 extern bool Def_Read_Only;  //Upth-Add - are externally accessible
 extern bool UseMovieStates; //Upth-Add - save.h doesn't like bools
