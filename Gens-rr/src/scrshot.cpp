@@ -352,7 +352,7 @@ void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmod
 			WRITE_FRAME_TO_SRC(32,4);
 			#undef READ_PIXEL
 		}
-		else if(!mode) // 16-bit 565:
+		else if(!(mode & 1)) // 16-bit 565:
 		{
 			#define READ_PIXEL(i) (DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8))) | 0xFF000000)
 			WRITE_FRAME_TO_SRC(16,4);
@@ -378,7 +378,7 @@ void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmod
 			WRITE_FRAME_TO_SRC(32,3);
 			#undef READ_PIXEL
 		}
-		else if(!mode) // 16-bit 565:
+		else if(!(mode & 1)) // 16-bit 565:
 		{
 			#define READ_PIXEL(i) DrawUtil::Pix16To32((pix16)(Src[2 * (i)] + (Src[2 * (i) + 1] << 8)))
 			WRITE_FRAME_TO_SRC(16,3);
