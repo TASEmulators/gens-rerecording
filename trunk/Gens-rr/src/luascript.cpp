@@ -3915,13 +3915,9 @@ DEFINE_LUA_FUNCTION(input_getcurrentinputstatus, "")
 	{
 		POINT point;
 		RECT rect, srcRectUnused;
-		float xRatioUnused, yRatioUnused;
-		int depUnused;
 		GetCursorPos(&point);
-		ScreenToClient(HWnd, &point);
-		GetClientRect(HWnd, &rect);
-		void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ratio_X, float& Ratio_Y, int& Dep);
-		CalculateDrawArea(Full_Screen ? Render_FS : Render_W, rect, srcRectUnused, xRatioUnused, yRatioUnused, depUnused);
+		void CalculateDrawArea(HWND hWnd, RECT& RectDest, RECT& RectSrc);
+		CalculateDrawArea(HWnd, rect, srcRectUnused);
 		int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
 		int yres = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
 		int x = ((point.x - rect.left) * xres) / max(1, rect.right - rect.left);

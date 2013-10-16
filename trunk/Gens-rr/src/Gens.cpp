@@ -1009,6 +1009,20 @@ void Render_MD_Screen()
 			MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
 		}
 	}
+	if (VDP_Reg.Set4 & 0x1)
+		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+		{
+			int Pixel = TAB336[VDP_Current_Line] + 8 + 320;
+			MD_Screen32[Pixel] = 0;
+			MD_Screen[Pixel] = 0;
+		}
+	else
+		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+		{
+			int Pixel = TAB336[VDP_Current_Line] + 8 + 256;
+			MD_Screen32[Pixel] = 0;
+			MD_Screen[Pixel] = 0;
+		}
 }
 
 void Render_MD_Screen32X()

@@ -307,7 +307,7 @@ int Init_DDraw(HWND hWnd)
 	{
 		ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
-		ddsd.dwBackBufferCount = 2;
+		ddsd.dwBackBufferCount = 1;
 	}
 	else
 	{
@@ -363,9 +363,6 @@ int Init_DDraw(HWND hWnd)
 	if (FAILED(lpDD->CreateSurface(&ddsd, &lpDDS_Back, NULL)))
 		return Init_Fail(hWnd, "Error with lpDD->CreateSurface !");
 
-	if (!Full_Screen || (Rend >= 2 && (FS_No_Res_Change || Res_X != 640 || Res_Y != 480)))
-		lpDDS_Blit = lpDDS_Back;
-
 	if (Rend < 2)
 	{
 		memset(&ddsd, 0, sizeof(ddsd));
@@ -397,7 +394,7 @@ int Init_DDraw(HWND hWnd)
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd);
 
-		if (FAILED(lpDDS_Blit->GetSurfaceDesc(&ddsd)))
+		if (FAILED(lpDDS_Back->GetSurfaceDesc(&ddsd)))
 			return Init_Fail(hWnd, "Error with lpDDS_Blit->GetSurfaceDesc !");
 
 		Bits32 = (ddsd.ddpfPixelFormat.dwRGBBitCount > 16) ? 1 : 0;
@@ -553,85 +550,122 @@ void Restore_Primary(void)
 	}
 }
 
-// Render_Mode is input, RectDest is input and output, everything else is output only
-void CalculateDrawArea(int Render_Mode, RECT& RectDest, RECT& RectSrc, float& Ratio_X, float& Ratio_Y, int& Dep)
+// Calculate Draw Area
+//  inputs: hWnd
+// outputs:
+//    RectDest: destination rect on screen
+//    RectSrc: source rect in back buffer used for software blit
+//             and for hardware blit from Back surface into destination (Primary or its Flip surface)
+void CalculateDrawArea(HWND hWnd, RECT& RectDest, RECT& RectSrc)
 {
-	Ratio_X = (float) RectDest.right / 320.0f;  //Upth-Modif - why use two lines of code
-	Ratio_Y = (float) RectDest.bottom / 240.0f; //Upth-Modif - when you can do this?
-	Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - and here we floor the value
-
-	POINT q; //Upth-Add - For determining the correct ratio
-	q.x = RectDest.right; //Upth-Add - we need to get
-	q.y = RectDest.bottom; //Upth-Add - the bottom-right corner
-
-	if (Render_Mode < 2)
+	POINT p;
+	float Ratio_X, Ratio_Y;
+	
+	int FS_X,FS_Y; //Upth-Add - So we can set the fullscreen resolution to the current res without changing the value that gets saved to the config
+	int Render_Mode;
+	if (Full_Screen)
 	{
-		RectSrc.top = 0;
-		RectSrc.bottom = VDP_Num_Vis_Lines;
+		Render_Mode = Render_FS;
 
-		if ((VDP_Num_Vis_Lines == 224) && (Stretch == 0))
-		{
-			RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
-			RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis
+		if (FS_No_Res_Change) { //Upth-Add - If we didn't change resolution when we went Full Screen
+			DEVMODE temp;
+			EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&temp); //Upth-Add - Gets the current screen resolution
+			FS_X = temp.dmPelsWidth;
+			FS_Y = temp.dmPelsHeight;
+		}
+		else { //Upth-Add - Otherwise use the configured resolution values
+			FS_X = Res_X; 
+			FS_Y = Res_Y;
 		}
 	}
 	else
 	{
-		if (VDP_Num_Vis_Lines == 224)
-		{
-			RectSrc.top = 8 * 2;
-			RectSrc.bottom = (224 + 8) * 2;
+		Render_Mode = Render_W;
 
-			if (Stretch == 0)
+		GetClientRect(hWnd, &RectDest);
+		FS_X = RectDest.right;
+		FS_Y = RectDest.bottom;
+	}
+
+	Ratio_X = (float) FS_X / 320.0f; //Upth-Add - Find the current size-ratio on the x-axis
+	Ratio_Y = (float) FS_Y / 240.0f; //Upth-Add - Find the current size-ratio on the y-axis
+	Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - Floor them to the smaller value for correct ratio display
+
+	int Screen_X = IS_FULL_X_RESOLUTION ? 320 : 256; // Genesis screen width
+	int Screen_Y = VDP_Num_Vis_Lines; // Genesis screen height
+
+	RectSrc.left = 0 + 8;
+	RectSrc.right = Screen_X + 8;
+	RectSrc.top = 0;
+	RectSrc.bottom = Screen_Y;
+
+	if (Correct_256_Aspect_Ratio)
+	{
+		RectDest.left = (int) ((FS_X - (320 * Ratio_X))/2); //Upth-Modif - Centering the screen left-right
+		RectDest.right = (int) (320 * Ratio_X + RectDest.left); //Upth-modif - again
+	}
+	else
+	{
+		RectDest.left = (int) ((FS_X - (Screen_X * Ratio_X))/2); //Upth-Add - Centering left-right
+		RectDest.right = (int) (Screen_X * Ratio_X + RectDest.left); //Upth-modif - again
+	}
+
+	RectDest.top = (int) ((FS_Y - (Screen_Y * Ratio_Y))/2); //Upth-Modif - centering top-bottom under other circumstances
+	RectDest.bottom = (int) (Screen_Y * Ratio_Y) + RectDest.top; //Upth-Modif - using the same method
+
+	if (Stretch)
+	{
+		RectDest.left = 0;
+		RectDest.right = FS_X; //Upth-Modif - use the user configured value
+		RectDest.top = 0;      //Upth-Add - also, if we have stretch enabled
+		RectDest.bottom = FS_Y;//Upth-Add - we don't correct the screen ratio
+	}
+
+	if (Render_Mode < 2)
+	{
+		/* r57shell: I don't think this is needed, but I leave it
+		if (Render_Mode == 0 && Ratio_X >= 1) //Upth-Add - If the render is "single" we don't stretch it
+		{
+			// If screen not smaller than 320x240
+			if (Stretch)
 			{
-				RectDest.top = (int) ((q.y - (224 * Ratio_Y))/2); //Upth-Modif - Centering the screen properly
-				RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - along the y axis again
+				RectDest.top = (int) ((FS_Y - 240)/2); //Upth-Add - But we still
+				RectDest.bottom = 240 + RectDest.top;  //Upth-Add - center the screen
 			}
-		}
-		else
-		{
-			RectSrc.top = 0; //Upth-Modif - Was "0 * 2"
-			RectSrc.bottom = (240 * 2);
-		}
+			else
+			{
+				RectDest.top = (int) ((FS_Y - Screen_Y)/2); //Upth-Add - for both of the
+				RectDest.bottom = Screen_Y + RectDest.top;  //Upth-Add - predefined conditions
+			}
+			if (Correct_256_Aspect_Ratio || Stretch)
+			{
+				RectDest.left = (int) ((FS_X - 320)/2); //Upth-Add - and along the
+				RectDest.right = 320  + RectDest.left;  //Upth-Add - x axis, also
+			}
+			else
+			{
+				RectDest.left = (int) ((FS_X - Screen_X)/2); //Upth-Modif - Centering the screen left-right
+				RectDest.right = Screen_X + RectDest.left;   //Upth-modif - again
+			}
+		}*/
+	}
+	else
+	{
+		RectSrc.left *= 2;
+		RectSrc.top *= 2;
+		RectSrc.right *= 2;
+		RectSrc.bottom *= 2;
 	}
 
-	if (IS_FULL_X_RESOLUTION)
+	if (!Full_Screen)
 	{
-		Dep = 0;
+		p.x = p.y = 0;
+		ClientToScreen(hWnd, &p);
 
-		if (Render_Mode < 2)
-		{
-			RectSrc.left = 8 + 0 ;
-			RectSrc.right = 8 + 320;
-		}
-		else
-		{
-			RectSrc.left = 0; //Upth-Modif - Was "0 * 2"
-			RectSrc.right = 320 * 2;
-		}
-		RectDest.left = (int) ((q.x - (320 * Ratio_X))/2); //Upth-Add - center the picture
-		RectDest.right = (int) (320 * Ratio_X) + RectDest.left; //Upth-Add - along the x axis
-	}
-	else // less-wide X resolution:
-	{
-		Dep = 64;
-
-		if (Stretch == 0)
-		{
-			RectDest.left = (int) ((q.x - (ALT_X_RATIO_RES * Ratio_X))/2); //Upth-Modif - center the picture properly
-			RectDest.right = (int) (ALT_X_RATIO_RES * Ratio_X) + RectDest.left; //Upth-Modif - along the x axis
-		}
-
-		if (Render_Mode < 2)
-		{
-			RectSrc.left = 8 + 0;
-			RectSrc.right = 8 + 256;
-		}
-		else
-		{
-			RectSrc.left = 32 * 2;
-			RectSrc.right = (256 * 2) + (32 * 2);
-		}
+		RectDest.top += p.y; //Upth-Modif - this part moves the picture into the window
+		RectDest.bottom += p.y; //Upth-Modif - I had to move it after all of the centering
+		RectDest.left += p.x;   //Upth-Modif - because it modifies the values
+		RectDest.right += p.x;  //Upth-Modif - that I use to find the center
 	}
 }
 
@@ -982,200 +1016,61 @@ int Flip(HWND hWnd)
 	DDSURFACEDESC2 ddsd;
 	ddsd.dwSize = sizeof(ddsd);
 	RECT RectDest, RectSrc;
-	POINT p;
-	float Ratio_X, Ratio_Y;
-	int Dep = 0;
 	int bpp = Bits32 ? 4 : 2; // Modif N. -- added: bytes per pixel
 
 	DrawInformationOnTheScreen(); // Modif N. -- moved all this stuff out to its own function
 
 	if (Fast_Blur) Half_Blur();
+	
+	CalculateDrawArea(hWnd, RectDest, RectSrc);
+
+	int Src_X = (RectSrc.right - RectSrc.left);
+	int Src_Y = (RectSrc.bottom - RectSrc.top);
+
+	int Clr_Cmp_Val = IS_FULL_X_RESOLUTION ? 40 : 32;
+
+	if (Flag_Clr_Scr != Clr_Cmp_Val)
+	{
+		Clear_Primary_Screen(hWnd);
+		Clear_Back_Screen(hWnd);
+		Flag_Clr_Scr = Clr_Cmp_Val;
+	}
 
 	if (Full_Screen)
 	{
-		int FS_X,FS_Y; //Upth-Add - So we can set the fullscreen resolution to the current res without changing the value that gets saved to the config
-		if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Flooring the resolution to 320x240
-	    if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - or 640x480, as appropriate
-		if (FS_No_Res_Change) { //Upth-Add - If we didn't change resolution when we went Full Screen
-			DEVMODE temp;
-			EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&temp); //Upth-Add - Gets the current screen resolution
-			FS_X = temp.dmPelsWidth;
-			FS_Y = temp.dmPelsHeight;
-		}
-		else { //Upth-Add - Otherwise use the configured resolution values
-			FS_X = Res_X; 
-			FS_Y = Res_Y;
-		}
-		Ratio_X = (float) FS_X / 320.0f; //Upth-Add - Find the current size-ratio on the x-axis
-		Ratio_Y = (float) FS_Y / 240.0f; //Upth-Add - Find the current size-ratio on the y-axis
-		Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - Floor them to the smaller value for correct ratio display
-		
-		if (IS_FULL_X_RESOLUTION)
+		if (Render_FS < 2)
 		{
-			if (Flag_Clr_Scr != 40)
+			if (FS_VSync)
 			{
-				Clear_Primary_Screen(hWnd);
-				Clear_Back_Screen(hWnd);
-				Flag_Clr_Scr = 40;
-			}
-
-			Dep = 0;
-			RectSrc.left = 0 + 8;
-			RectSrc.right = 320 + 8;
-			RectDest.left = (int) ((FS_X - (320 * Ratio_X))/2); //Upth-Modif - Offset the left edge of the picture to the center of the screen
-			RectDest.right = (int) (320 * Ratio_X) + RectDest.left; //Upth-Modif - Stretch the picture and move the right edge the same amount
-		}
-		else
-		{
-			if (Flag_Clr_Scr != 32)
-			{
-				Clear_Primary_Screen(hWnd);
-				Clear_Back_Screen(hWnd);
-				Flag_Clr_Scr = 32;
-			}
-
-			Dep = 64;
-			RectSrc.left = 0 + 8;
-			RectSrc.right = 256 + 8;
-
-			if (Stretch)
-			{
-				RectDest.left = 0;
-				RectDest.right = FS_X; //Upth-Modif - use the user configured value
-				RectDest.top = 0;      //Upth-Add - also, if we have stretch enabled
-				RectDest.bottom = FS_Y;//Upth-Add - we don't correct the screen ratio
+				lpDDS_Flip->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
+				lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
 			}
 			else
 			{
-				RectDest.left = (int) ((FS_X - (ALT_X_RATIO_RES * Ratio_X))/2); //Upth-Modif - Centering the screen left-right
-				RectDest.right = (int) (ALT_X_RATIO_RES * Ratio_X + RectDest.left); //Upth-modif - again
-			}
-			RectDest.top = (int) ((FS_Y - (240 * Ratio_Y))/2); //Upth-Add - Centers the screen top-bottom, in case Ratio_X was the floor.
-		}
-
-		if (Render_FS == 1) //Upth-Modif - If we're using the render "Double" we apply the stretching
-		{
-			if (Blit_Soft == 1)
-			{
-				rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
-
-				if (FAILED(rval)) goto cleanup_flip;
-
-				if (Render_FS == 0)
-					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * (240 - VDP_Num_Vis_Lines) >> 1) + Dep), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
-				else
-					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * ((240 - VDP_Num_Vis_Lines) >> 1) + Dep) << 1), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
-
-				lpDDS_Blit->Unlock(NULL);
-
-				if (FS_VSync)
-				{
-					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
-				}
-			}
-			else
-			{
-				RectSrc.top = 0;
-				RectSrc.bottom = VDP_Num_Vis_Lines;
-
-				if ((VDP_Num_Vis_Lines == 224) && (Stretch == 0))
-				{
-					RectDest.top = (int) ((FS_Y - (224 * Ratio_Y))/2); //Upth-Modif - centering top-bottom
-					RectDest.bottom = (int) (224 * Ratio_Y) + RectDest.top; //Upth-Modif - with the method I already described for left-right
-				}
-				else
-				{
-					RectDest.top = (int) ((FS_Y - (240 * Ratio_Y))/2); //Upth-Modif - centering top-bottom under other circumstances
-					RectDest.bottom = (int) (240 * Ratio_Y) + RectDest.top; //Upth-Modif - using the same method
-				}
-				RectDest.left = (int) ((FS_X - (320 * Ratio_X))/2); //Upth-Add - Centering left-right
-				RectDest.right = (int) (320 * Ratio_X) + RectDest.left; //Upth-Add - I wonder why I had to change the center-stuff three times...
-
-				if (FS_VSync)
-				{
-					lpDDS_Flip->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
-					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
-				}
-				else
-				{
-					lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
-//					lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, NULL, NULL);
-				}
-			}
-		}
-		else if (Render_FS == 0) //Upth-Add - If the render is "single" we don't stretch it
-		{
-			if (Blit_Soft == 1)
-			{
-				rval = lpDDS_Blit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
-
-				if (FAILED(rval)) goto cleanup_flip;
-
-				if (Render_FS == 0)
-					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * (240 - VDP_Num_Vis_Lines) >> 1) + Dep), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
-				else
-					Blit_FS((unsigned char *) ddsd.lpSurface + ((ddsd.lPitch * ((240 - VDP_Num_Vis_Lines) >> 1) + Dep) << 1), ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, 32 + Dep * 2);
-
-				lpDDS_Blit->Unlock(NULL);
-
-				if (FS_VSync)
-				{
-					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
-				}
-			}
-			else
-			{
-				RectSrc.top = 0;
-				RectSrc.bottom = VDP_Num_Vis_Lines;
-
-				if ((VDP_Num_Vis_Lines == 224) && (Stretch == 0))
-				{
-					RectDest.top = (int) ((FS_Y - 224)/2); //Upth-Add - But we still
-					RectDest.bottom = 224 + RectDest.top;  //Upth-Add - center the screen
-				}
-				else
-				{
-					RectDest.top = (int) ((FS_Y - 240)/2); //Upth-Add - for both of the
-					RectDest.bottom = 240 + RectDest.top;  //Upth-Add - predefined conditions
-				}
-				RectDest.left = (int) ((FS_X - 320)/2); //Upth-Add - and along the
-				RectDest.right = 320 + RectDest.left;   //Upth-Add - x axis, also
-
-				if (FS_VSync)
-				{
-					lpDDS_Flip->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
-					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
-				}
-				else
-				{
-					lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
-//					lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, NULL, NULL);
-				}
+				lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
+//				lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, NULL, NULL);
 			}
 		}
 		else
 		{
+			// save Primary or Flip surface
 			LPDIRECTDRAWSURFACE4 curBlit = lpDDS_Blit;
-			if(Correct_256_Aspect_Ratio)
-				if(!IS_FULL_X_RESOLUTION)
-					curBlit = lpDDS_Back; // have to use it or the aspect ratio will be way off
+
+			// check equal size
+			if ((RectDest.right - RectDest.left) != Src_X
+			 || (RectDest.bottom - RectDest.top) != Src_Y)
+				curBlit = lpDDS_Back; // replace with Back
 
 			rval = curBlit->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 
 			if (FAILED(rval)) goto cleanup_flip;
 
-			Blit_FS((unsigned char *) ddsd.lpSurface + ddsd.lPitch * (240 - VDP_Num_Vis_Lines) + Dep * bpp, ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, (16 + Dep) * bpp);
-
-			curBlit->Unlock(NULL);
-
 			if (curBlit == lpDDS_Back) // note: this can happen in windowed fullscreen, or if Correct_256_Aspect_Ratio is defined and the current display mode is 256 pixels across
 			{
-				RectDest.left = 0;
-				RectDest.top = 0;
-				RectDest.right = GetSystemMetrics(SM_CXSCREEN); // not SM_XVIRTUALSCREEN since we only want the primary monitor if there's more than one
-				RectDest.bottom = GetSystemMetrics(SM_CYSCREEN);
+				// blit into lpDDS_Back first
+				Blit_FS((unsigned char *) ddsd.lpSurface + ddsd.lPitch * RectSrc.top + RectSrc.left * bpp, ddsd.lPitch, Src_X / 2, Src_Y / 2, (16 + 320 - Src_X / 2) * bpp);
 
-				CalculateDrawArea(Render_FS, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
+				curBlit->Unlock(NULL);
 
 				if (FS_VSync)
 				{
@@ -1184,10 +1079,16 @@ int Flip(HWND hWnd)
 					if (!vb) lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
 				}
 
+				// now blit into Primary
 				lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
 			}
 			else
 			{
+				// blit direct on screen (or flip if VSync)
+				Blit_FS((unsigned char *) ddsd.lpSurface + ddsd.lPitch * RectDest.top + RectDest.left * bpp, ddsd.lPitch, Src_X / 2, Src_Y / 2, (16 + 320 - Src_X / 2) * bpp);
+
+				curBlit->Unlock(NULL);
+
 				if (FS_VSync)
 				{
 					lpDDS_Primary->Flip(NULL, DDFLIP_WAIT);
@@ -1197,16 +1098,8 @@ int Flip(HWND hWnd)
 	}
 	else
 	{
-		GetClientRect(hWnd, &RectDest);
-		CalculateDrawArea(Render_W, RectDest, RectSrc, Ratio_X, Ratio_Y, Dep);
-
-		int Clr_Cmp_Val = IS_FULL_X_RESOLUTION ? 40 : 32;
-		if (Flag_Clr_Scr != Clr_Cmp_Val)
-		{
-			Clear_Primary_Screen(hWnd);
-			Clear_Back_Screen(hWnd);
-			Flag_Clr_Scr = Clr_Cmp_Val;
-		}
+		// Window
+		lpDDS_Blit = lpDDS_Back;
 
 		if (Render_W >= 2)
 		{
@@ -1214,18 +1107,10 @@ int Flip(HWND hWnd)
 
 			if (FAILED(rval)) goto cleanup_flip;
 
-			Blit_W((unsigned char *) ddsd.lpSurface + ddsd.lPitch * (240 - VDP_Num_Vis_Lines) + Dep * bpp, ddsd.lPitch, 320 - Dep, VDP_Num_Vis_Lines, (16 + Dep) * bpp);
+			Blit_W((unsigned char *) ddsd.lpSurface + ddsd.lPitch * RectSrc.top + RectSrc.left * bpp, ddsd.lPitch, Src_X / 2, Src_Y / 2, (16 + 320 - Src_X / 2) * bpp);
 
 			lpDDS_Blit->Unlock(NULL);
 		}
-
-		p.x = p.y = 0;
-		ClientToScreen(hWnd, &p);
-
-		RectDest.top += p.y; //Upth-Modif - this part moves the picture into the window
-		RectDest.bottom += p.y; //Upth-Modif - I had to move it after all of the centering
-		RectDest.left += p.x;   //Upth-Modif - because it modifies the values
-		RectDest.right += p.x;  //Upth-Modif - that I use to find the center
 
 		if (RectDest.top < RectDest.bottom)
 		{

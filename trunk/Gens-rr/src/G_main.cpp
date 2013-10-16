@@ -425,8 +425,6 @@ int Set_Current_State(int Num, bool showOccupiedMessage, bool showEmptyMessage)
 
 int Change_Stretch(void)
 {
-	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1)) return(0);
-	
 	Flag_Clr_Scr = 1;
 
 	if (Stretch = (1 - Stretch))
@@ -4988,10 +4986,7 @@ HMENU Build_Main_Menu(void)
 	else
 		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Full Screen", "", "&Full Screen");
 	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
-	if (Full_Screen && !FS_No_Res_Change && (Render_FS > 1))
-		MENU_L(Graphics, i++, Flags | MF_UNCHECKED | MF_GRAYED, ID_GRAPHICS_STRETCH, "Stretch", "", "&Stretch");
-	else
-		MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
+	MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
 	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd
 	MENU_L(Graphics, i++, Flags | (Correct_256_Aspect_Ratio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_256RATIO, "Proper Aspect Ratio in low-res mode", "", "Proper Aspect Ratio in low-res mode");
 	MENU_L(Graphics, i++, Flags, ID_GRAPHICS_COLOR_ADJUST, "Color", "", "&Color Adjust...");
