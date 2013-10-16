@@ -20,6 +20,7 @@ extern HWND HWnd;
 extern HWND RamWatchHWnd;
 extern HWND RamSearchHWnd;
 extern HMENU Gens_Menu;
+extern HMENU Context_Menu;
 
 extern int Paused;
 extern int Net_Play;

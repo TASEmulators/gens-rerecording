@@ -241,6 +241,7 @@ static InputButton s_inputButtons [] =
 	{MOD_CONTROL,           'V',       ID_FILES_OPENCLOSECD,     0, NULL, "Open/Close CD", "OpenCloseCDKey"},
 
 	{MOD_NONE,          VK_NONE,       ID_FILES_OPENRECENTROM0,  0, NULL, "Open Most Recent ROM", "OpenMostRecentROM"},
+	{MOD_NONE,          VK_NONE,       ID_TOOLS_OPENRECENTMOVIE0,0, NULL, "Open Most Recent Movie", "OpenMostRecentMovie"},
 	{MOD_NONE,          VK_NONE,       ID_LUA_OPENRECENTSCRIPT0, 0, NULL, "Open Most Recent Lua Script", "OpenMostRecentLua"},
 	
 	{MOD_NONE,			VK_TAB,		   ID_NONE, 0, &FastForwardKeyDown,  "Fast Forward", "FastForwardKey"},
