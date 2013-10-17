@@ -4774,14 +4774,36 @@ HMENU Build_Context_Menu(void)
 	int i = 0;
 	unsigned int Flags = MF_BYPOSITION | MF_STRING;
 	
-	MENU_L(ContextMenu, i++, Flags, ID_FILES_OPENRECENTROM0,   "Load Last ROM",   "", "Load Last ROM"  );
-	MENU_L(ContextMenu, i++, Flags, ID_TOOLS_OPENRECENTMOVIE0, "Load Last Movie", "", "Load Last Movie");
-	MENU_L(ContextMenu, i++, Flags, ID_LUA_OPENRECENTSCRIPT0,  "Load Last Lua",   "", "Load Last Lua"  );
-	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(ContextMenu, i++, Flags, ID_PLAY_FROM_START, "Watch Movie From Beginning", "", "&Watch Movie From Beginning");
-	MENU_L(ContextMenu, i++, Flags, ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
-	MENU_L(ContextMenu, i++, Flags, IDC_NEW_LUA_SCRIPT, "New Lua Script Window...", "", "&New Lua Script Window...");
+	MENU_L(ContextMenu, i++, Flags,
+		ID_FILES_OPENRECENTROM0, "Load Last ROM", "", "&Load Last ROM");
+	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_TOOLS_OPENRECENTMOVIE0, "Load Last Movie", "", "&Load Last Movie");
+	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_LUA_OPENRECENTSCRIPT0,  "Load Last Lua", "", "&Load Last Lua");
 
+	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(ContextMenu, i++, Flags,
+		ID_FILES_OPENROM, "Open ROM", "", "&Open ROM"  );
+	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_PLAY_MOVIE, "Open Movie", "", "&Open Movie");
+	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		IDC_NEW_LUA_SCRIPT, "Open Lua", "", "&Open Lua");
+
+	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(ContextMenu, i++, Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_PLAY_FROM_START, "Watch Movie From Beginning", "", "&Watch Movie From Beginning");
+	MENU_L(ContextMenu, i++, Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_RESUME_RECORD, "Resume Record from Now","","&Resume Record from Now");
+	MENU_L(ContextMenu, i++, Flags | ((MainMovie.File !=  NULL) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_STOP_MOVIE, "Stop Movie","","&Stop Movie"); 
+
+	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(ContextMenu, i++, Flags,
+		ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
+	
 	Context_Menu = ContextMenu;
 	return (Context_Menu);
 }
@@ -4876,65 +4898,119 @@ HMENU Build_Main_Menu(void)
 	Tools_Trace = CreatePopupMenu();	//Upth-Add - Initialize my new menus
 	Lua_Script = CreatePopupMenu();
 
-// Création des sous-menu pricipaux
-	Flags = MF_BYPOSITION | MF_POPUP | MF_STRING;
-	MENU_L(MainMenu, 0, Flags, (UINT)Files, "File", "", "&File");
-	MENU_L(MainMenu, 1, Flags, (UINT)Graphics, "Graphics", "", "&Graphics");
-	MENU_L(MainMenu, 2, Flags, (UINT)CPU, "CPU", "", "&CPU");
-	MENU_L(MainMenu, 3, Flags, (UINT)Sound, "Sound", "", "&Sound");
-	MENU_L(MainMenu, 4, Flags, (UINT)TAS_Tools, "Tools", "", "&Tools"); //Upth-Add - Put the new menu in between sound and options // Nitsuja: changed TAS Tools to Tools to prevent extra-wide menu in normal render mode, and because spaces in menu titles can be confusing
-	MENU_L(MainMenu, 5, Flags, (UINT)Options, "Options", "", "&Options"); //Upth-Modif - this now goes in one later
-	MENU_L(MainMenu, 6, Flags, (UINT)Help, "Help", "", "&Help"); //Upth-Modif - this now goes in one later
+	/////////////////////////////////////////////
+	//                  BEGIN                  //
+	/////////////////////////////////////////////
 
-// Menu Files
+	Flags = MF_BYPOSITION | MF_POPUP | MF_STRING;
+
+	MENU_L(MainMenu, 0, Flags,
+		(UINT)Files, "File", "", "&File");
+	MENU_L(MainMenu, 1, Flags,
+		(UINT)Graphics, "Graphics", "", "&Graphics");
+	MENU_L(MainMenu, 2, Flags,
+		(UINT)CPU, "CPU", "", "&CPU");
+	MENU_L(MainMenu, 3, Flags,
+		(UINT)Sound, "Sound", "", "&Sound");
+	MENU_L(MainMenu, 4, Flags,
+		(UINT)TAS_Tools, "Tools", "", "&Tools"); //Upth-Add - Put the new menu in between sound and options // Nitsuja: changed TAS Tools to Tools to prevent extra-wide menu in normal render mode, and because spaces in menu titles can be confusing
+	MENU_L(MainMenu, 5, Flags,
+		(UINT)Options, "Options", "", "&Options"); //Upth-Modif - this now goes in one later
+	MENU_L(MainMenu, 6, Flags,
+		(UINT)Help, "Help", "", "&Help"); //Upth-Modif - this now goes in one later
+
+	//////////////////////////////////////////////////
+	//                  FILES MENU                  //
+	//////////////////////////////////////////////////
+
 	Flags = MF_BYPOSITION | MF_STRING;
-	MENU_L(Files, 0, Flags, ID_FILES_OPENROM, "Open Rom", "\tCtrl+O", "&Open ROM");
-	MENU_L(Files, 1, Flags, ID_FILES_CLOSEROM, "Free Rom", "\tCtrl+C", "&Close ROM");
+
+	MENU_L(Files, 0, Flags,
+		ID_FILES_OPENROM, "Open Rom", "\tCtrl+O", "&Open ROM");
+	MENU_L(Files, 1, Flags,
+		ID_FILES_CLOSEROM, "Free Rom", "\tCtrl+C", "&Close ROM");
+
 	i = 2;
-	MENU_L(Files, i++, Flags, ID_FILES_BOOTCD, "Boot CD", "\tCtrl+B", "&Boot CD");
+
+	MENU_L(Files, i++, Flags,
+		ID_FILES_BOOTCD, "Boot CD", "\tCtrl+B", "&Boot CD");
+
 	if (Kaillera_Initialised)
-		MENU_L(Files, i++, Flags, ID_FILES_NETPLAY, "Netplay", "", "&Netplay");
+		MENU_L(Files, i++, Flags,
+		ID_FILES_NETPLAY, "Netplay", "", "&Netplay");
+
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Files, i++, Flags, ID_FILES_GAMEGENIE, "Game Genie", "", "&Game Genie");
+
+	MENU_L(Files, i++, Flags,
+		ID_FILES_GAMEGENIE, "Game Genie", "", "&Game Genie");
+
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesSaveState, "Save State", "", "Save State");
-	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesLoadState, "Load State", "", "Load State");
-	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesChangeState, "Change State", "", "C&hange State");
+
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)FilesSaveState, "Save State", "", "Save State");
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)FilesLoadState, "Load State", "", "Load State");
+	MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)FilesChangeState, "Change State", "", "C&hange State");
+
 	InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
+
 	if (strcmp(Recent_Rom[0], ""))
 	{
-		MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)FilesHistory, "Rom History", "", "&ROM History");
+		MENU_L(Files, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+			(UINT)FilesHistory, "Rom History", "", "&ROM History");
+
 		InsertMenu(Files, i++, MF_SEPARATOR, NULL, NULL);
 	}
+
 	MENU_L(Files, i++, Flags, ID_FILES_QUIT, "Quit", "Alt F4", "&Quit");
 
-// Menu FilesChangeState	
-	MENU_L(FilesChangeState, i++, Flags, ID_FILES_PREVIOUSSTATE, "Previous State", "", "Previous State");
-	MENU_L(FilesChangeState, i++, Flags, ID_FILES_NEXTSTATE, "Next State", "", "Next State");
+	// CHANGE STATE //
+
+	MENU_L(FilesChangeState, i++, Flags,
+		ID_FILES_PREVIOUSSTATE, "Previous State", "", "Previous State");
+	MENU_L(FilesChangeState, i++, Flags,
+		ID_FILES_NEXTSTATE, "Next State", "", "Next State");
+
 	InsertMenu(FilesChangeState, i++, MF_SEPARATOR, NULL, NULL);
+
 	for(j = 0; j < 10; j++)
 	{
 		wsprintf(Str_Tmp ,"Set &%d", (j+1)%10);
-		MENU_L(FilesChangeState, i++, Flags | (Current_State == ((j+1)%10) ? MF_CHECKED : MF_UNCHECKED), ID_FILES_SETSTATE_1 + j, Str_Tmp, "", Str_Tmp);
+		MENU_L(FilesChangeState, i++, Flags | (Current_State == ((j+1)%10) ? MF_CHECKED : MF_UNCHECKED),
+			ID_FILES_SETSTATE_1 + j, Str_Tmp, "", Str_Tmp);
 	}
-	MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
-	MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATEAS, "Save State as", "\tShift+F5", "&Save State as...");
+
+	MENU_L(FilesSaveState, i++, Flags,
+		ID_FILES_SAVESTATE, "Save State", "\tF5", "Quick &Save");
+	MENU_L(FilesSaveState, i++, Flags,
+		ID_FILES_SAVESTATEAS, "Save State as", "\tShift+F5", "&Save State as...");
+
 	InsertMenu(FilesSaveState, i++, MF_SEPARATOR, NULL, NULL);
+
 	for(j = 0; j < 10; j++)
 	{
 		wsprintf(Str_Tmp ,"Save &%d", (j+1)%10);
-		MENU_L(FilesSaveState, i++, Flags, ID_FILES_SAVESTATE_1 + j, Str_Tmp, "", Str_Tmp);
+		MENU_L(FilesSaveState, i++, Flags,
+			ID_FILES_SAVESTATE_1 + j, Str_Tmp, "", Str_Tmp);
 	}
-	MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
-	MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State...");
+
+	MENU_L(FilesLoadState, i++, Flags,
+		ID_FILES_LOADSTATE, "Load State", "\tF8", "Quick &Load");
+	MENU_L(FilesLoadState, i++, Flags,
+		ID_FILES_LOADSTATEAS, "Load State as", "\tShift+F8", "&Load State...");
+
 	InsertMenu(FilesLoadState, i++, MF_SEPARATOR, NULL, NULL);
+
 	for(j = 0; j < 10; j++)
 	{
 		wsprintf(Str_Tmp ,"Load &%d", (j+1)%10);
-		MENU_L(FilesLoadState, i++, Flags, ID_FILES_LOADSTATE_1 + j, Str_Tmp, "", Str_Tmp);
+		MENU_L(FilesLoadState, i++, Flags,
+			ID_FILES_LOADSTATE_1 + j, Str_Tmp, "", Str_Tmp);
 	}
 
-// Menu FilesHistory	
+	// HISTORY //
+
 	for(i = 0; i < MAX_RECENT_ROMS; i++)
 	{
 		if (strcmp(Recent_Rom[i], ""))
@@ -4973,272 +5049,527 @@ HMENU Build_Main_Menu(void)
 			for(int j = 0; j < len && len < 1023; j++)
 				if(tmp[j] == '&')
 					memmove(tmp+j+1, tmp+j, strlen(tmp+j)+1), ++len, ++j;
-			MENU_L(FilesHistory, i, Flags, ID_FILES_OPENRECENTROM0 + i, tmp, "", tmp);
+
+			MENU_L(FilesHistory, i, Flags,
+				ID_FILES_OPENRECENTROM0 + i, tmp, "", tmp);
 		}
 		else break;
 	}
-	
-// Menu Graphics
+
+	/////////////////////////////////////////////////////
+	//                  GRAPHICS MENU                  //
+	/////////////////////////////////////////////////////
+
 	Flags = MF_BYPOSITION | MF_STRING;
 	i = 0; //In this next section Nitsuja and I simplified the menu generation code greatly through consistent use of "i" and the trinary operator.
+	
 	if (Full_Screen)
-		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Windowed", "", "&Windowed");
+		MENU_L(Graphics, i++, Flags,
+			ID_GRAPHICS_SWITCH_MODE, "Windowed", "", "&Windowed");
 	else
-		MENU_L(Graphics, i++, Flags, ID_GRAPHICS_SWITCH_MODE, "Full Screen", "", "&Full Screen");
-	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
-	MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
-	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd
-	MENU_L(Graphics, i++, Flags | (Correct_256_Aspect_Ratio ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_256RATIO, "Proper Aspect Ratio in low-res mode", "", "Proper Aspect Ratio in low-res mode");
-	MENU_L(Graphics, i++, Flags, ID_GRAPHICS_COLOR_ADJUST, "Color", "", "&Color Adjust...");
-	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsRender, "Render", "", "&Render");
-	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsSize, "Window Size", "", "&Window Size");
+		MENU_L(Graphics, i++, Flags,
+			ID_GRAPHICS_SWITCH_MODE, "Full Screen", "", "&Full Screen");
+
+	MENU_L(Graphics, i++, Flags | (((Full_Screen && FS_VSync) || (!Full_Screen && W_VSync)) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_VSYNC, "VSync", "\tShift+F3", "&VSync");
+	MENU_L(Graphics, i++, Flags | (Stretch ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_STRETCH, "Stretch", "\tShift+F2", "&Stretch");
+	MENU_L(Graphics, i++, Flags |(FS_No_Res_Change ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_FS_SAME_RES, "FS_Windowed", "", "&Windowed Fullscreen"); // UpthAdd
+	MENU_L(Graphics, i++, Flags | (Correct_256_Aspect_Ratio ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_256RATIO, "Proper Aspect Ratio in low-res mode", "", "Proper Aspect Ratio in low-res mode");
+	MENU_L(Graphics, i++, Flags,
+		ID_GRAPHICS_COLOR_ADJUST, "Color", "", "&Color Adjust...");
+	MENU_L(Graphics, i++, Flags | MF_POPUP,
+		(UINT)GraphicsRender, "Render", "", "&Render");
+	MENU_L(Graphics, i++, Flags | MF_POPUP,
+		(UINT)GraphicsSize, "Window Size", "", "&Window Size");
+
 	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Graphics, i++, Flags | MF_POPUP, (UINT)GraphicsLayers, "Layers", "", "&Layers");
-	MENU_L(Graphics, i++, Flags | (PalLock ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_PALLOCK, "Lock Palette", "", "Lock &Palette");
-	MENU_L(Graphics, i++, Flags | (Sprite_Over ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEOVER, "Sprite Limit", "", "&Sprite Limit");
-	MENU_L(Graphics, i++, Flags | (PinkBG ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_PINKBG, "Pink Background", "", "&Pink Background");
+
+	MENU_L(Graphics, i++, Flags | MF_POPUP,
+		(UINT)GraphicsLayers, "Layers", "", "&Layers");
+	MENU_L(Graphics, i++, Flags | (PalLock ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_PALLOCK, "Lock Palette", "", "Lock &Palette");
+	MENU_L(Graphics, i++, Flags | (Sprite_Over ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SPRITEOVER, "Sprite Limit", "", "&Sprite Limit");
+	MENU_L(Graphics, i++, Flags | (PinkBG ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_PINKBG, "Pink Background", "", "&Pink Background");
+
 	InsertMenu(Graphics, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsLatencyCompensation, "Latency Compensation", "", "L&atency Compensation");
-	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)GraphicsFrameSkip, "Frame Skip", "", "&Frame Skip");
-	MENU_L(Graphics, i++, Flags | (Never_Skip_Frame ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_NEVER_SKIP_FRAME, "Never skip frame with auto frameskip", "", "&Never skip frame with auto frameskip");
+
+	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)GraphicsLatencyCompensation, "Latency Compensation", "", "L&atency Compensation");
+	MENU_L(Graphics, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)GraphicsFrameSkip, "Frame Skip", "", "&Frame Skip");
+	MENU_L(Graphics, i++, Flags | (Never_Skip_Frame ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_NEVER_SKIP_FRAME, "Never skip frame with auto frameskip", "", "&Never skip frame with auto frameskip");
+
 	InsertMenu(Graphics, i++, MF_MENUBARBREAK, NULL, NULL);
-	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_SHOT, "Screen Shot To File", "", "&Screen Shot To File");
-	MENU_L(Graphics, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_CLIPBOARD, "Screen Shot To Clipboard", "", "&Screen Shot To Clipboard");
+
+	MENU_L(Graphics, i++, Flags | MF_UNCHECKED,
+		ID_GRAPHICS_SHOT, "Screen Shot To File", "", "&Screen Shot To File");
+	MENU_L(Graphics, i++, Flags | MF_UNCHECKED,
+		ID_GRAPHICS_CLIPBOARD, "Screen Shot To Clipboard", "", "&Screen Shot To Clipboard");
+
 //	InsertMenu(Graphics, 12, MF_SEPARATOR, NULL, NULL);
 
-// Menu GraphicsRender
+	// RENDER //
+
 	i = 0;
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_NORMAL, "Normal", "", "&Normal");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 1) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_DOUBLE, "Double", "", "&Double");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 2) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_EPX, "EPX", "", "&EPX"); //Modif N.
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 11) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_RENDER_EPXPLUS, "EPX+", "", "EP&X+"); //Modif N.
+
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_RENDER_NORMAL, "Normal", "", "&Normal");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | ((Rend == 1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_RENDER_DOUBLE, "Double", "", "&Double");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 2) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_RENDER_EPX, "EPX", "", "&EPX"); //Modif N.
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend == 11) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_RENDER_EPXPLUS, "EPX+", "", "EP&X+"); //Modif N.
+
 	if (Have_MMX && !Bits32)
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 10) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_2XSAI, "2xSAI (Kreed)", "", "2xSAI (&Kreed)");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (Bits32 ? MF_DISABLED | MF_GRAYED | MF_UNCHECKED : ((Rend == 10) ? MF_CHECKED : MF_UNCHECKED)),
+			ID_GRAPHICS_RENDER_2XSAI, "2xSAI (Kreed)", "", "2xSAI (&Kreed)");
+
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 3) ? MF_CHECKED : MF_UNCHECKED)),
+		ID_GRAPHICS_RENDER_DOUBLE_INT, "Interpolated", "", "&Interpolated");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 4) ? MF_CHECKED : MF_UNCHECKED)),
+		ID_GRAPHICS_RENDER_FULLSCANLINE, "Scanline", "", "&Scanline");
+
 	if (Have_MMX)
 	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 5) ? MF_CHECKED : MF_UNCHECKED)),
+			ID_GRAPHICS_RENDER_50SCANLINE, "50% Scanline", "", "&50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 6) ? MF_CHECKED : MF_UNCHECKED)),
+			ID_GRAPHICS_RENDER_25SCANLINE, "25% Scanline", "", "&25% Scanline");
 	}
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "Interpolated Scanline");
+
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 7) ? MF_CHECKED : MF_UNCHECKED)),
+		ID_GRAPHICS_RENDER_INTESCANLINE, "Interpolated Scanline", "", "Interpolated Scanline");
+
 	if (Have_MMX)
 	{
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
-		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)), ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | MF_STRING | (((Rend == 8) ? MF_CHECKED : MF_UNCHECKED)),
+			ID_GRAPHICS_RENDER_INT50SCANLIN, "Interpolated 50% Scanline", "", "Interpolated 50% Scanline");
+		MENU_L(GraphicsRender, i++, MF_BYPOSITION | (((Rend == 9) ? MF_CHECKED : MF_UNCHECKED)),
+			ID_GRAPHICS_RENDER_INT25SCANLIN, "Interpolated 25% Scanline", "", "Interpolated 25% Scanline");
 	}
+
 	InsertMenu(GraphicsRender, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend > 0) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_PREVIOUS_RENDER, "Previous Render Mode", "", "Previous Render Mode");
-	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend != 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED), ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
 
-// Menu GraphicsSize
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend > 0) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_GRAPHICS_PREVIOUS_RENDER, "Previous Render Mode", "", "Previous Render Mode");
+	MENU_L(GraphicsRender, i++, MF_BYPOSITION | ((Rend != 9) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_GRAPHICS_NEXT_RENDER, "Next Render Mode", "", "Next Render Mode");
+
+	// SIZE //
+
 	i = 0;
-	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 1.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_1X, "1x", "", "&1x");
-	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 2.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_2X, "2x", "", "&2x");
-	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 3.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_3X, "3x", "", "&3x");
-	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 4.0) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SIZE_4X, "4x", "", "4x");
+
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 1.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_1X, "1x", "", "&1x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 2.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_2X, "2x", "", "&2x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 3.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_3X, "3x", "", "&3x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 4.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_4X, "4x", "", "4x");
 		
-// Menu GraphicsLayers
-    // Nitsuja Added this
-	i = 0;
-	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersA, "Scroll A", "", "Scroll &A");
-//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
-	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersB, "Scroll B", "", "Scroll &B");
-//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
-	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP, (UINT)GraphicsLayersS, "Sprites", "", "&Sprites");
-//	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1");
+	// LAYERS //
+	
+	// Nitsuja Added this
 
-//menu GraphicLayers Submenus
 	i = 0;
-	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER0, "Scroll A Low", "", "Scroll A &Low");
-	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBl ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER1, "Scroll B Low", "", "Scroll B &Low");
-	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpritel ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYERSPRITE, "Sprites Low", "", "Sprites &Low");
-	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAh ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER2, "Scroll A High", "", "Scroll A &High");
-	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBh ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYER3, "Scroll B High", "", "Scroll B &High");
-	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpriteh ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYERSPRITEHIGH, "Sprites High", "", "Sprites &High");
-	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (Swap_Scroll_PriorityA ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYERSWAPA, "Swap Scroll Layers", "", "&Swap Scroll Layers");
-	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (Swap_Scroll_PriorityB ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYERSWAPB, "Swap Scroll Layers", "", "&Swap Scroll Layers");
-	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Swap_Sprite_Priority ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_LAYERSWAPS, "Swap Sprite Layers", "", "&Swap Sprite Layers");
-	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (ScrollAOn ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_TOGGLEA, "Enable", "", "&Enable");
-	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (ScrollBOn ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_TOGGLEB, "Enable", "", "&Enable");
-	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (SpriteOn ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_TOGGLES, "Enable", "", "&Enable");
-	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Sprite_Always_Top ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SPRITEALWAYS, "Sprites Always On Top", "", "Sprites Always On &Top");
 
-// Menu GraphicsLatencyCompensation
+	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
+		(UINT)GraphicsLayersA, "Scroll A", "", "Scroll &A");
+/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
+	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
+		(UINT)GraphicsLayersB, "Scroll B", "", "Scroll &B");
+/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
+	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
+		(UINT)GraphicsLayersS, "Sprites", "", "&Sprites");
+/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
+
+	// LAYERS SUBMENUS //
+
+	i = 0;
+
+	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER0, "Scroll A Low", "", "Scroll A &Low");
+	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBl ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER1, "Scroll B Low", "", "Scroll B &Low");
+	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpritel ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSPRITE, "Sprites Low", "", "Sprites &Low");
+	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAh ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER2, "Scroll A High", "", "Scroll A &High");
+	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBh ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER3, "Scroll B High", "", "Scroll B &High");
+	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpriteh ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSPRITEHIGH, "Sprites High", "", "Sprites &High");
+	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (Swap_Scroll_PriorityA ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSWAPA, "Swap Scroll Layers", "", "&Swap Scroll Layers");
+	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (Swap_Scroll_PriorityB ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSWAPB, "Swap Scroll Layers", "", "&Swap Scroll Layers");
+	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Swap_Sprite_Priority ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSWAPS, "Swap Sprite Layers", "", "&Swap Sprite Layers");
+	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (ScrollAOn ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_TOGGLEA, "Enable", "", "&Enable");
+	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (ScrollBOn ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_TOGGLEB, "Enable", "", "&Enable");
+	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (SpriteOn ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_TOGGLES, "Enable", "", "&Enable");
+	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Sprite_Always_Top ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SPRITEALWAYS, "Sprites Always On Top", "", "Sprites Always On &Top");
+
+	// LATENCY COMPENSATION //
+
 	i = 0;
 	Flags = MF_BYPOSITION | MF_STRING;
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_0, "0", "", "&0 (lightest/cheap/default)");
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 1) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_1, "1", "", "&1 (best Lua GUI sync in some games)");
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 2) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_2, "2", "", "&2 (responsive, recommended)");
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 3) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_3, "3", "", "&3 (over-responsive)");
-	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 4) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_4, "4", "", "&4 (heaviest/expensive)");
-//	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 5) ? MF_CHECKED : MF_UNCHECKED), ID_LATENCY_COMPENSATION_5, "5", "", "&5");
 
-// Menu GraphicsFrameSkip
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation <= 0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_0, "0", "", "&0 (lightest/cheap/default)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_1, "1", "", "&1 (best Lua GUI sync in some games)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 2) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_2, "2", "", "&2 (responsive, recommended)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 3) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_3, "3", "", "&3 (over-responsive)");
+	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 4) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_4, "4", "", "&4 (heaviest/expensive)");
+/*	MENU_L(GraphicsLatencyCompensation, i++, Flags | ((VideoLatencyCompensation == 5) ? MF_CHECKED : MF_UNCHECKED),
+		ID_LATENCY_COMPENSATION_5, "5", "", "&5"); */
+
+	// FRAME SKIP //
+
 	Flags = MF_BYPOSITION | MF_STRING;
-	MENU_L(GraphicsFrameSkip, 0, Flags | ((Frame_Skip == -1) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FRAMESKIP_AUTO, "Auto", "", "&Auto");
+	MENU_L(GraphicsFrameSkip, 0, Flags | ((Frame_Skip == -1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_FRAMESKIP_AUTO, "Auto", "", "&Auto");
+	
 	for(i = 0; i < 9; i++)
 	{
 		wsprintf(Str_Tmp ,"&%d", i);
-		InsertMenu(GraphicsFrameSkip, i + 1, Flags | ((Frame_Skip == i) ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_FRAMESKIP_0 + i, Str_Tmp);
+		InsertMenu(GraphicsFrameSkip, i + 1, Flags | ((Frame_Skip == i) ? MF_CHECKED : MF_UNCHECKED),
+			ID_GRAPHICS_FRAMESKIP_0 + i, Str_Tmp);
 	}
-	
-// Menu CPU
+
+	////////////////////////////////////////////////
+	//                  CPU MENU                  //
+	////////////////////////////////////////////////
+
 	i = 0;
+
 #ifdef GENS_DEBUG
-	MENU_L(CPU, i++, Flags | MF_POPUP, (UINT)CPUDebug, "Debug", "", "&Debug");
+	MENU_L(CPU, i++, Flags | MF_POPUP,
+		(UINT)CPUDebug, "Debug", "", "&Debug");
+
 	InsertMenu(CPU, i++, MF_SEPARATOR, NULL, NULL);
 #endif
-	MENU_L(CPU, i++, Flags | MF_POPUP, (UINT)CPUCountry, "Country", "", "&Country");
+
+	MENU_L(CPU, i++, Flags | MF_POPUP,
+		(UINT)CPUCountry, "Country", "", "&Country");
+
 	InsertMenu(CPU, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(CPU, i++, Flags, ID_CPU_RESET, "Hard Reset", "\tCtrl+Shift+R", "&Hard Reset");
+
+	MENU_L(CPU, i++, Flags,
+		ID_CPU_RESET, "Hard Reset", "\tCtrl+Shift+R", "&Hard Reset");
+
 	if (SegaCD_Started)
 	{
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET68K, "Reset main 68000", "", "Reset &main 68000");
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET_SUB68K, "Reset sub 68000", "", "Reset &sub 68000");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET68K, "Reset main 68000", "", "Reset &main 68000");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET_SUB68K, "Reset sub 68000", "", "Reset &sub 68000");
 	}
 	else if (_32X_Started)
 	{
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET68K, "Reset 68K", "", "Reset &68000");
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET_MSH2, "Reset master SH2", "", "Reset master SH2");
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET_SSH2, "Reset slave SH2", "", "Reset slave SH2");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET68K, "Reset 68K", "", "Reset &68000");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET_MSH2, "Reset master SH2", "", "Reset master SH2");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET_SSH2, "Reset slave SH2", "", "Reset slave SH2");
 	}
 	else
-		MENU_L(CPU, i++, Flags, ID_CPU_RESET68K, "Reset 68K", "", "Reset &68000");
-	MENU_L(CPU, i++, Flags, ID_CPU_RESETZ80, "Reset Z80", "", "Reset &Z80");
+		MENU_L(CPU, i++, Flags,
+			ID_CPU_RESET68K, "Reset 68K", "", "Reset &68000");
+
+	MENU_L(CPU, i++, Flags,
+		ID_CPU_RESETZ80, "Reset Z80", "", "Reset &Z80");
+
 	if (!Genesis_Started && !_32X_Started)
 	{
 		InsertMenu(CPU, i++, MF_SEPARATOR, NULL, NULL);
-		MENU_L(CPU, i++, Flags | (SegaCD_Accurate ? MF_CHECKED : MF_UNCHECKED), ID_CPU_ACCURATE_SYNCHRO, "Perfect SegaCD Synchro", "", "&Perfect SegaCD Synchro");
+
+		MENU_L(CPU, i++, Flags | (SegaCD_Accurate ? MF_CHECKED : MF_UNCHECKED),
+			ID_CPU_ACCURATE_SYNCHRO, "Perfect SegaCD Synchro", "", "&Perfect SegaCD Synchro");
 	}
+
 //	InsertMenu(CPU, i++, MF_SEPARATOR, NULL, NULL);
 	
-// Menu CPU Debug
+	// DEBUG //
+
 #ifdef GENS_DEBUG
-	if (Debug == 1) Flags |= MF_CHECKED;
-	else Flags &= ~MF_CHECKED;
-	MENU_L(CPUDebug, 0, Flags, ID_CPU_DEBUG_GENESIS_68000, "Genesis - 68000", "", "&Genesis - 68000");
-	if (Debug == 2) Flags |= MF_CHECKED;
-	else Flags &= ~MF_CHECKED;
-	MENU_L(CPUDebug, 1, Flags, ID_CPU_DEBUG_GENESIS_Z80, "Genesis - Z80", "", "Genesis - &Z80");
-	if (Debug == 3) Flags |= MF_CHECKED;
-	else Flags &= ~MF_CHECKED;
-	MENU_L(CPUDebug, 2, Flags, ID_CPU_DEBUG_GENESIS_VDP, "Genesis - VDP", "", "Genesis - &VDP");
+	if (Debug == 1)
+		Flags |= MF_CHECKED;
+	else
+		Flags &= ~MF_CHECKED;
+
+	MENU_L(CPUDebug, 0, Flags,
+		ID_CPU_DEBUG_GENESIS_68000, "Genesis - 68000", "", "&Genesis - 68000");
+
+	if (Debug == 2)
+		Flags |= MF_CHECKED;
+	else
+		Flags &= ~MF_CHECKED;
+
+	MENU_L(CPUDebug, 1, Flags,
+		ID_CPU_DEBUG_GENESIS_Z80, "Genesis - Z80", "", "Genesis - &Z80");
+
+	if (Debug == 3)
+		Flags |= MF_CHECKED;
+	else
+		Flags &= ~MF_CHECKED;
+
+	MENU_L(CPUDebug, 2, Flags,
+		ID_CPU_DEBUG_GENESIS_VDP, "Genesis - VDP", "", "Genesis - &VDP");
+
 	i = 3;
+
 	if (SegaCD_Started)
 	{
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_SEGACD_68000, "SegaCD - 68000", "", "&SegaCD - 68000");
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_SEGACD_CDC, "SegaCD - CDC", "", "SegaCD - &CDC");
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_SEGACD_GFX, "SegaCD - GFX", "", "SegaCD - GF&X");
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_SEGACD_68000, "SegaCD - 68000", "", "&SegaCD - 68000");
+
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_SEGACD_CDC, "SegaCD - CDC", "", "SegaCD - &CDC");
+
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_SEGACD_GFX, "SegaCD - GFX", "", "SegaCD - GF&X");
 	}
 	if (_32X_Started)
 	{
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_32X_MAINSH2, "32X - main SH2", "", "32X - main SH2");
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_32X_SUBSH2, "32X - sub SH2", "", "32X - sub SH2");
-		if (Debug == (i + 1)) Flags |= MF_CHECKED;
-		else Flags &= ~MF_CHECKED;
-		MENU_L(CPUDebug, i++, Flags, ID_CPU_DEBUG_32X_VDP, "32X - VDP", "", "32X - VDP");
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_32X_MAINSH2, "32X - main SH2", "", "32X - main SH2");
+
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_32X_SUBSH2, "32X - sub SH2", "", "32X - sub SH2");
+
+		if (Debug == (i + 1))
+			Flags |= MF_CHECKED;
+		else
+			Flags &= ~MF_CHECKED;
+
+		MENU_L(CPUDebug, i++, Flags,
+			ID_CPU_DEBUG_32X_VDP, "32X - VDP", "", "32X - VDP");
 	}
 #endif
 
-// Menu CPU Country
-	Flags = MF_BYPOSITION | MF_STRING;
-	MENU_L(CPUCountry, 0, Flags | (Country == -1 ? MF_CHECKED : MF_UNCHECKED), ID_CPU_COUNTRY_AUTO, "Auto detect", "", "&Auto detect");
-	MENU_L(CPUCountry, 1, Flags | (Country == 0 ? MF_CHECKED : MF_UNCHECKED), ID_CPU_COUNTRY_JAPAN, "Japan (NTSC)", "", "&Japan (NTSC)");
-	MENU_L(CPUCountry, 2, Flags | (Country == 1 ? MF_CHECKED : MF_UNCHECKED), ID_CPU_COUNTRY_USA, "USA (NTSC)", "", "&USA (NTSC)");
-	MENU_L(CPUCountry, 3, Flags | (Country == 2 ? MF_CHECKED : MF_UNCHECKED), ID_CPU_COUNTRY_EUROPE, "Europe (PAL)", "", "&Europe (PAL)");
-	MENU_L(CPUCountry, 4, Flags | (Country == 3 ? MF_CHECKED : MF_UNCHECKED), ID_CPU_COUNTRY_MISC, "Japan (PAL)", "", "Japan (PAL)");
- 	InsertMenu(CPUCountry, 5, MF_SEPARATOR, NULL, NULL);
-	MENU_L(CPUCountry, 6, Flags | MF_POPUP, (UINT)CPUCountryOrder, "Auto detection order", "", "&Auto detection order");
+	// COUNTRY //
 
-// Menu CPU Prefered Country
+	Flags = MF_BYPOSITION | MF_STRING;
+
+	MENU_L(CPUCountry, 0, Flags | (Country == -1 ? MF_CHECKED : MF_UNCHECKED),
+		ID_CPU_COUNTRY_AUTO, "Auto detect", "", "&Auto detect");
+	MENU_L(CPUCountry, 1, Flags | (Country == 0 ? MF_CHECKED : MF_UNCHECKED),
+		ID_CPU_COUNTRY_JAPAN, "Japan (NTSC)", "", "&Japan (NTSC)");
+	MENU_L(CPUCountry, 2, Flags | (Country == 1 ? MF_CHECKED : MF_UNCHECKED),
+		ID_CPU_COUNTRY_USA, "USA (NTSC)", "", "&USA (NTSC)");
+	MENU_L(CPUCountry, 3, Flags | (Country == 2 ? MF_CHECKED : MF_UNCHECKED),
+		ID_CPU_COUNTRY_EUROPE, "Europe (PAL)", "", "&Europe (PAL)");
+	MENU_L(CPUCountry, 4, Flags | (Country == 3 ? MF_CHECKED : MF_UNCHECKED),
+		ID_CPU_COUNTRY_MISC, "Japan (PAL)", "", "Japan (PAL)");
+
+ 	InsertMenu(CPUCountry, 5, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(CPUCountry, 6, Flags | MF_POPUP,
+		(UINT)CPUCountryOrder, "Auto detection order", "", "&Auto detection order");
+
+	// PREFERED COUNTRY //
+
 	for(i = 0; i < 3; i++)
 	{
 		if (Country_Order[i] == 0)
-			MENU_L(CPUCountryOrder, i, Flags, ID_CPU_COUNTRY_ORDER + i, "USA (NTSC)", "", "&USA (NTSC)");
+			MENU_L(CPUCountryOrder, i, Flags,
+				ID_CPU_COUNTRY_ORDER + i, "USA (NTSC)", "", "&USA (NTSC)");
 		else if (Country_Order[i] == 1)
-			MENU_L(CPUCountryOrder, i, Flags, ID_CPU_COUNTRY_ORDER + i, "Japan (NTSC)", "", "&Japan (NTSC)");
+			MENU_L(CPUCountryOrder, i, Flags,
+				ID_CPU_COUNTRY_ORDER + i, "Japan (NTSC)", "", "&Japan (NTSC)");
 		else
-			MENU_L(CPUCountryOrder, i, Flags, ID_CPU_COUNTRY_ORDER + i, "Europe (PAL)", "", "&Europe (PAL)");
+			MENU_L(CPUCountryOrder, i, Flags,
+				ID_CPU_COUNTRY_ORDER + i, "Europe (PAL)", "", "&Europe (PAL)");
 	}
 
-// Menu Sound
+	//////////////////////////////////////////////////
+	//                  SOUND MENU                  //
+	//////////////////////////////////////////////////
+
 	i = 0;
-	MENU_L(Sound, i++, Flags | (Sound_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_ENABLE, "Enable", "", "&Enable");
+
+	MENU_L(Sound, i++, Flags | (Sound_Enable ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_ENABLE, "Enable", "", "&Enable");
+
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Sound, i++, Flags | MF_POPUP, (UINT)SoundRate, "Rate", "", "&Rate");
-	MENU_L(Sound, i++, Flags | (Sound_Stereo ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_STEREO, "Stereo", "", "&Stereo");
-	MENU_L(Sound, i++, Flags | (Sound_Soften ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_SOFTEN, "Soften Filter", "", "Soften &Filter"); // Modif N.
-	MENU_L(Sound, i++, Flags | (!Sleep_Time ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_HOG, "Hog CPU", "", "&Hog CPU"); // Modif N.
+
+	MENU_L(Sound, i++, Flags | MF_POPUP,
+		(UINT)SoundRate, "Rate", "", "&Rate");
+	MENU_L(Sound, i++, Flags | (Sound_Stereo ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_STEREO, "Stereo", "", "&Stereo");
+	MENU_L(Sound, i++, Flags | (Sound_Soften ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_SOFTEN, "Soften Filter", "", "Soften &Filter"); // Modif N.
+	MENU_L(Sound, i++, Flags | (!Sleep_Time ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_HOG, "Hog CPU", "", "&Hog CPU"); // Modif N.
+
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
-	InsertMenu(Sound, i++, Flags, ID_VOLUME_CONTROL, "&Volume Control");
+
+	InsertMenu(Sound, i++, Flags,
+		ID_VOLUME_CONTROL, "&Volume Control");
+
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
-	InsertMenu(Sound, i++, Flags | ((Z80_State & 1) ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_Z80ENABLE, "&Z80");
-	InsertMenu(Sound, i++, Flags | (YM2612_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_YM2612ENABLE, "&YM2612");
-	InsertMenu(Sound, i++, Flags | (PSG_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PSGENABLE, "&PSG");
-	InsertMenu(Sound, i++, Flags | (DAC_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_DACENABLE, "&DAC");
+
+	InsertMenu(Sound, i++, Flags | ((Z80_State & 1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_Z80ENABLE, "&Z80");
+	InsertMenu(Sound, i++, Flags | (YM2612_Enable ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_YM2612ENABLE, "&YM2612");
+	InsertMenu(Sound, i++, Flags | (PSG_Enable ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_PSGENABLE, "&PSG");
+	InsertMenu(Sound, i++, Flags | (DAC_Enable ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_DACENABLE, "&DAC");
+
 	if (!Genesis_Started && !_32X_Started)
 	{
-		InsertMenu(Sound, i++, Flags | (PCM_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PCMENABLE, "P&CM");
-		InsertMenu(Sound, i++, Flags | (CDDA_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_CDDAENABLE, "CDD&A");
+		InsertMenu(Sound, i++, Flags | (PCM_Enable ? MF_CHECKED : MF_UNCHECKED),
+			ID_SOUND_PCMENABLE, "P&CM");
+		InsertMenu(Sound, i++, Flags | (CDDA_Enable ? MF_CHECKED : MF_UNCHECKED),
+			ID_SOUND_CDDAENABLE, "CDD&A");
 	}
 	if (!Genesis_Started && !SegaCD_Started)
-		InsertMenu(Sound, i++, Flags | (PWM_Enable ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PWMENABLE, "P&WM");
+		InsertMenu(Sound, i++, Flags | (PWM_Enable ? MF_CHECKED : MF_UNCHECKED),
+			ID_SOUND_PWMENABLE, "P&WM");
+
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Sound, i++, Flags | (YM2612_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_YMIMPROV, "YM2612 High Quality", "", "YM2612 High &Quality");
-//	MENU_L(Sound, i++, Flags | (PSG_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_PSGIMPROV, "PSG High Quality", "", "PSG High &Quality");
-	MENU_L(Sound, i++, Flags | (DAC_Improv ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_DACIMPROV, "DAC High Quality", "", "DAC High &Quality");
+
+	MENU_L(Sound, i++, Flags | (YM2612_Improv ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_YMIMPROV, "YM2612 High Quality", "", "YM2612 High &Quality");
+/*	MENU_L(Sound, i++, Flags | (PSG_Improv ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_PSGIMPROV, "PSG High Quality", "", "PSG High &Quality"); */
+	MENU_L(Sound, i++, Flags | (DAC_Improv ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_DACIMPROV, "DAC High Quality", "", "DAC High &Quality");
+
 	InsertMenu(Sound, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Sound, i++, Flags, ID_SOUND_STARTWAVDUMP, WAV_Dumping?"Stop Dump":"Start Dump", "", WAV_Dumping?"Stop WAV Dump":"Start WAV Dump");
-	MENU_L(Sound, i++, Flags, ID_SOUND_STARTGYMDUMP, GYM_Dumping?"Stop GYM Dump":"Start GYM Dump", "", GYM_Dumping?"Stop GYM Dump":"Start GYM Dump");
 
-// Sous-Menu SoundRate
-	InsertMenu(SoundRate, 0, Flags | (Sound_Rate == 11025 ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_RATE_11000, "&11025");
-	InsertMenu(SoundRate, 1, Flags | (Sound_Rate == 22050 ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_RATE_22000, "&22050");
-	InsertMenu(SoundRate, 2, Flags | (Sound_Rate == 44100 ? MF_CHECKED : MF_UNCHECKED), ID_SOUND_RATE_44000, "&44100");
+	MENU_L(Sound, i++, Flags,
+		ID_SOUND_STARTWAVDUMP, WAV_Dumping?"Stop Dump":"Start Dump", "", WAV_Dumping?"Stop WAV Dump":"Start WAV Dump");
+	MENU_L(Sound, i++, Flags,
+		ID_SOUND_STARTGYMDUMP, GYM_Dumping?"Stop GYM Dump":"Start GYM Dump", "", GYM_Dumping?"Stop GYM Dump":"Start GYM Dump");
 
-//Upth-Add - Menu TAS_Tools 
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Movies, "Movie", "", "&Movie");
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_AVI, "AVI", "", "&AVI");
-	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Lua_Script, "Lua Scripting", "", "&Lua Scripting");
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)Tools_Trace, "Tracer Tools", "", "&Tracer tools");
-	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)CPUSlowDownSpeed, "Slow Mode", "", "S&low Mode");
-	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
-	MENU_L(TAS_Tools,i++,Flags,ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
+	// RATE //
 
-//Upth-Add - Menu Tools_Movies
+	InsertMenu(SoundRate, 0, Flags | (Sound_Rate == 11025 ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_RATE_11000, "&11025");
+	InsertMenu(SoundRate, 1, Flags | (Sound_Rate == 22050 ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_RATE_22000, "&22050");
+	InsertMenu(SoundRate, 2, Flags | (Sound_Rate == 44100 ? MF_CHECKED : MF_UNCHECKED),
+		ID_SOUND_RATE_44000, "&44100");
+
+	//////////////////////////////////////////////////
+	//                  TOOLS MENU                  //
+	//////////////////////////////////////////////////
+
+	// TAS_Tools menus by Upthorn
+	
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)Tools_Movies, "Movie", "", "&Movie");
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)Tools_AVI, "AVI", "", "&AVI");
+
+	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)Lua_Script, "Lua Scripting", "", "&Lua Scripting");
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)Tools_Trace, "Tracer Tools", "", "&Tracer tools");
+
+	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(TAS_Tools,i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+		(UINT)CPUSlowDownSpeed, "Slow Mode", "", "S&low Mode");
+
+	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(TAS_Tools,i++,Flags,
+		ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
+	MENU_L(TAS_Tools,i++,Flags,
+		ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
+
+	// MOVIES //
+
 	i = 0;
+
 	if (strcmp(Recent_Movie[0], ""))
 	{
-		MENU_L(Tools_Movies, i++, MF_BYPOSITION | MF_POPUP | MF_STRING, (UINT)MoviesHistory, "Movie History", "", "&Movie History");
+		MENU_L(Tools_Movies, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+			(UINT)MoviesHistory, "Movie History", "", "&Movie History");
+
 		InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
 	}
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
+
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),
+		ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
+
 	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),ID_RECORD_MOVIE,"Record New Movie","","Record &New Movie"); //Modif
-	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_RESUME_RECORD,"Resume Record from Now","","&Resume Record from Now"); //Modif
+
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),
+		ID_RECORD_MOVIE,"Record New Movie","","Record &New Movie"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_RESUME_RECORD,"Resume Record from Now","","&Resume Record from Now"); //Modif
+
 	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Tools_Movies,i++,Flags | ((SpliceFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SPLICE,"Input Splice","\tShift-S","&Input Splice"); //Modif
-	MENU_L(Tools_Movies,i++,Flags | ((SeekFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),IDC_SEEK_FRAME,"Seek to Frame","","Seek to &Frame"); //Modif
-	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif
+
+	MENU_L(Tools_Movies,i++,Flags | ((SpliceFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_SPLICE,"Input Splice","\tShift-S","&Input Splice"); //Modif
+	MENU_L(Tools_Movies,i++,Flags | ((SeekFrame) ? MF_CHECKED : MF_UNCHECKED) | ((MainMovie.File) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		IDC_SEEK_FRAME,"Seek to Frame","","Seek to &Frame"); //Modif
+	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)),
+		(UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif
+
 	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
- 
-// Menu MoviesHistory	
+
+	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),
+		ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
+
+	// HISTORY //
+
 	for(i = 0; i < MAX_RECENT_MOVIES; i++)
 	{
 		if (strcmp(Recent_Movie[i], ""))
@@ -5251,46 +5582,79 @@ HMENU Build_Main_Menu(void)
 			for(int j = 0; j < len && len < 1023; j++)
 				if(tmp1[j] == '&')
 					memmove(tmp1+j+1, tmp1+j, strlen(tmp1+j)+1), ++len, ++j;
-			MENU_L(MoviesHistory, i, Flags, ID_TOOLS_OPENRECENTMOVIE0 + i, tmp1, "", tmp1);
+
+			MENU_L(MoviesHistory, i, Flags,
+				ID_TOOLS_OPENRECENTMOVIE0 + i, tmp1, "", tmp1);
 		}
 		else break;
 	}
 	
-//Upth-Add - Menu Movies_Tracks
+	// TRACKS //
+
 	i = 0;
-	MENU_L(Movies_Tracks,i++,Flags,ID_MOVIE_CHANGETRACK_ALL,"All Players","\tCtrl-Shift-0","&All Players"); //Modif
-	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK1) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_1,"Player 1","\tCtrl-Shift-1","Players &1"); //Modif
-	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK2) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_2,"Player 2","\tCtrl-Shift-2","Players &2"); //Modif
-	MENU_L(Movies_Tracks,i++,Flags | (MainMovie.TriplePlayerHack ? MF_ENABLED : MF_DISABLED|MF_GRAYED) | ((track & TRACK3) ? MF_CHECKED : MF_UNCHECKED),ID_MOVIE_CHANGETRACK_3,"Player 3","\tCtrl-Shift-3","Players &3"); //Modif
+
+	MENU_L(Movies_Tracks,i++,Flags,
+		ID_MOVIE_CHANGETRACK_ALL,"All Players","\tCtrl-Shift-0","&All Players"); //Modif
+	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_MOVIE_CHANGETRACK_1,"Player 1","\tCtrl-Shift-1","Players &1"); //Modif
+	MENU_L(Movies_Tracks,i++,Flags | ((track & TRACK2) ? MF_CHECKED : MF_UNCHECKED),
+		ID_MOVIE_CHANGETRACK_2,"Player 2","\tCtrl-Shift-2","Players &2"); //Modif
+	MENU_L(Movies_Tracks,i++,Flags | (MainMovie.TriplePlayerHack ? MF_ENABLED : MF_DISABLED|MF_GRAYED) | ((track & TRACK3) ? MF_CHECKED : MF_UNCHECKED),
+		ID_MOVIE_CHANGETRACK_3,"Player 3","\tCtrl-Shift-3","Players &3"); //Modif
  
-//Upth-Add - Menu Tools_AVI
+	// AVI //
+
 	i = 0;
-	MENU_L(Tools_AVI, i++, Flags | MF_UNCHECKED, ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
+
+	MENU_L(Tools_AVI, i++, Flags | MF_UNCHECKED,
+		ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
+
 	InsertMenu(Tools_AVI, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Tools_AVI, i++, Flags | (AVIWaitMovie ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_SYNC_AVI_MOVIE, "Sync AVI with movie", "", "S&ync AVI with movie");
-	MENU_L(Tools_AVI, i++, Flags | (AVISound ? MF_CHECKED : MF_UNCHECKED), ID_GRAPHICS_AVI_SOUND, "Add sound to AVI", "", "&Add sound to AVI");
-	MENU_L(Tools_AVI, i++, Flags | (CleanAvi ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_CLEANAVI, "Clean AVI screen", "", "&Clean AVI screen");
-	MENU_L(Tools_AVI, i++, Flags | (AVIHeight224IfNotPAL ? MF_CHECKED : MF_UNCHECKED) | (!AVIRecording ? MF_ENABLED : MF_DISABLED|MF_GRAYED), ID_CHANGE_AVIFITHEIGHT, "Fit AVI to game height", "", "&Fit AVI to game height");
-	if(AVISplit > 0) wsprintf(Str_Tmp ,"Split AVI after... (%d MB)", AVISplit);
-	else strcpy(Str_Tmp ,"Split AVI after...");
-	MENU_L(Tools_AVI, i++, Flags | ((AVISplit>0) ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_AVISPLIT, Str_Tmp, "", Str_Tmp);
 
-//Upth-Add - Menu Tools_Trace
-	i = 0;
-	MENU_L(Tools_Trace, i++, Flags | (trace_map ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_TRACE, "Log Instructions", "", "&Trace");
-	MENU_L(Tools_Trace, i++, Flags | (hook_trace ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_HOOK, "Log RAM access", "", "&Hook RAM");
+	MENU_L(Tools_AVI, i++, Flags | (AVIWaitMovie ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SYNC_AVI_MOVIE, "Sync AVI with movie", "", "S&ync AVI with movie");
+	MENU_L(Tools_AVI, i++, Flags | (AVISound ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_AVI_SOUND, "Add sound to AVI", "", "&Add sound to AVI");
+	MENU_L(Tools_AVI, i++, Flags | (CleanAvi ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_CLEANAVI, "Clean AVI screen", "", "&Clean AVI screen");
+	MENU_L(Tools_AVI, i++, Flags | (AVIHeight224IfNotPAL ? MF_CHECKED : MF_UNCHECKED) | (!AVIRecording ? MF_ENABLED : MF_DISABLED|MF_GRAYED),
+		ID_CHANGE_AVIFITHEIGHT, "Fit AVI to game height", "", "&Fit AVI to game height");
 
-// Menu Lua_Script
+	if(AVISplit > 0)
+		wsprintf(Str_Tmp ,"Split AVI after... (%d MB)", AVISplit);
+	else
+		strcpy(Str_Tmp ,"Split AVI after...");
+
+	MENU_L(Tools_AVI, i++, Flags | ((AVISplit>0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_AVISPLIT, Str_Tmp, "", Str_Tmp);
+
+	// TRACE //
+
 	i = 0;
-	MENU_L(Lua_Script,i++,Flags,IDC_NEW_LUA_SCRIPT,"New Lua Script Window...","","&New Lua Script Window...");
-	MENU_L(Lua_Script,i++,Flags | (!LuaScriptHWnds.empty() ? MF_ENABLED : MF_DISABLED|MF_GRAYED),IDC_CLOSE_LUA_SCRIPTS,"Close All Lua Windows","","&Close All Lua Windows");
+
+	MENU_L(Tools_Trace, i++, Flags | (trace_map ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_TRACE, "Log Instructions", "", "&Trace");
+	MENU_L(Tools_Trace, i++, Flags | (hook_trace ? MF_CHECKED : MF_UNCHECKED),
+		ID_CHANGE_HOOK, "Log RAM access", "", "&Hook RAM");
+
+	// LUA SCRIPT //
+
+	i = 0;
+
+	MENU_L(Lua_Script,i++,Flags,
+		IDC_NEW_LUA_SCRIPT,"New Lua Script Window...","","&New Lua Script Window...");
+	MENU_L(Lua_Script,i++,Flags | (!LuaScriptHWnds.empty() ? MF_ENABLED : MF_DISABLED|MF_GRAYED),
+		IDC_CLOSE_LUA_SCRIPTS,"Close All Lua Windows","","&Close All Lua Windows");
+
 	if(!LuaScriptHWnds.empty())
 	{
 		InsertMenu(Lua_Script, i++, MF_SEPARATOR, NULL, NULL);
+
 		for(unsigned int j=0; j<LuaScriptHWnds.size(); j++)
 		{
 			GetWindowText(LuaScriptHWnds[j], Str_Tmp, 1024);
-			MENU_L(Lua_Script,i++,Flags,IDC_LUA_SCRIPT_0+j,Str_Tmp,"",Str_Tmp);
+			MENU_L(Lua_Script,i++,Flags,
+				IDC_LUA_SCRIPT_0+j,Str_Tmp,"",Str_Tmp);
 		}
 	}
 	{
@@ -5317,42 +5681,78 @@ HMENU Build_Main_Menu(void)
 			strcpy(Str_Tmp, pathPtr);
 			if(i == dividerI)
 				InsertMenu(Lua_Script, i++, MF_SEPARATOR, NULL, NULL);
-			MENU_L(Lua_Script,i++,Flags,ID_LUA_OPENRECENTSCRIPT0+j,Str_Tmp,"",Str_Tmp);
+			MENU_L(Lua_Script,i++,Flags,
+				ID_LUA_OPENRECENTSCRIPT0+j,Str_Tmp,"",Str_Tmp);
 		}
 	}
 
-//Upth-Modif - Slow Mode Selection -- now a submenu of TAS_Tools
-// Menu CPUSlowDownSpeed
+	// CPU SLOW DOWN SPEED //
+
+	// Upth-Modif - Slow Mode Selection -- now a submenu of TAS_Tools
+
 	i = 0;
-	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SLOW_SPEED_PLUS,"Speed Up","","Speed &Up"); //Modif N.
-	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==0 || SlowDownSpeed < 31) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_SLOW_SPEED_MINUS,"Slow Down","","Slow &Down"); //Modif N.
+
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_SLOW_SPEED_PLUS,"Speed Up","","Speed &Up"); //Modif N.
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==0 || SlowDownSpeed < 31) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+		ID_SLOW_SPEED_MINUS,"Slow Down","","Slow &Down"); //Modif N.
+
 	InsertMenu(CPUSlowDownSpeed, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_CHECKED : MF_UNCHECKED),ID_SLOW_MODE,"Slow Mode Enabled","","&Slow Mode Enabled"); //Modif
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 1) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_1, "50%", "", "50%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 2) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_2, "33%", "", "33%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 3) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_3, "25%", "", "25%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 4) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_4, "20%", "", "20%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 5) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_5, "16%", "", "16%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 9) ? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_9, "10%", "", "10%");
-	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 15)? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_15, "6%", "", " 6%");
-	MENU_L(CPUSlowDownSpeed, i  , Flags | ((SlowDownSpeed == 31)? MF_CHECKED : MF_UNCHECKED), ID_SLOW_SPEED_31, "3%", "", " 3%");
 
-// Menu Options
+	MENU_L(CPUSlowDownSpeed, i++,Flags | ((SlowDownMode==1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_MODE,"Slow Mode Enabled","","&Slow Mode Enabled"); //Modif
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 1) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_1, "50%", "", "50%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 2) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_2, "33%", "", "33%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 3) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_3, "25%", "", "25%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 4) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_4, "20%", "", "20%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 5) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_5, "16%", "", "16%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 9) ? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_9, "10%", "", "10%");
+	MENU_L(CPUSlowDownSpeed, i++, Flags | ((SlowDownSpeed == 15)? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_15, "6%", "", " 6%");
+	MENU_L(CPUSlowDownSpeed, i  , Flags | ((SlowDownSpeed == 31)? MF_CHECKED : MF_UNCHECKED),
+		ID_SLOW_SPEED_31, "3%", "", " 3%");
+
+	////////////////////////////////////////////////////
+	//                  OPTIONS MENU                  //
+	////////////////////////////////////////////////////
+
 	i = 0;
-	MENU_L(Options, i++, Flags, ID_OPTIONS_JOYPADSETTING, "Input", "", "&Input...");
-	MENU_L(Options, i++, MF_BYPOSITION | MF_STRING, ID_OPTIONS_GENERAL, "General ", "", "&General..."); // Modif N: changed Misc... to General...
-	MENU_L(Options, i++, Flags, ID_OPTIONS_CHANGEDIR, "Directories", "", "&Directories...");
-	MENU_L(Options, i++, Flags, ID_OPTIONS_CHANGEFILES, "Bios/Misc Files", "", "Bios/Misc &Files...");
-	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
-	MENU_L(Options, i++, Flags | MF_POPUP, (UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
-	if(Genesis_Started && Rom_Size <= (2 * 1024 * 1024))
-		MENU_L(Options, i++, Flags | (SRAM_ON ? MF_CHECKED : MF_UNCHECKED), ID_OPTION_SRAMON, "SRAM Enabled", "", "SRAM Enabled");
-	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
-	MENU_L(Options, i++, Flags, ID_OPTIONS_LOADCONFIG, "Load Config...", "", "&Load Config...");
-	MENU_L(Options, i++, Flags, ID_OPTIONS_SAVEASCONFIG, "Save Config As...", "", "&Save Config As...");
 
-// Sous-Menu CDDrive
+	MENU_L(Options, i++, Flags,
+		ID_OPTIONS_JOYPADSETTING, "Input", "", "&Input...");
+	MENU_L(Options, i++, MF_BYPOSITION | MF_STRING,
+		ID_OPTIONS_GENERAL, "General ", "", "&General..."); // Modif N: changed Misc... to General...
+	MENU_L(Options, i++, Flags,
+		ID_OPTIONS_CHANGEDIR, "Directories", "", "&Directories...");
+	MENU_L(Options, i++, Flags,
+		ID_OPTIONS_CHANGEFILES, "Bios/Misc Files", "", "Bios/Misc &Files...");
+
+	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(Options, i++, Flags | MF_POPUP,
+		(UINT)OptionsCDDrive, "Current CD Drive", "", "Current CD Drive");
+	MENU_L(Options, i++, Flags | MF_POPUP,
+		(UINT)OptionsSRAMSize, "Sega CD SRAM Size", "", "Sega CD SRAM Size");
+
+	if(Genesis_Started && Rom_Size <= (2 * 1024 * 1024))
+		MENU_L(Options, i++, Flags | (SRAM_ON ? MF_CHECKED : MF_UNCHECKED),
+			ID_OPTION_SRAMON, "SRAM Enabled", "", "SRAM Enabled");
+
+	InsertMenu(Options, i++, MF_SEPARATOR, NULL, NULL);
+
+	MENU_L(Options, i++, Flags,
+		ID_OPTIONS_LOADCONFIG, "Load Config...", "", "&Load Config...");
+	MENU_L(Options, i++, Flags,
+		ID_OPTIONS_SAVEASCONFIG, "Save Config As...", "", "&Save Config As...");
+
+	// CD DRIVE //
+
 	if (Num_CD_Drive)
 	{
 		char drive_name[100];
@@ -5360,67 +5760,102 @@ HMENU Build_Main_Menu(void)
 		{
 			ASPI_Get_Drive_Info(i, (unsigned char *) drive_name);
 			if (CUR_DEV == i)
-				InsertMenu(OptionsCDDrive, i, Flags | MF_CHECKED, ID_OPTION_CDDRIVE_0 + i, &drive_name[8]);
+				InsertMenu(OptionsCDDrive, i, Flags | MF_CHECKED,
+					ID_OPTION_CDDRIVE_0 + i, &drive_name[8]);
 			else
-				InsertMenu(OptionsCDDrive, i, Flags | MF_UNCHECKED, ID_OPTION_CDDRIVE_0 + i, &drive_name[8]);
+				InsertMenu(OptionsCDDrive, i, Flags | MF_UNCHECKED,
+					ID_OPTION_CDDRIVE_0 + i, &drive_name[8]);
 		}
 	}
 	else
-		MENU_L(OptionsCDDrive, 0, Flags | MF_GRAYED, NULL, "No drive detected", "", "No Drive Detected");
+		MENU_L(OptionsCDDrive, 0, Flags | MF_GRAYED,
+			NULL, "No drive detected", "", "No Drive Detected");
 
-// Sous-Menu SRAMSize
+	// SRAM SIZE //
+
 	if (BRAM_Ex_State & 0x100)
 	{
-		MENU_L(OptionsSRAMSize, 0, Flags | MF_UNCHECKED, ID_OPTION_SRAMSIZE_0, "None", "", "&None");
+		MENU_L(OptionsSRAMSize, 0, Flags | MF_UNCHECKED,
+			ID_OPTION_SRAMSIZE_0, "None", "", "&None");
 		for (i = 0; i < 4; i++)
 		{
 			char bsize[16];
 			sprintf(bsize, "&%d Kb", 8 << i);
 			if (BRAM_Ex_Size == i)
-				InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_CHECKED, ID_OPTION_SRAMSIZE_8 + i, bsize);
+				InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_CHECKED,
+					ID_OPTION_SRAMSIZE_8 + i, bsize);
 			else
-				InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_UNCHECKED, ID_OPTION_SRAMSIZE_8 + i, bsize);
+				InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_UNCHECKED,
+					ID_OPTION_SRAMSIZE_8 + i, bsize);
 		}
 	}
 	else
 	{
-		MENU_L(OptionsSRAMSize, 0, Flags | MF_CHECKED, ID_OPTION_SRAMSIZE_0, "None", "", "&None");
+		MENU_L(OptionsSRAMSize, 0, Flags | MF_CHECKED,
+			ID_OPTION_SRAMSIZE_0, "None", "", "&None");
 		for (i = 0; i < 4; i++)
 		{
 			char bsize[16];
 			sprintf(bsize, "&%d Kb", 8 << i);
-			InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_UNCHECKED, ID_OPTION_SRAMSIZE_8 + i, bsize);
+			InsertMenu(OptionsSRAMSize, i + 1, Flags | MF_UNCHECKED,
+				ID_OPTION_SRAMSIZE_8 + i, bsize);
 		}
 	}
 
-// Menu Help
+	/////////////////////////////////////////////////
+	//                  HELP MENU                  //
+	/////////////////////////////////////////////////
+
 	i = 0;
-	MENU_L(Help, i++, Flags, ID_HELP_ABOUT, "About" ,"", "&About");
+
+	MENU_L(Help, i++, Flags,
+		ID_HELP_ABOUT, "About" ,"", "&About");
+
 	InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
+
 	j = 0;
 	while (language_name[j])
 	{
 		GetPrivateProfileString(language_name[j], "Menu Language", "Undefined language", Str_Tmp, 1024, Language_Path);
 		if (Language == j)
-			InsertMenu(Help, i++, Flags | MF_CHECKED, ID_HELP_LANG + j, Str_Tmp);
+			InsertMenu(Help, i++, Flags | MF_CHECKED,
+				ID_HELP_LANG + j, Str_Tmp);
 		else 
-			InsertMenu(Help, i++, Flags | MF_UNCHECKED, ID_HELP_LANG + j, Str_Tmp);
+			InsertMenu(Help, i++, Flags | MF_UNCHECKED,
+				ID_HELP_LANG + j, Str_Tmp);
 		j++;
 	}
+
 	if (Detect_Format(Manual_Path) != -1)		// can be used to detect if file exist
 	{
 		InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
-		MENU_L(Help, i++, Flags, ID_HELP_MENU_FILE, "File menu" ,"", "&File menu");
-		MENU_L(Help, i++, Flags, ID_HELP_MENU_GRAPHICS, "Graphics menu" ,"", "&Graphics menu");
-		MENU_L(Help, i++, Flags, ID_HELP_MENU_CPU, "CPU menu" ,"", "&CPU menu");
-		MENU_L(Help, i++, Flags, ID_HELP_MENU_SOUND, "Sound menu" ,"", "&Sound menu");
-		MENU_L(Help, i++, Flags, ID_HELP_MENU_OPTIONS, "Options menu" ,"", "&Options menu");
+
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MENU_FILE, "File menu" ,"", "&File menu");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MENU_GRAPHICS, "Graphics menu" ,"", "&Graphics menu");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MENU_CPU, "CPU menu" ,"", "&CPU menu");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MENU_SOUND, "Sound menu" ,"", "&Sound menu");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MENU_OPTIONS, "Options menu" ,"", "&Options menu");
+
 		InsertMenu(Help, i++, MF_SEPARATOR, NULL, NULL);
-		MENU_L(Help, i++, Flags, ID_HELP_NETPLAY, "Netplay" ,"", "&Netplay");
-		MENU_L(Help, i++, Flags, ID_HELP_MEGACD, "Mega/Sega CD" ,"", "&Mega/Sega CD");
-		MENU_L(Help, i++, Flags, ID_HELP_FAQ, "FAQ" ,"", "&FAQ");
-		MENU_L(Help, i++, Flags, ID_HELP_KEYS, "Shortcuts" ,"", "&Defaults keys && Shortcuts");
+
+		MENU_L(Help, i++, Flags,
+			ID_HELP_NETPLAY, "Netplay" ,"", "&Netplay");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_MEGACD, "Mega/Sega CD" ,"", "&Mega/Sega CD");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_FAQ, "FAQ" ,"", "&FAQ");
+		MENU_L(Help, i++, Flags,
+			ID_HELP_KEYS, "Shortcuts" ,"", "&Defaults keys && Shortcuts");
 	}
+
+	///////////////////////////////////////////
+	//                  END                  //
+	///////////////////////////////////////////
 
 	Gens_Menu = MainMenu;
 	if (Full_Screen) SetMenu(HWnd, NULL);
@@ -5447,8 +5882,10 @@ HMENU Build_Main_Menu(void)
 		GetMenuString(Gens_Menu, i, str, sizeof(str), MF_BYPOSITION);
 		for(int i = 0 ; i < (int)strlen(str) ; i++) // the & symbol is an escape sequence for underline, so remove & (and convert && to &) before measuring
 		{
-			if(str[i] == str[i+1]) i++;
-			if(str[i] == '&') strcpy(str+i, str+i+1), i--;
+			if(str[i] == str[i+1])
+				i++;
+			if(str[i] == '&')
+				strcpy(str+i, str+i+1), i--;
 		}
 		if(GetTextExtentPoint32(hdc, str, strlen(str), &size))
 			Gens_Menu_Width += size.cx + (2*extraSpace);
