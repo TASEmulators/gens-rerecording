@@ -587,10 +587,12 @@ void Recalculate_Palettes(void)
 
 	for(i = 0; i < 0x1000; i++)
 	{
-		Palette32[0x1000|i] = Palette32[ i >> 1];			// shadow
+		Palette32[0x1000|i] = Palette32[ i >> 1			];  // shadow
 		Palette32[0x2000|i] = Palette32[(i >> 1) + 0x777];	// highlight
-		Palette[0x1000|i] = Palette[ i >> 1]; 				// shadow
+		Palette32[0x3000|i] = Palette32[ i				];	// normal
+		Palette[0x1000|i] = Palette[ i >> 1			];		// shadow
 		Palette[0x2000|i] = Palette[(i >> 1) + 0x777];		// highlight
+		Palette[0x3000|i] = Palette[ i				];		// normal
 	}
 
 	// colors for alpha = 1
@@ -618,13 +620,22 @@ void Recalculate_Palettes(void)
 
 void Check_Country_Order(void)
 {
-	if ((Country_Order[0] == Country_Order[1]) || (Country_Order[0] == Country_Order[2]) || (Country_Order[1] == Country_Order[2]) || (Country_Order[0] == Country_Order[2])
-		|| (Country_Order[0] > 2) || (Country_Order[0] < 0) || (Country_Order[1] > 2) || (Country_Order[1] < 0) || (Country_Order[2] > 2) || (Country_Order[2] < 0))
-	{
-		Country_Order[0] = 0;
-		Country_Order[1] = 1;
-		Country_Order[2] = 2;
-	}
+	int i, j;
+	bool bad = false;
+
+	for (i = 0; i < 3; ++i)
+		for (j = i + 1; j < 3; ++j)
+			if (Country_Order[i] == Country_Order[j])
+				bad = true;
+
+	for (i = 0; i < 3; ++i)
+		if (Country_Order[i] > 2
+		 || Country_Order[i] < 0)
+			bad = true;
+
+	if (bad)
+		for (i = 0; i < 3; ++i)
+			Country_Order[i] = i;
 }
 
 
@@ -1057,7 +1068,7 @@ void Render_MD_Screen32X()
 
 #else 
 
-DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
+int Do_Genesis_Frame(bool fast)
 {
 	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
 
@@ -1088,6 +1099,9 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 
 	HInt_Counter = VDP_Reg.H_Int;					// Hint_Counter = step d'interruption H
 
+	if (fast)
+		FakeVDPScreen = true;
+
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
 		if(!disableSound)
@@ -1104,6 +1118,7 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 		Cycles_Z80 += CPL_Z80;
 		if (DMAT_Length) main68k_addCycles(Update_DMA());
 		VDP_Status |= 0x0004;			// HBlank = 1
+//		main68k_exec(Cycles_M68K - 436);
 		main68k_exec(Cycles_M68K - 404);
 		VDP_Status &= 0xFFFB;			// HBlank = 0
 
@@ -1114,18 +1129,19 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 			Update_IRQ_Line();
 		}
 
-		//UPDATE_PALETTE32
-		Render_Line();
-//		POST_LINE
+		if (!fast)
+			Render_Line();
 
 		main68k_exec(Cycles_M68K);
 		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
 		else z80_Set_Odo(&M_Z80, Cycles_Z80);
 	}
 
-	FakeVDPScreen = false;
-
-	Render_MD_Screen();
+	if (!fast)
+	{
+		FakeVDPScreen = false;
+		Render_MD_Screen();
+	}
 
 	if(!disableSound)
 	{
@@ -1154,198 +1170,6 @@ DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
 	VDP_Status &= 0xFFFB;			// HBlank = 0
 	VDP_Status |= 0x0080;			// V Int happened
 
-	VDP_Int |= 0x8;
-	Update_IRQ_Line();
-	z80_Interrupt(&M_Z80, 0xFF);
-
-	main68k_exec(Cycles_M68K);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-	for(VDP_Current_Line++; VDP_Current_Line < VDP_Num_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-//		main68k_exec(Cycles_M68K - 436);
-		main68k_exec(Cycles_M68K - 404);
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		main68k_exec(Cycles_M68K);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-	}
-
-	if(!disableSound)
-	{
-		PSG_Special_Update();
-		YM2612_Special_Update();
-	}
-	if(!disableSound && !disableSound2)
-	{
-		if (WAV_Dumping) Update_WAV_Dump();
-		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
-		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
-	}
-	Update_RAM_Search();
-//	if (SRAM_ON != SRAM_Was_On) 
-//	{
-//		SRAM_Was_On = SRAM_ON;
-//		if (SRAM_ON) sprintf(Str_Tmp,"SRAM enabled");
-//		else		 sprintf(Str_Tmp,"SRAM disabled");;
-//		Put_Info(Str_Tmp);
-//	}
-	return(1);
-}
-#endif
-
-int Do_VDP_Refresh()
-{
-	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
-	else VDP_Num_Vis_Lines = 224;
-
-	if(!_32X_Started)
-	{
-		if(Genesis_Started || SegaCD_Started)
-		{
-			if(FakeVDPScreen)
-				for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-					Render_Line();
-			Render_MD_Screen();
-		}
-		else // emulation hasn't started so just set all pixels to black
-		{
-			memset(MD_Screen, 0, sizeof(MD_Screen));
-			memset(MD_Screen32, 0, sizeof(MD_Screen32));
-		}
-	}
-	else
-	{
-		if(FakeVDPScreen)
-			for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-				Render_Line_32X();
-		Render_MD_Screen32X();
-	}
-
-	Update_RAM_Search();
-#ifdef RKABOXHACK
-	CamX = CheatRead<short>(0xB158);
-	CamY = CheatRead<short>(0xB1D6);
-	DrawBoxes();
-#endif
-#ifdef SONICCAMHACK
-	CamX = CheatRead<short>(CAMOFFSET1);
-	CamY = CheatRead<short>(CAMOFFSET1+4);
-	DrawBoxes();
-#endif
-
-	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATIONGUI);
-
-	return(0);
-}
-
-DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
-{
-	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
-
-	int *buf[2];
-	int HInt_Counter;
-
-	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
-	else VDP_Num_Vis_Lines = 224;
-
-	if(!disableSound)
-	{
-		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
-		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
-	}
-	YM_Len = PSG_Len = 0;
-
-	Cycles_M68K = Cycles_Z80 = 0;
-	Last_BUS_REQ_Cnt = -1000;
-	main68k_tripOdometer();
-	z80_Clear_Odo(&M_Z80);
-
-	Patch_Codes();
-
-	VRam_Flag = 1;
-
-	VDP_Status &= 0xFFF7;							// Clear V Blank
-	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
-
-	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
-
-	FakeVDPScreen = true;
-
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-//		main68k_exec(Cycles_M68K - 436);
-		main68k_exec(Cycles_M68K - 404);
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		if (--HInt_Counter < 0)
-		{
-			HInt_Counter = VDP_Reg.H_Int;
-			VDP_Int |= 0x4;
-			Update_IRQ_Line();
-		}
-
-		main68k_exec(Cycles_M68K);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-	}
-	
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-	}
-
-	Fix_Controllers();
-	Cycles_M68K += CPL_M68K;
-	Cycles_Z80 += CPL_Z80;
-	if (DMAT_Length) main68k_addCycles(Update_DMA());
-	if (--HInt_Counter < 0)
-	{
-		VDP_Int |= 0x4;
-		Update_IRQ_Line();
-	}
-
-	VDP_Status |= 0x000C;			// VBlank = 1 et HBlank = 1 (retour de balayage vertical en cours)
-	main68k_exec(Cycles_M68K - 360);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80 - 168);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80 - 168);
-
-	VDP_Status &= 0xFFFB;			// HBlank = 0
-	VDP_Status |= 0x0080;			// V Int happened
 	VDP_Int |= 0x8;
 	Update_IRQ_Line();
 	z80_Interrupt(&M_Z80, 0xFF);
@@ -1394,7 +1218,74 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 		CamX = CheatRead<short>(0xB158);
 		CamY = CheatRead<short>(0xB1D6);
 #endif
+	if (!fast)
+		Update_RAM_Search();
+//	if (SRAM_ON != SRAM_Was_On) 
+//	{
+//		SRAM_Was_On = SRAM_ON;
+//		if (SRAM_ON) sprintf(Str_Tmp,"SRAM enabled");
+//		else		 sprintf(Str_Tmp,"SRAM disabled");;
+//		Put_Info(Str_Tmp);
+//	}
 	return(1);
+}
+
+DO_FRAME_HEADER(Do_Genesis_Frame, Do_Genesis_Frame_No_VDP)
+{
+	return Do_Genesis_Frame(false);
+}
+
+DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
+{
+	return Do_Genesis_Frame(true);
+}
+
+
+#endif
+
+int Do_VDP_Refresh()
+{
+	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
+	else VDP_Num_Vis_Lines = 224;
+
+	if(!_32X_Started)
+	{
+		if(Genesis_Started || SegaCD_Started)
+		{
+			if(FakeVDPScreen)
+				for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+					Render_Line();
+			Render_MD_Screen();
+		}
+		else // emulation hasn't started so just set all pixels to black
+		{
+			memset(MD_Screen, 0, sizeof(MD_Screen));
+			memset(MD_Screen32, 0, sizeof(MD_Screen32));
+		}
+	}
+	else
+	{
+		if(FakeVDPScreen)
+			for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+				Render_Line_32X();
+		Render_MD_Screen32X();
+	}
+
+	Update_RAM_Search();
+#ifdef RKABOXHACK
+	CamX = CheatRead<short>(0xB158);
+	CamY = CheatRead<short>(0xB1D6);
+	DrawBoxes();
+#endif
+#ifdef SONICCAMHACK
+	CamX = CheatRead<short>(CAMOFFSET1);
+	CamY = CheatRead<short>(CAMOFFSET1+4);
+	DrawBoxes();
+#endif
+
+	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATIONGUI);
+
+	return(0);
 }
 /*************************************/
 /*                32X                */
@@ -1682,8 +1573,7 @@ void Reset_32X()
 	for(i = 0; i < 0x400; i++) _32X_MSH2_Rom[i + 0x36C] = _32X_Rom[i + 0x400];
 }
 
-
-DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
+int Do_32X_Frame(bool fast)
 {
 	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
 
@@ -1728,7 +1618,8 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 	p_k = (p_i * CPL_SSH2) / CPL_M68K;
 	p_l = p_i * 3;
 
-	FakeVDPScreen = true;
+	if (fast)
+		FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -1779,290 +1670,9 @@ DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
 			if (_32X_SINT & 0x04) SH2_Interrupt(&S_SH2, 10);
 		}
 
-		/* instruction by instruction execution */
-		
-		while (i < Cycles_M68K)
-		{
-			main68k_exec(i);
-			SH2_Exec(&M_SH2, j);
-			SH2_Exec(&S_SH2, k);
-			PWM_Update_Timer(l);
-			i += p_i;
-			j += p_j;
-			k += p_k;
-			l += p_l;
-		}
+		if (!fast)
+			Render_Line_32X();
 
-		main68k_exec(Cycles_M68K);
-		SH2_Exec(&M_SH2, Cycles_MSH2);
-		SH2_Exec(&S_SH2, Cycles_SSH2);
-		PWM_Update_Timer(PWM_Cycles);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-	}
-
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-	}
-
-	i = Cycles_M68K + p_i;
-	j = Cycles_MSH2 + p_j;
-	k = Cycles_SSH2 + p_k;
-	l = PWM_Cycles + p_l;
-
-	Fix_Controllers();
-	Cycles_M68K += CPL_M68K;
-	Cycles_MSH2 += CPL_MSH2;
-	Cycles_SSH2 += CPL_SSH2;
-	Cycles_Z80 += CPL_Z80;
-	PWM_Cycles += CPL_PWM;
-	if (DMAT_Length) main68k_addCycles(Update_DMA());
-	if (--HInt_Counter < 0)
-	{
-		VDP_Int |= 0x4;
-		Update_IRQ_Line();
-	}
-
-	if (--HInt_Counter_32X < 0)
-	{
-		HInt_Counter_32X = _32X_HIC;
-		if (_32X_MINT & 0x04) SH2_Interrupt(&M_SH2, 10);
-		if (_32X_SINT & 0x04) SH2_Interrupt(&S_SH2, 10);
-	}
-
-	VDP_Status |= 0x000C;			// VBlank = 1 et HBlank = 1 (retour de balayage vertical en cours)
-	_32X_VDP.State |= 0xE000;		// VBlank = 1, HBlank = 1, PEN = 1
-
-	if (_32X_VDP.State & 0x10000) _32X_VDP.State |= 1;
-	else _32X_VDP.State &= ~1;
-
-	_32X_Set_FB();
-
-	while (i < (Cycles_M68K - 360))
-	{
-		main68k_exec(i);
-		SH2_Exec(&M_SH2, j);
-		SH2_Exec(&S_SH2, k);
-		PWM_Update_Timer(l);
-		i += p_i;
-		j += p_j;
-		k += p_k;
-		l += p_l;
-	}
-
-	main68k_exec(Cycles_M68K - 360);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80 - 168);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80 - 168);
-
-	VDP_Status &= ~0x0004;			// HBlank = 0
-	_32X_VDP.State &= ~0x4000;
-	VDP_Status |= 0x0080;			// V Int happened
-
-	VDP_Int |= 0x8;
-	Update_IRQ_Line();
-	if (_32X_MINT & 0x08) SH2_Interrupt(&M_SH2, 12);
-	if (_32X_SINT & 0x08) SH2_Interrupt(&S_SH2, 12);
-	z80_Interrupt(&M_Z80, 0xFF);
-
-	while (i < Cycles_M68K)
-	{
-		main68k_exec(i);
-		SH2_Exec(&M_SH2, j);
-		SH2_Exec(&S_SH2, k);
-		PWM_Update_Timer(l);
-		i += p_i;
-		j += p_j;
-		k += p_k;
-		l += p_l;
-	}
-
-	main68k_exec(Cycles_M68K);
-	SH2_Exec(&M_SH2, Cycles_MSH2);
-	SH2_Exec(&S_SH2, Cycles_SSH2);
-	PWM_Update_Timer(PWM_Cycles);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-	for(VDP_Current_Line++; VDP_Current_Line < VDP_Num_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-
-		i = Cycles_M68K + (p_i * 2);
-		j = Cycles_MSH2 + (p_j * 2);
-		k = Cycles_SSH2 + (p_k * 2);
-		l = PWM_Cycles + (p_l * 2);
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_MSH2 += CPL_MSH2;
-		Cycles_SSH2 += CPL_SSH2;
-		Cycles_Z80 += CPL_Z80;
-		PWM_Cycles += CPL_PWM;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;			// HBlank = 1
-		_32X_VDP.State |= 0x6000;
-
-		main68k_exec(i - p_i);
-		SH2_Exec(&M_SH2, j - p_j);
-		SH2_Exec(&S_SH2, k - p_k);
-		PWM_Update_Timer(l - p_l);
-
-		VDP_Status &= ~0x0004;			// HBlank = 0
-		_32X_VDP.State &= ~0x6000;
-
-		if (--HInt_Counter_32X < 0)
-		{
-			HInt_Counter_32X = _32X_HIC;
-			if ((_32X_MINT & 0x04) && (_32X_MINT & 0x80)) SH2_Interrupt(&M_SH2, 10);
-			if ((_32X_SINT & 0x04) && (_32X_SINT & 0x80)) SH2_Interrupt(&S_SH2, 10);
-		}
-
-		/* instruction by instruction execution */
-		
-		while (i < Cycles_M68K)
-		{
-			main68k_exec(i);
-			SH2_Exec(&M_SH2, j);
-			SH2_Exec(&S_SH2, k);
-			PWM_Update_Timer(l);
-			i += p_i;
-			j += p_j;
-			k += p_k;
-			l += p_l;
-		}
-
-		main68k_exec(Cycles_M68K);
-		SH2_Exec(&M_SH2, Cycles_MSH2);
-		SH2_Exec(&S_SH2, Cycles_SSH2);
-		PWM_Update_Timer(PWM_Cycles);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-	}
-
-	if(!disableSound)
-	{
-		PSG_Special_Update();
-		YM2612_Special_Update();
-	}
-	if(!disableSound && !disableSound2)
-	{
-		if (WAV_Dumping) Update_WAV_Dump();
-		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
-		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
-	}
-
-	return 1;
-}
-
-DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
-{
-	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
-
-	int i, j, k, l, p_i, p_j, p_k, p_l, *buf[2];
-	int HInt_Counter, HInt_Counter_32X;
-	int CPL_PWM;
-
-	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
-	else VDP_Num_Vis_Lines = 224;
-
-	if(!disableSound)
-	{
-		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
-		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
-	}
-	YM_Len = PSG_Len = 0;
-
-	CPL_PWM = CPL_M68K * 3;
-
-	PWM_Cycles = Cycles_SSH2 = Cycles_MSH2 = Cycles_M68K = Cycles_Z80 = 0;
-	Last_BUS_REQ_Cnt = -1000;
-
-	main68k_tripOdometer();
-	z80_Clear_Odo(&M_Z80);
-	SH2_Clear_Odo(&M_SH2);
-	SH2_Clear_Odo(&S_SH2);
-	PWM_Clear_Timer();
-
-	Patch_Codes();
-
-	VRam_Flag = 1;
-
-	VDP_Status &= 0xFFF7;							// Clear V Blank
-	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
-	_32X_VDP.State &= ~0x8000;
-
-	HInt_Counter = VDP_Reg.H_Int;					// Hint_Counter = step d'interruption H
-	HInt_Counter_32X = _32X_HIC;
-
-	p_i = 84;
-	p_j = (p_i * CPL_MSH2) / CPL_M68K;
-	p_k = (p_i * CPL_SSH2) / CPL_M68K;
-	p_l = p_i * 3;
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			PWM_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-
-		i = Cycles_M68K + (p_i * 2);
-		j = Cycles_MSH2 + (p_j * 2);
-		k = Cycles_SSH2 + (p_k * 2);
-		l = PWM_Cycles + (p_l * 2);
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_MSH2 += CPL_MSH2;
-		Cycles_SSH2 += CPL_SSH2;
-		Cycles_Z80 += CPL_Z80;
-		PWM_Cycles += CPL_PWM;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;			// HBlank = 1
-		_32X_VDP.State |= 0x6000;
-
-		main68k_exec(i - p_i);
-		SH2_Exec(&M_SH2, j - p_j);
-		SH2_Exec(&S_SH2, k - p_k);
-		PWM_Update_Timer(l - p_l);
-
-		VDP_Status &= ~0x0004;			// HBlank = 0
-		_32X_VDP.State &= ~0x6000;
-
-		if (--HInt_Counter < 0)
-		{
-			HInt_Counter = VDP_Reg.H_Int;
-			VDP_Int |= 0x4;
-			Update_IRQ_Line();
-		}
-
-		if (--HInt_Counter_32X < 0)
-		{
-			HInt_Counter_32X = _32X_HIC;
-			if (_32X_MINT & 0x04) SH2_Interrupt(&M_SH2, 10);
-			if (_32X_SINT & 0x04) SH2_Interrupt(&S_SH2, 10);
-		}
-
-		Render_Line_32X();
-		//UPDATE_PALETTE32
 #ifdef _DEBUG
 		static int _32X_Prev_Rend_Mode = -1;
 		if (_32X_Rend_Mode != _32X_Prev_Rend_Mode)
@@ -2073,7 +1683,6 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 			_32X_Prev_Rend_Mode = _32X_Rend_Mode;
 		}
 #endif
-		//POST_LINE_32X
 
 		/* instruction by instruction execution */
 		
@@ -2097,9 +1706,11 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 		else z80_Set_Odo(&M_Z80, Cycles_Z80);
 	}
 
-	FakeVDPScreen = false;
-
-	Render_MD_Screen32X();
+	if (!fast)
+	{
+		FakeVDPScreen = false;
+		Render_MD_Screen32X();
+	}
 
 	if(!disableSound)
 	{
@@ -2265,12 +1876,21 @@ DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
 	}
 
-	Update_RAM_Search();
+	if (!fast)
+		Update_RAM_Search();
 
 	return 1;
 }
 
+DO_FRAME_HEADER(Do_32X_Frame, Do_32X_Frame_No_VDP)
+{
+	return Do_32X_Frame(false);
+}
 
+DO_FRAME_HEADER(Do_32X_Frame_No_VDP, Do_32X_Frame_No_VDP)
+{
+	return Do_32X_Frame(true);
+}
 
 /*************************************/
 /*              SEGA CD              */
@@ -2533,452 +2153,7 @@ void Reset_SegaCD()
 
 }
 
-
-DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
-{
-	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
-
-	int *buf[2];
-	int HInt_Counter;
-
-	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
-	else VDP_Num_Vis_Lines = 224;
-
-	CPL_S68K = 795;
-
-	if(!disableSound)
-	{
-		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
-		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
-	}
-	YM_Len = PSG_Len = 0;
-
-	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
-	Last_BUS_REQ_Cnt = -1000;
-	main68k_tripOdometer();
-	sub68k_tripOdometer();
-	z80_Clear_Odo(&M_Z80);
-
-	Patch_Codes();
-
-	VRam_Flag = 1;
-
-	VDP_Status &= 0xFFF7;
-	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
-
-	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
-
-	FakeVDPScreen = true;
-
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-		Update_CDC_TRansfert();
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-		main68k_exec(Cycles_M68K - 404);
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		if (--HInt_Counter < 0)
-		{
-			HInt_Counter = VDP_Reg.H_Int;
-			VDP_Int |= 0x4;
-			Update_IRQ_Line();
-		}
-
-		main68k_exec(Cycles_M68K);
-		sub68k_exec(Cycles_S68K);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-		Update_SegaCD_Timer();
-	}
-	
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-	}
-	Update_CDC_TRansfert();
-
-	Fix_Controllers();
-	Cycles_M68K += CPL_M68K;
-	Cycles_Z80 += CPL_Z80;
-	if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-	if (DMAT_Length) main68k_addCycles(Update_DMA());
-	if (--HInt_Counter < 0)
-	{
-		VDP_Int |= 0x4;
-		Update_IRQ_Line();
-	}
-
-	VDP_Status |= 0x000C;			// VBlank = 1 et HBlank = 1 (retour de balayage vertical en cours)
-	main68k_exec(Cycles_M68K - 360);
-	sub68k_exec(Cycles_S68K - 586);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80 - 168);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80 - 168);
-
-	VDP_Status &= 0xFFFB;			// HBlank = 0
-	VDP_Status |= 0x0080;			// V Int happened
-	VDP_Int |= 0x8;
-	Update_IRQ_Line();
-	z80_Interrupt(&M_Z80, 0xFF);
-
-	main68k_exec(Cycles_M68K);
-	sub68k_exec(Cycles_S68K);
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-	Update_SegaCD_Timer();
-
-	for(VDP_Current_Line++; VDP_Current_Line < VDP_Num_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-		Update_CDC_TRansfert();
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-		main68k_exec(Cycles_M68K - 404);
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		main68k_exec(Cycles_M68K);
-		sub68k_exec(Cycles_S68K);
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-		Update_SegaCD_Timer();
-	}
-
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer();
-		buf[1] = RightAudioBuffer();
-
-		PSG_Special_Update();
-		YM2612_Special_Update();
-		Update_CD_Audio(buf, Seg_Length);
-	}
-	if(!disableSound && !disableSound2)
-	{
-		if (WAV_Dumping) Update_WAV_Dump();
-		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
-		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
-	}
-
-	return(1);
-}
-
-
-DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
-{
-	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
-
-	int *buf[2], i, j;
-	int HInt_Counter;
-
-	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
-	else VDP_Num_Vis_Lines = 224;
-
-	CPL_S68K = 795;
-
-	if(!disableSound)
-	{
-		YM_Buf[0] = PSG_Buf[0] = LeftAudioBuffer();
-		YM_Buf[1] = PSG_Buf[1] = RightAudioBuffer();
-	}
-	YM_Len = PSG_Len = 0;
-
-	Cycles_S68K = Cycles_M68K = Cycles_Z80 = 0;
-	Last_BUS_REQ_Cnt = -1000;
-	main68k_tripOdometer();
-	sub68k_tripOdometer();
-	z80_Clear_Odo(&M_Z80);
-
-	Patch_Codes();
-
-	VRam_Flag = 1;
-
-	VDP_Status &= 0xFFF7;
-	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
-
-	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step H interrupt
-
-	FakeVDPScreen = true;
-
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-		Update_CDC_TRansfert();
-
-		i = Cycles_M68K + 24;
-		j = Cycles_S68K + 39;
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-
-		/* instruction by instruction execution */
-		
-		while (i < (Cycles_M68K - 404))
-		{
-			main68k_exec(i);
-			i += 24;
-
-			if (j < (Cycles_S68K - 658))
-			{
-				sub68k_exec(j);
-				j += 39;
-			}
-		}
-
-		main68k_exec(Cycles_M68K - 404);
-		sub68k_exec(Cycles_S68K - 658);
-
-		/* end instruction by instruction execution */
-
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		if (--HInt_Counter < 0)
-		{
-			HInt_Counter = VDP_Reg.H_Int;
-			VDP_Int |= 0x4;
-			Update_IRQ_Line();
-		}
-
-		/* instruction by instruction execution */
-		
-		while (i < Cycles_M68K)
-		{
-			main68k_exec(i);
-			i += 24;
-
-			if (j < Cycles_S68K)
-			{
-				sub68k_exec(j);
-				j += 39;
-			}
-		}
-
-		main68k_exec(Cycles_M68K);
-		sub68k_exec(Cycles_S68K);
-
-		/* end instruction by instruction execution */
-
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-		Update_SegaCD_Timer();
-	}
-	
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-		if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-		YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-		PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-	}
-	Update_CDC_TRansfert();
-
-	i = Cycles_M68K + 24;
-	j = Cycles_S68K + 39;
-
-	Fix_Controllers();
-	Cycles_M68K += CPL_M68K;
-	Cycles_Z80 += CPL_Z80;
-	if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-	if (DMAT_Length) main68k_addCycles(Update_DMA());
-	if (--HInt_Counter < 0)
-	{
-		VDP_Int |= 0x4;
-		Update_IRQ_Line();
-	}
-
-	VDP_Status |= 0x000C;			// VBlank = 1 et HBlank = 1 (retour de balayage vertical en cours)
-
-	/* instruction by instruction execution */
-
-	while (i < (Cycles_M68K - 360))
-	{
-		main68k_exec(i);
-		i += 24;
-
-		if (j < (Cycles_S68K - 586))
-		{
-			sub68k_exec(j);
-			j += 39;
-		}
-	}
-
-	main68k_exec(Cycles_M68K - 360);
-	sub68k_exec(Cycles_S68K - 586);
-
-	/* end instruction by instruction execution */
-
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80 - 168);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80 - 168);
-
-	VDP_Status &= 0xFFFB;			// HBlank = 0
-	VDP_Status |= 0x0080;			// V Int happened
-	VDP_Int |= 0x8;
-	Update_IRQ_Line();
-	z80_Interrupt(&M_Z80, 0xFF);
-
-	/* instruction by instruction execution */
-		
-	while (i < Cycles_M68K)
-	{
-		main68k_exec(i);
-		i += 24;
-
-		if (j < Cycles_S68K)
-		{
-			sub68k_exec(j);
-			j += 39;
-		}
-	}
-
-	main68k_exec(Cycles_M68K);
-	sub68k_exec(Cycles_S68K);
-
-	/* end instruction by instruction execution */
-
-	if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-	else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-	Update_SegaCD_Timer();
-
-	for(VDP_Current_Line++; VDP_Current_Line < VDP_Num_Lines; VDP_Current_Line++)
-	{
-		if(!disableSound)
-		{
-			buf[0] = LeftAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			buf[1] = RightAudioBuffer() + Sound_Extrapol[VDP_Current_Line][0];
-			if (PCM_Enable) Update_PCM(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM2612_DacAndTimers_Update(buf, Sound_Extrapol[VDP_Current_Line][1]);
-			YM_Len += Sound_Extrapol[VDP_Current_Line][1];
-			PSG_Len += Sound_Extrapol[VDP_Current_Line][1];
-		}
-		Update_CDC_TRansfert();
-
-		i = Cycles_M68K + 24;
-		j = Cycles_S68K + 39;
-
-		Fix_Controllers();
-		Cycles_M68K += CPL_M68K;
-		Cycles_Z80 += CPL_Z80;
-		if (S68K_State == 1) Cycles_S68K += CPL_S68K;
-		if (DMAT_Length) main68k_addCycles(Update_DMA());
-		VDP_Status |= 0x0004;					// HBlank = 1
-
-		/* instruction by instruction execution */
-		
-		while (i < (Cycles_M68K - 404))
-		{
-			main68k_exec(i);
-			i += 24;
-
-			if (j < (Cycles_S68K - 658))
-			{
-				sub68k_exec(j);
-				j += 39;
-			}
-		}
-
-		main68k_exec(Cycles_M68K - 404);
-		sub68k_exec(Cycles_S68K - 658);
-
-		/* end instruction by instruction execution */
-
-		VDP_Status &= 0xFFFB;					// HBlank = 0
-
-		/* instruction by instruction execution */
-		
-		while (i < Cycles_M68K)
-		{
-			main68k_exec(i);
-			i += 24;
-
-			if (j < Cycles_S68K)
-			{
-				sub68k_exec(j);
-				j += 39;
-			}
-		}
-
-		main68k_exec(Cycles_M68K);
-		sub68k_exec(Cycles_S68K);
-
-		/* end instruction by instruction execution */
-
-		if (Z80_State == 3) z80_Exec(&M_Z80, Cycles_Z80);
-		else z80_Set_Odo(&M_Z80, Cycles_Z80);
-
-		Update_SegaCD_Timer();
-	}
-
-	if(!disableSound)
-	{
-		buf[0] = LeftAudioBuffer();
-		buf[1] = RightAudioBuffer();
-
-		PSG_Special_Update();
-		YM2612_Special_Update();
-		Update_CD_Audio(buf, Seg_Length);
-	}
-	if(!disableSound && !disableSound2)
-	{
-		if (WAV_Dumping) Update_WAV_Dump();
-		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
-		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
-	}
-
-	return(1);
-}
-
-
-DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
+int Do_SegaCD_Frame(bool fast)
 {
 	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
 
@@ -3012,6 +2187,9 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step d'interruption H
 
+	if (fast)
+		FakeVDPScreen = true;
+
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
 		if(!disableSound)
@@ -3041,9 +2219,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 			Update_IRQ_Line();
 		}
 
-		//UPDATE_PALETTE32
-		Render_Line();
-//		POST_LINE
+		if (!fast)
+			Render_Line();
 
 		main68k_exec(Cycles_M68K);
 		sub68k_exec(Cycles_S68K);
@@ -3053,9 +2230,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 		Update_SegaCD_Timer();
 	}
 
-	FakeVDPScreen = false;
-
-	Render_MD_Screen();
+	if (!fast)
+	{
+		FakeVDPScreen = false;
+		Render_MD_Screen();
+	}
 
 	if(!disableSound)
 	{
@@ -3144,56 +2323,23 @@ DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
 	}
 
-	if (Show_LED)
-	{
-		if (LED_Status & 2)
-		{
-			MD_Screen[336 * 220 + 12] = 0x03E0;
-			MD_Screen[336 * 220 + 13] = 0x03E0;
-			MD_Screen[336 * 220 + 14] = 0x03E0;
-			MD_Screen[336 * 220 + 15] = 0x03E0;
-			MD_Screen[336 * 222 + 12] = 0x03E0;
-			MD_Screen[336 * 222 + 13] = 0x03E0;
-			MD_Screen[336 * 222 + 14] = 0x03E0;
-			MD_Screen[336 * 222 + 15] = 0x03E0;
-			MD_Screen32[336 * 220 + 12] = 0x00FF00;
-			MD_Screen32[336 * 220 + 13] = 0x00FF00;
-			MD_Screen32[336 * 220 + 14] = 0x00FF00;
-			MD_Screen32[336 * 220 + 15] = 0x00FF00;
-			MD_Screen32[336 * 222 + 12] = 0x00FF00;
-			MD_Screen32[336 * 222 + 13] = 0x00FF00;
-			MD_Screen32[336 * 222 + 14] = 0x00FF00;
-			MD_Screen32[336 * 222 + 15] = 0x00FF00;
-		}
-
-		if (LED_Status & 1)
-		{
-			MD_Screen[336 * 220 + 12 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 13 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 14 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 15 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 12 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 13 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 14 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 15 + 8] = 0xF800;
-			MD_Screen32[336 * 220 + 12 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 13 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 14 + 8] = 0xFF0000;
-			MD_Screen32[336 * 220 + 15 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 12 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 13 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 14 + 8] = 0xFF0000;
-			MD_Screen32[336 * 222 + 15 + 8] = 0xFF0000;
-		}
-	}
-
-	Update_RAM_Search();
+	if (!fast)
+		Update_RAM_Search();
 
 	return(1);
 }
 
+DO_FRAME_HEADER(Do_SegaCD_Frame, Do_SegaCD_Frame_No_VDP)
+{
+	return Do_SegaCD_Frame(false);
+}
 
-DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
+DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP, Do_SegaCD_Frame_No_VDP)
+{
+	return Do_SegaCD_Frame(true);
+}
+
+int Do_SegaCD_Frame_Cycle_Accurate(bool fast)
 {
 	struct Scope { Scope(){Inside_Frame=1;} ~Scope(){Inside_Frame=0;}} scope;	
 
@@ -3226,6 +2372,9 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step d'interruption H
+
+	if (fast)
+		FakeVDPScreen = true;
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{
@@ -3278,9 +2427,8 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 			Update_IRQ_Line();
 		}
 
-		//UPDATE_PALETTE32
-		Render_Line();
-//		POST_LINE
+		if (!fast)
+			Render_Line();
 
 		/* instruction by instruction execution */
 		
@@ -3307,9 +2455,11 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 		Update_SegaCD_Timer();
 	}
 
-	FakeVDPScreen = false;
-
-	Render_MD_Screen();
+	if (!fast)
+	{
+		FakeVDPScreen = false;
+		Render_MD_Screen();
+	}
 
 	if(!disableSound)
 	{
@@ -3474,50 +2624,19 @@ DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Acc
 		if (AVISound!=0 && AVIRecording!=0 && (AVIWaitMovie==0 || MainMovie.Status == MOVIE_PLAYING || MainMovie.Status == MOVIE_FINISHED)) Update_WAV_Dump_AVI();
 		if (GYM_Dumping) Update_GYM_Dump((unsigned char) 0, (unsigned char) 0, (unsigned char) 0);
 	}
-	if (Show_LED)
-	{
-		if (LED_Status & 2)
-		{
-			MD_Screen[336 * 220 + 12] = 0x07E0;
-			MD_Screen[336 * 220 + 13] = 0x07E0;
-			MD_Screen[336 * 220 + 14] = 0x07E0;
-			MD_Screen[336 * 220 + 15] = 0x07E0;
-			MD_Screen[336 * 222 + 12] = 0x07E0;
-			MD_Screen[336 * 222 + 13] = 0x07E0;
-			MD_Screen[336 * 222 + 14] = 0x07E0;
-			MD_Screen[336 * 222 + 15] = 0x07E0;
-			MD_Screen32[336 * 220 + 12] = 0xFF00FF00; // alpha added
-			MD_Screen32[336 * 220 + 13] = 0xFF00FF00;
-			MD_Screen32[336 * 220 + 14] = 0xFF00FF00;
-			MD_Screen32[336 * 220 + 15] = 0xFF00FF00;
-			MD_Screen32[336 * 222 + 12] = 0xFF00FF00;
-			MD_Screen32[336 * 222 + 13] = 0xFF00FF00;
-			MD_Screen32[336 * 222 + 14] = 0xFF00FF00;
-			MD_Screen32[336 * 222 + 15] = 0xFF00FF00;
-		}
 
-		if (LED_Status & 1)
-		{
-			MD_Screen[336 * 220 + 12 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 13 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 14 + 8] = 0xF800;
-			MD_Screen[336 * 220 + 15 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 12 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 13 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 14 + 8] = 0xF800;
-			MD_Screen[336 * 222 + 15 + 8] = 0xF800;
-			MD_Screen32[336 * 220 + 12 + 8] = 0xFFFF0000; // alpha added
-			MD_Screen32[336 * 220 + 13 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 220 + 14 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 220 + 15 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 222 + 12 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 222 + 13 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 222 + 14 + 8] = 0xFFFF0000;
-			MD_Screen32[336 * 222 + 15 + 8] = 0xFFFF0000;
-		}
-	}
-
-	Update_RAM_Search();
+	if (!fast)
+		Update_RAM_Search();
 
 	return 1;
+}
+
+DO_FRAME_HEADER(Do_SegaCD_Frame_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
+{
+	return Do_SegaCD_Frame_Cycle_Accurate(false);
+}
+
+DO_FRAME_HEADER(Do_SegaCD_Frame_No_VDP_Cycle_Accurate, Do_SegaCD_Frame_No_VDP_Cycle_Accurate)
+{
+	return Do_SegaCD_Frame_Cycle_Accurate(true);
 }
