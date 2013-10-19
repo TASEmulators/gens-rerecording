@@ -1,3 +1,4 @@
+del Gens11svn???.zip
 cd Output
 copy Gens.exe ..
 ..\dependencies\upx Gens.exe
