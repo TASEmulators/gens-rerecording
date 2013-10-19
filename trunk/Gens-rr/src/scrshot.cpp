@@ -145,7 +145,7 @@ png_colorp MakePalette(void* data, int X, int Y, int* numColorsOut, png_structp 
 
 // write a png file (PNG8 if possible to do so losslessly, PNG24 otherwise)
 // input data is assumed to be 32-bit color BGRA
-bool write_png(void* data, int X, int Y, FILE* fp)
+bool write_png(void* data, int X, int Y, FILE* fp, png_rw_ptr write_data_fn, png_flush_ptr output_flush_fn)
 {
 	png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!png_ptr)
@@ -164,7 +164,10 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 		return false;
 	}
 
-	png_init_io(png_ptr, fp);
+	if (write_data_fn)
+		png_set_write_fn(png_ptr, fp, write_data_fn, output_flush_fn);
+	else
+		png_init_io(png_ptr, fp);
 
 	int numColors = 0;
 	png_bytep alpha = NULL;
@@ -260,22 +263,72 @@ bool write_png(void* data, int X, int Y, FILE* fp)
 	return true;
 }
 
-int CopyBitmapToClipboard(unsigned char *bitmapBuffer, size_t buflen) // feos added this
+bool write_png(void* data, int X, int Y, FILE* fp)
+{
+	return write_png(data, X, Y, fp, NULL, NULL);
+}
+
+struct memory_buffer
+{
+	unsigned char *buffer;
+	size_t size, pos;
+	bool fail;
+};
+
+void png_write_into_memory(png_structp png_ptr, png_bytep data, png_size_t size)
+{
+	memory_buffer* b=(struct memory_buffer*)png_get_io_ptr(png_ptr);
+	if (b->pos + size > b->size)
+	{
+		png_error(png_ptr, "Buffer overflow");
+		b->fail = true;
+		return;
+	}
+	memcpy(b->buffer + b->pos, data, size);
+	b->pos += size;
+}
+
+void png_flush_into_memory(png_structp png_ptr)
+{
+}
+
+// Write png into buffer, and return its size
+int write_png(void* data, int X, int Y, void* buffer, int size)
+{
+	memory_buffer mem;
+	mem.pos = 0;
+	mem.size = size;
+	mem.buffer = (unsigned char*)buffer;
+	mem.fail = false;
+
+	if (!write_png(data, X, Y, (FILE*)&mem, png_write_into_memory, png_flush_into_memory))
+		return 0;
+
+	if (!mem.fail)
+		return mem.pos;
+	return 0;
+}
+
+
+int CopyToClipboard(int Type, unsigned char *Buffer, size_t buflen, bool clear = true) // feos added this
 {
 	HGLOBAL hResult;
 	if (!OpenClipboard(NULL)) return 4;
-	if (!EmptyClipboard()) return 3;
+	if (clear)
+	{
+		if (!EmptyClipboard()) return 3;
+	}
 
-	buflen -= sizeof(BITMAPFILEHEADER);
 	hResult = GlobalAlloc(GMEM_MOVEABLE, buflen);
 	if (hResult == NULL) return 2;
 
-	memcpy(GlobalLock(hResult), bitmapBuffer + sizeof(BITMAPFILEHEADER), buflen);
+	memcpy(GlobalLock(hResult), Buffer, buflen);
 	GlobalUnlock(hResult);
 
-	if (SetClipboardData(CF_DIB, hResult) == NULL)
+	if (SetClipboardData(Type, hResult) == NULL)
 	{
 		CloseClipboard();
+		GlobalFree(hResult);
 		return 1;
 	}
 
@@ -300,7 +353,7 @@ void MakeBitmapHeader(unsigned char *Dest, int BmpSize)
 	Dest[11] = Dest[12] = Dest[13] = 0;
 }
 
-void MakeBitmapInfo(unsigned char *Dest, int Width, int Height)
+void MakeBitmapInfo(unsigned char *Dest, int Width, int Height, int bpp = 24)
 {
 	Dest[ 0] = 40;
 	Dest[ 1] = Dest[2] = Dest[3] = 0;
@@ -314,10 +367,10 @@ void MakeBitmapInfo(unsigned char *Dest, int Width, int Height)
 	Dest[11] = (unsigned char) ((Height >> 24) & 0xFF);
 	Dest[12] = 1;
 	Dest[13] = 0;
-	Dest[14] = 24;
+	Dest[14] = bpp;
 	Dest[15] = 0;
 	Dest[16] = Dest[17] = Dest[18] = Dest[19] = 0;
-	int i = Width * Height * 3;
+	int i = Width * Height * (bpp / 8);
 	Dest[20] = (unsigned char) ((i >> 0) & 0xFF);
 	Dest[21] = (unsigned char) ((i >> 8) & 0xFF);
 	Dest[22] = (unsigned char) ((i >> 16) & 0xFF);
@@ -327,6 +380,42 @@ void MakeBitmapInfo(unsigned char *Dest, int Width, int Height)
 	Dest[26] = Dest[30] = Dest[27] = Dest[31] = 0;
 	Dest[32] = Dest[33] = Dest[34] = Dest[35] = 0;
 	Dest[36] = Dest[37] = Dest[38] = Dest[39] = 0;
+}
+
+// DIBV5 BitmapInfo, working, but...
+// who knows how to export with alpha channel correctly.
+// DIBV5 with transparency does not working almost everywhere.
+void MakeBitmapInfoV5(unsigned char *Dest, int Width, int Height)
+{
+	MakeBitmapInfo(Dest, Width, Height);
+
+	// zero memset v5 addition
+	memset(Dest + 40, 0, (5 + 7)*4 + sizeof(CIEXYZTRIPLE));
+
+	// rewrite Size
+	Dest[ 0] = sizeof(BITMAPV5HEADER);
+
+	// rewrite Size of image
+	int i = Width * Height * 4;
+	Dest[20] = (unsigned char) ((i >> 0) & 0xFF);
+	Dest[21] = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[22] = (unsigned char) ((i >> 16) & 0xFF);
+	Dest[23] = (unsigned char) ((i >> 24) & 0xFF);
+
+	// rewrite BitCount
+	Dest[14] = 32;
+
+	// rewrite Compression
+	Dest[16] = BI_BITFIELDS;
+
+	// AlphaMask
+	Dest[55] = 0xFF;
+	
+	// CS_Type
+	Dest[56] = 'B';
+	Dest[57] = 'G';
+	Dest[58] = 'R';
+	Dest[59] = 's';
 }
 
 void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmode)
@@ -399,20 +488,40 @@ int Save_Shot_Clipboard(void* Screen, int mode, int Hmode, int Vmode) // feos ad
 	unsigned char *Src = NULL, *Dest = NULL;
 
 	if (!Game) return(0);
-	if (CleanAvi) Update_Frame(); // clean screenshots are as easy as that
+	if (CleanAvi) Do_VDP_Refresh(); // clean screenshots are as easy as that
 
 	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
 	int Y = Vmode ? 240 : 224;
-	int i = (X * Y * 3) + 54;
+	int i = (X * Y * 3) + 40;
+	if (PinkBG) // transparency on
+		i = (X * Y * 4) + 40;
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	MakeBitmapHeader(Dest, i);
-	MakeBitmapInfo(Dest + 14, X, Y);
+	MakeBitmapInfo(Dest, X, Y, PinkBG ? 32 : 24);
 
-	WriteFrame(Screen, Dest + 54, mode, Hmode, Vmode);
+	if (PinkBG) // 32 bit, some editors can read ABGR bitmap
+		WriteFrame(Screen, Dest + 40, mode | 4, Hmode, Vmode);
+	else
+		WriteFrame(Screen, Dest + 40, mode, Hmode, Vmode);
 
-	CopyBitmapToClipboard(Dest,X*Y*3+54);
+	CopyToClipboard(CF_DIB, Dest, i);
+
+	if (PinkBG)
+	{
+		// Export PNG
+		unsigned char *png = (unsigned char*)malloc(i);
+		if (png)
+		{
+			int png_size = write_png(Dest + 40, X, Y, png, i);
+			if (png_size)
+				CopyToClipboard(RegisterClipboardFormat("PNG"), png, png_size, false);
+
+			free(png);
+		}
+	}
+
+	free(Dest);
 	Put_Info("Screen shot saved to clipboard");
 
 	return(1);
