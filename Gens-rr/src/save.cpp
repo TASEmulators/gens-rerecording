@@ -236,7 +236,7 @@ FILE *Get_State_File()
 
 int Load_State_From_Buffer(unsigned char *buf)
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if (!Game)
 		return 0;
 
 	if ((MainMovie.Status == MOVIE_PLAYING) || (MainMovie.Status == MOVIE_FINISHED))
@@ -2852,7 +2852,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	Sleep_Time = GetPrivateProfileInt("General", "Allow Idle", 5, Conf_File); //Modif N. - CPU hogging now off by default
 	Gens_Priority = GetPrivateProfileInt("General", "Priority", 1, Conf_File);
 	Def_Read_Only = (bool) (GetPrivateProfileInt("General", "Movie Default Read Only", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
-	AutoCloseMovie = (bool) (GetPrivateProfileInt("General", "Movie Auto Close", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
+	AutoCloseMovie = (bool) (GetPrivateProfileInt("General", "Movie Auto Close", 0, Conf_File) > 0); //Upth-Add - Load the flag from config
 	UseMovieStates = (bool) (GetPrivateProfileInt("General", "Movie Based State Names", 1, Conf_File) > 0); //Upth-Add - Load the flag from config
 	SlowDownSpeed = GetPrivateProfileInt("General", "Slow Down Speed", 1, Conf_File); //Upth-Add - Load the slowdown speed from config
 	DelayFactor = GetPrivateProfileInt("General", "Frame Advance Delay Factor", 5, Conf_File); //Upth-Add - Frame advance speed configurable

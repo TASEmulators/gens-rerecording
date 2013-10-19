@@ -494,7 +494,7 @@ DEFINE_LUA_FUNCTION(gens_registerstart, "func")
 	lua_insert(L,1);
 	lua_pushvalue(L,-1); // copy the function so we can also call it
 	lua_setfield(L, LUA_REGISTRYINDEX, luaCallIDStrings[LUACALL_ONSTART]);
-	if (!lua_isnil(L,-1) && ((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if (!lua_isnil(L,-1) && (Game))
 		lua_call(L,0,0); // call the function now since the game has already started and this start function hasn't been called yet
 	StopScriptIfFinished(luaStateToUIDMap[L]);
 	return 1;
@@ -1711,7 +1711,7 @@ void printfToOutput(const char* fmt, ...)
 
 bool FailVerifyAtFrameBoundary(lua_State* L, const char* funcName, int unstartedSeverity=2, int inframeSeverity=2)
 {
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if (!Game)
 	{
 		static const char* msg = "cannot call %s() when emulation has not started.";
 		switch(unstartedSeverity)
@@ -2254,7 +2254,7 @@ DEFINE_LUA_FUNCTION(state_create, "[location]")
 	int len = GENESIS_STATE_LENGTH;
 	if (SegaCD_Started) len += SEGACD_LENGTH_EX;
 	if (_32X_Started) len += G32X_LENGTH_EX;
-	if (!((Genesis_Started)||(SegaCD_Started)||(_32X_Started)))
+	if (!Game)
 		len += max(SEGACD_LENGTH_EX, G32X_LENGTH_EX);
 
 	// allocate the in-memory/anonymous savestate
@@ -3488,7 +3488,7 @@ DEFINE_LUA_FUNCTION(gens_lagged, "")
 }
 DEFINE_LUA_FUNCTION(gens_emulating, "")
 {
-	lua_pushboolean(L, Genesis_Started||SegaCD_Started||_32X_Started);
+	lua_pushboolean(L, (Genesis_Started || _32X_Started || SegaCD_Started));
 	return 1;
 }
 DEFINE_LUA_FUNCTION(gens_atframeboundary, "")

@@ -16,23 +16,23 @@ extern "C" {
 #endif
 
 struct Rom {
-char Console_Name[17];
-char Copyright[17];
-char Rom_Name[49];
-char Rom_Name_W[49];
-char Type[3];
-char Version[13];
-unsigned int Checksum;
-char IO_Support[17];
-unsigned int Rom_Start_Address;
-unsigned int Rom_End_Address;
-unsigned int R_Size;
-char Ram_Infos[13];
-unsigned int Ram_Start_Address;
-unsigned int Ram_End_Address;
-char Modem_Infos[13];
-char Description[41];
-char Countries[4];
+	char Console_Name[17];
+	char Copyright[17];
+	char Rom_Name[49];
+	char Rom_Name_W[49];
+	char Type[3];
+	char Version[13];
+	unsigned int Checksum;
+	char IO_Support[17];
+	unsigned int Rom_Start_Address;
+	unsigned int Rom_End_Address;
+	unsigned int R_Size;
+	char Ram_Infos[13];
+	unsigned int Ram_Start_Address;
+	unsigned int Ram_End_Address;
+	char Modem_Infos[13];
+	char Description[41];
+	char Countries[4];
 };
 
 extern int File_Type_Index;
