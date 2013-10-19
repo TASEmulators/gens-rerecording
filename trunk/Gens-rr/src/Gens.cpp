@@ -118,7 +118,7 @@
 	void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
 	{
 #ifdef TEST_GENESIS_FOR_DESYNCS
-		if (!Genesis_Started && !SegaCD_Started && !_32X_Started) return;
+		if (!Game) return;
 #endif
 #ifdef TEST_SEGACD_FOR_DESYNCS
 		if (!SegaCD_Started) return;

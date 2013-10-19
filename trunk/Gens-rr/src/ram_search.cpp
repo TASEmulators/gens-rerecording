@@ -92,7 +92,7 @@ void ResetMemoryRegions()
 	Clear_Sound_Buffer();
 
 	s_activeMemoryRegions.clear();
-	if(Genesis_Started || _32X_Started || SegaCD_Started)
+	if(Game)
 	{
 		s_activeMemoryRegions.push_back(s_68kRegion);
 		s_activeMemoryRegions.push_back(s_z80Region);

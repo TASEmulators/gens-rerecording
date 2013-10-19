@@ -1388,7 +1388,7 @@ int Change_Country(HWND hWnd, int Num)
 			sprintf(Str_Tmp, GENS_NAME " - SegaCD : %s", Rom_Name);
 	}
 
-	if(Genesis_Started || _32X_Started || SegaCD_Started)
+	if(Game)
 	{
 		// Modif N. - remove double-spaces from title bar
 		for(int i = 0 ; i < (int)strlen(Str_Tmp)-1 ; i++)
@@ -1978,7 +1978,7 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 		MustUpdateMenu=0;
 	}
 
-	if (!(Genesis_Started || _32X_Started || SegaCD_Started))
+	if (!Game)
 		return true;
 
 	bool reachedEmulate = false;
@@ -2212,7 +2212,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		}
 		else
 #endif
-		if (Genesis_Started || _32X_Started || SegaCD_Started)
+		if (Game)
 		{
 			Check_Misc_Key();
 			//Update_Input(); // disabled because we just called it in Handle_Gens_Messages
@@ -2802,6 +2802,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				while (ShowCursor(false) >= 0);
 			}
 			else
+				Clear_Sound_Buffer();
 				Build_Context_Menu();
 				TrackPopupMenu(Context_Menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, NULL, hWnd, NULL);
 			break;
@@ -3067,7 +3068,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// TODO: add support for doing this during read-only mode meaning it switches to playback and the movie replaces frameSearchInitialInput for frameSearchFrames steps, then it switches to recording before unpausing
 				case ID_FRAME_SEARCH_NEXT:
 				{
-					if(!(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+					if(!Game || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
 					frameSearchFrames++;
 					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames);
@@ -3098,7 +3099,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// TODO: optimize this to be O(1) amortized when key is held down instead of current slow O(n) where n = frameSearchFrames
 				case ID_FRAME_SEARCH_PREV:
 				{
-					if(frameSearchFrames <= 0 || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+					if(frameSearchFrames <= 0 || !Game || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
 					frameSearchFrames--;
 					MESSAGE_NUM_L("%d frame search", "%d frame search", frameSearchFrames);
@@ -3127,7 +3128,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// then run one frame with the last new input (frameSearchFinalInput)
 				// then pause and exit frame search mode
 				case ID_FRAME_SEARCH_END:
-					if(!frameSearchInitialized || !(Genesis_Started || _32X_Started || SegaCD_Started) || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
+					if(!frameSearchInitialized || !Game || (MainMovie.File && MainMovie.Status == MOVIE_PLAYING))
 						break;
 					MESSAGE_L("Frame search result", "Frame search result");
 					Load_State_From_Buffer(frameSearch_End_State_Buffer);
@@ -4172,7 +4173,7 @@ dialogAgain: //Nitsuja added this
 
 				case ID_SOUND_PLAYGYM:
 					MINIMIZE
-					if (!Genesis_Started && !SegaCD_Started && !_32X_Started)
+					if (!Game)
 					{
 						if (GYM_Playing) Stop_Play_GYM();
 						else Start_Play_GYM();
@@ -4774,36 +4775,65 @@ HMENU Build_Context_Menu(void)
 	int i = 0;
 	unsigned int Flags = MF_BYPOSITION | MF_STRING;
 	
-	MENU_L(ContextMenu, i++, Flags,
-		ID_FILES_OPENRECENTROM0, "Load Last ROM", "", "&Load Last ROM");
-	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_TOOLS_OPENRECENTMOVIE0, "Load Last Movie", "", "&Load Last Movie");
-	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_LUA_OPENRECENTSCRIPT0,  "Load Last Lua", "", "&Load Last Lua");
+	if (!Game)
+	{
+		MENU_L(ContextMenu, i++, Flags,
+			ID_FILES_OPENRECENTROM0, "Load Last ROM", "", "&Load Last ROM");
+		MENU_L(ContextMenu, i++, Flags,
+			ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+	}
+	else
+	{
+		if (!MainMovie.Status)
+		{
+			MENU_L(ContextMenu, i++, Flags,
+				ID_TOOLS_OPENRECENTMOVIE0, "Load Last Movie", "", "&Load Last Movie");
+			MENU_L(ContextMenu, i++, Flags,
+				ID_PLAY_MOVIE, "Open Movie...", "", "&Open Movie...");
+			MENU_L(ContextMenu,i++,Flags,
+				ID_RECORD_MOVIE,"Record New Movie...", "", "Record &New Movie...");
 
-	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+			InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
 
-	MENU_L(ContextMenu, i++, Flags,
-		ID_FILES_OPENROM, "Open ROM", "", "&Open ROM"  );
-	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_PLAY_MOVIE, "Open Movie", "", "&Open Movie");
-	MENU_L(ContextMenu, i++, Flags | (Genesis_Started || SegaCD_Started || _32X_Started ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		IDC_NEW_LUA_SCRIPT, "Open Lua", "", "&Open Lua");
+			MENU_L(ContextMenu, i++, Flags,
+				ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+		}
+		else
+		{
+			MENU_L(ContextMenu, i++, Flags,
+				ID_PLAY_FROM_START, "Watch Movie From Beginning", "", "&Watch Movie From Beginning");
+			MENU_L(ContextMenu, i++, Flags,
+				ID_RESUME_RECORD, "Resume Record from Now","","&Resume Record from Now");
+			MENU_L(ContextMenu, i++, Flags | ((MainMovie.File !=  NULL) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+				ID_STOP_MOVIE, "Stop Movie","","&Stop Movie");
+			MENU_L(ContextMenu,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),
+				ID_RECORD_MOVIE,"Record New Movie...", "", "Record &New Movie...");
 
-	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+			InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
 
-	MENU_L(ContextMenu, i++, Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_PLAY_FROM_START, "Watch Movie From Beginning", "", "&Watch Movie From Beginning");
-	MENU_L(ContextMenu, i++, Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_RESUME_RECORD, "Resume Record from Now","","&Resume Record from Now");
-	MENU_L(ContextMenu, i++, Flags | ((MainMovie.File !=  NULL) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
-		ID_STOP_MOVIE, "Stop Movie","","&Stop Movie"); 
+			MENU_L(ContextMenu, i++, Flags,
+				ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+			MENU_L(ContextMenu, i++, Flags,
+					ID_PLAY_MOVIE, "Open Movie...", "", "&Open Movie...");
+		}
 
-	InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+		InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
 
-	MENU_L(ContextMenu, i++, Flags,
-		ID_GRAPHICS_AVI, AVIRecording?"Stop AVI Dump":"Start AVI Dump...", "", AVIRecording?"&Stop AVI Dump":"&Start AVI Dump...");
-	
+		MENU_L(ContextMenu, i++, Flags,
+			ID_LUA_OPENRECENTSCRIPT0,  "Load Last Lua", "", "&Load Last Lua");
+		MENU_L(ContextMenu, i++, Flags,
+			IDC_NEW_LUA_SCRIPT, "Open Lua...", "", "&Open Lua...");
+
+		InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+		MENU_L(ContextMenu, i++, Flags,
+			ID_EMULATION_PAUSED, Paused ? "Unpause Emulation" : "Pause Emulation", "", Paused ? "&Unpause Emulation" : "&Pause Emulation");
+		MENU_L(ContextMenu, i++, Flags,
+			ID_CPU_RESET, "Hard Reset", "\tCtrl+Shift+R", "&Hard Reset");			
+		MENU_L(ContextMenu, i++, Flags,
+			ID_GRAPHICS_AVI, AVIRecording ? "Stop AVI Dump" : "Start AVI Dump...", "", AVIRecording ? "&Stop AVI Dump" : "&Start AVI Dump...");
+	}
+
 	Context_Menu = ContextMenu;
 	return (Context_Menu);
 }
@@ -6687,7 +6717,7 @@ void GensOpenFile(const char* filename)
 			GensOpenScript(LogicalName);
 			break;
 		case FILETYPE_SAVESTATE:
-			if(Genesis_Started || _32X_Started || SegaCD_Started)
+			if(Game)
 				Load_State(PhysicalName);
 			break;
 		case FILETYPE_WATCH:
@@ -6704,7 +6734,7 @@ void GensOpenFile(const char* filename)
 			}
 			break;
 		case FILETYPE_SRAM:
-			if(Genesis_Started || _32X_Started || SegaCD_Started)
+			if(Game)
 			if(FILE* file = fopen(PhysicalName, "rb"))
 			{
 				fread(SRAM, 1, 64 * 1024, file);
@@ -7936,7 +7966,7 @@ LRESULT CALLBACK ColorProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					Invert_Color = (SendDlgItemMessage(hDlg, IDC_CHECK_INVERT, BM_GETCHECK, 0, 0) == BST_CHECKED)?1:0;
 
 					Recalculate_Palettes();
-					if (Genesis_Started || _32X_Started || SegaCD_Started)
+					if (Game)
 					{
 						CRam_Flag = 1;
 						Show_Genesis_Screen(HWnd);

@@ -19,7 +19,7 @@ unsigned int Temp_Controller_Type[4]; // upthadd - for saving the config's contr
 char Recent_Movie[MAX_RECENT_MOVIES][1024];
 char Movie_Dir[1024]="";
 bool tempflag = false; //Upth-Add - This is for the new feature which pauses at the end of movie play if readonly isn't set
-bool AutoCloseMovie = true; //Upth-Add - For the new AutoClose Movie toggle
+bool AutoCloseMovie = false; //Upth-Add - For the new AutoClose Movie toggle
 bool Def_Read_Only = true; //Upth-Add - For the new Default Read Only toggle
 char track = 1 | 2 | 4;
 extern int AVIRecording;
