@@ -313,14 +313,14 @@ int write_png(void* data, int X, int Y, void* buffer, int size)
 int CopyToClipboard(int Type, unsigned char *Buffer, size_t buflen, bool clear = true) // feos added this
 {
 	HGLOBAL hResult;
-	if (!OpenClipboard(NULL)) return 4;
+	if (!OpenClipboard(NULL)) return 0;
 	if (clear)
 	{
-		if (!EmptyClipboard()) return 3;
+		if (!EmptyClipboard()) return 0;
 	}
 
 	hResult = GlobalAlloc(GMEM_MOVEABLE, buflen);
-	if (hResult == NULL) return 2;
+	if (hResult == NULL) return 0;
 
 	memcpy(GlobalLock(hResult), Buffer, buflen);
 	GlobalUnlock(hResult);
@@ -329,25 +329,26 @@ int CopyToClipboard(int Type, unsigned char *Buffer, size_t buflen, bool clear =
 	{
 		CloseClipboard();
 		GlobalFree(hResult);
-		return 1;
+		return 0;
 	}
 
 	CloseClipboard();
 	GlobalFree(hResult);
-	return 0;
+	return 1;
 }
 
 void MakeBitmapHeader(unsigned char *Dest, int BmpSize)
 {
-	Dest[0]  = 'B';
-	Dest[1]  = 'M';
-	Dest[2]  = (unsigned char) ((BmpSize >> 0) & 0xFF); 
-	Dest[3]  = (unsigned char) ((BmpSize >> 8) & 0xFF);
-	Dest[4]  = (unsigned char) ((BmpSize >> 16) & 0xFF);
-	Dest[5]  = (unsigned char) ((BmpSize >> 24) & 0xFF);
+	Dest[ 0] = 'B';
+	Dest[ 1] = 'M';
+	Dest[ 2] = (unsigned char) ((BmpSize >>  0) & 0xFF); 
+	Dest[ 3] = (unsigned char) ((BmpSize >>  8) & 0xFF);
+	Dest[ 4] = (unsigned char) ((BmpSize >> 16) & 0xFF);
+	Dest[ 5] = (unsigned char) ((BmpSize >> 24) & 0xFF);
+
 	// Reserved
-	Dest[6]  = Dest[7] = Dest[8] = Dest[9] = 0;
-	
+	Dest[ 6] = Dest[7] = Dest[8] = Dest[9] = 0;	
+
 	// OffBits
 	Dest[10] = 54;
 	Dest[11] = Dest[12] = Dest[13] = 0;
@@ -357,12 +358,12 @@ void MakeBitmapInfo(unsigned char *Dest, int Width, int Height, int bpp = 24)
 {
 	Dest[ 0] = 40;
 	Dest[ 1] = Dest[2] = Dest[3] = 0;
-	Dest[ 4] = (unsigned char) ((Width >> 0) & 0xFF);
-	Dest[ 5] = (unsigned char) ((Width >> 8) & 0xFF);
-	Dest[ 6] = (unsigned char) ((Width >> 16) & 0xFF);
-	Dest[ 7] = (unsigned char) ((Width >> 24) & 0xFF);
-	Dest[ 8] = (unsigned char) ((Height >> 0) & 0xFF);
-	Dest[ 9] = (unsigned char) ((Height >> 8) & 0xFF);
+	Dest[ 4] = (unsigned char) ((Width  >>  0) & 0xFF);
+	Dest[ 5] = (unsigned char) ((Width  >>  8) & 0xFF);
+	Dest[ 6] = (unsigned char) ((Width  >> 16) & 0xFF);
+	Dest[ 7] = (unsigned char) ((Width  >> 24) & 0xFF);
+	Dest[ 8] = (unsigned char) ((Height >>  0) & 0xFF);
+	Dest[ 9] = (unsigned char) ((Height >>  8) & 0xFF);
 	Dest[10] = (unsigned char) ((Height >> 16) & 0xFF);
 	Dest[11] = (unsigned char) ((Height >> 24) & 0xFF);
 	Dest[12] = 1;
@@ -371,8 +372,8 @@ void MakeBitmapInfo(unsigned char *Dest, int Width, int Height, int bpp = 24)
 	Dest[15] = 0;
 	Dest[16] = Dest[17] = Dest[18] = Dest[19] = 0;
 	int i = Width * Height * (bpp / 8);
-	Dest[20] = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[21] = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[20] = (unsigned char) ((i >>  0) & 0xFF);
+	Dest[21] = (unsigned char) ((i >>  8) & 0xFF);
 	Dest[22] = (unsigned char) ((i >> 16) & 0xFF);
 	Dest[23] = (unsigned char) ((i >> 24) & 0xFF);
 	Dest[24] = Dest[28] = 0xC4;
@@ -397,8 +398,8 @@ void MakeBitmapInfoV5(unsigned char *Dest, int Width, int Height)
 
 	// rewrite Size of image
 	int i = Width * Height * 4;
-	Dest[20] = (unsigned char) ((i >> 0) & 0xFF);
-	Dest[21] = (unsigned char) ((i >> 8) & 0xFF);
+	Dest[20] = (unsigned char) ((i >>  0) & 0xFF);
+	Dest[21] = (unsigned char) ((i >>  8) & 0xFF);
 	Dest[22] = (unsigned char) ((i >> 16) & 0xFF);
 	Dest[23] = (unsigned char) ((i >> 24) & 0xFF);
 
@@ -433,8 +434,8 @@ void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmod
 		// 32-bit BGRA output
 #define WRITE_PIXEL(i) Dest[offs + (4 * (i)) + 3] = ((tmp >> 24) & 0xFF); \
                        Dest[offs + (4 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
-                       Dest[offs + (4 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
-                       Dest[offs + (4 * (i))    ] = (tmp & 0xFF);
+                       Dest[offs + (4 * (i)) + 1] = ((tmp >>  8) & 0xFF); \
+                       Dest[offs + (4 * (i))    ] = ( tmp        & 0xFF);
 		if(mode & 2) // 32-bit:
 		{
 			#define READ_PIXEL(i) (*(pix32*)&(Src[4 * (i)]))
@@ -459,8 +460,8 @@ void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmod
 	{
 		// 24-bit BGR output
 #define WRITE_PIXEL(i) Dest[offs + (3 * (i)) + 2] = ((tmp >> 16) & 0xFF); \
-                       Dest[offs + (3 * (i)) + 1] = ((tmp >> 8) & 0xFF); \
-                       Dest[offs + (3 * (i))    ] = (tmp & 0xFF);
+                       Dest[offs + (3 * (i)) + 1] = ((tmp >>  8) & 0xFF); \
+                       Dest[offs + (3 * (i))    ] = ( tmp        & 0xFF);
 		if(mode & 2) // 32-bit:
 		{
 			#define READ_PIXEL(i) *(pix32*)&(Src[4 * (i)]);
@@ -488,7 +489,7 @@ int Save_Shot_Clipboard(void* Screen, int mode, int Hmode, int Vmode) // feos ad
 	unsigned char *Src = NULL, *Dest = NULL;
 
 	if (!Game) return(0);
-	if (CleanAvi) Do_VDP_Refresh(); // clean screenshots are as easy as that
+	if (CleanAvi) Do_VDP_Refresh(); // clean screenshots
 
 	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
 	int Y = Vmode ? 240 : 224;
@@ -537,7 +538,7 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	SetCurrentDirectory(Gens_Path);
 
 	if (!Game) return(0);
-	if (CleanAvi) Do_VDP_Refresh(); // feos: clean screenshots are as easy as that
+	if (CleanAvi) Do_VDP_Refresh(); // clean screenshots
 
 	int num = -1;
 	do

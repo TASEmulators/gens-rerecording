@@ -46,8 +46,8 @@ bool FS_No_Res_Change = false; //Upth-Add - For the new fullscreen at same resol
 int Stretch; 
 int Blit_Soft;
 int Effect_Color = 7;
-int FPS_Style = EMU_MODE | BLANC;
-int Message_Style = EMU_MODE | BLANC | SIZE_X2;
+int FPS_Style = EMU_MODE | WHITE;
+int Message_Style = EMU_MODE | WHITE | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
 extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
@@ -211,6 +211,7 @@ void Put_Info(char *Message, int Duration)
 {
 	if (Show_Message)
 	{
+		Do_VDP_Refresh();
 		Put_Info_NonImmediate(Message);
 
 		// Modif N. - in case game is paused or at extremely low speed, update screen on new message
@@ -976,14 +977,11 @@ void DrawInformationOnTheScreen()
 		}
 		else //Modif N - outlined message text, so it isn't unreadable on any background color:
 		{
-			if(!(Message_Style & TRANS))
-			{
-				int backColor = (((Message_Style & (BLEU|VERT|ROUGE)) == BLEU) ? ROUGE : BLEU) | (Message_Style & SIZE_X2) | TRANS;
-				const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
-				const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
-				for(int i = 0 ; i < 8 ; i++)
-					Print_Text(Info_String, strlen(Info_String), 10+xOffset[i], 210+yOffset[i], backColor);
-			}
+			int backColor = (((Message_Style & (BLUE|GREEN|RED)) == BLUE) ? RED : BLUE) | (Message_Style & SIZE_X2) | (Message_Style & TRANS);
+			const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
+			const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
+			for(int i = 0 ; i < 8 ; i++)
+				Print_Text(Info_String, strlen(Info_String), 10+xOffset[i], 210+yOffset[i], backColor);
 			Print_Text(Info_String, strlen(Info_String), 10, 210, Message_Style);
 		}
 
@@ -1039,6 +1037,11 @@ void DrawInformationOnTheScreen()
 
 			sprintf(Info_String, "", FPS);
 		}
+		int backColor = (((FPS_Style & (BLUE|GREEN|RED)) == BLUE) ? RED : BLUE) | (FPS_Style & SIZE_X2) | (FPS_Style & TRANS);
+		const static int xOffset [] = {-1,-1,-1,0,1,1,1,0};
+		const static int yOffset [] = {-1,0,1,1,1,0,-1,-1};
+		for(int i = 0 ; i < 8 ; i++)
+			Print_Text(Info_String, strlen(Info_String), 10+xOffset[i], 210+yOffset[i], backColor);
 		Print_Text(Info_String, strlen(Info_String), 10, 210, FPS_Style);
 	}
 #ifdef _DEBUG

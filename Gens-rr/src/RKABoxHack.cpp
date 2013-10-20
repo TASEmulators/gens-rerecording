@@ -119,7 +119,7 @@ void RKADrawBoxes()
 		sprintf(Str_Tmp,"%d", HP);
 		if (HP)
 		{
-			PutText(Str_Tmp,Xpos,Ypos - (Height2 >> 1),0,0,319,223,BLANC,BLEU);
+			PutText(Str_Tmp,Xpos,Ypos - (Height2 >> 1),0,0,319,223,WHITE,BLUE);
 /*			short xpos = Xpos - 8 - ((5 * (strlen(Str_Tmp) - 1))/2);
 			xpos = min(max(xpos,1),318 - 4 * strlen(Str_Tmp));
 			short ypos = min(max(Ypos - Height2 - 3,1),217);
