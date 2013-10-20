@@ -568,16 +568,20 @@ int Change_LayerSwap (HWND hWnd, int num)
 int Change_Plane (HWND hWnd, int num)
 {
 	char *Plane;
+	char Layer[9];
 	switch (num)
 	{
 		case 0:
 			Plane = &ScrollAOn;
+			sprintf(Layer, "Scroll A");
 			break;
 		case 1:
 			Plane = &ScrollBOn;
+			sprintf(Layer, "Scroll B");
 			break;
 		case 2:
 			Plane = &SpriteOn;
+			sprintf(Layer, "Sprites");
 			break;
 		default:
 			return 1;
@@ -585,7 +589,7 @@ int Change_Plane (HWND hWnd, int num)
 	*Plane = !(*Plane);
 
 	char message [256];
-	sprintf(message, "Plane %sabled", *Plane?"en":"dis");
+	sprintf(message, "Plane %s %sabled", Layer, *Plane ? "en" : "dis");
 	MESSAGE_L(message, message)
 
 	Build_Main_Menu();
@@ -3671,7 +3675,7 @@ dialogAgain: //Nitsuja added this
 					Recalculate_Palettes();
 					Show_Genesis_Screen(hWnd);
 					char message [256];
-					sprintf(message, "Pink background %sd", PinkBG?"enable":"disable");
+					sprintf(message, "Pink background %sabled", PinkBG?"en":"dis");
 					MESSAGE_L(message, message)
 
 					return 0;

@@ -6,10 +6,10 @@ extern "C" {
 #endif
 
 #define EMU_MODE 0x01
-#define BLANC    0x00
-#define BLEU     0x02
-#define VERT     0x04
-#define ROUGE    0x06
+#define WHITE    0x00
+#define BLUE     0x02
+#define GREEN    0x04
+#define RED      0x06
 #define TRANS    0x08
 #define SIZE_X2  0x10
 

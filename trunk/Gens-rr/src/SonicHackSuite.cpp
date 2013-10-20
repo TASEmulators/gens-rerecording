@@ -512,7 +512,7 @@ void DisplaySolid()
 						{	//if capslock is pressed, we display the block number at it's top-left corner
 							//unless scroll lock is pressed, in which case turn it off for map dumping purposes.
 							sprintf(Str_Tmp,"%02X",Block);
-							PutText(Str_Tmp,(X-CamX)+3,(Y-CamY)+4,0,0,0,0,BLANC,BLEU);
+							PutText(Str_Tmp,(X-CamX)+3,(Y-CamY)+4,0,0,0,0,WHITE,BLUE);
 						}
 					#endif
 					TempY = Y;
@@ -820,10 +820,10 @@ void DisplaySolid()
 									if (GetKeyState(VK_NUMLOCK))
 									{	//if numlock is on, we display the angle and collision index of the tile
 										sprintf(Str_Tmp,"%02X",Angle);
-										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,ROUGE,BLEU);
+										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,RED,BLUE);
 										TempY += 8;
 										sprintf(Str_Tmp,"%02X",ColInd >> 4);
-										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,VERT,BLEU);
+										PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,GREEN,BLUE);
 										TempY -= 8;
 									}
 								}
@@ -858,7 +858,7 @@ void DisplaySolid()
 						if ((GetKeyState(VK_CAPITAL)))
 						{
 							sprintf(Str_Tmp,"%02X",Block);
-							PutText(Str_Tmp,(X+Xoff-CamX)+3,(Y+Yoff-CamY)+4,0,0,0,0,BLANC,BLEU);
+							PutText(Str_Tmp,(X+Xoff-CamX)+3,(Y+Yoff-CamY)+4,0,0,0,0,WHITE,BLUE);
 						}
 						TempY = Y+Yoff;
 						while ((TempY < Y+Yoff + BLOCKSIZE) && (TempY < CamY + 224))
@@ -1079,10 +1079,10 @@ void DisplaySolid()
 										if (GetKeyState(VK_NUMLOCK))
 										{
 											sprintf(Str_Tmp,"%02X",Angle);
-											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,ROUGE,BLEU);
+											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,0,0,-8,RED,BLUE);
 											TempY += 8;
 											sprintf(Str_Tmp,"%02X",ColInd >> 4);
-											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,VERT,BLEU);
+											PutText(Str_Tmp,(TempX - 10) - CamX,(TempY - CamY) + 4,0,8,0,0,GREEN,BLUE);
 											TempY -= 8;
 										}
 									}
@@ -1481,12 +1481,12 @@ void DrawBoxes()
 			if (GetKeyState(VK_NUMLOCK))
 			{
 				sprintf(Str_Tmp,"%04X",CardBoard & 0xFFFF);
-				PutText(Str_Tmp,Xpos,Ypos,0,0,0,0,VERT,BLEU);
-/*				Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLEU);
-				Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLEU);
-				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLEU);
-				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(217,Ypos-3)),BLEU);
-				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),VERT);*/
+				PutText(Str_Tmp,Xpos,Ypos,0,0,0,0,GREEN,BLUE);
+/*				Print_Text(Str_Tmp,4,max(0,min(303,Xpos-17)),max(0,min(216,Ypos-4)),BLUE);
+				Print_Text(Str_Tmp,4,max(2,min(305,Xpos-14)),max(2,min(216,Ypos-4)),BLUE);
+				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(215,Ypos-5)),BLUE);
+				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(217,Ypos-3)),BLUE);
+				Print_Text(Str_Tmp,4,max(1,min(304,Xpos-16)),max(1,min(216,Ypos-4)),GREEN);*/
 			}
 		}
 	#ifdef SK
@@ -1701,7 +1701,7 @@ int SonicCamHack()
 		if (GetKeyState(VK_NUMLOCK))
 		{
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			PutText(Str_Tmp,(x - CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,VERT,ROUGE);
+			PutText(Str_Tmp,(x - CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,GREEN,RED);
 		}
 		return retval;
 	}
@@ -1827,7 +1827,7 @@ int SonicCamHack()
 		if (GetKeyState(VK_NUMLOCK))
 		{
 			sprintf(Str_Tmp,"%04X",(P1OFFSET + off) & 0xFFFF);
-			PutText(Str_Tmp,(x-CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,VERT,ROUGE);
+			PutText(Str_Tmp,(x-CamX)&0xFFFF,(y-CamY)&0xFFFF,0,0,0,0,GREEN,RED);
 		}
 	}
 

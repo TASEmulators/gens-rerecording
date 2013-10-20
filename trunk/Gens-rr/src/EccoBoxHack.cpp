@@ -113,11 +113,11 @@ void EccoDrawBoxes()
 			Ymid = CheatRead<unsigned short>(CardBoard + 0x28) - CamY;
 		}
 		sprintf(Str_Tmp,"%08X",CardBoard);
-		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(0,Ymid-5),216),VERT);
-		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(2,Ymid-3),218),VERT);
-		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(2,Ymid-3),218),VERT);
-		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(0,Ymid-5),216),VERT);
-		Print_Text(Str_Tmp,8,min(max(1,Xmid-15),286),min(max(1,Ymid-4),217),BLEU);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(0,Ymid-5),216),GREEN);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(2,Ymid-3),218),GREEN);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(2,Ymid-3),218),GREEN);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(0,Ymid-5),216),GREEN);
+		Print_Text(Str_Tmp,8,min(max(1,Xmid-15),286),min(max(1,Ymid-4),217),BLUE);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	unsigned char curlev = CheatRead<unsigned char>(0xFFA7E0);
@@ -261,11 +261,11 @@ void EccoDrawBoxes()
 		if (type != 0x10)
 		{
 			sprintf(Str_Tmp,"%02X",CheatRead<unsigned char>(CardBoard + 0x7E));
-			Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(0,Ymid-5),216),ROUGE);
-			Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(2,Ymid-3),218),ROUGE);
-			Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(2,Ymid-3),218),ROUGE);
-			Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(0,Ymid-5),216),ROUGE);
-			Print_Text(Str_Tmp,2,min(max(1,Xmid-2),309),min(max(1,Ymid-4),217),BLEU);
+			Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(0,Ymid-5),216),RED);
+			Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(2,Ymid-3),218),RED);
+			Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(2,Ymid-3),218),RED);
+			Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(0,Ymid-5),216),RED);
+			Print_Text(Str_Tmp,2,min(max(1,Xmid-2),309),min(max(1,Ymid-4),217),BLUE);
 		}
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
@@ -355,11 +355,11 @@ void EccoDrawBoxes()
 				if (type != 0x10)
 				{
 					sprintf(Str_Tmp,"%02X",CheatRead<unsigned char>(CardBoard + 0x7E));
-					Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(0,Ymid-5),216),ROUGE);
-					Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(2,Ymid-3),218),ROUGE);
-					Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(2,Ymid-3),218),ROUGE);
-					Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(0,Ymid-5),216),ROUGE);
-					Print_Text(Str_Tmp,2,min(max(1,Xmid-2),309),min(max(1,Ymid-4),217),VERT);
+					Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(0,Ymid-5),216),RED);
+					Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(2,Ymid-3),218),RED);
+					Print_Text(Str_Tmp,2,min(max(0,Xmid-3),308),min(max(2,Ymid-3),218),RED);
+					Print_Text(Str_Tmp,2,min(max(2,Xmid-1),310),min(max(0,Ymid-5),216),RED);
+					Print_Text(Str_Tmp,2,min(max(1,Xmid-2),309),min(max(1,Ymid-4),217),GREEN);
 				}
 				break;
 		}
@@ -385,11 +385,11 @@ void EccoDrawBoxes()
 		Xpos >>= 1;
 		Ypos >>= 1;
 		sprintf(Str_Tmp,"%08X",CardBoard);
-		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(0,Ypos-5),216),VERT);
-		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(2,Ypos-3),218),VERT);
-		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(2,Ypos-3),218),VERT);
-		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(0,Ypos-5),216),VERT);
-		Print_Text(Str_Tmp,8,min(max(1,Xpos-15),286),min(max(1,Ypos-4),217),BLEU);
+		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(0,Ypos-5),216),GREEN);
+		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(2,Ypos-3),218),GREEN);
+		Print_Text(Str_Tmp,8,min(max(0,Xpos-16),285),min(max(2,Ypos-3),218),GREEN);
+		Print_Text(Str_Tmp,8,min(max(2,Xpos-14),287),min(max(0,Ypos-5),216),GREEN);
+		Print_Text(Str_Tmp,8,min(max(1,Xpos-15),286),min(max(1,Ypos-4),217),BLUE);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//animate objects
@@ -484,11 +484,11 @@ void EccoDrawBoxes()
 		}
 #endif
 		sprintf(Str_Tmp,"%08X",type);
-		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(0,Ymid-5),216),BLEU);
-		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(2,Ymid-3),218),BLEU);
-		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(2,Ymid-3),218),BLEU);
-		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(0,Ymid-5),216),BLEU);
-		Print_Text(Str_Tmp,8,min(max(1,Xmid-15),286),min(max(1,Ymid-4),217),ROUGE);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(0,Ymid-5),216),BLUE);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(2,Ymid-3),218),BLUE);
+		Print_Text(Str_Tmp,8,min(max(0,Xmid-16),285),min(max(2,Ymid-3),218),BLUE);
+		Print_Text(Str_Tmp,8,min(max(2,Xmid-14),287),min(max(0,Ymid-5),216),BLUE);
+		Print_Text(Str_Tmp,8,min(max(1,Xmid-15),286),min(max(1,Ymid-4),217),RED);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//events
@@ -522,9 +522,9 @@ void EccoDrawBoxes()
 			DrawBoxPP(Xpos,Ypos,Xpos2,Ypos2,0x00FFFF,0x07FF,0,-1);
 		}
 		sprintf(Str_Tmp,"%08X",type);
-		PutText(Str_Tmp,Xmid,Ymid-4,1,1,0,0,BLANC,BLEU);
+		PutText(Str_Tmp,Xmid,Ymid-4,1,1,0,0,WHITE,BLUE);
 		sprintf(Str_Tmp,"%08X",CardBoard);
-		PutText(Str_Tmp,Xmid,Ymid+4,1,9,0,0,BLANC,BLEU);
+		PutText(Str_Tmp,Xmid,Ymid+4,1,9,0,0,WHITE,BLUE);
 		CardBoard = CheatRead<unsigned int>(CardBoard);
 	}
 	//Ecco body
