@@ -4,8 +4,9 @@ section .data align=64
 
 	extern MD_Screen
 	extern MD_Screen32
-	extern MD_Palette
-	extern MD_Palette32
+	extern CRam
+	extern Palette
+	extern Palette32
 	extern CDD.Control
 	extern CDD.Rcv_Status
 	extern CDD.Status
@@ -227,7 +228,6 @@ section .bss align=64
 
 	extern VDP_Reg
 	extern Mode_555
-	extern MD_Screen
 
 	DECL CPU_Model
 	resd 1
@@ -242,12 +242,26 @@ section .text align=64
 
 		mov eax, ebx							; eax = data pixels
 		shr eax, %2								; keep the first
+		push ebx
+		mov ebx, ebp
+		shl bx, 1
 		and eax, 0xF
 		jz %%BG
-		mov ax, [MD_Palette + eax * 2 + ebp]	; conversion 8->16 bits palette
+		; ax now 0000iiii
+		shr bl, 2
+		or  al, bl ; 0000iiii-> hsppiiii
+		and eax, 0x3F ; hsppiiii -> 00ppiiii
+		mov ax, [CRam + eax * 2]	; 00ppiiii -> 0000bbbbggggrrrr
+	%%BGr:
+		and ax, 0xEEE
+		shl bh, 4
+		or  ah, bh ; 0000bbbbggggrrrr -> 00hsbbbbggggrrrr
+		pop ebx
+		mov ax, [Palette + eax * 2 + 0x4000 * 2]	; conversion 8->16 bits palette
 		jmp %%DRAW
 	%%BG:
-		mov ax, [MD_Palette]
+		mov ax, [CRam]
+		jmp %%BGr
 	%%DRAW:		
 		mov [edi + (%1 * 2)], ax				; write the pixel to Dest
 
@@ -257,12 +271,25 @@ section .text align=64
 
 		mov eax, ebx							; eax = data pixels
 		shr eax, %2								; keep the first
+		push ebx
+		mov ebx, ebp
 		and eax, 0xF
 		jz %%BG
-		mov eax, [MD_Palette32 + eax * 4 + ebp]	; conversion 8->16 bits palette
+		; ax now 0000iiii
+		shr bl, 2
+		or  al, bl ; 0000iiii-> hsppiiii
+		and al, 0x3F ; hsppiiii -> 00ppiiii
+		mov ax, [CRam + eax * 2]	; 00ppiiii -> 0000bbbbggggrrrr
+	%%BGr:
+		and ax, 0xEEE
+		shl bh, 4
+		or  ah, bh ; 0000bbbbggggrrrr -> 00hsbbbbggggrrrr
+		pop ebx
+		mov eax, [Palette32 + eax * 4 + 0x4000 * 4]	; conversion 16->32 bits palette
 		jmp %%DRAW
 	%%BG:
-		mov eax, [MD_Palette32]
+		mov ax, [CRam]
+		jmp %%BGr
 	%%DRAW:		
 		mov [edi + (%1 * 4)], eax				; write the pixel to Dest
 

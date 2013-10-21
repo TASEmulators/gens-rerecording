@@ -309,12 +309,6 @@ void Debug_Event(int key)
 
 		case K_DIV:
 			VDP_Status &= ~2;
-			for(i = 0; i < 16; i++)
-			{
-				MD_Palette32[12 * 16 + i] = ((16 * i) << 16) + ((16 * i) << 8) + (16 * i);
-				if (Mode_555 & 1) MD_Palette[12 * 16 + i] = ((2 * i) << 10) + ((2 * i) << 5) + (2 * i);
-				else  MD_Palette[12 * 16 + i] = ((2 * i) << 11) + ((4 * i) << 5) + (2 * i);
-			}
 			break;
 
 		case K_ETOILE:
@@ -702,16 +696,21 @@ void Refresh_VDP_Palette(void)
 	sprintf(Str_Tmp,"******** VDP PALETTE ********");
 	Print_Text(Str_Tmp, 29, 180, 0, RED);
 
+	// color
 	for(i = 0; i < 16; i++)
 	{
+		// x
 		for(j = 0; j < 8; j++)
 		{
+			// y
 			for(k = 0; k < 8; k++)
 			{
+				// palette
 				for (l = 0; l < 4; l++)
 				{
-					MD_Screen[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = MD_Palette[i + (l * 16) + ((pattern_pal >> 2) * 64)];
-					MD_Screen32[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = MD_Palette32[i + (l * 16) + ((pattern_pal >> 2) * 64)];
+					// color from md color + shadow + highlight + alpha
+					MD_Screen[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = Palette[CRam[i + (l * 16)] | ((pattern_pal >> 2) << 12) | 0x4000];
+					MD_Screen32[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = Palette32[CRam[i + (l * 16)] | ((pattern_pal >> 2) << 12) | 0x4000];
 				}
 			}
 		}
@@ -844,17 +843,22 @@ void Refresh_Word_Ram_Pattern(void)
 
 	sprintf(Str_Tmp,"******** VDP PALETTE ********");
 	Print_Text(Str_Tmp, 29, 180, 0, RED);
-	
+
+	// color
 	for(i = 0; i < 16; i++)
 	{
+		// x
 		for(j = 0; j < 8; j++)
 		{
+			// y
 			for(k = 0; k < 8; k++)
 			{
+				// palette
 				for (l = 0; l < 16; l++)
 				{
-					MD_Screen[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = MD_Palette[i + (l * 16)];
-					MD_Screen32[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = MD_Palette32[i + (l * 16)];
+					// color from md color + shadow + highlight + alpha
+					MD_Screen[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = Palette[CRam[i + ((l&3) * 16)] | ((l >> 2) << 12) | 0x4000];
+					MD_Screen32[(336 * (10 + k + (8 * l))) + 180 + (i * 8) + j] = Palette32[CRam[i + ((l&3) * 16)] | ((l >> 2) << 12) | 0x4000];
 				}
 			}
 		}

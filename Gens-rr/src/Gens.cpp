@@ -1010,58 +1010,164 @@ extern "C"
 inline static int* LeftAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_L;	}
 inline static int* RightAudioBuffer() {	return disableSound2 ? Seg_Junk : Seg_R;	}
 
-void Render_MD_Screen()
+// to make two different compiled functions
+template<int bits>
+void Render_MD_Screen_()
 {
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+	int Line;
+	for(Line = 0; Line < VDP_Num_Vis_Lines; Line++)
 	{
-		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
+		for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
 		{
-			MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
-			MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+			if (bits == 32)
+				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+			if (bits == 16)
+				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
 		}
 	}
-	if (VDP_Reg.Set4 & 0x1)
-		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-		{
-			int Pixel = TAB336[VDP_Current_Line] + 8 + 320;
+	// fixes for filters
+	// bottom row
+	for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
+	{
+		if (bits == 32)
 			MD_Screen32[Pixel] = 0;
+		if (bits == 16)
 			MD_Screen[Pixel] = 0;
+	}
+	// right row
+	if (VDP_Reg.Set4 & 0x1)
+		for(Line = 0; Line < VDP_Num_Vis_Lines; Line++)
+		{
+			int Pixel = TAB336[Line] + 8 + 320;
+			if (bits == 32)
+				MD_Screen32[Pixel] = 0;
+			if (bits == 16)
+				MD_Screen[Pixel] = 0;
 		}
 	else
-		for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
+		for(Line = 0; Line < VDP_Num_Vis_Lines; Line++)
 		{
-			int Pixel = TAB336[VDP_Current_Line] + 8 + 256;
-			MD_Screen32[Pixel] = 0;
-			MD_Screen[Pixel] = 0;
+			int Pixel = TAB336[Line] + 8 + 256;
+			if (bits == 32)
+				MD_Screen32[Pixel] = 0;
+			if (bits == 16)
+				MD_Screen[Pixel] = 0;
 		}
+}
+
+void Render_MD_Screen()
+{
+	if (Bits32)
+		Render_MD_Screen_<32>();
+	else
+		Render_MD_Screen_<16>();
+}
+
+// it is so simple :) and so awesome!
+template<int bits, int swap, int high, int low>
+void Render_MD_Screen32X_()
+{
+	for(int Line = 0; Line < VDP_Num_Vis_Lines; Line++)
+	{
+		if (Screen_32X[TAB336[Line] + 7])
+		for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
+		{
+			unsigned short pix = Screen_32X[Pixel];
+			if (!(Screen_16X[Pixel] & 0x4000))
+			{
+				if (low)
+					goto _32x;
+				else
+					goto _gen;
+			}
+			else
+			{
+				if (swap)
+				{
+					if ((pix & 0x8000))
+						goto _gen;
+				}
+				else
+					if (!(pix & 0x8000))
+						goto _gen;
+
+				if (high)
+					goto _32x;
+				else
+					goto _gen;
+			}
+
+		_gen: // image from genesis
+			if (bits == 32)
+				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+			if (bits == 16)
+				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+			continue;
+		_32x: // image from 32X
+			if (bits == 32)
+				MD_Screen32[Pixel] = _32X_Palette_32B[pix];
+			if (bits == 16)
+				MD_Screen[Pixel] = _32X_Palette_16B[pix];
+		}
+		else
+			for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
+			{
+				if (bits == 32)
+					MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
+				if (bits == 16)
+					MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
+			}
+	}
+}
+
+template<int bits, int swap>
+void Render_MD_Screen32X_1()
+{
+	char High;
+	char Low;
+	if (swap == 1)
+	{
+		High = _32X_Plane_Low_On;
+		Low = _32X_Plane_High_On;
+	}
+	else
+	{
+		High = _32X_Plane_High_On;
+		Low = _32X_Plane_Low_On;
+	}
+	if (High)
+	{
+		if (Low)
+			Render_MD_Screen32X_<bits,swap,1,1>();
+		else
+			Render_MD_Screen32X_<bits,swap,1,0>();
+	}
+	else
+	{
+		if (Low)
+			Render_MD_Screen32X_<bits,swap,0,1>();
+		else
+			Render_MD_Screen32X_<bits,swap,0,0>();
+	}
+}
+
+template<int bits>
+void Render_MD_Screen32X_2()
+{
+	if (Swap_32X_Plane_Priority)
+		Render_MD_Screen32X_1<bits,1>();
+	else
+		Render_MD_Screen32X_1<bits,0>();
 }
 
 void Render_MD_Screen32X()
 {
-	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
-	{
-		if (Screen_32X[TAB336[VDP_Current_Line] + 7])
-		for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
-		{
-			unsigned short pix = Screen_32X[Pixel];
-			if ((pix & 0x8000) || !(Screen_16X[Pixel] & 0x4000))
-			{
-				MD_Screen32[Pixel] = _32X_Palette_32B[pix];
-				MD_Screen[Pixel] = _32X_Palette_16B[pix];
-			}
-			else
-			{
-				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
-				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
-			}
-		}
-		else
-			for (unsigned long Pixel = TAB336[VDP_Current_Line] + 8; Pixel < TAB336[VDP_Current_Line] + 336; Pixel++)
-			{
-				MD_Screen32[Pixel] = Palette32[Screen_16X[Pixel]];
-				MD_Screen[Pixel] = Palette[Screen_16X[Pixel]];
-			}
-	}
+	if (!_32X_Plane_On)
+		Render_MD_Screen();
+	else if (Bits32)
+		Render_MD_Screen32X_2<32>();
+	else
+		Render_MD_Screen32X_2<16>();
 }
 
 #ifdef SONICCAMHACK

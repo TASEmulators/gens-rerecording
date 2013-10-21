@@ -503,22 +503,24 @@ int Change_Fast_Blur(HWND hWnd)
 
 int Change_Layer(HWND hWnd, int Num) //Nitsuja added this to allow for layer enabling and disabling.
 {
-	char* layer;
-	switch(Num)
-	{
-	case 0: layer = &VScrollAl; break;
-	case 1: layer = &VScrollBl; break;
-	case 2: layer = &VScrollAh; break;
-	case 3: layer = &VScrollBh; break;
-	case 4: layer = &VSpritel; break;
-	case 5: layer = &VSpriteh; break;
-	default: return 1;
-	}
+	struct { char * val; char *name;} layers[] = {
+		{&VScrollAl, "Scroll A Low"},
+		{&VScrollBl, "Scroll B Low"},
+		{&VScrollAh, "Scroll A High"},
+		{&VScrollBh, "Scroll B High"},
+		{&VSpritel, "Sprites Low"},
+		{&VSpritel, "Sprites High"},
+		{&_32X_Plane_Low_On, "32X Plane Low"},
+		{&_32X_Plane_High_On, "32X Plane High"},
+	};
 
-	*layer = !*layer;
+	if (Num < 0 || Num >= sizeof(layers)/sizeof(layers[0]))
+		return 0;
 
+	char &val = *layers[Num].val;
+	val = !val;
 	char message [256];
-	sprintf(message, "Layer %d %sabled", Num+1, *layer?"en":"dis");
+	sprintf(message, "%s %sabled", layers[Num].name, val?"en":"dis");
 	MESSAGE_L(message, message)
 
 	Build_Main_Menu();
@@ -552,6 +554,9 @@ int Change_LayerSwap (HWND hWnd, int num)
 		case 2:
 			Plane = &Swap_Sprite_Priority;
 			break;
+		case 3:
+			Plane = &Swap_32X_Plane_Priority;
+			break;
 		default:
 			return 1;
 	}
@@ -582,6 +587,10 @@ int Change_Plane (HWND hWnd, int num)
 		case 2:
 			Plane = &SpriteOn;
 			sprintf(Layer, "Sprites");
+			break;
+		case 3:
+			Plane = &_32X_Plane_On;
+			sprintf(Layer, "32X");
 			break;
 		default:
 			return 1;
@@ -1771,8 +1780,11 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	VScrollBh = 1; // Modif N.
 	VSpritel = 1; // Modif U.
 	VSpriteh = 1; // Modif U.
+	_32X_Plane_High_On = 1;
+	_32X_Plane_Low_On = 1;
 	ScrollAOn = 1;
 	ScrollBOn = 1;
+	_32X_Plane_On = 1;
 	SpriteOn = 1;
 	Sprite_Always_Top = 0;
 	PinkBG = 0;
@@ -3649,6 +3661,8 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_LAYER3:
 				case ID_GRAPHICS_LAYERSPRITE:
 				case ID_GRAPHICS_LAYERSPRITEHIGH:
+				case ID_GRAPHICS_LAYER32X_LOW:
+				case ID_GRAPHICS_LAYER32X_HIGH:
 					Change_Layer(hWnd, command - ID_GRAPHICS_LAYER0);
 					return 0;
 
@@ -3659,12 +3673,14 @@ dialogAgain: //Nitsuja added this
 				case ID_GRAPHICS_LAYERSWAPA:
 				case ID_GRAPHICS_LAYERSWAPB:
 				case ID_GRAPHICS_LAYERSWAPS:
+				case ID_GRAPHICS_LAYERSWAP32X:
 					Change_LayerSwap(hWnd, command - ID_GRAPHICS_LAYERSWAPA);
 					return 0;
 
 				case ID_GRAPHICS_TOGGLEA:
 				case ID_GRAPHICS_TOGGLEB:
 				case ID_GRAPHICS_TOGGLES:
+				case ID_GRAPHICS_TOGGLE32X:
 					Change_Plane(hWnd, command - ID_GRAPHICS_TOGGLEA);
 					return 0;
 
@@ -4454,6 +4470,8 @@ dialogAgain: //Nitsuja added this
 				case ID_CHANGE_PALLOCK:
 				{
 					PalLock = !PalLock;
+					for (int i=0; i<0x40; ++i)
+						LockedPalette[i] = CRam[i];
 					Build_Main_Menu();
 					char message [256];
 					sprintf(message, "Palette %sed", PalLock?"lock":"unlock");
@@ -4864,6 +4882,7 @@ HMENU Build_Main_Menu(void)
 	HMENU GraphicsLayers; //Nitsuja added this
 	HMENU GraphicsLayersA;
 	HMENU GraphicsLayersB;
+	HMENU GraphicsLayersX;
 	HMENU GraphicsLayersS;
 	HMENU GraphicsFrameSkip;
 	HMENU GraphicsLatencyCompensation;
@@ -4914,6 +4933,7 @@ HMENU Build_Main_Menu(void)
 	GraphicsLayers = CreatePopupMenu(); //Nitsuja added this
 	GraphicsLayersA = CreatePopupMenu();
 	GraphicsLayersB = CreatePopupMenu();
+	GraphicsLayersX = CreatePopupMenu();
 	GraphicsLayersS = CreatePopupMenu();
 	GraphicsFrameSkip = CreatePopupMenu();
 	GraphicsLatencyCompensation = CreatePopupMenu();
@@ -5217,16 +5237,12 @@ HMENU Build_Main_Menu(void)
 
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
 		(UINT)GraphicsLayersA, "Scroll A", "", "Scroll &A");
-/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
-		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
 		(UINT)GraphicsLayersB, "Scroll B", "", "Scroll &B");
-/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
-		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
+	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
+		(UINT)GraphicsLayersX, "32X", "", "32&X");
 	MENU_L(GraphicsLayers, i++, Flags | MF_POPUP,
 		(UINT)GraphicsLayersS, "Sprites", "", "&Sprites");
-/*	MENU_L(GraphicsLayers, i++, MF_BYPOSITION | (VScrollAl ? MF_CHECKED : MF_UNCHECKED),
-		ID_GRAPHICS_LAYER0, "Layer 1", "", "Layer &1"); */
 
 	// LAYERS SUBMENUS //
 
@@ -5236,26 +5252,38 @@ HMENU Build_Main_Menu(void)
 		ID_GRAPHICS_LAYER0, "Scroll A Low", "", "Scroll A &Low");
 	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBl ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYER1, "Scroll B Low", "", "Scroll B &Low");
+	MENU_L(GraphicsLayersX, i, MF_BYPOSITION | (_32X_Plane_Low_On ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER32X_LOW, "32X Plane Low", "", "32X Plane &Low");
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpritel ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYERSPRITE, "Sprites Low", "", "Sprites &Low");
+
 	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (VScrollAh ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYER2, "Scroll A High", "", "Scroll A &High");
 	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (VScrollBh ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYER3, "Scroll B High", "", "Scroll B &High");
+	MENU_L(GraphicsLayersX, i, MF_BYPOSITION | (_32X_Plane_High_On ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYER32X_HIGH, "32X Plane High", "", "32X Plane &High");
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (VSpriteh ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYERSPRITEHIGH, "Sprites High", "", "Sprites &High");
+
 	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (Swap_Scroll_PriorityA ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYERSWAPA, "Swap Scroll Layers", "", "&Swap Scroll Layers");
 	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (Swap_Scroll_PriorityB ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYERSWAPB, "Swap Scroll Layers", "", "&Swap Scroll Layers");
+	MENU_L(GraphicsLayersX, i, MF_BYPOSITION | (Swap_32X_Plane_Priority ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_LAYERSWAP32X, "Swap 32X Plane Layers", "", "&Swap 32X Plane Layers");
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Swap_Sprite_Priority ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_LAYERSWAPS, "Swap Sprite Layers", "", "&Swap Sprite Layers");
+
 	MENU_L(GraphicsLayersA, i, MF_BYPOSITION | (ScrollAOn ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_TOGGLEA, "Enable", "", "&Enable");
 	MENU_L(GraphicsLayersB, i, MF_BYPOSITION | (ScrollBOn ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_TOGGLEB, "Enable", "", "&Enable");
+	MENU_L(GraphicsLayersX, i, MF_BYPOSITION | (_32X_Plane_On ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_TOGGLE32X, "Enable", "", "&Enable");
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (SpriteOn ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_TOGGLES, "Enable", "", "&Enable");
+
 	MENU_L(GraphicsLayersS, i++, MF_BYPOSITION | (Sprite_Always_Top ? MF_CHECKED : MF_UNCHECKED),
 		ID_GRAPHICS_SPRITEALWAYS, "Sprites Always On Top", "", "Sprites Always On &Top");
 
