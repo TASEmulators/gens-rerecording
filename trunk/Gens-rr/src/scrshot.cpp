@@ -419,13 +419,10 @@ void MakeBitmapInfoV5(unsigned char *Dest, int Width, int Height)
 	Dest[59] = 's';
 }
 
-void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmode)
+void WriteFrame(void* Screen, unsigned char *Dest, int mode, int Hmode, int Vmode, int X, int Y)
 {
 	int i, j, tmp, offs;
 	unsigned char *Src = (unsigned char *)(Screen);
-	
-	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
-	int Y = Vmode ? 240 : 224;
 
 	Src += ((336 * (Vmode ? 239 : 223) + 8) * ((mode&2) ? 4 : 2));
 
@@ -502,9 +499,9 @@ int Save_Shot_Clipboard(void* Screen, int mode, int Hmode, int Vmode) // feos ad
 	MakeBitmapInfo(Dest, X, Y, PinkBG ? 32 : 24);
 
 	if (PinkBG) // 32 bit, some editors can read ABGR bitmap
-		WriteFrame(Screen, Dest + 40, mode | 4, Hmode, Vmode);
+		WriteFrame(Screen, Dest + 40, mode | 4, Hmode, Vmode, X, Y);
 	else
-		WriteFrame(Screen, Dest + 40, mode, Hmode, Vmode);
+		WriteFrame(Screen, Dest + 40, mode, Hmode, Vmode, X, Y);
 
 	CopyToClipboard(CF_DIB, Dest, i);
 
@@ -601,7 +598,7 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	MakeBitmapHeader(Dest, i);
 	MakeBitmapInfo(Dest + 14, X, Y);
 
-	WriteFrame(Screen, Dest + 54, mode | (ShotPNGFormat?4:0), Hmode, Vmode);
+	WriteFrame(Screen, Dest + 54, mode | (ShotPNGFormat?4:0), Hmode, Vmode, X, Y);
 
 	if(!ShotPNGFormat)
 		fwrite(Dest, (X * Y * 3) + 54, 1, ScrShot_File); // save BMP
@@ -708,7 +705,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 	if ((Dest = (unsigned char *) malloc(i)) == NULL) return(0);
 	memset(Dest, 0, i);
 
-	WriteFrame(VideoBuf, Dest, mode, Hmode, Vmode);
+	WriteFrame(VideoBuf, Dest, mode, Hmode, Vmode, X, Y);
 
 	AVIRecorder->AddFrame(AVIFrame, (char*)Dest);
 	AVIFrame++;
