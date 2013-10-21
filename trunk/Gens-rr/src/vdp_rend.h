@@ -17,13 +17,16 @@ extern unsigned short MD_Screen[336 * 240];
 // from ttppiiii into RGB24
 // t = type {0 = normal, 1 = darkened, 2 = normal, 3 = lightened}
 // p = pal (0..3), i = index (0..F)
-extern unsigned int MD_Palette32[256];
+//extern unsigned int MD_Palette32[256];
 
 // from ttppiiii into RGB555 if (Mode_555 & 1) else RGB565
-extern unsigned short MD_Palette[256];
+//extern unsigned short MD_Palette[256];
 
-// from 0ahsbbbbggggrrrr into RGB24
+// from 0ahsbbbbggggrrrr into ARGB32
 extern unsigned int Palette32[0x8000];
+
+// 000bbb0ggg0rrr
+extern unsigned short LockedPalette[0x40];
 
 // from 0ahsbbbbggggrrrr into RGB555 if (Mode_555 & 1) else RGB565
 extern unsigned short Palette[0x8000];
@@ -58,6 +61,10 @@ extern char Sprite_Always_Top;
 extern char Swap_Scroll_PriorityA;
 extern char Swap_Scroll_PriorityB;
 extern char Swap_Sprite_Priority;
+extern char Swap_32X_Plane_Priority;
+extern char _32X_Plane_High_On;
+extern char _32X_Plane_Low_On;
+extern char _32X_Plane_On;
 extern char PalLock;
 extern bool PinkBG;
 
