@@ -2818,9 +2818,11 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				while (ShowCursor(false) >= 0);
 			}
 			else
+			{
 				Clear_Sound_Buffer();
 				Build_Context_Menu();
 				TrackPopupMenu(Context_Menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, NULL, hWnd, NULL);
+			}
 			break;
 
 		case WM_CREATE:
@@ -4794,6 +4796,7 @@ HMENU Build_Context_Menu(void)
 	Build_Language_String();
 
 	HMENU ContextMenu = CreatePopupMenu();
+	HMENU GraphicsSize = CreatePopupMenu();
 	int i = 0;
 	unsigned int Flags = MF_BYPOSITION | MF_STRING;
 	
@@ -4803,6 +4806,8 @@ HMENU Build_Context_Menu(void)
 			ID_FILES_OPENRECENTROM0, "Load Last ROM", "", "&Load Last ROM");
 		MENU_L(ContextMenu, i++, Flags,
 			ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+		MENU_L(ContextMenu, i++, Flags | MF_POPUP,
+			(UINT)GraphicsSize, "Window Size", "", "&Window Size");
 	}
 	else
 	{
@@ -4850,11 +4855,26 @@ HMENU Build_Context_Menu(void)
 
 		MENU_L(ContextMenu, i++, Flags,
 			ID_EMULATION_PAUSED, Paused ? "Unpause Emulation" : "Pause Emulation", "", Paused ? "&Unpause Emulation" : "&Pause Emulation");
+		MENU_L(ContextMenu, i++, Flags | MF_POPUP,
+			(UINT)GraphicsSize, "Window Size", "", "&Window Size");
 		MENU_L(ContextMenu, i++, Flags,
 			ID_CPU_RESET, "Hard Reset", "\tCtrl+Shift+R", "&Hard Reset");			
 		MENU_L(ContextMenu, i++, Flags,
 			ID_GRAPHICS_AVI, AVIRecording ? "Stop AVI Dump" : "Start AVI Dump...", "", AVIRecording ? "&Stop AVI Dump" : "&Start AVI Dump...");
 	}
+
+	// SIZE //
+
+	i = 0;
+
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 1.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_1X, "1x", "", "&1x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 2.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_2X, "2x", "", "&2x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 3.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_3X, "3x", "", "&3x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 4.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_4X, "4x", "", "4x");
 
 	Context_Menu = ContextMenu;
 	return (Context_Menu);
