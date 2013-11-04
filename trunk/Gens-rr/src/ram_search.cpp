@@ -34,6 +34,7 @@
 #include "vdp_io.h"
 #include "save.h"
 #include "ram_search.h"
+#include "hexeditor.h"
 #include "g_main.h"
 #include <assert.h>
 #include <commctrl.h>
@@ -1365,6 +1366,11 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 	if(RamWatchHWnd)
 	{
 		Update_RAM_Watch();
+	}
+
+	if(HexEditorHWnd)
+	{
+		UpdateHexEditor();
 	}
 }
 

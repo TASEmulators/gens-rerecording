@@ -82,14 +82,12 @@ extern unsigned long SpliceFrame;
 extern unsigned long SeekFrame;
 extern char *TempName;
 extern char SpliceMovie[1024];
-
-extern POINT Window_Pos;
-
 extern char Str_Tmp[1024];
 extern char Gens_Path[1024];
 extern char Language_Path[1024];
 extern char CGOffline_Path[1024];
 extern char Manual_Path[1024];
+extern POINT Window_Pos;
 
 #define MAX_RECENT_SCRIPTS 15
 extern char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
@@ -98,24 +96,28 @@ extern char Recent_Scripts[MAX_RECENT_SCRIPTS][1024];
 };
 #endif
 
-void CloseRamWindows(); // So the close rom process can close the Ram Search and watch windows (thus preventing freezeout)
 int Set_Render(HWND hWnd, int Full, int Num, int Force);
 int Change_Layer(HWND hWnd, int Num); //Nitsuja added this
 int Change_68K_Type(HWND hWnd, int Num, int Reset_SND);
 int Change_Sound(HWND hWnd);
+int SaveFlags();
+int IsVideoLatencyCompensationOn();
+
 HMENU Build_Main_Menu(void);
+
+void CloseRamWindows(); // So the close rom process can close the Ram Search and watch windows (thus preventing freezeout)
 void Update_RAM_Search();
 void Update_RAM_Cheats();
 void ReopenRamWindows();
-int SaveFlags();
 void LoadFlags(int flags);
 void init_list_box(HWND Box, const char* Strs[], int numColumns, int *columnWidths);
-int IsVideoLatencyCompensationOn();
+
 #ifdef __cplusplus
 const char* GensOpenScript(const char* filename, const char* extraDirToCheck=0, bool makeSubservient=false); // returns NULL on success, returns error msg on failure
 const char* GensPlayMovie(const char* filename, bool silent=false); // returns NULL on success, returns error msg on failure
 const char* MakeRomPathAbsolute(const char* filename, const char* extraDirToCheck=0);
 #endif
+
 int GensLoadRom(const char* filename); // returns positive on success, 0 on cancelled/ignorable failure, or negative on failure that clears or corrupts the emulation state
 void GensOpenFile(const char* filename); // tries to open any supported type of file, guessing what it should be
 

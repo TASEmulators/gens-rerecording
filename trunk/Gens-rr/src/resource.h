@@ -501,7 +501,8 @@
 #define ID_SLOW_SPEED_MINUS             40521
 #define ID_RAM_SEARCH                   40522
 #define ID_RAM_WATCH                    40523
-#define ID_VOLUME_CONTROL               40524
+#define ID_HEX_EDITOR                   40524
+#define ID_VOLUME_CONTROL               40525
 #define ID_FILES_SETSTATE_1             40620
 #define ID_FILES_SETSTATE_2             40621
 #define ID_FILES_SETSTATE_3             40622

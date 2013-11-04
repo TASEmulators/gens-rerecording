@@ -44,7 +44,7 @@
 #include "movie.h"
 #include "ramwatch.h"
 #include "luascript.h"
-#include "luascript.h"
+#include "hexeditor.h"
 #include "ParseCmdLine.h"
 #include <errno.h>
 #include <vector>
@@ -263,6 +263,7 @@ LRESULT CALLBACK PlayMovieProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK RecordMovieProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK RamSearchProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK RamWatchProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK HexEditorProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK RamCheatProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK VolumeProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PromptSpliceFrameProc(HWND, UINT, WPARAM, LPARAM);
@@ -2243,6 +2244,7 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			static int frameAdvanceKeyWasJustPressed = 0;
 			bool skipOptionEnabled = frameadvSkipLag;
 			bool frameadvSkipLag = skipOptionEnabled && !frameadvSkipLagForceDisable;
+			TurboMode = TurboToggle || (FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput));
 
 			if(!(frameadvSkipLag && skipLagNow && !Paused))
 			{
@@ -2307,7 +2309,6 @@ int PASCAL WinMain(HINSTANCE hInst,	HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 						{
 							static int count = 0;
 							count++;
-							TurboMode = TurboToggle || (FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput));
 							if(!TurboMode)
 								if((count % ((Frame_Skip<0?0:Frame_Skip)+2)) == 0)
 									Sleep(1);
@@ -3177,6 +3178,10 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else
 						SetForegroundWindow(RamWatchHWnd);
+					break;
+
+				case ID_HEX_EDITOR:
+					DoHexEditor();
 					break;
 
 				case IDC_NEW_LUA_SCRIPT:
@@ -5611,6 +5616,8 @@ HMENU Build_Main_Menu(void)
 		ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
 	MENU_L(TAS_Tools,i++,Flags,
 		ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
+	MENU_L(TAS_Tools,i++,Flags,
+		ID_HEX_EDITOR,"Hex Editor","","&Hex Editor");
 
 	// MOVIES //
 
