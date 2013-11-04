@@ -262,6 +262,7 @@
     </ClCompile>
     <ClCompile Include="src\gm2_structs.cpp" />
     <ClCompile Include="src\guidraw.cpp" />
+    <ClCompile Include="src\hexeditor.cpp" />
     <ClCompile Include="src\LC89510.c">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -597,6 +598,7 @@
     <ClInclude Include="src\ggenie.h" />
     <ClInclude Include="src\gm2_structs.h" />
     <ClInclude Include="src\guidraw.h" />
+    <ClInclude Include="src\hexeditor.h" />
     <ClInclude Include="src\htmlhelp.h" />
     <ClInclude Include="src\io.h" />
     <ClInclude Include="src\kailleraclient.h" />

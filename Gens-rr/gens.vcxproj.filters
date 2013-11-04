@@ -294,6 +294,9 @@
     <ClCompile Include="dependencies\lua\src\lzio.c">
       <Filter>LibLua</Filter>
     </ClCompile>
+    <ClCompile Include="src\hexeditor.cpp">
+      <Filter>C/C++ Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="gens.ico">
@@ -642,6 +645,9 @@
     </ClInclude>
     <ClInclude Include="dependencies\lua\src\lzio.h">
       <Filter>LibLua</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hexeditor.h">
+      <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
