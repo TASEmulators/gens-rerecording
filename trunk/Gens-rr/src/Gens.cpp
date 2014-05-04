@@ -253,7 +253,9 @@ int Contrast_Level;
 int Brightness_Level;
 int Greyscale;
 int Invert_Color;
-bool FakeVDPScreen=true;
+int FakeVDPScreen = true;
+int VDP_Reg_Set2_Current;
+int VDP_Reg_Set4_Current;
 
 unsigned char CD_Data[1024];		// Used for hard reset to know the game name
 int SRAM_Was_On = 0;
@@ -1035,7 +1037,7 @@ void Render_MD_Screen_()
 			MD_Screen[Pixel] = 0;
 	}
 	// right row
-	if (VDP_Reg.Set4 & 0x1)
+	if (VDP_REG_SET4 & 0x1)
 		for(Line = 0; Line < VDP_Num_Vis_Lines; Line++)
 		{
 			int Pixel = TAB336[Line] + 8 + 320;
@@ -1220,6 +1222,8 @@ int Do_Genesis_Frame(bool fast)
 
 	VDP_Status &= 0xFFF7;							// Clear V Blank
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
+	VDP_Reg_Set2_Current = VDP_Reg.Set2;
+	VDP_Reg_Set4_Current = VDP_Reg.Set4;
 
 	HInt_Counter = VDP_Reg.H_Int;					// Hint_Counter = step d'interruption H
 
@@ -1733,6 +1737,8 @@ int Do_32X_Frame(bool fast)
 	VDP_Status &= 0xFFF7;							// Clear V Blank
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
 	_32X_VDP.State &= ~0x8000;
+	VDP_Reg_Set2_Current = VDP_Reg.Set2;
+	VDP_Reg_Set4_Current = VDP_Reg.Set4;
 
 	HInt_Counter = VDP_Reg.H_Int;					// Hint_Counter = step d'interruption H
 	HInt_Counter_32X = _32X_HIC;
@@ -2308,6 +2314,8 @@ int Do_SegaCD_Frame(bool fast)
 
 	VDP_Status &= 0xFFF7;
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
+	VDP_Reg_Set2_Current = VDP_Reg.Set2;
+	VDP_Reg_Set4_Current = VDP_Reg.Set4;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step d'interruption H
 
@@ -2494,6 +2502,8 @@ int Do_SegaCD_Frame_Cycle_Accurate(bool fast)
 
 	VDP_Status &= 0xFFF7;
 	if (VDP_Reg.Set4 & 0x2) VDP_Status ^= 0x0010;
+	VDP_Reg_Set2_Current = VDP_Reg.Set2;
+	VDP_Reg_Set4_Current = VDP_Reg.Set4;
 
 	HInt_Counter = VDP_Reg.H_Int;		// Hint_Counter = step d'interruption H
 

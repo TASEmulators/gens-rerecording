@@ -4,10 +4,8 @@
 #include "G_dsound.h"
 #include "G_Input.h"
 #include "G_main.h"
-#include "guidraw.h"
 #include "resource.h"
 #include "gens.h"
-#include "mem_M68K.h"
 #include "vdp_io.h"
 #include "vdp_rend.h"
 #include "misc.h"
@@ -65,10 +63,6 @@ int (*Update_Frame)();
 int (*Update_Frame_Fast)();
 
 int Correct_256_Aspect_Ratio = 1;
-#define ALT_X_RATIO_RES (Correct_256_Aspect_Ratio ? 320 : 256)
-
-#define IS_FULL_X_RESOLUTION ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount)
-#define IS_FULL_Y_RESOLUTION ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount))
 
 // debug string is drawn in _DEBUG
 // list variables by comma and specify the string format
@@ -586,7 +580,7 @@ void CalculateDrawArea(HWND hWnd, RECT& RectDest, RECT& RectSrc)
 	Ratio_Y = (float) FS_Y / 240.0f; //Upth-Add - Find the current size-ratio on the y-axis
 	Ratio_X = Ratio_Y = (Ratio_X < Ratio_Y) ? Ratio_X : Ratio_Y; //Upth-Add - Floor them to the smaller value for correct ratio display
 
-	int Screen_X = IS_FULL_X_RESOLUTION ? 320 : 256; // Genesis screen width
+	int Screen_X = FULL_X_RESOLUTION; // Genesis screen width
 	int Screen_Y = VDP_Num_Vis_Lines; // Genesis screen height
 
 	RectSrc.left = 0 + 8;

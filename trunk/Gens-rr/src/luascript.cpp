@@ -2,6 +2,7 @@
 #include "gens.h"
 #include "save.h"
 #include "g_main.h"
+#include "G_ddraw.h"
 #include "misc.h"
 #include "guidraw.h"
 #include "movie.h"
@@ -3135,8 +3136,8 @@ DEFINE_LUA_FUNCTION(gui_getpixel, "x,y")
 	int x = luaL_checkinteger(L,1);
 	int y = luaL_checkinteger(L,2);
 
-	int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-	int yres = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+	int xres = FULL_X_RESOLUTION;
+	int yres = FULL_Y_RESOLUTION;
 
 	x = max(0,min(xres,x));
 	y = max(0,min(yres,y));
@@ -3225,8 +3226,8 @@ DEFINE_LUA_FUNCTION(gui_settransparency, "transparency_4_to_0")
 // example: gd.createFromGdStr(gui.gdscreenshot()):png("outputimage.png")
 DEFINE_LUA_FUNCTION(gui_gdscreenshot, "")
 {
-	int width = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-	int height = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+	int width = FULL_X_RESOLUTION;
+	int height = FULL_Y_RESOLUTION;
 	int size = 11 + width * height * 4;
 
 	char* str = new char[size+1];
@@ -3326,8 +3327,8 @@ DEFINE_LUA_FUNCTION(gui_gdoverlay, "[x=0,y=0,]gdimage[,alphamul]")
 	height |= *ptr++;
 	ptr += 5;
 
-	int maxWidth = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-	int maxHeight = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+	int maxWidth = FULL_X_RESOLUTION;
+	int maxHeight = FULL_Y_RESOLUTION;
 
 	unsigned char *Dst = Bits32 ? (unsigned char*)(MD_Screen32+8) : (unsigned char*)(MD_Screen+8);
 
@@ -3918,8 +3919,8 @@ DEFINE_LUA_FUNCTION(input_getcurrentinputstatus, "")
 		GetCursorPos(&point);
 		void CalculateDrawArea(HWND hWnd, RECT& RectDest, RECT& RectSrc);
 		CalculateDrawArea(HWnd, rect, srcRectUnused);
-		int xres = ((VDP_Reg.Set4 & 0x1) || Debug || !Game || !FrameCount) ? 320 : 256;
-		int yres = ((VDP_Reg.Set2 & 0x8) && !(Debug || !Game || !FrameCount)) ? 240 : 224;
+		int xres = FULL_X_RESOLUTION;
+		int yres = FULL_Y_RESOLUTION;
 		int x = ((point.x - rect.left) * xres) / max(1, rect.right - rect.left);
 		int y = ((point.y - rect.top) * yres) / max(1, rect.bottom - rect.top);
 		lua_pushinteger(L, x);

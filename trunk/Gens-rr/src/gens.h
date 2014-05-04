@@ -51,6 +51,9 @@ extern int Contrast_Level;
 extern int Brightness_Level;
 extern int Greyscale;
 extern int Invert_Color;
+extern int FakeVDPScreen;
+extern int VDP_Reg_Set2_Current;
+extern int VDP_Reg_Set4_Current;
 
 int Round_Double(double val);
 void Init_Tab(void);
