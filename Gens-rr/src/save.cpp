@@ -285,7 +285,7 @@ void TruncateMovieToFrameCount()
 }
 
 bool g_refreshScreenAfterLoad = true;
-extern bool FakeVDPScreen;
+
 int Load_State(char *Name)
 {
 	int stateNumber = s_lastStateNumberGotten;

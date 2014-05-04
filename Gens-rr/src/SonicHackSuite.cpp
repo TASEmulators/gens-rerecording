@@ -2217,8 +2217,8 @@ void Update_RAM_Cheats()
 			return;
 
 		int mode = (Mode_555 & 1);
-		int Hmode = (VDP_Reg.Set4 & 0x01);
-		int Vmode = (VDP_Reg.Set2 & 0x08);
+		int Hmode = (VDP_REG_SET4 & 0x01);
+		int Vmode = (VDP_REG_SET2 & 0x08);
 
 		unsigned char *Src = (Bits32?(unsigned char *)(MD_Screen32):(unsigned char *)(MD_Screen));
 		if(Vmode)
@@ -2633,7 +2633,7 @@ extern unsigned short RCircle[81];
 extern unsigned int RCircle32[81];
 extern unsigned short FCDigit[1040];
 extern unsigned int FCDigit32[1040];
-#define IS_FULL_X_RESOLUTION (VDP_Reg.Set4 & 0x01)
+
 void SonicSpeedTicker()
 {
 	int i,j,m,n; //UpthModif - Added l[3] for use when displaying input

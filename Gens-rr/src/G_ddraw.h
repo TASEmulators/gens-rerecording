@@ -5,6 +5,7 @@
 
 #include <ddraw.h>
 #include <time.h>
+#include "Mem_M68k.h"
 
 extern clock_t Last_Time;
 extern clock_t New_Time;
@@ -28,6 +29,17 @@ extern int Kaillera_Error;
 extern unsigned char CleanAvi;
 extern bool frameadvSkipLag;
 extern bool justlagged;
+
+#define ALT_X_RATIO_RES (Correct_256_Aspect_Ratio ? 320 : 256)
+
+#define VDP_REG_SET2 (FakeVDPScreen ? VDP_Reg.Set2 : VDP_Reg_Set2_Current)
+#define VDP_REG_SET4 (FakeVDPScreen ? VDP_Reg.Set4 : VDP_Reg_Set4_Current)
+
+#define IS_FULL_X_RESOLUTION ((VDP_REG_SET4 & 0x1) || Debug || !Game || !FrameCount)
+#define IS_FULL_Y_RESOLUTION (CPU_Mode && (VDP_REG_SET2 & 0x8) && !(Debug || !Game || !FrameCount))
+
+#define FULL_X_RESOLUTION (IS_FULL_X_RESOLUTION ? 320 : 256)
+#define FULL_Y_RESOLUTION (IS_FULL_Y_RESOLUTION ? 240 : 224)
 
 extern void (*Blit_FS)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
