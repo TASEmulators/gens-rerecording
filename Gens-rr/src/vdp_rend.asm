@@ -2249,8 +2249,8 @@ ALIGN4
 	.32X_Draw_M10_P
 			mov ebp, [esi + 0]
 			mov ebx, [esi + 4]
-			xor ebp, 0x10001000
-			xor ebx, 0x10001000
+			xor ebp, 0x80008000
+			xor ebx, 0x80008000
 			mov [edi + 0], ebp
 			mov [edi + 4], ebx
 			add esi, byte 8
@@ -2285,8 +2285,8 @@ ALIGN4
 			movzx ebx, byte [esi + 0]
 			mov ax, [_32X_VDP_CRam + ebp * 2]
 			mov dx, [_32X_VDP_CRam + ebx * 2]
-			xor ax, 0x1000
-			xor dx, 0x1000
+			xor ax, 0x8000
+			xor dx, 0x8000
 			mov [edi + 0], ax
 			mov [edi + 2], dx
 			add esi, byte 2
@@ -2321,8 +2321,8 @@ ALIGN4
 			movzx ebx, byte [esi + 3]
 			mov ax, [_32X_VDP_CRam + ebp * 2]
 			mov dx, [_32X_VDP_CRam + ebx * 2]
-			xor ax, 0x1000
-			xor dx, 0x1000
+			xor ax, 0x8000
+			xor dx, 0x8000
 			mov [edi + 0], ax
 			mov [edi + 2], dx
 			add esi, byte 2
@@ -2373,7 +2373,7 @@ ALIGN4
 			movzx eax, byte [esi + 0]
 			movzx ecx, byte [esi + 1]
 			mov ax, [_32X_VDP_CRam + eax * 2]
-			xor ax, 0x1000
+			xor ax, 0x8000
 			inc ecx
 			add esi, byte 2
 			sub edx, ecx

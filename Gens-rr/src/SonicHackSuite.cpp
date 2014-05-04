@@ -11,6 +11,7 @@
 #include "g_ddraw.h"
 #include "save.h"
 #include "ym2612.h"
+#include "io.h"
 
 // Sonic camera hack
 #ifdef SK
