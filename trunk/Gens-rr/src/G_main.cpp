@@ -6009,7 +6009,7 @@ LRESULT CALLBACK GGenieProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WORD_L(IDC_INFO_GG, "Informations GG", "", "Informations about GG/Patch codes");
 			WORD_L(IDC_GGINFO1, "Game Genie info 1", "", "Both Game Genie code and Patch code are supported.");
 			WORD_L(IDC_GGINFO2, "Game Genie info 2", "", "Highlight a code to activate it.");
-			WORD_L(IDC_GGINFO3, "Game Genie info 3", "", "yntax for Game Genie code :  XXXX-XXXX");
+			WORD_L(IDC_GGINFO3, "Game Genie info 3", "", "Syntax for Game Genie code :  XXXX-XXXX");
 			WORD_L(IDC_GGINFO4, "Game Genie info 4", "", "Syntax for Patch code :  XXXXXX:YYYY    (address:data)");
 
 			WORD_L(ID_GGADD, "Add code", "", "Add &code");

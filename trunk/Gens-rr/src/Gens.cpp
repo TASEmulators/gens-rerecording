@@ -1075,10 +1075,28 @@ void Render_MD_Screen32X_()
 			unsigned short pix = Screen_32X[Pixel];
 			if (!(Screen_16X[Pixel] & 0x4000))
 			{
-				if (low)
-					goto _32x;
+				if (swap)
+				{
+					if ((pix & 0x8000))
+					{
+						if (low)
+							goto _32x;
+					}
+					else if (high)
+						goto _32x;
+				}
 				else
-					goto _gen;
+				{
+					if (!(pix & 0x8000))
+					{
+						if (low)
+							goto _32x;
+					}
+					else if (high)
+						goto _32x;
+				}
+
+				goto _gen;
 			}
 			else
 			{
