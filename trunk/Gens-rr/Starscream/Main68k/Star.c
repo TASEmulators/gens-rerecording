@@ -3142,35 +3142,35 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 				emit("mov al,0\n");
 			}
 
-/*****************/
+			/*****************/
 
-	switch(tmps[0])
-	{
-		case 'c':/* register shift count */
-			emit("cmp cl, 32\n");
-			emit("jb short ln%d\n",linenum);
-			emit("sub cl, 31\n");
-			if(needxf){
-				emit("shr al, 1\n");
-			}
-			emit("%s%c %s, 31\n", op,direction[main_dr],x86dx[main_size]);
-			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
-			emit("jmp short ln%d\n",linenum + 1);
-			emit("ln%d:\n",linenum); linenum++;
-			if(needxf){
-				emit("shr al, 1\n");
-			}
-			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
-			emit("ln%d:\n",linenum); linenum++;
-			break;
+			switch(tmps[0])
+			{
+				case 'c':/* register shift count */
+					emit("cmp cl, 32\n");
+					emit("jb short ln%d\n",linenum);
+					emit("sub cl, 31\n");
+					if(needxf){
+						emit("shr al, 1\n");
+					}
+					emit("%s%c %s, 31\n", op,direction[main_dr],x86dx[main_size]);
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					emit("jmp short ln%d\n",linenum + 1);
+					emit("ln%d:\n",linenum); linenum++;
+					if(needxf){
+						emit("shr al, 1\n");
+					}
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					emit("ln%d:\n",linenum); linenum++;
+					break;
 
-		default:/* immediate shift count >1 */
-			if(needxf){
-				emit("shr al,1\n");
+				default:/* immediate shift count >1 */
+					if(needxf){
+						emit("shr al,1\n");
+					}
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					break;
 			}
-			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
-			break;
-	}
 
 /*****************/
 
