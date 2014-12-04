@@ -20,8 +20,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -89,7 +89,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/NODEFAULTLIB:MSVCR80.dll;cinitexe.obj; /LTCG"
-				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib dependencies/directx/ddraw.lib dependencies/directx/dsound.lib dependencies/directx/dinput.lib dependencies/directx/dxguid.lib winmm.lib dependencies/libs/zlib.lib dependencies/libs/libpng.lib htmlhelp.lib nafxcw.lib vfw32.lib"
+				AdditionalDependencies="advapi32.lib ComDlg32.Lib gdi32.lib user32.lib libcmt.lib wsock32.lib shell32.lib oleaut32.lib dependencies/directx/ddraw.lib dependencies/directx/dsound.lib dependencies/directx/dinput.lib dependencies/directx/dxguid.lib winmm.lib dependencies/libs/zlib.lib dependencies/libs/libpng.lib htmlhelp.lib vfw32.lib"
 				OutputFile=".\Output/gens.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -568,6 +568,10 @@
 			</File>
 			<File
 				RelativePath=".\src\guidraw.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\hexeditor.cpp"
 				>
 			</File>
 			<File
@@ -1540,6 +1544,10 @@
 			</File>
 			<File
 				RelativePath=".\src\guidraw.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\hexeditor.h"
 				>
 			</File>
 			<File
