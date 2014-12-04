@@ -760,7 +760,7 @@ int Start_Play_GYM(const char* filename)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrInitialDir = Dump_GYM_Dir;
 	ofn.lpstrDefExt = "gym";
-	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if(filename)
 		strcpy(Name, filename);

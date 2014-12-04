@@ -2540,7 +2540,7 @@ void Update_RAM_Cheats()
 		ofn.nFilterIndex = 0;
 		ofn.lpstrInitialDir = Gens_Path;
 		ofn.lpstrDefExt = "bmp";
-		ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 		if (GetOpenFileName(&ofn) == NULL) return;
 		Put_Info(MapFileName);
