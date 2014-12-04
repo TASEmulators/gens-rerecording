@@ -55,6 +55,7 @@
 #endif
 #include "7zip.h"
 #include "OpenArchive.h"
+#include <cmath>
 
 extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
