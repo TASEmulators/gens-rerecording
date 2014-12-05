@@ -27,6 +27,11 @@
 	const unsigned char So = 0x2A;
 	const unsigned char Ao = 0x26;
 	const unsigned char To = 0x28;
+	const unsigned char MHgt = 0x06;
+	const unsigned char MWid = 0x07;
+	const unsigned char CCnt = 0x16;
+	const unsigned char CXPo = 0x18;
+	const unsigned char CYPo = 0x1A;
 	const unsigned int CAMOFFSET1 = 0xFFEE78;
 	const unsigned int CAMOFFSET2 = 0xFFEE80;
 	const unsigned int CAMLOCK = 0xFFEE0A;
@@ -51,6 +56,11 @@
 	const unsigned char To = 0x20;
 	const unsigned char So = 0x22;
 	const unsigned char Ao = 0x26;
+	const unsigned char MHgt = 0x14;
+	const unsigned char MWid = 0x0E;
+	const unsigned char CCnt = 0xF;
+	const unsigned char CXPo = 0x10;
+	const unsigned char CYPo = 0x12;
 	const unsigned int POSOFFSET = 0xB000;
 	const unsigned int SSTLEN = 0x2600;
 	const unsigned int SPRITESIZE = 0x40;
@@ -441,6 +451,16 @@ void DisplaySolid()
 		DRAWSHIFT = 0xA;
 		TILEMASK = 0x3FF;
 		S3 = !(* (unsigned short *) &Rom_Data[0x18E] == 0xDFB3);
+		char Title[0x32] = "";
+		memcpy(Title,&Rom_Data[0x120],0x30);
+		Byte_Swap(Title,0x30);
+		if (!strcmp("SONIC 3 & AMY ROSE                              ",Title))
+		{
+			COLARR = 0x96240;	//support for Sonic 3 & Amy Rose
+			COLARR2 = 0x097240;	//Romhack created by "E-122-Psi"
+			ANGARR = 0x096140;	//Detected by comparing the ROM header Title string.
+			S3 = false;
+		}
 	#endif
 	#ifdef GAME_SCD
 	if (CheatRead<unsigned int>(NITSUJA) != STEALTH) //if our collision pointer changed, search for a new one
@@ -1287,7 +1307,11 @@ void DrawBoxes()
 			}
 			else {
 				Xpos -= 0x80;
-				Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
+				#ifdef SK
+					Ypos -= 0x80;
+				#else
+					Ypos = (CheatRead<short>(CardBoard + 2 + XPo)) - 0x80;
+				#endif
 			}
 			if (ducking) Ypos+=0xC;
 	//		if (!(Ram_68k[CardBoard + Fo] & 0x04))
@@ -1303,20 +1327,25 @@ void DrawBoxes()
 			if (CheatRead<unsigned char>(CardBoard + Fo) & 0x40)	//special case for multiple sprites in a single object	
 			{
 //				sprintf(Str_Tmp,"");
-				for (int i = CheatRead<unsigned char>(CardBoard + YPo + 3) - 1; i >= 0; i--)
+				#ifdef SK
+					int numsprites = CheatRead<unsigned short>(CardBoard + CCnt) - 1;
+				#else
+					int numsprites = CheatRead<unsigned char>(CardBoard + CCnt) - 1;
+				#endif
+				for (int i = numsprites; i >= 0; i--)
 				{
 //					char Str_Dbg[1024];
-					short x = CheatRead<signed short>(CardBoard + YPo + 4 + i * 6) - CamX;
-					short y = CheatRead<signed short>(CardBoard + YPo + 6 + i * 6) - CamY;
+					short x = CheatRead<signed short>(CardBoard + CXPo + i * 6) - CamX;
+					short y = CheatRead<signed short>(CardBoard + CYPo + i * 6) - CamY;
 					DrawBoxMWH(x,y,2,2,0x0000FF,0x001F,0);
 					DrawBoxMWH(x,y,1,1,0x0000FF,0x001F,0);
 					DrawLine(x-1,y,x+1,y,0xFF0000,0xF800,0);
 					DrawLine(x,y-1,x,y+1,0xFF0000,0xF800,0);
-					Width2 = CheatRead<unsigned char>(CardBoard + XPo + 2);
-					Height2 = CheatRead<unsigned char>(CardBoard + YPo + 8);
-//					sprintf(Str_Dbg, "%d: X %04X from %08X, Y %04X from %08X\n",i,x,CardBoard + YPo + 4 + i * 6,y,CardBoard + YPo + 6 + i * 6);
+//					sprintf(Str_Dbg, "%d: X %04X from %08X, Y %04X from %08X\n",i,x,CardBoard + CXPo + i * 6,y,CardBoard + CYPo + i * 6);
 //					strcat(Str_Tmp,Str_Dbg);
 				}
+				Width2 = CheatRead<unsigned char>(CardBoard + MWid);
+				Height2 = CheatRead<unsigned char>(CardBoard + MHgt);
 //				MessageBox(NULL,Str_Tmp,"Multiple Sprite Pos Debug message",MB_OK);
 			}
 			else
@@ -1745,13 +1774,20 @@ int SonicCamHack()
 	unsigned char posbuf[SSTLEN];
 	int time = CheatRead<signed int>(0xFFFE22);
 #ifdef GAME_SCD
-		time = CheatRead<signed int>(0xFF1514);
+	time = CheatRead<signed int>(0xFF1514);
+#elif defined SK
+	unsigned char cambuf[16];
 #endif
 	for(int i = 0 ; i <= numframes ; i++)
 	{
 
 		if(i == firstFreezeFrame)
+		{
 			memcpy(posbuf,&(Ram_68k[POSOFFSET]),SSTLEN);
+			#ifdef SK
+				memcpy(cambuf,&(Ram_68k[0xEE0C]),16);
+			#endif
+		}
 
 		#ifdef SK
 			CheatWrite<unsigned char>(0xFFEE0B, 1); // Freezes world.*/
@@ -1780,7 +1816,12 @@ int SonicCamHack()
 		#endif
 			
 		if(i >= firstFreezeFrame)
+		{
 			memcpy(&(Ram_68k[POSOFFSET]),posbuf,SSTLEN); //FREEZE WORLD
+			#ifdef SK
+				memcpy(&(Ram_68k[0xEE0C]),cambuf,16);
+			#endif
+		}
 
 
 		Update_Frame_Fast();
