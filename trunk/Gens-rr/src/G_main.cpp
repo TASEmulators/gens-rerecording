@@ -2061,7 +2061,7 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 void ReadHookRamFiles()
 {
 
-	fp1 = fopen( "hook_log.txt", "r" ); 
+	fp1 = fopen( "./Logs/hook_log.txt", "r" ); 
 	if( fp1 )
 	{
 		rd_mode = new unsigned int[ STATES ];
@@ -2103,8 +2103,10 @@ void ReadHookRamFiles()
 
 		fclose( fp1 );
 	}
+	else
+		MessageBox(HWnd, "File ./Logs/hook_log.txt not found.", "Error", MB_OK);
 
-	fp1 = fopen( "hook_log_cd.txt", "r" );
+	fp1 = fopen( "./Logs/hook_log_cd.txt", "r" );
 	if( fp1 )
 	{
 		rd_mode_cd = new unsigned int[ STATES ];
@@ -2146,6 +2148,8 @@ void ReadHookRamFiles()
 
 		fclose( fp1 );
 	}
+	else
+		MessageBox(HWnd, "File ./Logs/hook_log_cd.txt not found.", "Error", MB_OK);
 
 }
 
@@ -4496,7 +4500,7 @@ dialogAgain: //Nitsuja added this
 					{
 						if( !fp_trace )
 						{
-							fp_trace = fopen( "trace.log", "a" );
+							fp_trace = fopen( "./Logs/trace.log", "a" );
 							mapped = new char[ 0x100*0x10000 ];
 							memset( mapped,0,0x100*0x10000 );
 //							fseek(fp_trace,0,SEEK_END);
@@ -4504,7 +4508,7 @@ dialogAgain: //Nitsuja added this
 						}
 						if (SegaCD_Started && !fp_trace_cd)
 						{
-							fp_trace_cd = fopen( "trace_cd.log", "a" );
+							fp_trace_cd = fopen( "./Logs/trace_cd.log", "a" );
 							mapped_cd = new char[ 0x100*0x10000 ];
 							memset( mapped_cd,0,0x100*0x10000 );
 //							fseek(fp_trace_cd,0,SEEK_END);
@@ -4546,7 +4550,7 @@ dialogAgain: //Nitsuja added this
 						ReadHookRamFiles(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
 						if( !fp_hook )
 						{
-							fp_hook = fopen( "hook.txt", "a" );
+							fp_hook = fopen( "./Logs/hook.txt", "a" );
 							fseek(fp_hook,0,SEEK_END);
 						}
 						fprintf(fp_hook,"MEMORY ACCESS LOGGING STARTED\n\n");
@@ -4554,7 +4558,7 @@ dialogAgain: //Nitsuja added this
 						{
 							if (!fp_hook_cd) 
 							{
-								fp_hook_cd = fopen( "hook_cd.txt", "a" );
+								fp_hook_cd = fopen( "./Logs/hook_cd.txt", "a" );
 								fseek(fp_hook_cd,0,SEEK_END);
 							}
 							fprintf(fp_hook_cd,"MEMORY ACCESS LOGGING STARTED\n\n");
