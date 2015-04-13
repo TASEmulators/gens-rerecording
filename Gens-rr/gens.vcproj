@@ -30,7 +30,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="dependencies\SubWCRev.bat"
+				CommandLine="dependencies\GitWCRev.bat"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -136,7 +136,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine=""
+				CommandLine="dependencies\GitWCRev.bat"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"

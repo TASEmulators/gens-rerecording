@@ -6,11 +6,11 @@
 #define _GENS_H
 
 #ifdef _MSC_VER
-#include "svnrev.h"
+#include "gitrev.h"
 #endif
 
-#ifndef SVN_REV
-	#define SVN_REV ""
+#ifndef GIT_REV
+	#define GIT_REV ""
 #endif
 
 #ifdef __cplusplus
@@ -20,7 +20,7 @@ extern "C" {
 #define GENS_RR_VERSION "Gens11"
 
 #ifndef _DEBUG
-	#define SUB_STRING "svn" SVN_REV
+	#define SUB_STRING "git" GIT_REV
 #else
 	#define SUB_STRING " debug"
 #endif

@@ -104,12 +104,12 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>dependencies\SubWCRev.bat</Command>
+      <Command>dependencies\GitWCRev.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>dependencies\SubWCRev.bat</Command>
+      <Command>dependencies\GitWCRev.bat</Command>
     </PreBuildEvent>
     <CustomBuildStep>
       <Command>

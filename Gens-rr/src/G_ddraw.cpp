@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include "guidraw.h"
 #include "G_ddraw.h"
 #include "G_dsound.h"
 #include "G_Input.h"
