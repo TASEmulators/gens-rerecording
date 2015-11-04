@@ -1102,7 +1102,7 @@ LRESULT CALLBACK RamWatchProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 					return 1;
 				}
 			}
-		}
+		} break;
 
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
