@@ -853,7 +853,7 @@ sub SH2
 others
 ------
 // Fix 32X save state :
-// enregistrer correctement les registres systèmes ...
+// enregistrer correctement les registres systÃ¨mes ...
 
 +02700 : ADEN bit (bit 0)
 +02701 : FM bit (bit 7)
@@ -883,7 +883,10 @@ int Import_Genesis(unsigned char * Data)
 
 	InBaseGenesis = 1;
 
-	for(i = 0; i < 0x80; i++) CRam[i] = Data[i + 0x112]; // note CRAM is an array of shorts...
+	for (i = 0; i < 0x40; i++)
+	{
+		CRam[i] = (Data[i * 2 + 0x112 + 1] << 8) | Data[i * 2 + 0x112 + 0];
+	}
 	ImportData(VSRam, Data, 0x192, 0x50);
 	ImportData(Ram_Z80, Data, 0x474, 0x2000);
 	
@@ -1359,7 +1362,11 @@ void Export_Genesis(unsigned char * Data)
 
 	ExportData(&Bank_Z80, Data, 0x43C, 4);
 
-	for(i = 0; i < 0x80; i++) Data[i + 0x112] = (CRam[i] & 0xFF);
+	for (i = 0; i < 0x40; i++)
+	{
+		Data[i * 2 + 0x112 + 1] = ((CRam[i] >> 8) & 0xFF);
+		Data[i * 2 + 0x112 + 0] = ((CRam[i] >> 0) & 0xFF);
+	}
 	ExportData(VSRam, Data, 0x192, 0x50);
 	ExportData(Ram_Z80, Data, 0x474, 0x2000);
 
