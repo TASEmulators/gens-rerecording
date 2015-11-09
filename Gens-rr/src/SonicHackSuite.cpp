@@ -1887,6 +1887,7 @@ int SonicCamHack()
 ALIGN16 static unsigned char Camhack_State_Buffer[MAX_STATE_FILE_LENGTH];
 #endif
 #ifdef SONICMAPHACK
+#include "gens.h"
 #include "vdp_io.h"
 long x = 0, y = 0, xg = 0, yg = 0;
 void Update_RAM_Cheats()
