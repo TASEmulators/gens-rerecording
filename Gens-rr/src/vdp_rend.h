@@ -30,7 +30,7 @@ extern unsigned short LockedPalette[0x40];
 
 // from 0ahsbbbbggggrrrr into RGB555 if (Mode_555 & 1) else RGB565
 extern unsigned short Palette[0x8000];
-extern unsigned long TAB336[336];
+extern unsigned long TAB336[240];
 extern unsigned char Bits32;
 
 extern struct
@@ -49,7 +49,7 @@ extern unsigned char _32X_Rend_Mode;
 extern int Mode_555;
 extern int Sprite_Over;
 extern char VScrollAl; //Nitsuja added this
-extern char VScrollAh; //Nitsuja added this 
+extern char VScrollAh; //Nitsuja added this
 extern char VScrollBl; //Nitsuja added this
 extern char VScrollBh; //Nitsuja added this
 extern char VSpritel; //Upthorn added this

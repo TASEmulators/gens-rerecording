@@ -1029,7 +1029,7 @@ void Render_MD_Screen_()
 	}
 	// fixes for filters
 	// bottom row
-	for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
+	for (unsigned long Pixel = 336 * Line + 8; Pixel < 336 * Line + 336; Pixel++)
 	{
 		if (bits == 32)
 			MD_Screen32[Pixel] = 0;
