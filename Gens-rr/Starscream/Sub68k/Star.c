@@ -271,7 +271,7 @@ static void gen_variables(void) {
 	emit("\textern _hook_address_cd\n");
 	emit("\textern _hook_value_cd\n");	
 #endif
-
+	
 	emit("\textern Rom_Data\n");
 	emit("\textern Rom_Size\n");
 	emit("\n");
@@ -445,7 +445,6 @@ static void gen_variables(void) {
 	emit("save_01				dd 0\n");		// Stef Add (Gens)
 	emit("save_02				dd 0\n");
 	emit("contextend:\n");
-
 }
 
 /* Prepare to leave into the cold, dark world of compiled C code */
@@ -721,7 +720,7 @@ emit("js near execquit\n");
 /*	emit("xor ebx,ebx\n");suffice to say, bits 16-31 should be zero... */
 	emit("mov bx,[esi]\n");
 	emit("add esi,byte 2\n");
-
+	
 #ifdef HOOKS_ENABLED
 emit("pushad\n");
 emit("sub esi,ebp\n");
@@ -768,6 +767,7 @@ emit("popad\n");
 	emit("jz short execquit_nointerrupt\n");
 	emit("execquit_yesinterrupt:\n");
 	emit("call flush_interrupts\n");
+
 	/*
 	** Force an uncached re-base.
 	** This fulfills the "Hardware interrupt" case.
@@ -1327,25 +1327,25 @@ static void ret_timing(int n) {
 		emit("js near execquit\n");
 		emit("mov bx,[esi]\n");
 		emit("add esi,byte 2\n");
-
+		
 #ifdef HOOKS_ENABLED
-emit("pushad\n");
-emit("sub esi,ebp\n");
-emit("sub esi,byte 2\n");
-emit("mov [_hook_pc_cd],esi\n");
-
-emit("shr ah,1\n");
-emit("adc ax,ax\n");
-emit("and ax,0C003h\n");
-emit("or ah,[__xflag]\n");
-emit("ror ah,4\n");
-emit("or al,ah\n");
-emit("mov [__sr],al\n");
-
-emit("call _hook_exec_cd\n");
-emit("popad\n");
+		emit("pushad\n");
+		emit("sub esi,ebp\n");
+		emit("sub esi,byte 2\n");
+		emit("mov [_hook_pc_cd],esi\n");
+		
+		emit("shr ah,1\n");
+		emit("adc ax,ax\n");
+		emit("and ax,0C003h\n");
+		emit("or ah,[__xflag]\n");
+		emit("ror ah,4\n");
+		emit("or al,ah\n");
+		emit("mov [__sr],al\n");
+		
+		emit("call _hook_exec_cd\n");
+		emit("popad\n");
 #endif
-
+		
 		emit("jmp dword[__jmptbl+ebx*4]\n");
 	}
 }
@@ -1797,6 +1797,7 @@ static void gen_group_12_exception(void) {
 	if(cputype >= 68010) {
 		emit("pop edx\n");
 	}
+
 	emit("push ecx\n");/* dest. PC */
 	sr2cx();
 	emit("push ecx\n");/* old SR */
@@ -1860,8 +1861,7 @@ static void selective_usereg(void) {
 	case aind: case ainc: case adec:
 	case adsp: case axdp:
 		usereg();
-	default:
-		;
+	default:;
 	}
 }
 
@@ -2952,29 +2952,42 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 			emit("mov edx,[__dreg+ebx*4]\n");
 			if(needxf){
 				emit("mov al,[__xflag]\n");
-				emit("shr al,1\n");
 			}else{
 				emit("mov al,0\n");
 			}
 
-/*****************/
+			/*****************/
 
-	switch(tmps[0])
-	{
-		case 'c':/* register shift count */
-			emit("cmp cl, 32\n");
-			emit("jb short ln%d\n",linenum);
-			emit("%s%c %s, 16\n", op,direction[main_dr],x86dx[main_size]);
-			emit("sub cl, 31\n");
-			emit("%s%c %s, 15\n", op,direction[main_dr],x86dx[main_size]);
-			emit("ln%d:\n",linenum); linenum++;
-			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
-			break;
+			switch(tmps[0])
+			{
+				case 'c':/* register shift count */
+					emit("cmp cl, 32\n");
+					emit("jb short ln%d\n",linenum);
+					if(needxf){
+						emit("shr al, 1\n");
+					}
+					emit("ln%d:\n",linenum + 1);
+					emit("%s%c %s, 31\n", op,direction[main_dr],x86dx[main_size]);
+					emit("sub cl, 31\n");
+					emit("cmp cl, 32\n");
+					emit("jnb short ln%d\n",linenum + 1);
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					emit("jmp short ln%d\n",linenum + 2);
+					emit("ln%d:\n",linenum); linenum += 2;
+					if(needxf){
+						emit("shr al, 1\n");
+					}
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					emit("ln%d:\n",linenum); linenum++;
+					break;
 
-		default:/* immediate shift count >1 */
-			emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
-			break;
-	}
+				default:/* immediate shift count >1 */
+					if(needxf){
+						emit("shr al,1\n");
+					}
+					emit("%s%c %s,%s\n", op,direction[main_dr],x86dx[main_size],tmps);
+					break;
+			}
 
 /*****************/
 
@@ -2995,7 +3008,6 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 		}else{
 			if(needxf){
 				emit("mov al,[__xflag]\n");
-				emit("shr al,1\n");
 			}else{
 				emit("mov al,0\n");
 			}
@@ -3007,14 +3019,28 @@ static void flick_reg(char*op,int needxf,int affectx,int asl,int rotate){
 		case 'c':/* register shift count */
 			emit("cmp cl, 32\n");
 			emit("jb short ln%d\n",linenum);
-			emit("%s%c %s[__dreg+ebx*4], 16\n", op,direction[main_dr],sizename[main_size]);
+			if(needxf){
+				emit("shr al, 1\n");
+			}
+			emit("ln%d:\n",linenum + 1);
+			emit("%s%c %s[__dreg+ebx*4], 31\n", op,direction[main_dr],sizename[main_size]);
 			emit("sub cl, 31\n");
-			emit("%s%c %s[__dreg+ebx*4], 15\n", op,direction[main_dr],sizename[main_size]);
-			emit("ln%d:\n",linenum); linenum++;
+			emit("cmp cl, 32\n");
+			emit("jnb short ln%d\n",linenum + 1);
 			emit("%s%c %s[__dreg+ebx*4],%s\n", op,direction[main_dr],sizename[main_size],tmps);
+			emit("jmp short ln%d\n",linenum + 2);
+			emit("ln%d:\n",linenum); linenum += 2;
+			if(needxf){
+				emit("shr al, 1\n");
+			}
+			emit("%s%c %s[__dreg+ebx*4],%s\n", op,direction[main_dr],sizename[main_size],tmps);
+			emit("ln%d:\n",linenum); linenum++;
 			break;
 
 		default:/* immediate shift count >1 */
+			if(needxf){
+				emit("shr al, 1\n");
+			}
 			emit("%s%c %s[__dreg+ebx*4],%s\n", op,direction[main_dr],sizename[main_size],tmps);
 			break;
 	}
@@ -3985,6 +4011,7 @@ static void i_tas(void){
 	main_ea_rmw_load();
 	selftest(1);
 	flags_v0();
+	/* Note: TAS works on all locations on Sega CD-side */
 	emit("or cl,80h\n");
 	main_ea_rmw_store();
 	if((main_eamode==dreg)||(main_eamode==areg)){
@@ -4230,6 +4257,7 @@ static void i_chk(void){
 	cycles=10;
 	if(cputype==68010)cycles=8;
 	ret_timing(cycles+main_ea_cycles());
+
 	/* Out of bounds, so generate CHK exception */
 	emit("ln%d:",myline);
 	emit("mov edx,18h\n");
@@ -4764,8 +4792,8 @@ static void decode4(int n) {
 
 //	main_size=2;for(main_reg=0;main_reg<8;main_reg++)eadef_data(n,0xFFC0,0x4100|(main_reg<<9),i_chk);
 
-	/* bug fixed in code generation */
-
+	/* Bug fixed in code generation for CHK instruction */
+	
 	main_size=2;for(main_reg=0;main_reg<8;main_reg++)eadef_data(n,0xFFC0,0x4180|(main_reg<<9),i_chk);
 
 	eadef_control(n,0xFFC0,0x4840,i_pea);
