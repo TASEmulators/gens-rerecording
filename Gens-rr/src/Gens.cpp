@@ -1029,7 +1029,7 @@ void Render_MD_Screen_()
 	}
 	// fixes for filters
 	// bottom row
-	for (unsigned long Pixel = TAB336[Line] + 8; Pixel < TAB336[Line] + 336; Pixel++)
+	for (unsigned long Pixel = 336 * Line + 8; Pixel < 336 * Line + 336; Pixel++)
 	{
 		if (bits == 32)
 			MD_Screen32[Pixel] = 0;
@@ -1373,6 +1373,8 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 
 int Do_VDP_Refresh()
 {
+	int VDP_Current_Line_bak = VDP_Current_Line;
+
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
 
@@ -1398,6 +1400,8 @@ int Do_VDP_Refresh()
 				Render_Line_32X();
 		Render_MD_Screen32X();
 	}
+
+	VDP_Current_Line = VDP_Current_Line_bak;
 
 	Update_RAM_Search();
 #ifdef RKABOXHACK

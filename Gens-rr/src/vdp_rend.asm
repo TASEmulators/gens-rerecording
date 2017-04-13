@@ -28,16 +28,6 @@ section .data align=64
 	%endrep
 
 	ALIGN32
-
-	DECL TAB320
-
-	%assign i 0
-	%rep 240
-		dd (i * 336)
-	%assign i i+1
-	%endrep
-
-	ALIGN32
 	
 	Mask_N	dd 0xFFFFFFFF, 0xFFF0FFFF, 0xFF00FFFF, 0xF000FFFF, 
 			dd 0x0000FFFF, 0x0000FFF0, 0x0000FF00, 0x0000F000
