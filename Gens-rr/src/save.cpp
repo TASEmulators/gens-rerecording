@@ -942,8 +942,7 @@ int Import_Genesis(unsigned char * Data)
 		src = (unsigned char *) &Ctrl;
 		for(i = 0; i < 7 * 4; i++) *src++ = 0;
 
-		Write_VDP_Ctrl(Data[0x40] + (Data[0x41] << 8));
-		Write_VDP_Ctrl(Data[0x42] + (Data[0x43] << 8));
+		ImportData(&Ctrl.Data, Data, 0x40, 4);
 
 		Ctrl.Flag = Data[0x44];
 		Ctrl.DMA = (Data[0x45] & 1) << 2;
@@ -1419,6 +1418,7 @@ void Export_Genesis(unsigned char * Data)
 		ExportDataAuto(&DMAT_Type, Data, offset, 4);
 		//ExportDataAuto(&CRam_Flag, Data, offset, 4);
 		ExportDataAuto(&LagCount, Data, offset, 4);
+		VRam_Flag = 1; // full reconstruction of cached sprite table
 		ExportDataAuto(&VRam_Flag, Data, offset, 4);
 		if(Version >= 9) offset += 12; // alignment for performance
 		ExportDataAuto(&CRam, Data, offset, 256 * 2);

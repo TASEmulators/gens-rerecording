@@ -1375,6 +1375,9 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 int Do_VDP_Refresh()
 {
 	int VDP_Current_Line_bak = VDP_Current_Line;
+	int VDP_Status_bak = VDP_Status;
+	int VRam_Flag_bak = VRam_Flag;
+	VRam_Flag = 1; // full reconstruction of cached sprite table
 
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
@@ -1403,6 +1406,8 @@ int Do_VDP_Refresh()
 	}
 
 	VDP_Current_Line = VDP_Current_Line_bak;
+	VDP_Status = VDP_Status_bak;
+	VRam_Flag = VRam_Flag_bak;
 
 	Update_RAM_Search();
 #ifdef RKABOXHACK
