@@ -113,7 +113,7 @@
 		return ok;
 	}
 
-	static SaveStateData tempData;
+	static ALIGN16 SaveStateData tempData;
 
 	void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
 	{
@@ -144,7 +144,7 @@
 			if(checkingDesyncPart == 0)
 			{
 				// first part: just save states
-				static SaveStateData data;
+				static ALIGN16 SaveStateData data;
 
 				//Save_State_To_Buffer(data.State_Buffer);
 				memset(data.State_Buffer, 0, sizeof(data.State_Buffer));
@@ -155,7 +155,7 @@
 			else
 			{
 				// second part: compare to saved states
-				static SaveStateData dataNow;
+				static ALIGN16 SaveStateData dataNow;
 
 				//Save_State_To_Buffer(dataNow.State_Buffer);
 				memset(dataNow.State_Buffer, 0, sizeof(dataNow.State_Buffer));
@@ -203,14 +203,15 @@
 			disableSound = true; \
 			fastname##_Real(); /* run 2 frames */ \
 			fastname##_Real(); \
+			Do_VDP_Refresh(); \
 			DesyncDetection(1,0); /* save */ \
 			Load_State_From_Buffer(State_Buffer); /* load */ \
-			fastname##_Real(); /* run 2 frames */ \
-			fastname##_Real(); \
+			disableSound = false; \
+			name##_Real(); /* run 2 frames */ \
+			name##_Real(); \
 			DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
 			Load_State_From_Buffer(State_Buffer); /* load */ \
 			saveStateDataMap.clear(); \
-			disableSound = false; \
 		} \
 		return name##_Real(); /* run the frame for real */ \
 	} \
