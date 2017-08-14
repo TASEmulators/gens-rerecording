@@ -81,12 +81,30 @@
 	{
 		unsigned char State_Buffer[CHECKED_STATE_LENGTH];
 	};
+#ifdef MANUAL_DESYNC_CHECKS_ONLY
 	std::map<int, SaveStateData> saveStateDataMap;
+#else
+	struct map_dummy : SaveStateData // for keeping only single frame, and avoid stack overflow
+	{
+		typedef SaveStateData* iterator;
+		int FrameCount;
+		map_dummy() : FrameCount(-1) {}
+		SaveStateData & operator[] (int n) { FrameCount = n; return *this; }
+		iterator find(int n) { return n == FrameCount ? this : NULL; }
+		iterator end() { return NULL; }
+		void clear() { FrameCount = -1; }
+	};
+	static ALIGN16 map_dummy saveStateDataMap;
+#endif
 
 	int firstFailureByte = -1;
 	bool CompareSaveStates(SaveStateData& data1, SaveStateData& data2)
 	{
-		SaveStateData difference;
+		// memcmp usually faster than byte by byte comparison
+		if (!memcmp(data1.State_Buffer, data2.State_Buffer, CHECKED_STATE_LENGTH))
+			return true;
+
+		static ALIGN16 SaveStateData difference;
 		bool ok = true;
 		firstFailureByte = -1;
 		static const int maxFailures = 4000; // print at most this many failure at once
@@ -144,13 +162,11 @@
 			if(checkingDesyncPart == 0)
 			{
 				// first part: just save states
-				static ALIGN16 SaveStateData data;
+				SaveStateData &data = saveStateDataMap[FrameCount];
 
 				//Save_State_To_Buffer(data.State_Buffer);
 				memset(data.State_Buffer, 0, sizeof(data.State_Buffer));
 				Export_Func(data.State_Buffer);
-
-				saveStateDataMap[FrameCount] = data;
 			}
 			else
 			{
@@ -200,13 +216,11 @@
 	{ \
 		if(!((TurboMode))) { \
 			Save_State_To_Buffer(State_Buffer); /* save */ \
-			disableSound = true; \
 			fastname##_Real(); /* run 2 frames */ \
 			fastname##_Real(); \
 			Do_VDP_Refresh(); \
 			DesyncDetection(1,0); /* save */ \
 			Load_State_From_Buffer(State_Buffer); /* load */ \
-			disableSound = false; \
 			name##_Real(); /* run 2 frames */ \
 			name##_Real(); \
 			DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
