@@ -7,20 +7,20 @@
 #include "Mem_S68k.h"
 #include "vdp_io.h"
 #include "luascript.h"
+#include "tracer.h"
 
 #define uint32 unsigned int
 
-extern FILE* fp_trace_cd;
-extern FILE* fp_call_cd;
-extern FILE* fp_hook_cd;
+FILE* fp_trace_cd;
+FILE* fp_hook_cd;
 
 #define STATES 3
-extern unsigned int *rd_mode_cd, *wr_mode_cd, *ppu_mode_cd, *pc_mode_cd;
-extern unsigned int *rd_low_cd, *rd_high_cd;
-extern unsigned int *wr_low_cd, *wr_high_cd;
-extern unsigned int *ppu_low_cd, *ppu_high_cd;
-extern unsigned int *pc_low_cd, *pc_high_cd;
-extern unsigned int *pc_start_cd;
+unsigned int *rd_mode_cd, *wr_mode_cd, *ppu_mode_cd, *pc_mode_cd;
+unsigned int *rd_low_cd, *rd_high_cd;
+unsigned int *wr_low_cd, *wr_high_cd;
+unsigned int *ppu_low_cd, *ppu_high_cd;
+unsigned int *pc_low_cd, *pc_high_cd;
+unsigned int *pc_start_cd;
 
 extern bool trace_map;
 extern bool hook_trace;
@@ -29,27 +29,107 @@ extern "C" {
 	extern uint32 hook_address_cd;
 	extern uint32 hook_value_cd;
 	extern uint32 hook_pc_cd;
-	
-	void trace_read_byte_cd();
-	void trace_read_word_cd();
-	void trace_read_dword_cd();
-	void trace_write_byte_cd();
-	void trace_write_word_cd();
-	void trace_write_dword_cd();
-
-	void GensTrace_cd();
 };
 
-extern char *mapped_cd;
+char *mapped_cd;
 uint32 Current_PC_cd;
 int Debug_CD = 2;
 
+const char * InitTrace_cd()
+{
+	if ( !fp_trace_cd )
+	{
+		fp_trace_cd = fopen( "./Logs/trace_cd.log", "a" );
+		if ( !fp_trace_cd )
+			return "Can't open file ./Logs/trace_cd.log";
+		mapped_cd = new char[ 0x100*0x10000 ];
+		memset( mapped_cd,0,0x100*0x10000 );
+//		fseek(fp_trace_cd,0,SEEK_END);
+		fprintf(fp_trace_cd,"TRACE STARTED\n\n");
+	}
+	return NULL;
+}
+
+void DeInitTrace_cd()
+{
+	if ( fp_trace_cd )
+	{
+		fprintf(fp_trace_cd,"\nTRACE STOPPED\n\n");
+		fclose(fp_trace_cd);
+		delete [] (mapped_cd);
+		fp_trace_cd = NULL;
+		mapped_cd = NULL;
+	}
+}
+
+const char * InitDebug_cd()
+{
+	FILE *fp1 = fopen( "./Logs/hook_log_cd.txt", "r" );
+	if( !fp1 )
+		return "File ./Logs/hook_log_cd.txt not found.";
+
+	if ( !fp_hook_cd )
+	{
+		fp_hook_cd = fopen( "./Logs/hook_cd.txt", "a" );
+		if ( !fp_hook_cd )
+		{
+			fclose(fp1);
+			return "Can't open file ./Logs/hook_log_cd.txt";
+		}
+		fseek(fp_hook_cd, 0, SEEK_END);
+	}
+
+	rd_mode_cd = new unsigned int[ STATES ];
+	wr_mode_cd = new unsigned int[ STATES ];
+	pc_mode_cd = new unsigned int[ STATES ];
+	ppu_mode_cd = new unsigned int[ STATES ];
+
+	rd_low_cd = new unsigned int[ STATES ];
+	wr_low_cd = new unsigned int[ STATES ];
+	pc_low_cd = new unsigned int[ STATES ];
+	ppu_low_cd = new unsigned int[ STATES ];
+
+	rd_high_cd = new unsigned int[ STATES ];
+	wr_high_cd = new unsigned int[ STATES ];
+	pc_high_cd = new unsigned int[ STATES ];
+	ppu_high_cd = new unsigned int[ STATES ];
+
+	pc_start_cd = new unsigned int[ STATES ];
+
+	fscanf(fp1,"hook_pc1 %x %x %x\n",&pc_mode_cd[0],&pc_low_cd[0],&pc_high_cd[0]);
+	fscanf(fp1,"hook_pc2 %x %x %x\n",&pc_mode_cd[1],&pc_low_cd[1],&pc_high_cd[1]);
+	fscanf(fp1,"hook_pc3 %x %x %x\n",&pc_mode_cd[2],&pc_low_cd[2],&pc_high_cd[2]);
+
+	fscanf(fp1,"hook_rd1 %x %x %x\n",&rd_mode_cd[0],&rd_low_cd[0],&rd_high_cd[0]);
+	fscanf(fp1,"hook_rd2 %x %x %x\n",&rd_mode_cd[1],&rd_low_cd[1],&rd_high_cd[1]);
+	fscanf(fp1,"hook_rd3 %x %x %x\n",&rd_mode_cd[2],&rd_low_cd[2],&rd_high_cd[2]);
+
+	fscanf(fp1,"hook_wr1 %x %x %x\n",&wr_mode_cd[0],&wr_low_cd[0],&wr_high_cd[0]);
+	fscanf(fp1,"hook_wr2 %x %x %x\n",&wr_mode_cd[1],&wr_low_cd[1],&wr_high_cd[1]);
+	fscanf(fp1,"hook_wr3 %x %x %x\n",&wr_mode_cd[2],&wr_low_cd[2],&wr_high_cd[2]);
+
+	fscanf(fp1,"hook_ppu1 %x %x %x\n",&ppu_mode_cd[0],&ppu_low_cd[0],&ppu_high_cd[0]);
+	fscanf(fp1,"hook_ppu2 %x %x %x\n",&ppu_mode_cd[1],&ppu_low_cd[1],&ppu_high_cd[1]);
+	fscanf(fp1,"hook_ppu3 %x %x %x\n",&ppu_mode_cd[2],&ppu_low_cd[2],&ppu_high_cd[2]);
+
+	pc_start_cd[0] = 0;
+	pc_start_cd[1] = 0;
+	pc_start_cd[2] = 0;
+
+	fclose( fp1 );
+
+	fprintf(fp_hook_cd,"MEMORY ACCESS LOGGING STARTED\n\n");
+
+	return NULL;
+}
 
 void DeInitDebug_cd()
 {
-	if( fp_hook_cd )
+	if (fp_hook_cd && (fp_hook_cd != fp_trace_cd))
 	{
-		fclose( fp_hook_cd );
+		fprintf(fp_hook_cd,"\nMEMORY ACCESS LOGGING STOPPED\n\n");
+		fclose(fp_hook_cd);
+		fp_hook_cd = NULL;
 	}
 
 	if( rd_mode_cd )
@@ -70,12 +150,8 @@ void DeInitDebug_cd()
 		delete[] ppu_high_cd;
 
 		delete[] pc_start_cd;
-	}
 
-	if( fp_trace_cd )
-	{
-		delete[] mapped_cd;
-		fclose( fp_trace_cd );
+		rd_mode_cd = NULL;
 	}
 }
 

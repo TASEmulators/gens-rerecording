@@ -61,30 +61,9 @@ extern "C" void Read_To_68K_Space(int adr);
 #define MAPHACK
 #define uint32 unsigned int
 
-FILE *fp1;
-
-#define STATES 3
-unsigned int *rd_mode, *wr_mode, *ppu_mode, *pc_mode;
-unsigned int *rd_low, *rd_high;
-unsigned int *wr_low, *wr_high;
-unsigned int *ppu_low, *ppu_high;
-unsigned int *pc_low, *pc_high;
-unsigned int *pc_start;
-
-unsigned int *rd_mode_cd, *wr_mode_cd, *ppu_mode_cd, *pc_mode_cd;
-unsigned int *rd_low_cd, *rd_high_cd;
-unsigned int *wr_low_cd, *wr_high_cd;
-unsigned int *ppu_low_cd, *ppu_high_cd;
-unsigned int *pc_low_cd, *pc_high_cd;
-unsigned int *pc_start_cd;
-
+#include "tracer.h"
 bool trace_map=0;
 bool hook_trace=0;
-
-FILE *fp_hook, *fp_hook_cd;
-FILE *fp_trace, *fp_trace_cd;
-char *mapped;
-char *mapped_cd;
 
 #define WM_KNUX WM_USER + 3
 #define GENS_VERSION   2.10
@@ -2056,101 +2035,6 @@ bool Step_Gens_MainLoop(bool allowSleep, bool allowEmulate)
 	}
 
 	return reachedEmulate;
-}
-
-void ReadHookRamFiles()
-{
-
-	fp1 = fopen( "./Logs/hook_log.txt", "r" ); 
-	if( fp1 )
-	{
-		rd_mode = new unsigned int[ STATES ];
-		wr_mode = new unsigned int[ STATES ];
-		pc_mode = new unsigned int[ STATES ];
-		ppu_mode = new unsigned int[ STATES ];
-
-		rd_low = new unsigned int[ STATES ];
-		wr_low = new unsigned int[ STATES ];
-		pc_low = new unsigned int[ STATES ];
-		ppu_low = new unsigned int[ STATES ];
-		
-		rd_high = new unsigned int[ STATES ];
-		wr_high = new unsigned int[ STATES ];
-		pc_high = new unsigned int[ STATES ];
-		ppu_high = new unsigned int[ STATES ];
-
-		pc_start = new unsigned int[ STATES ];
-
-		fscanf(fp1,"hook_pc1 %x %x %x\n",&pc_mode[0],&pc_low[0],&pc_high[0]);
-		fscanf(fp1,"hook_pc2 %x %x %x\n",&pc_mode[1],&pc_low[1],&pc_high[1]);
-		fscanf(fp1,"hook_pc3 %x %x %x\n",&pc_mode[2],&pc_low[2],&pc_high[2]);
-
-		fscanf(fp1,"hook_rd1 %x %x %x\n",&rd_mode[0],&rd_low[0],&rd_high[0]);
-		fscanf(fp1,"hook_rd2 %x %x %x\n",&rd_mode[1],&rd_low[1],&rd_high[1]);
-		fscanf(fp1,"hook_rd3 %x %x %x\n",&rd_mode[2],&rd_low[2],&rd_high[2]);
-
-		fscanf(fp1,"hook_wr1 %x %x %x\n",&wr_mode[0],&wr_low[0],&wr_high[0]);
-		fscanf(fp1,"hook_wr2 %x %x %x\n",&wr_mode[1],&wr_low[1],&wr_high[1]);
-		fscanf(fp1,"hook_wr3 %x %x %x\n",&wr_mode[2],&wr_low[2],&wr_high[2]);
-
-		fscanf(fp1,"hook_ppu1 %x %x %x\n",&ppu_mode[0],&ppu_low[0],&ppu_high[0]);
-		fscanf(fp1,"hook_ppu2 %x %x %x\n",&ppu_mode[1],&ppu_low[1],&ppu_high[1]);
-		fscanf(fp1,"hook_ppu3 %x %x %x\n",&ppu_mode[2],&ppu_low[2],&ppu_high[2]);
-
-		pc_start[0] = 0;
-		pc_start[1] = 0;
-		pc_start[2] = 0;
-
-		fclose( fp1 );
-	}
-	else
-		MessageBox(HWnd, "File ./Logs/hook_log.txt not found.", "Error", MB_OK);
-
-	fp1 = fopen( "./Logs/hook_log_cd.txt", "r" );
-	if( fp1 )
-	{
-		rd_mode_cd = new unsigned int[ STATES ];
-		wr_mode_cd = new unsigned int[ STATES ];
-		pc_mode_cd = new unsigned int[ STATES ];
-		ppu_mode_cd = new unsigned int[ STATES ];
-
-		rd_low_cd = new unsigned int[ STATES ];
-		wr_low_cd = new unsigned int[ STATES ];
-		pc_low_cd = new unsigned int[ STATES ];
-		ppu_low_cd = new unsigned int[ STATES ];
-		
-		rd_high_cd = new unsigned int[ STATES ];
-		wr_high_cd = new unsigned int[ STATES ];
-		pc_high_cd = new unsigned int[ STATES ];
-		ppu_high_cd = new unsigned int[ STATES ];
-
-		pc_start_cd = new unsigned int[ STATES ];
-
-		fscanf(fp1,"hook_pc1 %x %x %x\n",&pc_mode_cd[0],&pc_low_cd[0],&pc_high_cd[0]);
-		fscanf(fp1,"hook_pc2 %x %x %x\n",&pc_mode_cd[1],&pc_low_cd[1],&pc_high_cd[1]);
-		fscanf(fp1,"hook_pc3 %x %x %x\n",&pc_mode_cd[2],&pc_low_cd[2],&pc_high_cd[2]);
-
-		fscanf(fp1,"hook_rd1 %x %x %x\n",&rd_mode_cd[0],&rd_low_cd[0],&rd_high_cd[0]);
-		fscanf(fp1,"hook_rd2 %x %x %x\n",&rd_mode_cd[1],&rd_low_cd[1],&rd_high_cd[1]);
-		fscanf(fp1,"hook_rd3 %x %x %x\n",&rd_mode_cd[2],&rd_low_cd[2],&rd_high_cd[2]);
-
-		fscanf(fp1,"hook_wr1 %x %x %x\n",&wr_mode_cd[0],&wr_low_cd[0],&wr_high_cd[0]);
-		fscanf(fp1,"hook_wr2 %x %x %x\n",&wr_mode_cd[1],&wr_low_cd[1],&wr_high_cd[1]);
-		fscanf(fp1,"hook_wr3 %x %x %x\n",&wr_mode_cd[2],&wr_low_cd[2],&wr_high_cd[2]);
-
-		fscanf(fp1,"hook_ppu1 %x %x %x\n",&ppu_mode_cd[0],&ppu_low_cd[0],&ppu_high_cd[0]);
-		fscanf(fp1,"hook_ppu2 %x %x %x\n",&ppu_mode_cd[1],&ppu_low_cd[1],&ppu_high_cd[1]);
-		fscanf(fp1,"hook_ppu3 %x %x %x\n",&ppu_mode_cd[2],&ppu_low_cd[2],&ppu_high_cd[2]);
-
-		pc_start_cd[0] = 0;
-		pc_start_cd[1] = 0;
-		pc_start_cd[2] = 0;
-
-		fclose( fp1 );
-	}
-	else
-		MessageBox(HWnd, "File ./Logs/hook_log_cd.txt not found.", "Error", MB_OK);
-
 }
 
 #ifdef _DEBUG
@@ -4495,44 +4379,26 @@ dialogAgain: //Nitsuja added this
 				case ID_CHANGE_TRACE:
 				{
 					trace_map = !trace_map;
-					Build_Main_Menu();
 					if (trace_map)
 					{
-						if( !fp_trace )
+						const char * err = InitTrace();
+						if (!err && SegaCD_Started)
+							err = InitTrace_cd();
+						if (err)
 						{
-							fp_trace = fopen( "./Logs/trace.log", "a" );
-							mapped = new char[ 0x100*0x10000 ];
-							memset( mapped,0,0x100*0x10000 );
-//							fseek(fp_trace,0,SEEK_END);
-							fprintf(fp_trace,"TRACE STARTED\n\n");
-						}
-						if (SegaCD_Started && !fp_trace_cd)
-						{
-							fp_trace_cd = fopen( "./Logs/trace_cd.log", "a" );
-							mapped_cd = new char[ 0x100*0x10000 ];
-							memset( mapped_cd,0,0x100*0x10000 );
-//							fseek(fp_trace_cd,0,SEEK_END);
-							fprintf(fp_trace_cd,"TRACE STARTED\n\n");
+							DeInitTrace();
+							DeInitTrace_cd();
+							trace_map = false;
+
+							MessageBox(hWnd, err, "Error", MB_OK);
 						}
 					}
 					else
 					{
-						if( fp_trace )
-						{
-							fprintf(fp_trace,"\nTRACE STOPPED\n\n");
-							fclose(fp_trace);
-							delete [] (mapped);
-							fp_trace = NULL;
-						}
-						if ( fp_trace_cd )
-						{
-							fprintf(fp_trace_cd,"\nTRACE STOPPED\n\n");
-							fclose(fp_trace_cd);
-							delete [] (mapped_cd);
-							fp_trace_cd = NULL;
-						}
+						DeInitTrace();
+						DeInitTrace_cd();
 					}
-
+					Build_Main_Menu();
 
 					char message [256];
 					sprintf(message, "Instruction logging %sed", trace_map?"start":"end");
@@ -4544,41 +4410,26 @@ dialogAgain: //Nitsuja added this
 				case ID_CHANGE_HOOK:
 				{
 					hook_trace = !hook_trace;
-					Build_Main_Menu();
 					if (hook_trace)
 					{
-						ReadHookRamFiles(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
-						if( !fp_hook )
+						const char * err = InitDebug(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
+						if (!err && SegaCD_Started)
+							err = InitDebug_cd();
+						if (err)
 						{
-							fp_hook = fopen( "./Logs/hook.txt", "a" );
-							fseek(fp_hook,0,SEEK_END);
-						}
-						fprintf(fp_hook,"MEMORY ACCESS LOGGING STARTED\n\n");
-						if (SegaCD_Started) 
-						{
-							if (!fp_hook_cd) 
-							{
-								fp_hook_cd = fopen( "./Logs/hook_cd.txt", "a" );
-								fseek(fp_hook_cd,0,SEEK_END);
-							}
-							fprintf(fp_hook_cd,"MEMORY ACCESS LOGGING STARTED\n\n");
+							DeInitDebug();
+							DeInitDebug_cd();
+							hook_trace = false;
+
+							MessageBox(hWnd, err, "Error", MB_OK);
 						}
 					}
 					else
 					{
-						if(fp_hook && (fp_hook != fp_trace))
-						{
-							fprintf(fp_hook,"\nMEMORY ACCESS LOGGING STOPPED\n\n");
-							fclose(fp_hook);
-							fp_hook = NULL;
-						}
-						if (fp_hook_cd && (fp_hook_cd != fp_trace_cd))
-						{
-							fprintf(fp_hook_cd,"\nMEMORY ACCESS LOGGING STOPPED\n\n");
-							fclose(fp_hook_cd);
-							fp_hook_cd = NULL;
-						}
+						DeInitDebug();
+						DeInitDebug_cd();
 					}
+					Build_Main_Menu();
 					
 					char message [256];
 					sprintf(message, "RAM logging %sed", hook_trace?"start":"end");
