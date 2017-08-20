@@ -243,66 +243,71 @@ static void GensTrace_trace()
 		mapped[ hook_pc ] ++;
 	}
 }
+
+static void GensTrace_hook()
+{
+	for( int lcv = 0; lcv < STATES; lcv++ )
+	{
+		FILE *out;
+
+		// start-stop
+		if( pc_mode[ lcv ] & 1 )
+		{
+			if( hook_pc == pc_low[lcv] )
+				pc_start[lcv] = 1;
+
+			if( !pc_start[lcv] ) continue;
+
+			out = fp_hook;
+		}
+		// low-high
+		else
+		{
+			// fail: outside boundaries
+			if( hook_pc < pc_low[ lcv ] ) continue;
+			if( hook_pc > pc_high[ lcv ] ) continue;
+		}
+
+// ------------------------------------------------------
+
+		if( pc_mode[ lcv ] >= 4 && pc_mode[ lcv ] < 8 )
+		{
+			pc_mode[ lcv ] &= 3;
+			trace_map = 1;
+		}
+
+		// output file mode
+		out = ( pc_mode[ lcv ] <= 1 ) ? fp_hook : fp_trace;
+
+		if( !out ) continue;
+		if( out == fp_trace )
+			fprintf( out, "** " );
+
+		Print_Instruction( out );
+
+
+		// end formatting
+		if( hook_pc == pc_high[lcv] )
+		{
+			pc_start[lcv] = 0;
+
+			if( pc_low[ lcv ] != pc_high[ lcv ] )
+				fprintf( out, "\n" );
+		}
+	} // end STATES
+}
+
 void GensTrace()
 {
 	// Trace.txt
 	if( trace_map )
 		GensTrace_trace();
-	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 
 	// Hook.txt
 	if( hook_trace )
-	{
-		for( int lcv = 0; lcv < STATES; lcv++ )
-		{
-			FILE *out;
+		GensTrace_hook();
 
-			// start-stop
-			if( pc_mode[ lcv ] & 1 )
-			{
-				if( hook_pc == pc_low[lcv] )
-					pc_start[lcv] = 1;
-
-				if( !pc_start[lcv] ) continue;
-
-				out = fp_hook;
-			}
-			// low-high
-			else
-			{
-				// fail: outside boundaries
-				if( hook_pc < pc_low[ lcv ] ) continue;
-				if( hook_pc > pc_high[ lcv ] ) continue;
-			}
-
-// ------------------------------------------------------
-
-			if( pc_mode[ lcv ] >= 4 && pc_mode[ lcv ] < 8 )
-			{
-				pc_mode[ lcv ] &= 3;
-				trace_map = 1;
-			}
-
-			// output file mode
-			out = ( pc_mode[ lcv ] <= 1 ) ? fp_hook : fp_trace;
-
-			if( !out ) continue;
-			if( out == fp_trace )
-				fprintf( out, "** " );
-
-			Print_Instruction( out );
-
-
-			// end formatting
-			if( hook_pc == pc_high[lcv] )
-			{
-				pc_start[lcv] = 0;
-
-				if( pc_low[ lcv ] != pc_high[ lcv ] )
-					fprintf( out, "\n" );
-			}
-		} // end STATES
-	} // end hook
+	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 }
 
 static void trace_read_byte_internal()
