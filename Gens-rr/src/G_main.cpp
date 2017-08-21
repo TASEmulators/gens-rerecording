@@ -468,6 +468,67 @@ int Change_Debug(HWND hWnd, int Debug_Mode)
 	return 1;
 }
 
+int Change_Trace()
+{
+	trace_map = !trace_map;
+	if (trace_map)
+	{
+		const char * err = InitTrace();
+		if (!err && SegaCD_Started)
+			err = InitTrace_cd();
+		if (err)
+		{
+			DeInitTrace();
+			DeInitTrace_cd();
+			trace_map = false;
+
+			MessageBox(HWnd, err, "Error", MB_OK);
+		}
+	}
+	else
+	{
+		DeInitTrace();
+		DeInitTrace_cd();
+	}
+	Build_Main_Menu();
+
+	char message [256];
+	sprintf(message, "Instruction logging %sed", trace_map?"start":"end");
+	MESSAGE_L(message, message)
+
+	return 1;
+}
+
+int Change_Hook()
+{
+	hook_trace = !hook_trace;
+	if (hook_trace)
+	{
+		const char * err = InitDebug(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
+		if (!err && SegaCD_Started)
+			err = InitDebug_cd();
+		if (err)
+		{
+			DeInitDebug();
+			DeInitDebug_cd();
+			hook_trace = false;
+
+			MessageBox(HWnd, err, "Error", MB_OK);
+		}
+	}
+	else
+	{
+		DeInitDebug();
+		DeInitDebug_cd();
+	}
+	Build_Main_Menu();
+
+	char message [256];
+	sprintf(message, "RAM logging %sed", hook_trace?"start":"end");
+	MESSAGE_L(message, message)
+
+	return 1;
+}
 
 int Change_Fast_Blur(HWND hWnd)
 {
@@ -4377,66 +4438,12 @@ dialogAgain: //Nitsuja added this
 				}
 
 				case ID_CHANGE_TRACE:
-				{
-					trace_map = !trace_map;
-					if (trace_map)
-					{
-						const char * err = InitTrace();
-						if (!err && SegaCD_Started)
-							err = InitTrace_cd();
-						if (err)
-						{
-							DeInitTrace();
-							DeInitTrace_cd();
-							trace_map = false;
-
-							MessageBox(hWnd, err, "Error", MB_OK);
-						}
-					}
-					else
-					{
-						DeInitTrace();
-						DeInitTrace_cd();
-					}
-					Build_Main_Menu();
-
-					char message [256];
-					sprintf(message, "Instruction logging %sed", trace_map?"start":"end");
-					MESSAGE_L(message, message)
-
+					Change_Trace();
 					return 0;
-				}
 
 				case ID_CHANGE_HOOK:
-				{
-					hook_trace = !hook_trace;
-					if (hook_trace)
-					{
-						const char * err = InitDebug(); // you can edit the hook_log.txt and hook_log_cd.txt files while the emulator is running, now.
-						if (!err && SegaCD_Started)
-							err = InitDebug_cd();
-						if (err)
-						{
-							DeInitDebug();
-							DeInitDebug_cd();
-							hook_trace = false;
-
-							MessageBox(hWnd, err, "Error", MB_OK);
-						}
-					}
-					else
-					{
-						DeInitDebug();
-						DeInitDebug_cd();
-					}
-					Build_Main_Menu();
-					
-					char message [256];
-					sprintf(message, "RAM logging %sed", hook_trace?"start":"end");
-					MESSAGE_L(message, message)
-
+					Change_Hook();
 					return 0;
-				}
 
 				case ID_EMULATION_PAUSED:
 					if (Debug)

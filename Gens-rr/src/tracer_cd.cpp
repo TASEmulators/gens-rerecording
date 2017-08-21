@@ -25,6 +25,8 @@ unsigned int *pc_start_cd;
 extern bool trace_map;
 extern bool hook_trace;
 
+int Change_Trace();
+
 extern "C" {
 	extern uint32 hook_address_cd;
 	extern uint32 hook_value_cd;
@@ -243,6 +245,19 @@ static void GensTrace_cd_trace()
 	}
 }
 
+void GensTrace_cd_autotrace()
+{
+	if (!trace_map)
+		Change_Trace();
+	if (trace_map)
+	{
+		fprintf(fp_trace_cd, "Auto Trace Triggered\n");
+		hook_trace = false;
+		GensTrace_cd_trace();
+		hook_trace = true;
+	}
+}
+
 static void GensTrace_cd_hook()
 {
 	for( int lcv = 0; lcv < STATES; lcv++ )
@@ -345,11 +360,7 @@ static void trace_read_byte_cd_internal()
 		if( rd_mode_cd[ lcv ] >= 4 && rd_mode_cd[ lcv ] < 8 )
 		{
 			rd_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -407,11 +418,7 @@ static void trace_read_word_cd_internal()
 		if( rd_mode_cd[ lcv ] >= 4 && rd_mode_cd[ lcv ] < 8 )
 		{
 			rd_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -469,11 +476,7 @@ static void trace_read_dword_cd_internal()
 		if( rd_mode_cd[ lcv ] >= 4 && rd_mode_cd[ lcv ] < 8 )
 		{
 			rd_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -531,11 +534,7 @@ static void trace_write_byte_cd_internal()
 		if( wr_mode_cd[ lcv ] >= 4 && wr_mode_cd[ lcv ] < 8 )
 		{
 			wr_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -593,11 +592,7 @@ static void trace_write_word_cd_internal()
 		if( wr_mode_cd[ lcv ] >= 4 && wr_mode_cd[ lcv ] < 8 )
 		{
 			wr_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -655,11 +650,7 @@ static void trace_write_dword_cd_internal()
 		if( wr_mode_cd[ lcv ] >= 4 && wr_mode_cd[ lcv ] < 8 )
 		{
 			wr_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -725,11 +716,7 @@ static void hook_dma_cd()
 		if( rd_mode_cd[ lcv ] >= 4 && rd_mode_cd[ lcv ] < 8 )
 		{
 			rd_mode_cd[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -805,11 +792,7 @@ static void hook_dma_cd()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -894,11 +877,7 @@ static void trace_write_vram_byte_cd_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -978,11 +957,7 @@ static void trace_write_vram_word_cd_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -1060,11 +1035,7 @@ static void trace_read_vram_byte_cd_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -1144,11 +1115,7 @@ static void trace_read_vram_word_cd_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode
@@ -1199,11 +1166,7 @@ static void hook_vdp_reg_cd_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace_cd();
-			hook_trace = 1;
+			GensTrace_cd_autotrace();
 		}
 
 		// output file mode

@@ -25,6 +25,8 @@ unsigned int *pc_start;
 extern bool trace_map;
 extern bool hook_trace;
 
+int Change_Trace();
+
 extern "C" {
 	extern uint32 hook_address;
 	extern uint32 hook_value;
@@ -244,6 +246,19 @@ static void GensTrace_trace()
 	}
 }
 
+void GensTrace_autotrace()
+{
+	if (!trace_map)
+		Change_Trace();
+	if (trace_map)
+	{
+		fprintf(fp_trace, "Auto Trace Triggered\n");
+		hook_trace = false;
+		GensTrace_trace();
+		hook_trace = true;
+	}
+}
+
 static void GensTrace_hook()
 {
 	for( int lcv = 0; lcv < STATES; lcv++ )
@@ -345,11 +360,7 @@ static void trace_read_byte_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -408,11 +419,7 @@ static void trace_read_word_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -470,11 +477,7 @@ static void trace_read_dword_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -534,11 +537,7 @@ static void trace_write_byte_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -601,11 +600,7 @@ static void trace_write_word_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -663,11 +658,7 @@ static void trace_write_dword_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -730,11 +721,7 @@ static void hook_dma_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -810,11 +797,7 @@ static void hook_dma_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -899,11 +882,7 @@ static void trace_write_vram_byte_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -981,11 +960,7 @@ static void trace_write_vram_word_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -1063,11 +1038,7 @@ static void trace_read_vram_byte_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -1145,11 +1116,7 @@ static void trace_read_vram_word_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -1200,11 +1167,7 @@ static void hook_vdp_reg_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
