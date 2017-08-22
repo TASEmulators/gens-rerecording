@@ -24,6 +24,7 @@ unsigned int *pc_start_cd;
 
 extern bool trace_map;
 extern bool hook_trace;
+extern unsigned char trace_limit;
 
 int Change_Trace();
 
@@ -238,11 +239,16 @@ void Print_Instruction_cd( FILE *trace )
 
 static void GensTrace_cd_trace()
 {
-	if(mapped_cd[ hook_pc_cd ] < 0x40)
+	if (trace_limit)
 	{
-		Print_Instruction_cd( fp_trace_cd );
-		mapped_cd[ hook_pc_cd ] ++;
+		if(mapped_cd[ hook_pc_cd ] < 0x40)
+		{
+			Print_Instruction_cd( fp_trace_cd );
+			mapped_cd[ hook_pc_cd ] ++;
+		}
 	}
+	else
+		Print_Instruction_cd( fp_trace_cd );
 }
 
 void GensTrace_cd_autotrace()

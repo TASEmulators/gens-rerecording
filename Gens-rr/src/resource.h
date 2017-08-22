@@ -621,6 +621,7 @@
 #define ID_CHANGE_HOOK                  43201
 #define ID_PREV_TRACK                   43202
 #define ID_NEXT_TRACK                   43203
+#define ID_CHANGE_TRACE_LIMIT           43204
 #define IDC_MASTVOL                     43300
 #define IDC_2612VOL                     43301
 #define IDC_PSGVOL                      43302

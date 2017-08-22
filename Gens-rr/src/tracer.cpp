@@ -24,6 +24,7 @@ unsigned int *pc_start;
 
 extern bool trace_map;
 extern bool hook_trace;
+extern unsigned char trace_limit;
 
 int Change_Trace();
 
@@ -239,11 +240,16 @@ void Print_Instruction( FILE *trace )
 
 static void GensTrace_trace()
 {
-	if(mapped[ hook_pc ] < 0x40)
+	if (trace_limit)
 	{
-		Print_Instruction( fp_trace );
-		mapped[ hook_pc ] ++;
+		if(mapped[ hook_pc ] < trace_limit)
+		{
+			Print_Instruction( fp_trace );
+			mapped[ hook_pc ] ++;
+		}
 	}
+	else
+		Print_Instruction( fp_trace );
 }
 
 void GensTrace_autotrace()
