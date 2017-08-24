@@ -24,6 +24,7 @@ unsigned int *pc_start;
 
 extern bool trace_map;
 extern bool hook_trace;
+extern bool trace_indent;
 extern unsigned char trace_limit;
 
 int Change_Trace();
@@ -202,6 +203,18 @@ void Print_Instruction( FILE *trace )
 
 	int PC;
 	int OPC = M68K_RW(Current_PC);
+
+	if (trace_indent)
+	{
+		uint32 stackcurrent = main68k_context.areg[7];
+		uint32 stackroot = Rom_Data[2] | (Rom_Data[3] << 8) | (Rom_Data[0] << 16) | (Rom_Data[1] << 24);
+		uint32 stacksize = ((stackroot - stackcurrent) / 4) & 63;
+
+		for (unsigned int i = 0; i < stacksize; i++)
+		{
+			fputc( ' ', trace );
+		}
+	}
 
 	PC = Current_PC;
 	sprintf( String, "%02X:%04X  %02X %02X  %-33s",
