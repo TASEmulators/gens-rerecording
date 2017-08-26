@@ -81,12 +81,30 @@
 	{
 		unsigned char State_Buffer[CHECKED_STATE_LENGTH];
 	};
+#ifdef MANUAL_DESYNC_CHECKS_ONLY
 	std::map<int, SaveStateData> saveStateDataMap;
+#else
+	struct map_dummy : SaveStateData // for keeping only single frame, and avoid stack overflow
+	{
+		typedef SaveStateData* iterator;
+		int FrameCount;
+		map_dummy() : FrameCount(-1) {}
+		SaveStateData & operator[] (int n) { FrameCount = n; return *this; }
+		iterator find(int n) { return n == FrameCount ? this : NULL; }
+		iterator end() { return NULL; }
+		void clear() { FrameCount = -1; }
+	};
+	static ALIGN16 map_dummy saveStateDataMap;
+#endif
 
 	int firstFailureByte = -1;
 	bool CompareSaveStates(SaveStateData& data1, SaveStateData& data2)
 	{
-		SaveStateData difference;
+		// memcmp usually faster than byte by byte comparison
+		if (!memcmp(data1.State_Buffer, data2.State_Buffer, CHECKED_STATE_LENGTH))
+			return true;
+
+		static ALIGN16 SaveStateData difference;
 		bool ok = true;
 		firstFailureByte = -1;
 		static const int maxFailures = 4000; // print at most this many failure at once
@@ -113,7 +131,7 @@
 		return ok;
 	}
 
-	static SaveStateData tempData;
+	static ALIGN16 SaveStateData tempData;
 
 	void DesyncDetection(bool forceCheckingDesync=false, bool forcePart=false)
 	{
@@ -144,18 +162,16 @@
 			if(checkingDesyncPart == 0)
 			{
 				// first part: just save states
-				static SaveStateData data;
+				SaveStateData &data = saveStateDataMap[FrameCount];
 
 				//Save_State_To_Buffer(data.State_Buffer);
 				memset(data.State_Buffer, 0, sizeof(data.State_Buffer));
 				Export_Func(data.State_Buffer);
-
-				saveStateDataMap[FrameCount] = data;
 			}
 			else
 			{
 				// second part: compare to saved states
-				static SaveStateData dataNow;
+				static ALIGN16 SaveStateData dataNow;
 
 				//Save_State_To_Buffer(dataNow.State_Buffer);
 				memset(dataNow.State_Buffer, 0, sizeof(dataNow.State_Buffer));
@@ -200,17 +216,16 @@
 	{ \
 		if(!((TurboMode))) { \
 			Save_State_To_Buffer(State_Buffer); /* save */ \
-			disableSound = true; \
 			fastname##_Real(); /* run 2 frames */ \
 			fastname##_Real(); \
+			Do_VDP_Refresh(); \
 			DesyncDetection(1,0); /* save */ \
 			Load_State_From_Buffer(State_Buffer); /* load */ \
-			fastname##_Real(); /* run 2 frames */ \
-			fastname##_Real(); \
+			name##_Real(); /* run 2 frames */ \
+			name##_Real(); \
 			DesyncDetection(1,1); /* check that it's identical to last save ... this is the slow part */ \
 			Load_State_From_Buffer(State_Buffer); /* load */ \
 			saveStateDataMap.clear(); \
-			disableSound = false; \
 		} \
 		return name##_Real(); /* run the frame for real */ \
 	} \
@@ -1374,6 +1389,9 @@ DO_FRAME_HEADER(Do_Genesis_Frame_No_VDP, Do_Genesis_Frame_No_VDP)
 int Do_VDP_Refresh()
 {
 	int VDP_Current_Line_bak = VDP_Current_Line;
+	int VDP_Status_bak = VDP_Status;
+	int VRam_Flag_bak = VRam_Flag;
+	VRam_Flag = 1; // full reconstruction of cached sprite table
 
 	if ((CPU_Mode) && (VDP_Reg.Set2 & 0x8))	VDP_Num_Vis_Lines = 240;
 	else VDP_Num_Vis_Lines = 224;
@@ -1402,6 +1420,8 @@ int Do_VDP_Refresh()
 	}
 
 	VDP_Current_Line = VDP_Current_Line_bak;
+	VDP_Status = VDP_Status_bak;
+	VRam_Flag = VRam_Flag_bak;
 
 	Update_RAM_Search();
 #ifdef RKABOXHACK

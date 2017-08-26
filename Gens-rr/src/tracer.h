@@ -26,8 +26,12 @@ extern "C" {
 	void GensTrace_cd();
 }
 
-void InitDebug();
-void InitDebug_cd();
+const char * InitTrace();
+const char * InitTrace_cd();
+void DeInitTrace();
+void DeInitTrace_cd();
+const char * InitDebug();
+const char * InitDebug_cd();
 void DeInitDebug();
 void DeInitDebug_cd();
 #endif

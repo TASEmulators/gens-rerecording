@@ -7,23 +7,27 @@
 #include "Mem_S68k.h"
 #include "vdp_io.h"
 #include "luascript.h"
+#include "tracer.h"
 
 #define uint32 unsigned int
 
-extern FILE* fp_trace;
-extern FILE* fp_call;
-extern FILE* fp_hook;
+FILE* fp_trace;
+FILE* fp_hook;
 
 #define STATES 3
-extern unsigned int *rd_mode, *wr_mode, *ppu_mode, *pc_mode;
-extern unsigned int *rd_low, *rd_high;
-extern unsigned int *wr_low, *wr_high;
-extern unsigned int *ppu_low, *ppu_high;
-extern unsigned int *pc_low, *pc_high;
-extern unsigned int *pc_start;
+unsigned int *rd_mode, *wr_mode, *ppu_mode, *pc_mode;
+unsigned int *rd_low, *rd_high;
+unsigned int *wr_low, *wr_high;
+unsigned int *ppu_low, *ppu_high;
+unsigned int *pc_low, *pc_high;
+unsigned int *pc_start;
 
 extern bool trace_map;
 extern bool hook_trace;
+extern bool trace_indent;
+extern unsigned char trace_limit;
+
+int Change_Trace();
 
 extern "C" {
 	extern uint32 hook_address;
@@ -31,35 +35,107 @@ extern "C" {
 	extern uint32 hook_pc;
 	
 	unsigned int dma_src, dma_len;
-
-	void trace_read_byte();
-	void trace_read_word();
-	void trace_read_dword();
-	void trace_write_byte();
-	void trace_write_word();
-	void trace_write_dword();
-
-	void trace_write_vram_byte();
-	void trace_write_vram_word();
-	void trace_read_vram_byte();
-	void trace_read_vram_word();
-
-	void hook_dma();
-	void hook_vdp_reg();
-
-	void GensTrace();
 };
 
-extern char *mapped;
+char *mapped;
 uint32 Current_PC;
 int Debug = 1;
 
+const char * InitTrace()
+{
+	if( !fp_trace )
+	{
+		fp_trace = fopen( "./Logs/trace.log", "a" );
+		if ( !fp_trace )
+			return "Can't open file ./Logs/trace.log";
+		mapped = new char[ 0x100*0x10000 ];
+		memset( mapped,0,0x100*0x10000 );
+//		fseek(fp_trace,0,SEEK_END);
+		fprintf(fp_trace,"TRACE STARTED\n\n");
+	}
+	return NULL;
+}
+
+void DeInitTrace()
+{
+	if( fp_trace )
+	{
+		fprintf(fp_trace,"\nTRACE STOPPED\n\n");
+		fclose(fp_trace);
+		delete [] (mapped);
+		fp_trace = NULL;
+		mapped = NULL;
+	}
+}
+
+const char * InitDebug()
+{
+	FILE *fp1 = fopen( "./Logs/hook_log.txt", "r" );
+	if( !fp1 )
+		return "File ./Logs/hook_log.txt not found.";
+
+	if( !fp_hook )
+	{
+		fp_hook = fopen( "./Logs/hook.txt", "a" );
+		if ( !fp_hook )
+		{
+			fclose(fp1);
+			return "Can't open file ./Logs/hook.txt";
+		}
+		fseek(fp_hook, 0, SEEK_END);
+	}
+
+	rd_mode = new unsigned int[ STATES ];
+	wr_mode = new unsigned int[ STATES ];
+	pc_mode = new unsigned int[ STATES ];
+	ppu_mode = new unsigned int[ STATES ];
+
+	rd_low = new unsigned int[ STATES ];
+	wr_low = new unsigned int[ STATES ];
+	pc_low = new unsigned int[ STATES ];
+	ppu_low = new unsigned int[ STATES ];
+
+	rd_high = new unsigned int[ STATES ];
+	wr_high = new unsigned int[ STATES ];
+	pc_high = new unsigned int[ STATES ];
+	ppu_high = new unsigned int[ STATES ];
+
+	pc_start = new unsigned int[ STATES ];
+
+	fscanf(fp1,"hook_pc1 %x %x %x\n",&pc_mode[0],&pc_low[0],&pc_high[0]);
+	fscanf(fp1,"hook_pc2 %x %x %x\n",&pc_mode[1],&pc_low[1],&pc_high[1]);
+	fscanf(fp1,"hook_pc3 %x %x %x\n",&pc_mode[2],&pc_low[2],&pc_high[2]);
+
+	fscanf(fp1,"hook_rd1 %x %x %x\n",&rd_mode[0],&rd_low[0],&rd_high[0]);
+	fscanf(fp1,"hook_rd2 %x %x %x\n",&rd_mode[1],&rd_low[1],&rd_high[1]);
+	fscanf(fp1,"hook_rd3 %x %x %x\n",&rd_mode[2],&rd_low[2],&rd_high[2]);
+
+	fscanf(fp1,"hook_wr1 %x %x %x\n",&wr_mode[0],&wr_low[0],&wr_high[0]);
+	fscanf(fp1,"hook_wr2 %x %x %x\n",&wr_mode[1],&wr_low[1],&wr_high[1]);
+	fscanf(fp1,"hook_wr3 %x %x %x\n",&wr_mode[2],&wr_low[2],&wr_high[2]);
+
+	fscanf(fp1,"hook_ppu1 %x %x %x\n",&ppu_mode[0],&ppu_low[0],&ppu_high[0]);
+	fscanf(fp1,"hook_ppu2 %x %x %x\n",&ppu_mode[1],&ppu_low[1],&ppu_high[1]);
+	fscanf(fp1,"hook_ppu3 %x %x %x\n",&ppu_mode[2],&ppu_low[2],&ppu_high[2]);
+
+	pc_start[0] = 0;
+	pc_start[1] = 0;
+	pc_start[2] = 0;
+
+	fclose( fp1 );
+
+	fprintf(fp_hook,"MEMORY ACCESS LOGGING STARTED\n\n");
+
+	return NULL;
+}
 
 void DeInitDebug()
 {
-	if( fp_hook )
+	if(fp_hook && (fp_hook != fp_trace))
 	{
-		fclose( fp_hook );
+		fprintf(fp_hook,"\nMEMORY ACCESS LOGGING STOPPED\n\n");
+		fclose(fp_hook);
+		fp_hook = NULL;
 	}
 
 	if( rd_mode )
@@ -80,12 +156,8 @@ void DeInitDebug()
 		delete[] ppu_high;
 
 		delete[] pc_start;
-	}
 
-	if( fp_trace )
-	{
-		delete[] mapped;
-		fclose( fp_trace );
+		rd_mode = NULL;
 	}
 }
 
@@ -132,6 +204,18 @@ void Print_Instruction( FILE *trace )
 	int PC;
 	int OPC = M68K_RW(Current_PC);
 
+	if (trace_indent)
+	{
+		uint32 stackcurrent = main68k_context.areg[7];
+		uint32 stackroot = Rom_Data[2] | (Rom_Data[3] << 8) | (Rom_Data[0] << 16) | (Rom_Data[1] << 24);
+		uint32 stacksize = ((stackroot - stackcurrent) / 4) & 63;
+
+		for (unsigned int i = 0; i < stacksize; i++)
+		{
+			fputc( ' ', trace );
+		}
+	}
+
 	PC = Current_PC;
 	sprintf( String, "%02X:%04X  %02X %02X  %-33s",
 		PC >> 16, PC & 0xffff, OPC >> 8, OPC & 0xff,
@@ -169,17 +253,94 @@ void Print_Instruction( FILE *trace )
 
 static void GensTrace_trace()
 {
-	if(mapped[ hook_pc ] < 0x40)
+	if (trace_limit)
 	{
+		if(mapped[ hook_pc ] < trace_limit)
+		{
+			Print_Instruction( fp_trace );
+			mapped[ hook_pc ] ++;
+		}
+	}
+	else
 		Print_Instruction( fp_trace );
-		mapped[ hook_pc ] ++;
+}
+
+void GensTrace_autotrace()
+{
+	if (!trace_map)
+		Change_Trace();
+	if (trace_map)
+	{
+		fprintf(fp_trace, "Auto Trace Triggered\n");
+		hook_trace = false;
+		GensTrace_trace();
+		hook_trace = true;
 	}
 }
+
+static void GensTrace_hook()
+{
+	for( int lcv = 0; lcv < STATES; lcv++ )
+	{
+		FILE *out;
+
+		// start-stop
+		if( pc_mode[ lcv ] & 1 )
+		{
+			if( hook_pc == pc_low[lcv] )
+				pc_start[lcv] = 1;
+
+			if( !pc_start[lcv] ) continue;
+
+			out = fp_hook;
+		}
+		// low-high
+		else
+		{
+			// fail: outside boundaries
+			if( hook_pc < pc_low[ lcv ] ) continue;
+			if( hook_pc > pc_high[ lcv ] ) continue;
+		}
+
+// ------------------------------------------------------
+
+		if( pc_mode[ lcv ] >= 4 && pc_mode[ lcv ] < 8 )
+		{
+			pc_mode[ lcv ] &= 3;
+			trace_map = 1;
+		}
+
+		// output file mode
+		out = ( pc_mode[ lcv ] <= 1 ) ? fp_hook : fp_trace;
+
+		if( !out ) continue;
+		if( out == fp_trace )
+			fprintf( out, "** " );
+
+		Print_Instruction( out );
+
+
+		// end formatting
+		if( hook_pc == pc_high[lcv] )
+		{
+			pc_start[lcv] = 0;
+
+			if( pc_low[ lcv ] != pc_high[ lcv ] )
+				fprintf( out, "\n" );
+		}
+	} // end STATES
+}
+
 void GensTrace()
 {
 	// Trace.txt
 	if( trace_map )
 		GensTrace_trace();
+
+	// Hook.txt
+	if( hook_trace )
+		GensTrace_hook();
+
 	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 }
 
@@ -218,11 +379,7 @@ static void trace_read_byte_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -281,11 +438,7 @@ static void trace_read_word_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -343,11 +496,7 @@ static void trace_read_dword_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -407,11 +556,7 @@ static void trace_write_byte_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -474,11 +619,7 @@ static void trace_write_word_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -536,11 +677,7 @@ static void trace_write_dword_internal()
 		if( wr_mode[ lcv ] >= 4 && wr_mode[ lcv ] < 8 )
 		{
 			wr_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -603,11 +740,7 @@ static void hook_dma_internal()
 		if( rd_mode[ lcv ] >= 4 && rd_mode[ lcv ] < 8 )
 		{
 			rd_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -683,11 +816,7 @@ static void hook_dma_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -772,11 +901,7 @@ static void trace_write_vram_byte_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -854,11 +979,7 @@ static void trace_write_vram_word_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -936,11 +1057,7 @@ static void trace_read_vram_byte_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -1018,11 +1135,7 @@ static void trace_read_vram_word_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode
@@ -1073,11 +1186,7 @@ static void hook_vdp_reg_internal()
 		if( ppu_mode[ lcv ] >= 4 && ppu_mode[ lcv ] < 8 )
 		{
 			ppu_mode[ lcv ] &= 3;
-			//trace_map = 1;
-
-			hook_trace = 0;
-			GensTrace();
-			hook_trace = 1;
+			GensTrace_autotrace();
 		}
 
 		// output file mode

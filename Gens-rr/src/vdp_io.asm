@@ -8,6 +8,21 @@ WR_Mode		equ 1
 
 section .data align=64
 
+	extern _hook_write_vram_byte
+	extern _hook_write_vram_word
+	extern _hook_read_vram_byte
+	extern _hook_read_vram_word
+
+	extern _hook_pc
+	extern _hook_address
+	extern _hook_value
+
+	extern _hook_dma
+	extern _dma_src
+	extern _dma_len
+
+	extern _hook_vdp_reg
+
 	extern Rom_Data
 	extern Rom_Size
 	extern Cell_Conv_Tab
@@ -587,6 +602,15 @@ section .text align=64
 		and ebx, 0xFFFE
 		mov [Ctrl.Address], cx
 		mov ax, [VRam + ebx]
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_hook_pc],esi
+		mov [_hook_value],eax
+		call _hook_read_vram_byte
+		popad
+
 		pop ecx
 		pop ebx
 		ret
@@ -737,6 +761,15 @@ section .text align=64
 		mov byte [Ctrl.Flag], 0			; on en a finit avec Address Set
 		mov ah, al
 		jnz near DMA_Fill
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_hook_pc],esi
+		mov [_hook_value],eax
+		call _hook_write_vram_byte
+		popad
+
 		jmp short Write_VDP_Data
 
 	ALIGN32
@@ -747,6 +780,14 @@ section .text align=64
 		mov byte [Ctrl.Flag], 0			; on en a finit avec Address Set
 		mov ax, [esp + 4]
 		jnz near DMA_Fill
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_hook_pc],esi
+		mov [_hook_value],eax
+		call _hook_write_vram_word
+		popad
 
 	Write_VDP_Data:
 		push ebx
@@ -894,6 +935,16 @@ section .text align=64
 		and eax, 0xFF					; on isole la valeur du registre
 		mov dword [Ctrl.Address], 0
 		and ebx, 0x1F					; on isole le numero du registre 
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 0
+		mov [_hook_pc],esi
+		mov [_hook_address],ebx
+		mov [_hook_value],eax
+		call _hook_vdp_reg
+		popad
+
 		jmp [Table_Set_Reg + ebx * 4]	; on affecte en fonction
 
 	ALIGN32
@@ -956,6 +1007,14 @@ section .text align=64
 	DO_DMA:
 		push edi
 		push esi
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_hook_pc],esi
+		mov [_hook_value],eax
+		call _hook_dma
+		popad
 
 		test dword [VDP_Reg.Set_2], 0x10		; DMA enable ?
 		jz near NO_DMA
@@ -1609,6 +1668,13 @@ section .text align=64
 		mov [VDP_Reg.DMA_Length_H], al
 		pop ebx
 		mov [VDP_Reg.DMA_Length + 1], al
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_dma_len],esi
+		popad
+
 		ret
 
 	ALIGN32
@@ -1636,6 +1702,13 @@ section .text align=64
 		and ebx, 0xC0
 		mov [VDP_Reg.DMA_Address + 2], al
 		mov [Ctrl.DMA_Mode], ebx				; DMA Mode
+
+		pushad
+		sub esi,ebp
+		sub esi,byte 2
+		mov [_dma_src],esi
+		popad
+
 		pop ebx
 		ret
 
