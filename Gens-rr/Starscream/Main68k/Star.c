@@ -4761,6 +4761,23 @@ static void eadef_data(
 	main_eamode = immd; idef(n, m | 0x3F, op | 0x3C, proc);
 }
 
+/* Batch idef for all data addressing modes except immediate */
+static void eadef_data_noimm(
+	int n, int m, int op, void(*proc)(void)
+) {
+	if(cease_decode) return;
+	main_eamode = dreg; idef(n, m | 0x38, op | 0x00, proc);
+	main_eamode = aind; idef(n, m | 0x38, op | 0x10, proc);
+	main_eamode = ainc; idef(n, m | 0x38, op | 0x18, proc);
+	main_eamode = adec; idef(n, m | 0x38, op | 0x20, proc);
+	main_eamode = adsp; idef(n, m | 0x38, op | 0x28, proc);
+	main_eamode = axdp; idef(n, m | 0x38, op | 0x30, proc);
+	main_eamode = absw; idef(n, m | 0x3F, op | 0x38, proc);
+	main_eamode = absl; idef(n, m | 0x3F, op | 0x39, proc);
+	main_eamode = pcdp; idef(n, m | 0x3F, op | 0x3A, proc);
+	main_eamode = pcxd; idef(n, m | 0x3F, op | 0x3B, proc);
+}
+
 /* Batch idef for all alterable addressing modes, excluding Address Register
 **  Direct mode when the operand size is 1 */
 static void eadef_alterable_nobyteaddress(
@@ -4876,7 +4893,9 @@ static void decode0(int n) {
 	for(main_cc = 0; main_cc < 4; main_cc++) {
 		void (*eadef)(int n, int m, int op, void(*proc)(void)) =
 			main_cc ? eadef_data_alterable : eadef_data;
-		eadef(n, 0xFFC0, 0x0800 | (main_cc << 6), i_bitop_imm);
+		void (*eadef_imm)(int n, int m, int op, void(*proc)(void)) =
+			main_cc ? eadef_data_alterable : eadef_data_noimm;
+		eadef_imm(n, 0xFFC0, 0x0800 | (main_cc << 6), i_bitop_imm);
 		for(main_reg = 0; main_reg < 8; main_reg++) {
 			eadef(n, 0xFFC0,
 				0x0100 | (main_cc << 6) | (main_reg << 9),
