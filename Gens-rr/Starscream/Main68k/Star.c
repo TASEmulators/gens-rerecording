@@ -4857,15 +4857,15 @@ static void defmove(int majorop, int n) {
 	if(cease_decode) return;
 	for(main_reg = 0; main_reg < 8; main_reg++) {
 		word w = majorop | (main_reg << 9);
-		main_destmode = dreg; eadef_all(n, 0xFFC0, 0x000 | w, i_move);
-		main_destmode = aind; eadef_all(n, 0xFFC0, 0x080 | w, i_move);
-		main_destmode = ainc; eadef_all(n, 0xFFC0, 0x0C0 | w, i_move);
-		main_destmode = adec; eadef_all(n, 0xFFC0, 0x100 | w, i_move);
-		main_destmode = adsp; eadef_all(n, 0xFFC0, 0x140 | w, i_move);
-		main_destmode = axdp; eadef_all(n, 0xFFC0, 0x180 | w, i_move);
+		main_destmode = dreg; eadef_all_nobyteaddress(n, 0xFFC0, 0x000 | w, i_move);
+		main_destmode = aind; eadef_all_nobyteaddress(n, 0xFFC0, 0x080 | w, i_move);
+		main_destmode = ainc; eadef_all_nobyteaddress(n, 0xFFC0, 0x0C0 | w, i_move);
+		main_destmode = adec; eadef_all_nobyteaddress(n, 0xFFC0, 0x100 | w, i_move);
+		main_destmode = adsp; eadef_all_nobyteaddress(n, 0xFFC0, 0x140 | w, i_move);
+		main_destmode = axdp; eadef_all_nobyteaddress(n, 0xFFC0, 0x180 | w, i_move);
 	}
-	main_destmode = absw; eadef_all(n, 0xFFC0, 0x1C0 | majorop, i_move);
-	main_destmode = absl; eadef_all(n, 0xFFC0, 0x3C0 | majorop, i_move);
+	main_destmode = absw; eadef_all_nobyteaddress(n, 0xFFC0, 0x1C0 | majorop, i_move);
+	main_destmode = absl; eadef_all_nobyteaddress(n, 0xFFC0, 0x3C0 | majorop, i_move);
 }
 
 /***************************************************************************/
