@@ -288,6 +288,62 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 				}
 			}
 		}
+		else if ((OPC & 0x3F) >= 0x3A) // special cases
+		{
+			switch(OPC & 0x3F)
+			{
+				case 0x3A: // d16(PC) BTST and CMPI only, but CMPI is not supported by M68000
+					if (OPC == 0x83A)
+					{
+						i = Next_Word() & 0xFF;
+						sprintf(Dbg_Str, "BTST    #$%.2X,$%.4X(PC)", i, Next_Word() & 0xFFFF);
+					}
+					break;
+
+				case 0x3B: // d8(PC,ix) BTST and CMPI only, but CMPI is not supported by M68000
+					if (OPC == 0x83B)
+					{
+						i = Next_Word() & 0xFF;
+						sprintf(Dbg_Str, "BTST    #$%.2X,%s", i, Make_Dbg_EA_Str(0, 7, 3));
+					}
+					break;
+
+				case 0x3C: // #imm
+					switch((OPC>>6) & 0x3F)
+					{
+						case 0: // ORI #imm,CCR
+							i = Next_Word() & 0xFF;
+							sprintf(Dbg_Str, "ORI.B   #$%.2X,CCR", i);
+							break;
+
+						case 1: // ORI #imm,SR
+							i = Next_Word() & 0xFFFF;
+							sprintf(Dbg_Str, "ORI.W   #$%.4X,SR", i);
+							break;
+
+						case 8: // ANDI #imm,CCR
+							i = Next_Word() & 0xFF;
+							sprintf(Dbg_Str, "ANDI.B  #$%.2X,CCR", i);
+							break;
+
+						case 9: // ANDI #imm,SR
+							i = Next_Word() & 0xFFFF;
+							sprintf(Dbg_Str, "ANDI.W  #$%.4X,SR", i);
+							break;
+
+						case 0x28: // EORI #imm,CCR
+							i = Next_Word() & 0xFF;
+							sprintf(Dbg_Str, "EORI.B  #$%.2X,CCR", i);
+							break;
+
+						case 0x29: // EORI #imm,SR
+							i = Next_Word() & 0xFFFF;
+							sprintf(Dbg_Str, "EORI.W  #$%.4X,SR", i);
+							break;
+					}
+					break;
+			}
+		}
 		else
 		{
 			switch((OPC >> 6) & 0x3F)
@@ -535,6 +591,12 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 						break;
 
 					case 43:
+						// ILLEGAL if #imm
+						if ((OPC & 0x3F) == 0x3C)
+						{
+							sprintf(Dbg_Str, "ILLEGAL");
+							break;
+						}
 						//TAS.b a
 						sprintf(Dbg_Str, "TAS.B %s", Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
