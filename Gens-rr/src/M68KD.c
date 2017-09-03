@@ -61,18 +61,18 @@ char *Make_Dbg_EA_Str(int Size, int EA_Num, int Reg_Num)
 			if (i & 0x8000)
 				if (Reg_Num == 7) 
 				{
-					if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(SP,SP)", i & 0xFF);
-					else sprintf(Dbg_EA_Str, "$%.2X(SP,A%.1d)", i & 0xFF, (i >> 12) & 0x7);
+					if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(SP,SP.%c)", i & 0xFF, (i & 0x800 ? 'L' : 'W'));
+					else sprintf(Dbg_EA_Str, "$%.2X(SP,A%.1d.%c)", i & 0xFF, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
 				}
 				else 
 				{
-					if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(A%.1d,SP)", i & 0xFF, Reg_Num);
-					else sprintf(Dbg_EA_Str, "$%.2X(A%.1d,A%.1d)", i & 0xFF, Reg_Num, (i >> 12) & 0x7);
+					if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(A%.1d,SP.%c)", i & 0xFF, Reg_Num, (i & 0x800 ? 'L' : 'W'));
+					else sprintf(Dbg_EA_Str, "$%.2X(A%.1d,A%.1d.%c)", i & 0xFF, Reg_Num, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
 				}
 			else
 			{
-				if (Reg_Num == 7) sprintf(Dbg_EA_Str, "$%.2X(SP,D%.1d)", i & 0xFF, (i >> 12) & 0x7);
-  				else sprintf(Dbg_EA_Str, "$%.2X(A%.1d,D%.1d)", i & 0xFF, Reg_Num, (i >> 12) & 0x7);
+				if (Reg_Num == 7) sprintf(Dbg_EA_Str, "$%.2X(SP,D%.1d.%c)", i & 0xFF, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
+				else sprintf(Dbg_EA_Str, "$%.2X(A%.1d,D%.1d.%c)", i & 0xFF, Reg_Num, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
 			}
 			break;
 
@@ -81,12 +81,12 @@ char *Make_Dbg_EA_Str(int Size, int EA_Num, int Reg_Num)
 			{
 				case 0:
 					// 111 000  addr16      dddddddd dddddddd
-					sprintf(Dbg_EA_Str, "($%.4X)", Next_Word());
+					sprintf(Dbg_EA_Str, "($%.4X).W", Next_Word());
 					break;
 
 				case 1:
 					// 111 001  addr32      dddddddd dddddddd ddddddddd dddddddd
-					sprintf(Dbg_EA_Str, "($%.8X)", Next_Long());
+					sprintf(Dbg_EA_Str, "($%.8X).L", Next_Long());
 					break;
 
 				case 2:
@@ -99,11 +99,11 @@ char *Make_Dbg_EA_Str(int Size, int EA_Num, int Reg_Num)
 					i = Next_Word() & 0xFFFF;
 					if (i & 0x8000)
 					{
-						if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(PC,SP)", i & 0xFF);
-						else sprintf(Dbg_EA_Str, "$%.2X(PC,A%.1d)", i & 0xFF, (i >> 12) & 0x7);
+						if (((i >> 12) & 7) == 7) sprintf(Dbg_EA_Str, "$%.2X(PC,SP.%c)", i & 0xFF, (i & 0x800 ? 'L' : 'W'));
+						else sprintf(Dbg_EA_Str, "$%.2X(PC,A%.1d.%c)", i & 0xFF, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
 					}
 					else
-						sprintf(Dbg_EA_Str, "$%.2X(PC,D%.1d)", i & 0xFF, (i >> 12) & 0x7);
+						sprintf(Dbg_EA_Str, "$%.2X(PC,D%.1d.%c)", i & 0xFF, (i >> 12) & 0x7, (i & 0x800 ? 'L' : 'W'));
 					break;
 
 				case 4:
