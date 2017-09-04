@@ -4,7 +4,7 @@
 #include "mem_S68K.h"
 
 
-static char Dbg_Str[32];
+static char Dbg_Str[64];
 static char Dbg_EA_Str[16];
 static char Dbg_Size_Str[3];
 static char Dbg_Cond_Str[3];
@@ -230,6 +230,64 @@ char *Make_Dbg_Cond_Str(int Cond)
 	return(Dbg_Cond_Str);
 }
 
+// max length is 35 plus terminating zero:
+// d0-d1/d3-d4/d6-d7/a0-a1/a3-a4/a6-a7
+static char Dbg_Reg_List[64];
+
+static char* Make_Reg_Range(char *s, char type, int reg1, int reg2)
+{
+	s[0] = type;
+	s[1] = '0' + reg1;
+	if (reg1 != reg2)
+	{
+		s[2] = '-';
+		s[3] = type;
+		s[4] = '0' + reg2;
+		s[5] = '/';
+		return s+6;
+	}
+	s[2] = '/';
+	return s+3;
+}
+
+// predec = 2 -(Ar)
+// predec = 0 all other
+static char *Make_Reg_List(unsigned short mask, int predec)
+{
+	int i, j, k, prev, first;
+	char *s = Dbg_Reg_List;
+
+	*s = 0;
+	k = (predec ? 1<<15 : 1);
+	for (j = 0; j < 2; ++j)
+	{
+		first = -1;
+		for (i = 0; i < 8; ++i)
+		{
+			if (mask & k)
+			{
+				if (first >= 0)
+				{
+					if (i == prev + 1)
+						prev = i;
+					else
+					{
+						s = Make_Reg_Range(s, (j ? 'A' : 'D'), first, prev);
+						first = -1;
+					}
+				}
+				if (first < 0)
+					first = prev = i;
+			}
+			k = ((k << 1) >> predec);
+		}
+		if (first >= 0)
+			s = Make_Reg_Range(s, (j ? 'A' : 'D'), first, prev);
+	}
+	if (s != Dbg_Reg_List)
+		s[-1] = 0;
+	return Dbg_Reg_List;
+}
 
 char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsigned int hook_pc )
 {
@@ -616,8 +674,8 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 							i = Next_Word(); // Reg-List
 
 							//MOVEM.z Reg-List,a
-							sprintf(Dbg_Str, "MOVEM%-3s{d0-a7}[%02x %02x],%s", Make_Dbg_Size_Str_2((OPC >> 6) & 1),
-								i >> 8, i & 0xff,
+							sprintf(Dbg_Str, "MOVEM%-3s%s,%s", Make_Dbg_Size_Str_2((OPC >> 6) & 1),
+								Make_Reg_List(i, (OPC & 0x38) == 0x20 ? 2 : 0),
 								Make_Dbg_EA_Str_2((OPC >> 6) & 1, (OPC & 0x38) >> 3, OPC & 0x7));
 						}
 						else
@@ -656,8 +714,8 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 						i = Next_Word(); // Reg-List
 
 						//MOVEM.z a,Reg-List
-						sprintf(Dbg_Str, "MOVEM%-3s%s,{a7-d0}[%02x %02x]", Make_Dbg_Size_Str_2((OPC >> 6) & 1), Make_Dbg_EA_Str_2((OPC >> 6) & 1, (OPC & 0x38) >> 3, OPC & 0x7),
-							i >> 8, i & 0xff);
+						sprintf(Dbg_Str, "MOVEM%-3s%s,%s", Make_Dbg_Size_Str_2((OPC >> 6) & 1), Make_Dbg_EA_Str_2((OPC >> 6) & 1, (OPC & 0x38) >> 3, OPC & 0x7),
+							Make_Reg_List(i, 0));
 						}
 						break;
 
