@@ -163,11 +163,11 @@ char *Make_Dbg_Cond_Str(int Cond)
 	switch(Cond)
 	{
 		case 0:
-			sprintf(Dbg_Cond_Str, "Tr");
+			sprintf(Dbg_Cond_Str, "T ");
 			break;
 
 		case 1:
-			sprintf(Dbg_Cond_Str, "Fa");
+			sprintf(Dbg_Cond_Str, "F ");
 			break;
 
 		case 2:
@@ -257,10 +257,10 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 			{
 				if (OPC & 0x080)
 					//MOVEP.z Ds,d16(Ad)
-					sprintf(Dbg_Str, "MOVEP%-3sD%.1d,#$%.4X(A%.1d)", Make_Dbg_Size_Str_2((OPC & 0x40) >> 6), (OPC & 0xE00) >> 9, Next_Word(), OPC & 0x7);
+					sprintf(Dbg_Str, "MOVEP%-3sD%.1d,$%.4X(A%.1d)", Make_Dbg_Size_Str_2((OPC & 0x40) >> 6), (OPC & 0xE00) >> 9, Next_Word(), OPC & 0x7);
 				else
 					//MOVEP.z d16(As),Dd
-					sprintf(Dbg_Str, "MOVEP%-3s#$%.4X(A%.1d),D%.1d", Make_Dbg_Size_Str_2((OPC & 0x40) >> 6), Next_Word(), OPC & 0x7, (OPC & 0xE00) >> 9);
+					sprintf(Dbg_Str, "MOVEP%-3s$%.4X(A%.1d),D%.1d", Make_Dbg_Size_Str_2((OPC & 0x40) >> 6), Next_Word(), OPC & 0x7, (OPC & 0xE00) >> 9);
 			}
 			else
 			{
@@ -268,22 +268,22 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 				{
 					case 0:
 						//BTST  Ds,a
-						sprintf(Dbg_Str, "BTST    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(2, (OPC & 0x38) >> 3, OPC & 7));
+						sprintf(Dbg_Str, "BTST    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 7));
 						break;
 
 					case 1:
 						//BCHG  Ds,a
-						sprintf(Dbg_Str, "BCHG    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(2, (OPC & 0x38) >> 3, OPC & 7));
+						sprintf(Dbg_Str, "BCHG    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 7));
 						break;
 
 					case 2:
 						//BCLR  Ds,a
-						sprintf(Dbg_Str, "BCLR    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(2, (OPC & 0x38) >> 3, OPC & 7));
+						sprintf(Dbg_Str, "BCLR    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 7));
 						break;
 
 					case 3:
 						//BSET  Ds,a
-						sprintf(Dbg_Str, "BSET    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(2, (OPC & 0x38) >> 3, OPC & 7));
+						sprintf(Dbg_Str, "BSET    D%.1d,%s", (OPC & 0xE00) >> 9, Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 7));
 						break;
 				}
 			}
@@ -492,13 +492,13 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 		case 2:
 			//MOVE.l  as,ad
 			sprintf(Tmp_Str, "%s", Make_Dbg_EA_Str(2, (OPC >> 3) & 0x7, OPC & 0x7));
-			sprintf(Dbg_Str, "MOVE.L  %s,%s", Tmp_Str, Make_Dbg_EA_Str(2, (OPC >> 6) & 0x7, (OPC >> 9) & 0x7));
+			sprintf(Dbg_Str, "MOVE%s %s,%s", ((OPC & 0x1C0) == 0x40 ? "A.L" : ".L "), Tmp_Str, Make_Dbg_EA_Str(2, (OPC >> 6) & 0x7, (OPC >> 9) & 0x7));
 			break;
 
 		case 3:
 			//MOVE.w  as,ad
 			sprintf(Tmp_Str, "%s", Make_Dbg_EA_Str(1, (OPC >> 3) & 0x7, OPC & 0x7));
-			sprintf(Dbg_Str, "MOVE.W  %s,%s", Tmp_Str, Make_Dbg_EA_Str(1, (OPC >> 6) & 0x7, (OPC >> 9) & 0x7));
+			sprintf(Dbg_Str, "MOVE%s %s,%s", ((OPC & 0x1C0) == 0x40 ? "A.W" : ".W "), Tmp_Str, Make_Dbg_EA_Str(1, (OPC >> 6) & 0x7, (OPC >> 9) & 0x7));
 			break;
 
 		case 4:
@@ -598,7 +598,7 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 							break;
 						}
 						//TAS.b a
-						sprintf(Dbg_Str, "TAS.B %s", Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "TAS.B   %s", Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 48: case 49:
@@ -632,7 +632,7 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 							case 3:
 								//ULNK Ad
-								sprintf(Dbg_Str, "ULNK    A%.1d", OPC & 0x7);
+								sprintf(Dbg_Str, "UNLK    A%.1d", OPC & 0x7);
 								break;
 
 							case 4:
@@ -710,23 +710,22 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 			if ((OPC & 0xC0) == 0xC0)
 			{
-				unsigned int target = 0;
 				if ((OPC & 0x38) == 0x08)
 				{
 					//DBCC  Ds,label
 					unsigned short word = Next_Word();
-					target = hook_pc + 2 + word;
 					sprintf(Dbg_Str, "DB%-6sD%.1d,#$%.4X", Make_Dbg_Cond_Str((OPC >> 8) & 0xF), OPC & 0x7, word);
+					if (hook)
+					{
+						unsigned int target = hook_pc + 2 + word;
+						sprintf(Dbg_Str + strlen(Dbg_Str), " [%02X:%04X]", target >> 16, target & 0xffff);
+					}
 				}
 				else
 				{
-					//STCC.b  a
-					char offset = OPC & 0xFF;
-					target = hook_pc + 2 + offset;
-					sprintf(Dbg_Str, "ST%-6s%s", Make_Dbg_Cond_Str((OPC >> 8) & 0xF), Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 0x7));
+					//SCC.b  a
+					sprintf(Dbg_Str, "S%-7s%s", Make_Dbg_Cond_Str((OPC >> 8) & 0xF), Make_Dbg_EA_Str(0, (OPC & 0x38) >> 3, OPC & 0x7));
 				}
-				if (hook)
-					sprintf(Dbg_Str + strlen(Dbg_Str), " [%02X:%04X]", target >> 16, target & 0xffff);
 				break;
 			}
 			else
@@ -805,14 +804,14 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 				if (!(OPC & 0xF8))
 				{
 					//SBCD  Ds,Dd
-					sprintf(Dbg_Str, "SBCD D%.1d,D%.1d", OPC & 0x7, (OPC >> 9) & 0x7);
+					sprintf(Dbg_Str, "SBCD    D%.1d,D%.1d", OPC & 0x7, (OPC >> 9) & 0x7);
 					break;
 				}
 
 				if ((OPC & 0xF8) == 0x8)
 				{
 					//SBCD  -(As),-(Ad)
-					sprintf(Dbg_Str, "SBCD -(A%.1d),-(A%.1d)", OPC & 0x7, (OPC >> 9) & 0x7);
+					sprintf(Dbg_Str, "SBCD    -(A%.1d),-(A%.1d)", OPC & 0x7, (OPC >> 9) & 0x7);
 					break;
 				}
 
@@ -908,7 +907,7 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 			if ((OPC & 0X1F8) == 0x140)
 			{
 				//EXG.l Ds,Dd
-				sprintf(Dbg_Str, "EXG.L   D%.1d,D%.1d", OPC & 0x7, (OPC >> 9) & 0x7);
+				sprintf(Dbg_Str, "EXG.L   D%.1d,D%.1d", (OPC >> 9) & 0x7, OPC & 0x7);
 				break;
 			}
 
@@ -922,14 +921,14 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 			if ((OPC & 0X1F8) == 0x148)
 			{
 				//EXG.l As,Ad
-				sprintf(Dbg_Str, "EXG.L   A%.1d,A%.1d", OPC & 0x7, (OPC >> 9) & 0x7);
+				sprintf(Dbg_Str, "EXG.L   A%.1d,A%.1d", (OPC >> 9) & 0x7, OPC & 0x7);
 				break;
 			}
 
 			if ((OPC & 0X1F8) == 0x188)
 			{
-				//EXG.l As,Dd
-				sprintf(Dbg_Str, "EXG.L   A%.1d,D%.1d", OPC & 0x7, (OPC >> 9) & 0x7);
+				//EXG.l Ds,Ad
+				sprintf(Dbg_Str, "EXG.L   D%.1d,A%.1d", (OPC >> 9) & 0x7, OPC & 0x7);
 				break;
 			}
 
@@ -997,42 +996,42 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 				{
 					case 0:
 						//ASR.w  #1,a
-						sprintf(Dbg_Str, "ASR.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ASR.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 	
 					case 1:
 						//ASL.w  #1,a
-						sprintf(Dbg_Str, "ASL.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ASL.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 2:
 						//LSR.w  #1,a
-						sprintf(Dbg_Str, "LSR.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "LSR.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 3:
 						//LSL.w  #1,a
-						sprintf(Dbg_Str, "LSL.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "LSL.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 4:
 						//ROXR.w  #1,a
-						sprintf(Dbg_Str, "ROXR.W  #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ROXR.W  %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 5:
 						//ROXL.w  #1,a
-						sprintf(Dbg_Str, "ROXL.W  #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ROXL.W  %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 6:
 						//ROR.w  #1,a
-						sprintf(Dbg_Str, "ROR.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ROR.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
 
 					case 7:
 						//ROL.w  #1,a
-						sprintf(Dbg_Str, "ROL.W   #1,%s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
+						sprintf(Dbg_Str, "ROL.W   %s", Make_Dbg_EA_Str(1, (OPC & 0x38) >> 3, OPC & 0x7));
 						break;
  
 				}
