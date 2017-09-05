@@ -371,6 +371,7 @@ unsigned int Next_Long(void)
 void Refresh_M68k_Inst(void)
 {
 	unsigned int i, PC;
+	char *s;
 
 	sprintf(Str_Tmp,"** MAIN 68000 DEBUG **");
 	Print_Text(Str_Tmp, 22, 24, 1, GREEN);
@@ -381,7 +382,13 @@ void Refresh_M68k_Inst(void)
 	for(i = 1; i < 14; i++)
 	{
 		PC = Current_PC;
-		sprintf(GString, "%.4X   %-33s\n", PC, M68KDisasm(Next_Word, Next_Long));
+		s = M68KDisasm(Next_Word, Next_Long);
+		if (!s[0])
+		{
+			Current_PC = PC;
+			sprintf(s, "DC.W $%04X", Next_Word());
+		}
+		sprintf(GString, "%.4X   %-33s\n", PC, s);
 		if (i == 1) Print_Text(GString, 39, 1, (i << 3) + 5, RED);
 		else  Print_Text(GString, 39, 1, (i << 3) + 5, WHITE);
 	}
@@ -391,6 +398,7 @@ void Refresh_M68k_Inst(void)
 void Refresh_S68k_Inst(void)
 {
 	unsigned int i, PC;
+	char *s;
 
 	sprintf(Str_Tmp,"** SUB 68000 DEBUG **");
 	Print_Text(Str_Tmp, 22, 24, 1, GREEN);
@@ -400,7 +408,13 @@ void Refresh_S68k_Inst(void)
 	for(i = 1; i < 14; i++)
 	{
 		PC = Current_PC;
-		sprintf(GString, "%.4X   %-33s\n", PC, M68KDisasm(Next_Word, Next_Long));
+		s = M68KDisasm(Next_Word, Next_Long);
+		if (!s[0])
+		{
+			Current_PC = PC;
+			sprintf(s, "DC.W $%04X", Next_Word());
+		}
+		sprintf(GString, "%.4X   %-33s\n", PC, s);
 		if (i == 1) Print_Text(GString, 39, 1, (i << 3) + 5, RED);
 		else  Print_Text(GString, 39, 1, (i << 3) + 5, WHITE);
 	}

@@ -16,7 +16,7 @@ static unsigned int (*Next_Long)();
 char *Make_Dbg_EA_Str(int Size, int EA_Num, int Reg_Num)
 {
 	int i;
-	Dbg_EA_Str[15] = 0;
+	Dbg_EA_Str[0] = 0;
 
 	switch(EA_Num)
 	{
@@ -295,15 +295,13 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 	unsigned short OPC;
 	char Tmp_Str[32];
 
-	Dbg_Str[31] = 0;
-	Tmp_Str[31] = 0;
+	Dbg_Str[0] = 0;
+	Tmp_Str[0] = 0;
 
 	Next_Word = NW;
 	Next_Long = NL;
 
 	OPC = Next_Word();
-
-	sprintf(Dbg_Str, "Unknown Opcode");
 
 	switch(OPC >> 12)
 	{
@@ -704,7 +702,6 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 					case 48: case 49:
 						//Bad Opcode
-						sprintf(Dbg_Str, "Bad Opcode");
 						break;
 
 					case 50: case 51:
@@ -774,7 +771,6 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 									case 4:
 										//Bad Opcode
-										sprintf(Dbg_Str, "Bad Opcode");
 										break;
 
 									case 5:
@@ -992,7 +988,6 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 		case 10:
 			//Bad Opcode
-			sprintf(Dbg_Str, "Bad Opcode");
 			break;
 
 		case 11:
@@ -1278,7 +1273,6 @@ char *M68KDisasm_(unsigned short (*NW)(), unsigned int (*NL)(), int hook, unsign
 
 		case 15:
 			//Bad Opcode
-			sprintf(Dbg_Str, "Bad Opcode");
 			break;
 	}
 	
