@@ -26,6 +26,7 @@ int AVIBreakMovie=0;
 bool AVIFileOk;
 char AVIFileName[1024];
 int AVIHeight224IfNotPAL=1;
+int AVICurrentX=320;
 int AVICurrentY=240;
 int ShotPNGFormat=1;
 
@@ -614,7 +615,7 @@ int Save_Shot(void* Screen,int mode, int Hmode, int Vmode)
 	return(1);
 }
 
-int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
+int Save_Shot_AVI(void* VideoBuf, int mode, int Hmode, int Vmode, HWND hWnd)
 {
 	unsigned char *Src = NULL, *Dest = NULL;
 	int i;
@@ -622,10 +623,14 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 	SetCurrentDirectory(Gens_Path);
 	
 	if (!Game) return(0);
+
+	int X = (Hmode || Correct_256_Aspect_Ratio) ? 320 : 256;
+	int Y = AVIRecorder ? AVICurrentY : ((Vmode || !AVIHeight224IfNotPAL) ? 240 : 224);
 	
-	if(AVIRecorder && AVISplit > 0)
+	if(AVIRecorder)
 	{
-		if((AVIRecorder->GetSize() >> 10) > ((unsigned int)AVISplit << 10))
+		if((AVIRecorder->GetSize() >> 10) > ((unsigned int)AVISplit << 10) && AVISplit > 0
+			|| AVICurrentX != X || AVICurrentY != Y)
 		{
 			int PrevAVIBreakMovie = AVIBreakMovie;
 			Close_AVI();
@@ -633,9 +638,8 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 		}
 	}
 
-	int X = 320;
-	int Y = AVIRecorder ? AVICurrentY : ((Vmode || !AVIHeight224IfNotPAL) ? 240 : 224);
 	AVICurrentY = Y;
+	AVICurrentX = X;
 
     if(AVIRecorder == NULL) 
 	{
@@ -694,7 +698,7 @@ int Save_Shot_AVI(void* VideoBuf, int mode ,int Hmode, int Vmode,HWND hWnd)
 
 			return 0;
 		}
-		if (CleanAvi)
+		if (CleanAvi && AVIBreakMovie==0)
 			return Update_WAV_Dump_AVI();
     }
 
