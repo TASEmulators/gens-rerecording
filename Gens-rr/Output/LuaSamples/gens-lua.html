@@ -121,6 +121,7 @@ ul { list-style-type: none ; list-style-position: outside ; }
 <LI><A HREF="#memory.isvalid">isvalid</A>
 <LI><A HREF="#memory.registerexec">registerexec</A>
 <LI><A HREF="#memory.readbyterange">readbyterange</A>
+<LI><A HREF="#memory.readVRAMbyterange">readVRAMbyterange</A>
 </TD>
 <TD>
 <LI><A HREF="#memory.readword">readword</A>
@@ -718,6 +719,10 @@ Reads 4 bytes of memory (big-endian) and returns the result as an integer betwee
 
 <a name="memory.readbyterange"/><h3>memory.readbyterange (address, size)</h3>
 Reads <code>size</code> bytes of memory and returns the result as an array of integers that are each between 0 and 255, or <b>nil</b> for any bytes in the range you specified that are at <a href="memory.isvalid">invalid</a> addresses. Recall that arrays in Lua are tables that have integer keys (indices) starting at 1.
+<hr>
+
+<a name="memory.readVRAMbyterange"/><h3>memory.readVRAMbyterange (address, size)</h3>
+Reads <code>size</code> bytes of memory from VRAM and returns the result as an array of integers that are each between 0 and 255, or <b>nil</b> for any bytes in the range you specified whose addresses are greater than 0xFFFF. Recall that arrays in Lua are tables that have integer keys (indices) starting at 1.
 <hr>
 
 <a name="memory.writebyte"/><h3>memory.writebyte (address, value)</h3>

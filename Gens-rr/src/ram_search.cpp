@@ -862,6 +862,13 @@ unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size)
 		return ReadValueAtSoftwareAddress(_32X_Ram + address - 0x06000000, size, false);
 	return 0;
 }
+unsigned int ReadValueAtVRAMAddress(unsigned int address, unsigned int size)
+{
+    if((address & ~0xFFFF) == ~0xFFFF)
+        address &= 0xFFFF;
+    return ReadValueAtSoftwareAddress(VRam + address, size, true);
+    return 0;
+}
 
 bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell) {
 	unsigned short scroll_begin, scroll_end, tableA_begin, tableA_end, tableB_begin, tableB_end;
@@ -1051,6 +1058,10 @@ bool IsHardwareROMAddressValid(unsigned int address)
 bool IsHardwareAddressValid(unsigned int address)
 {
 	return IsHardwareROMAddressValid(address) || IsHardwareRAMAddressValid(address);
+}
+bool IsVRAMAddressValid(unsigned int address)
+{
+    return address < 0x10000;
 }
 
 

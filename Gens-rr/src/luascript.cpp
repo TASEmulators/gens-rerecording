@@ -25,6 +25,7 @@
 extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 extern unsigned int ReadValueAtHardwareAddress(unsigned int address, unsigned int size);
+extern unsigned int ReadValueAtVRAMAddress(unsigned int address, unsigned int size);
 extern bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell);
 extern bool ReadVDPPaletteLine(unsigned short line, unsigned short *pal);
 extern bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell);
@@ -33,6 +34,7 @@ extern bool WriteValueAtHardwareAddress(unsigned int address, unsigned int value
 extern bool WriteValueAtHardwareRAMAddress(unsigned int address, unsigned int value, unsigned int size, bool hookless=false);
 extern bool WriteValueAtHardwareROMAddress(unsigned int address, unsigned int value, unsigned int size);
 extern bool IsHardwareAddressValid(unsigned int address);
+extern bool IsVRAMAddressValid(unsigned int address);
 extern bool IsHardwareRAMAddressValid(unsigned int address);
 extern bool IsHardwareROMAddressValid(unsigned int address);
 extern "C" int disableSound2, disableRamSearchUpdate;
@@ -2049,6 +2051,36 @@ DEFINE_LUA_FUNCTION(memory_readbyterange, "address,length")
 
 	return 1;
 }
+
+DEFINE_LUA_FUNCTION(memory_readVRAMbyterange, "address,length")
+{
+    int address = luaL_checkinteger(L,1);
+    int length = luaL_checkinteger(L,2);
+
+    if(length < 0)
+    {
+        address += length;
+        length = -length;
+    }
+
+    // push the array
+    lua_createtable(L, abs(length), 0);
+
+    // put all the values into the (1-based) array
+    for(int a = address, n = 1; n <= length; a++, n++)
+    {
+        if(IsVRAMAddressValid(a))
+        {
+            unsigned char value = (unsigned char)(ReadValueAtVRAMAddress(a, 1) & 0xFF);
+            lua_pushinteger(L, value);
+            lua_rawseti(L, -2, n);
+        }
+        // else leave the value nil
+    }
+
+    return 1;
+}
+
 DEFINE_LUA_FUNCTION(memory_writebyterange, "address,[length,]data")
 {
 	int address = luaL_checkinteger(L,1);
@@ -4056,6 +4088,9 @@ static const struct luaL_reg memorylib [] =
 	{"register", memory_registerwrite},
 	{"registerrun", memory_registerexec},
 	{"registerexecute", memory_registerexec},
+
+        // vram access
+        {"readVRAMbyterange", memory_readVRAMbyterange},
 
 	{NULL, NULL}
 };
